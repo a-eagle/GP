@@ -18,7 +18,7 @@ class ThsWindow(base_win.BaseWindow):
         self.level2CodeHwnd = None
         self.selDayHwnd = None
         self.numberOcr = number_ocr.NumberOCR('day', '0123456789')
-        self.ocr = easyocr.Reader(['en'], download_enabled = True ) # ch_sim  en
+        self.ocr = number_ocr.eocr
 
     @classmethod
     def ins(clazz):
@@ -209,15 +209,21 @@ class ThsWindow(base_win.BaseWindow):
         sx = rimg.horSearchBoxColor(0, 0, 1, img.height, VER_LINE_COLOR)
         if sx < 0:
             return ''
-        rc = (sx + 85, 0, sx + 165, img.height)
+        BG_COLOR = (0, 0, 0)
+        sx = rimg.horSearchBoxColor(sx + 30, 0, 10, img.height, BG_COLOR)
+        if sx < 0:
+            return ''
+        ex = rimg.horSearchBoxColor(sx + 40, 0, 10, img.height, BG_COLOR)
+        if ex < 0:
+            return ''
+        rc = (sx, 0, ex + 5, img.height)
         img = img.crop(rc)
         #img.save('D:/a.bmp')
         rs = self.ocr.readtext(dwu.imgToBmpBytes(img), allowlist = '0123456789')
         if not rs:
             return ''
         code = rs[0][1]
-        print(code, rs)
-        if len(code) != 6:
+        if len(code) == 6:
             return code
         return ''
 

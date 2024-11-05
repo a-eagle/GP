@@ -11,7 +11,7 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
     def __init__(self) -> None:
         self.titleHwnds = set()
         self.wbOcr = number_ocr.NumberOCR('wb', '+-.%0123456789')
-        self.ocr = easyocr.Reader(['en'], download_enabled = True ) # ch_sim  en
+        self.ocr = number_ocr.eocr
 
     # wb = 委比 28.45
     # diff = 委差
@@ -207,7 +207,7 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
 class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
     def __init__(self) -> None:
         super().__init__()
-        self.ocr = easyocr.Reader(['en'], download_enabled = True) # ch_sim
+        self.ocr = number_ocr.eocr # ch_sim
         self.today = None
         self.datas = {} # code : []
         self.thread = base_win.TimerThread()

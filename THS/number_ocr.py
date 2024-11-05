@@ -1,6 +1,9 @@
 import time, os, platform, io
 from PIL import Image
 import win32gui, win32con , win32api, win32ui # pip install pywin32
+import easyocr
+
+eocr = easyocr.Reader(['en'], download_enabled = True ) # ch_sim  en
 
 class RGBImage:
     def __init__(self, oimg : Image) -> None:
