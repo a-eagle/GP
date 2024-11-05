@@ -129,7 +129,7 @@ def _workThread(thsWin : ths_win.ThsWindow, fileName):
             continue
         showTipWins(True)
         updateWindowInfo(thsWin, stateMgr)
-        nowCode = thsWin.findCode_Level2()
+        nowCode = thsWin.findCodeOfCurPage()
         if curCode != nowCode:
             updateCode(nowCode)
         selDay = thsWin.getSelectDay()

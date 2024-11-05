@@ -13,7 +13,7 @@ from Tck import kline_utils, conf, mark_utils, utils, cache
 class ZT_Window(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.layout = base_win.GridLayout((33, '1fr'), ('1fr', ), (5, 10))
+        self.layout = base_win.GridLayout((30, '1fr'), ('1fr', ), (5, 10))
         self.tableWin = ext_win.EditTableWindow()
         self.editorWin = base_win.Editor()
         self.editorWin.placeHolder = ' or条件: |分隔; and条件: 空格分隔'
@@ -102,12 +102,12 @@ class ZT_Window(base_win.BaseWindow):
         btn2.addNamedListener('Click', self.onSync)
 
         fs = {'margins': (0, 3, 0, 0)}
-        flowLayout.addContent(dp, style = fs)
-        flowLayout.addContent(self.editorWin, style = fs)
-        flowLayout.addContent(btn, style = fs)
-        flowLayout.addContent(btn2, style = fs)
-        flowLayout.addContent(self.checkBox, style = fs)
-        flowLayout.addContent(self.autoSyncCheckBox, style = fs)
+        flowLayout.addContent(dp)
+        flowLayout.addContent(self.editorWin)
+        flowLayout.addContent(btn)
+        flowLayout.addContent(btn2)
+        flowLayout.addContent(self.checkBox)
+        flowLayout.addContent(self.autoSyncCheckBox)
         self.layout.setContent(0, 0, flowLayout, {'horExpand': -1})
         self.layout.setContent(1, 0, self.tableWin, {'horExpand': -1})
         def onPressEnter(evt, args):

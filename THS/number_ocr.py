@@ -2,6 +2,34 @@ import time, os, platform, io
 from PIL import Image
 import win32gui, win32con , win32api, win32ui # pip install pywin32
 
+class RGBImage:
+    def __init__(self, oimg : Image) -> None:
+        self.img = oimg
+        self.pixs = oimg.load()
+
+    def colColorIs(self, sy, ey, x, color):
+        for y in range(sy, min(ey, self.img.height)):
+            ncolor = self.pixs[x, y]
+            if ncolor != color:
+                return False
+        return True
+    
+    # from (sx, sy) search a box (w, h size)
+    # return x, not find return -1
+    def horSearchBoxColor(self, sx, sy, w, h, color):
+        if (sy + h > self.img.height) or (sx + w > self.img.width):
+            return -1
+        ex = max(sx, self.img.width)
+        for x in range(sx, ex):
+            f = True
+            for s in range(w):
+                if not self.colColorIs(sy, sy + h, x + s, color):
+                    f = False
+                    break
+            if f:
+                return x
+        return -1
+
 class BaseEImage:
     def __init__(self, oimg : Image):
         oimg = oimg.convert('L') # 转为灰度图

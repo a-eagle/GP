@@ -2,6 +2,7 @@ import win32gui, win32con , win32api, win32ui # pip install pywin32
 import threading, time, datetime, sys, os
 from multiprocessing import Process
 from PIL import Image # pip install pillow
+import easyocr
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from THS import number_ocr, ths_ocr
@@ -17,6 +18,7 @@ class ThsWindow(base_win.BaseWindow):
         self.level2CodeHwnd = None
         self.selDayHwnd = None
         self.numberOcr = number_ocr.NumberOCR('day', '0123456789')
+        self.ocr = easyocr.Reader(['en'], download_enabled = True ) # ch_sim  en
 
     @classmethod
     def ins(clazz):
@@ -39,6 +41,8 @@ class ThsWindow(base_win.BaseWindow):
             return '技术分析'
         if '分时走势' in title:
             return '分时走势'
+        if '龙虎榜' in title:
+            return '龙虎榜'
         if '-' in title:
             title = title[title.index('-') + 1 : ].strip()
         return title
@@ -77,6 +81,12 @@ class ThsWindow(base_win.BaseWindow):
     # 当前显示的窗口是否是分时图
     def isInFenShiWindow(self):
         if '分时走势' not in win32gui.GetWindowText(self.topHwnd):
+            return False
+        return win32gui.IsWindowVisible(self.topHwnd)
+
+    # 当前显示的窗口是否是龙虎榜
+    def isInLHBWindow(self):
+        if '龙虎榜' not in win32gui.GetWindowText(self.topHwnd):
             return False
         return win32gui.IsWindowVisible(self.topHwnd)
 
@@ -182,6 +192,36 @@ class ThsWindow(base_win.BaseWindow):
         #if win32gui.IsIconic(self.topHwnd):
         win32gui.ShowWindow(self.topHwnd, win32con.SW_MAXIMIZE)
 
+    def findCodeOfCurPage(self):
+        if self.isInKlineWindow() or self.isInFenShiWindow() or self.isInMyHomeWindow():
+            return self.findCode_Level2()
+        if self.isInLHBWindow():
+            return self.getCodeInLhbWindow()
+        return ''
+
+    def getCodeInLhbWindow(self):
+        dwu = number_ocr.DumpWindowUtils()
+        rc = win32gui.GetClientRect(self.mainHwnd)
+        w = rc[2] - rc[0]
+        img = dwu.dumpImg(self.mainHwnd, (int(w * 0.4), 52, int(w * 0.7), 85))
+        VER_LINE_COLOR = (0x66, 0, 0)
+        rimg = number_ocr.RGBImage(img)
+        sx = rimg.horSearchBoxColor(0, 0, 1, img.height, VER_LINE_COLOR)
+        if sx < 0:
+            return ''
+        rc = (sx + 85, 0, sx + 165, img.height)
+        img = img.crop(rc)
+        #img.save('D:/a.bmp')
+        rs = self.ocr.readtext(dwu.imgToBmpBytes(img), allowlist = '0123456789')
+        if not rs:
+            return ''
+        code = rs[0][1]
+        print(code, rs)
+        if len(code) != 6:
+            return code
+        return ''
+
+        
 class ThsFuPingWindow(ThsWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -266,7 +306,5 @@ class ThsSelDayWindow:
 if __name__ == '__main__':
     win = ThsWindow.ins()
     win.init()
-    #win.getSelectDay()
-    img = Image.open('D:/y.bmp')
-    selYear = win.numberOcr.match(img)
-    pass
+    win.getCodeInLhbWindow()
+

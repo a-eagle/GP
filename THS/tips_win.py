@@ -1622,11 +1622,12 @@ class ToolBarWindow(base_win.BaseWindow):
         self.DEF_SIZE = (200, 25)
         self.MOVE_BOX_WIDTH = 30
         self.ITEM_WIDTH = 30
-        from Tck import top_zt_net, top_bk, top_real_zs
+        from Tck import top_zt_net, top_bk, top_lhb
         self.model = [
             {'title': '记', 'name': 'Record', 'class': RecordWindow, 'win': None, 'win-title': '笔记'},
             {'title': '停', 'name': 'ZT', 'class': top_zt_net.ZT_Window, 'win': None, 'win-title': '涨停'},
             {'title': '概', 'name': 'BK', 'class': top_bk.Bk_Window, 'win': None, 'win-title': '板块概念'},
+            {'title': '龙','name': 'LHB', 'class': top_lhb.LHB_Window, 'win': None, 'win-title': '龙虎榜'},
             #{'title': '速', 'name': 'SU', 'class': top_real_zs.ZS_Window, 'win': None, 'win-title': '涨速联动'},
         ]
 
@@ -1666,15 +1667,15 @@ class ToolBarWindow(base_win.BaseWindow):
         item['win'] = win = item['class']()
         if item['name'] == 'Record':
             win.createWindow(self.hwnd)
-        elif item['name'] in ('ZT', 'BK'):
-            win.css['paddings'] = (4, 4, 4, 4)
-            sw = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
-            sh = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
-            W, H = sw, 600
-            rc = (0, sh - H - 35, W, H)
-            win.createWindow(self.hwnd, rc, style = win32con.WS_POPUPWINDOW | win32con.WS_CAPTION | win32con.WS_MAXIMIZEBOX | win32con.WS_MINIMIZEBOX | win32con.WS_THICKFRAME, title = item['win-title'])
-            self.rebindWinProc(win)
-            win32gui.PostMessage(win.hwnd, win32con.WM_SIZE, 0, 0)
+            return win
+        win.css['paddings'] = (4, 4, 4, 4)
+        sw = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
+        sh = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
+        W, H = sw, 600
+        rc = (0, sh - H - 35, W, H)
+        win.createWindow(self.hwnd, rc, style = win32con.WS_POPUPWINDOW | win32con.WS_CAPTION | win32con.WS_MAXIMIZEBOX | win32con.WS_MINIMIZEBOX | win32con.WS_THICKFRAME, title = item['win-title'])
+        self.rebindWinProc(win)
+        win32gui.PostMessage(win.hwnd, win32con.WM_SIZE, 0, 0)
         return win
 
     def onClick(self, x, y):
