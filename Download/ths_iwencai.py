@@ -130,8 +130,11 @@ def download_hygn():
         zsInfos[q.name] = q.code
     updates = []
     inserts = []
+    GP_CODE = ('0', '3', '6')
     for idx, line in enumerate(rs):
         code, name, hy, gn = line['code'], line['股票简称'], line['所属同花顺行业'], line['所属概念']
+        if code[0] not in GP_CODE:
+            continue
         zsz, ltsz = 0, 0
         for k in line:
             if '总市值' in k: zsz = int(float(line[k])) // 100000000

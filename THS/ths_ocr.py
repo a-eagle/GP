@@ -5,6 +5,7 @@ import easyocr
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from THS import ths_win, number_ocr
 from Common import base_win
+from Download import console
 
 #委比
 class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
@@ -306,6 +307,37 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
             return True
         return False
     
+    def print(self, rs):
+        from Tck import utils
+        if not rs:
+            now = datetime.datetime.now()
+            st = now.strftime('%H:%M:%S')
+            print('ZS-OCR: ', st, 'None')
+            return
+        m = rs[0]['minuts']
+        print('ZS-OCR: ', f'{m // 10000:02d}:{m // 100 % 100:02d}:{m % 100:02d}', f'--> {len(rs)}')
+        COL_NUM = 4
+        for i in range(len(rs)):
+            end = '\n' if (i + 1) % COL_NUM == 0 else ' | '
+            r = rs[i]
+            obj = utils.get_THS_GNTC(r['code'])
+            name = obj['name'] if obj and obj['name'] else ''
+            sx = 0
+            for n in name:
+                sx += 1 if ord(n) < 255 else 2
+            name += ' ' * (8 - sx)
+            prefix = ''
+            sufix = ''
+            if r['op'] == 'Create':
+                prefix = '\033[31m'
+                sufix = '\033[0m'
+            elif r['op'] == 'Update':
+                prefix = '\033[36m'
+                sufix = '\033[0m'
+            print(prefix, f'  {r["code"]} {name} {r["zf"] :>5.2f}%', sufix, sep = '', end = end)
+        if len(rs) % COL_NUM != 0:
+            print('\n')
+    
     def run(self):
         try:
             if not self.checkTime():
@@ -314,9 +346,12 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
             ths.init()
             if not ths.mainHwnd:
                 return
+            ths.showMax()
             rs = self.runOcr(ths.mainHwnd, 4)
             self.saveOcrResult(rs)
+            self.print(rs)
         except Exception as e:
+            traceback.print_exc()
             pass
 
     def saveOcrResult(self, rs):
@@ -329,10 +364,12 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
             self.datas.clear()
         for r in  rs:
             code = r['code']
+            r['op'] = 'NoOp'
             if code not in self.datas:
                 self.datas[code] = [r]
                 obj = zs_orm.RealZSModel.create(code = r['code'], day = r['day'], minuts = r['minuts'], zf = r['zf'], time = r['time'])
                 r['obj'] = obj
+                r['op'] = 'Create'
                 continue
             last = self.datas[code][-1]
             if last['zf'] < r['zf']:
@@ -341,10 +378,12 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
                     r['obj'] = obj
                     cl = self.datas[code]
                     cl.append(r)
+                    r['op'] = 'Create'
                 else:
                     obj = last['obj']
                     obj.zf = last['zf'] = r['zf']
                     obj.save()
+                    r['op'] = 'Update'
 
 def test_wb_main1():
     ths = ths_win.ThsWindow()
@@ -372,10 +411,7 @@ def test_zs_main2():
 
 if __name__ == '__main__':
     #test_wb_main1()
-    
-    test_zs_main2()
-    #img = Image.open('D:/a.png')
-    #eimg = number_ocr.EImage(img)
-    #dimg = eimg.expand()
-    #dimg.save('D:/b.bmp')
-    pass        
+    #test_zs_main2()
+    s = ThsZhangShuOcrUtils()
+    s.start()
+    time.sleep(100)

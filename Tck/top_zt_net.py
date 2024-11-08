@@ -8,17 +8,16 @@ from THS import ths_win, hot_utils
 from Common import base_win, ext_win
 from db import tck_orm, tck_orm
 from Download import ths_iwencai
-from Tck import kline_utils, conf, mark_utils, utils, cache
+from Tck import kline_utils, conf, mark_utils, utils, cache, ext_table
 
 class ZT_Window(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
         self.layout = base_win.GridLayout((30, '1fr'), ('1fr', ), (5, 10))
-        self.tableWin = ext_win.EditTableWindow()
+        self.tableWin = ext_table.TimelineTableWindow() #ext_win.EditTableWindow()
         self.editorWin = base_win.Editor()
         self.editorWin.placeHolder = ' or条件: |分隔; and条件: 空格分隔'
         self.checkBox = base_win.CheckBox({'title': '在同花顺中打开'})
-        self.autoSyncCheckBox = base_win.CheckBox({'title': '自动同步显示'})
         self.datePicker = None
         self.tckData = None
         self.tckSearchData = None
@@ -28,6 +27,9 @@ class ZT_Window(base_win.BaseWindow):
         base_win.ThreadPool.instance().start()
 
     def runTask(self):
+        base_win.ThreadPool.instance().addTask('ZT_NET', self._runTask)
+
+    def _runTask(self):
         sday = self.datePicker.getSelDay()
         if not sday:
             return
@@ -66,21 +68,20 @@ class ZT_Window(base_win.BaseWindow):
                    {'title': '热度', 'width': 60, 'name': 'zhHotOrder', 'sortable':True , 'fontSize' : 14, 'sorter': sortHot},
                    {'title': '成交额', 'width': 100, 'name': 'amount', 'sortable':True , 'fontSize' : 14, 'formater': formateMoney, 'default': 0},
                    {'title': '流通市值', 'width': 100, 'name': 'ltsz', 'sortable':True , 'fontSize' : 14, 'formater': formateMoney, 'default': 0},
-                   {'title': '首封时', 'width': 100, 'name': 'firstZtTime', 'sortable':True , 'fontSize' : 14, 'default': ''},
-                   {'title': '未封时', 'width': 100, 'name': 'lastZtTime', 'sortable':True , 'fontSize' : 14, 'default': ''},
-                   {'title': '封单额', 'width': 100, 'name': 'ztMoney', 'sortable':True , 'fontSize' : 14, 'formater': formateMoney, 'default': 0},
                    #{'title': '开盘啦', 'width': 100, 'name': 'kpl_ztReason', 'sortable':True , 'fontSize' : 12},
                    {'title': '同花顺', 'width': 160, 'name': 'ths_ztReason', 'fontSize' : 12, 'default': '', 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'sortable':True},
                    {'title': '', 'width': 10, 'name': 'sp'},
                    #{'title': '同花顺备注', 'width': 120, 'name': 'ths_mark_1', 'fontSize' : 12 , 'editable':True, 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'sortable':True },
                    {'title': '财联社', 'width': 150, 'name': 'cls_ztReason', 'fontSize' : 12 , 'default': '','textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'sortable':True },
                    {'title': '板块', 'width': 220, 'name': 'hy', 'sortable':True , 'fontSize' : 12, 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER},
-                   {'title': '分时图', 'width': 250, 'name': 'FS', 'render': cache.renderTimeline, 'LOCAL-FS-DAY': None},
+                   {'title': '分时图', 'width': 350, 'name': 'FS', 'render': cache.renderTimeline, 'LOCAL-FS-DAY': None},
+                   {'title': '首封时', 'width': 100, 'name': 'firstZtTime', 'sortable':True , 'fontSize' : 14, 'default': ''},
+                   {'title': '未封时', 'width': 100, 'name': 'lastZtTime', 'sortable':True , 'fontSize' : 14, 'default': ''},
+                   {'title': '封单额', 'width': 100, 'name': 'ztMoney', 'sortable':True , 'fontSize' : 14, 'formater': formateMoney, 'default': 0},
                    #{'title': '财联社详细', 'width': 0, 'name': 'cls_detail', 'stretch': 1 , 'fontSize' : 12, 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER},
                    ]
         flowLayout = base_win.FlowLayout(20)
         self.checkBox.createWindow(self.hwnd, (0, 0, 150, 30))
-        self.autoSyncCheckBox.createWindow(self.hwnd, (0, 0, 120, 30))
         self.editorWin.createWindow(self.hwnd, (0, 0, 300, 30))
         self.tableWin.createWindow(self.hwnd, (0, 0, 1, 1))
         self.tableWin.rowHeight = 50
@@ -93,21 +94,14 @@ class ZT_Window(base_win.BaseWindow):
         dp.createWindow(self.hwnd, (0, 0, 120, 30))
         def onPickDate(evt, args):
             #self.editorWin.setText(evt.sday)
-            self.loadAllData(evt.sday)
-            self.onQuery(evt.sday)
+            self._runTask()
         dp.addNamedListener('Select', onPickDate)
-
-        btn2 = base_win.Button({'title': '同步'})
-        btn2.createWindow(self.hwnd, (0, 0, 60, 30))
-        btn2.addNamedListener('Click', self.onSync)
 
         fs = {'margins': (0, 3, 0, 0)}
         flowLayout.addContent(dp)
         flowLayout.addContent(self.editorWin)
         flowLayout.addContent(btn)
-        flowLayout.addContent(btn2)
         flowLayout.addContent(self.checkBox)
-        flowLayout.addContent(self.autoSyncCheckBox)
         self.layout.setContent(0, 0, flowLayout, {'horExpand': -1})
         self.layout.setContent(1, 0, self.tableWin, {'horExpand': -1})
         def onPressEnter(evt, args):
@@ -119,6 +113,7 @@ class ZT_Window(base_win.BaseWindow):
         self.editorWin.addNamedListener('DbClick', self.onDbClickEditor, None)
         self.tableWin.addListener(self.onDbClick, None)
         self.tableWin.addListener(self.onEditCell, None)
+        self.tableWin.addNamedListener('ContextMenu', self.onContextMenu)
         
         #self.tableWin.addNamedListener('ContextMenu', self.onContextMenu)
         #sm = base_win.ThsShareMemory.instance()
@@ -131,7 +126,7 @@ class ZT_Window(base_win.BaseWindow):
         model = mark_utils.getMarkModel(row >= 0)
         menu = base_win.PopupMenu.create(self.hwnd, model)
         def onMenuItem(evt, rd):
-            mark_utils.saveOneMarkColor({'kind': 'zt', 'code': rowData['code']}, evt.item['markColor'], endDay = rowData['day'])
+            #mark_utils.saveOneMarkColor({'kind': 'zt', 'code': rowData['code']}, evt.item['markColor'], endDay = rowData['day'])
             rd['markColor'] = evt.item['markColor']
             self.tableWin.invalidWindow()
         menu.addNamedListener('Select', onMenuItem, rowData)
@@ -177,35 +172,10 @@ class ZT_Window(base_win.BaseWindow):
         qr = tck_orm.THS_ZT.update({tck_orm.THS_ZT.mark_1 : val}).where(tck_orm.THS_ZT.id == _id)
         qr.execute()
 
-    def onAutoSync(self, code, day):
-        checked = self.autoSyncCheckBox.isChecked()
-        if not checked:
-            return
-        code = f'{code :06d}'
-        txt = self.editorWin.text
-        if txt == code:
-            return
-        self.editorWin.setText(code)
-        self.editorWin.invalidWindow()
-        self.onQuery(self.editorWin.text)
-
-    def onSync(self, evt, args):
-        ins = base_win.ThsShareMemory.instance()
-        code = ins.readCode()
-        code = f'{code :06d}'
-        if code[0] in ('0', '3', '6'):
-            obj = ths_orm.THS_GNTC.get_or_none(code = code)
-        elif code[0] == '8':
-            obj = ths_orm.THS_ZS.get_or_none(code = code)
-        if obj:
-            self.editorWin.setText(obj.name)
-            self.editorWin.invalidWindow()
-            self.onQuery(self.editorWin.text)
-
     def onRefresh(self, evt, args):
         if evt.name == 'Click':
             self.tckData = None
-            base_win.ThreadPool.instance().addTask('ZT-NET', self.runTask)
+            self.runTask()
             #self.onQuery(self.editorWin.text)
 
     def onQuery(self, queryText):

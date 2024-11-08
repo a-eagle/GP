@@ -6,14 +6,14 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from db import ths_orm, tck_orm
 from THS import ths_win, hot_utils
 from Common import base_win, ext_win
-from Tck import kline_utils, cache, mark_utils, utils
+from Tck import kline_utils, cache, mark_utils, utils, ext_table
 
 class Bk_Window(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
         rows = (30, '1fr')
         self.layout = base_win.GridLayout(rows, ('1fr', ), (5, 10))
-        self.tableWin = ext_win.EditTableWindow()
+        self.tableWin = ext_table.TimelineTableWindow() #ext_win.EditTableWindow()
         self.tableWin.css['selBgColor'] = 0xEAD6D6
         self.editorWin = base_win.Editor()
         self.editorWin.placeHolder = ' or条件: |分隔; and条件: 空格分隔'
@@ -59,7 +59,7 @@ class Bk_Window(base_win.BaseWindow):
                    {'title': '', 'width': 15, 'name':'xx-no-1'},
                    {'title': '财联社', 'width': 150, 'name': 'cls_ztReason', 'sortable':True , 'formater': self.getZtReason, 'fontSize' : 12,  'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER},
                    {'title': '', 'width': 15, 'name':'xx-no-1'},
-                   {'title': '分时图', 'width': 250, 'name': 'FS', 'render': cache.renderTimeline, 'LOCAL-FS-DAY': None, 'sortable':True , 'sorter': cache.sorterTimeline},
+                   {'title': '分时图', 'width': 350, 'name': 'FS', 'render': cache.renderTimeline, 'LOCAL-FS-DAY': None, 'sortable':True , 'sorter': cache.sorterTimeline},
                    #{'title': '题材概念', 'width': 0, 'name': 'gn', 'stretch': 1 , 'fontSize' : 12, 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER},
                    ]
         headerLayout = base_win.FlowLayout(20)

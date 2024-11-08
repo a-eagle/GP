@@ -298,18 +298,14 @@ def renderTimeline(win : base_win.TableWindow, hdc, row, col, colName, value, ro
         data = _cache.getData(code, win)
     if not data:
         return
+    rowData['calc-zf'] = data['zf']
     data['render'].onDraw(hdc, win.drawer, rect)
 
 def sorterTimeline(colName, val, rowData, allDatas, asc):
-    if 'secu_code' in rowData:
-        code = rowData['secu_code'][2 : ]
-    elif 'code' in rowData:
-        code = rowData['code']
-    else:
-        return 0
-    data = _cache.getData(code, None)
-    if data and 'zf' in data:
-        return data['zf']
+    if 'calc-zf' in rowData:
+        return rowData['calc-zf']
+    if 'zf' in rowData:
+        return rowData['zf']
     return rowData.get('change', 0)
 
 # 涨幅

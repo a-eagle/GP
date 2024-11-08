@@ -719,10 +719,10 @@ class SimpleWindow(CardWindow):
         #self.addCardView(SortCardView(self))
         if self.type_ == 'HOT':
             self.addCardView(HotCardView(self))
+            self.zsCardView = ZSCardView(self)
         elif self.type_ == 'ZT_GN':
             self.addCardView(THS_ZTCardView(self))
             self.addCardView(Cls_ZTCardView(self))
-        self.zsCardView = ZSCardView(self)
 
     def changeCardView(self):
         scode = f'{self.curCode :06d}' if type(self.curCode) == int else self.curCode
@@ -1620,14 +1620,14 @@ class ToolBarWindow(base_win.BaseWindow):
         super().__init__()
         self.css['borderColor'] = 0x00ffff
         self.DEF_SIZE = (200, 25)
-        self.MOVE_BOX_WIDTH = 30
-        self.ITEM_WIDTH = 30
+        self.MOVE_BOX_WIDTH = 20
+        self.ITEM_WIDTH = 40
         from Tck import top_zt_net, top_bk, top_lhb
         self.model = [
             {'title': '记', 'name': 'Record', 'class': RecordWindow, 'win': None, 'win-title': '笔记'},
-            {'title': '停', 'name': 'ZT', 'class': top_zt_net.ZT_Window, 'win': None, 'win-title': '涨停'},
-            {'title': '概', 'name': 'BK', 'class': top_bk.Bk_Window, 'win': None, 'win-title': '板块概念'},
-            {'title': '龙','name': 'LHB', 'class': top_lhb.LHB_Window, 'win': None, 'win-title': '龙虎榜'},
+            {'title': '涨停', 'name': 'ZT', 'class': top_zt_net.ZT_Window, 'win': None, 'win-title': '涨停'},
+            {'title': '板块', 'name': 'BK', 'class': top_bk.Bk_Window, 'win': None, 'win-title': '板块概念'},
+            #{'title': '龙','name': 'LHB', 'class': top_lhb.LHB_Window, 'win': None, 'win-title': '龙虎榜'},
             #{'title': '速', 'name': 'SU', 'class': top_real_zs.ZS_Window, 'win': None, 'win-title': '涨速联动'},
         ]
 
