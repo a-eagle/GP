@@ -1,4 +1,4 @@
-import ctypes, os, sys, requests, json, traceback, datetime, struct, time
+import os, sys, requests, json, traceback, datetime, struct, time
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
@@ -354,15 +354,23 @@ class DataFileLoader:
 
     def mergeAllMililine(self, internalTime = 2):
         try:
+            from Download import console
+            print(f'-----begin download militime--------')
+            st = datetime.datetime.now()
+            st = st.strftime('%Y-%m-%d %H:%M')
+            print(st)
+            x, y = console.getCursorPos()
             success, fail = 0, 0
             for c in self.codes:
                 b = self.mergeMililine(c)
                 if b: success += 1
                 else: fail += 1
-                print('load code: ', c, b)
+                console.setCursorPos(x, y)
+                print(f'Loading: {success} / {len(self.codes)}, fail = {fail}')
                 time.sleep(internalTime)
         except Exception as e:
             traceback.print_exc()
+        print('-----end download--------\n')
 
     def mergeDayFile(self, code, klineDatas):
         ph = os.path.join(NET_LDAY_PATH, f'{code}.day')
