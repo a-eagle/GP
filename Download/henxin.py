@@ -2,7 +2,7 @@ import datetime, time, random, requests, re, json, os, sys, struct, re, tracebac
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
-from Tdx.datafile import DataFile
+from Download.datafile import DataFile
 
 class Base64:
     def __init__(self):
@@ -597,6 +597,8 @@ class HexinUrl(Henxin):
                 its = item.split(',')
                 row = {}
                 row['time'] = int(its[0])
+                if row['time'] == 1300:
+                    continue # skip 13:00
                 if row['time'] > 1500:
                     break
                 row['price'] = float(its[1])

@@ -5,7 +5,7 @@ import os, sys, requests
 import win32gui, win32con
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from Tdx import datafile
+from Download import datafile
 from Download import henxin, cls
 from Common import base_win, ext_win
 from db import ths_orm
@@ -23,6 +23,8 @@ def getTypeByCode(code):
     return 'ths'
 
 class SimpleTimelineModel:
+    ONE_DAY_LINES = 241
+
     def __init__(self) -> None:
         self.code = None
         self.name = None
@@ -79,10 +81,9 @@ class SimpleTimelineModel:
                 return False
             isLast = days[-1] == day
             lines = his5datas['line']
-            ONE_DAY_LINES = 241
-            idx = days.index(day) * ONE_DAY_LINES
+            idx = days.index(day) * self.ONE_DAY_LINES
             self._calcCodePre_Cls(idx, lines)
-            for i in range(idx, min(idx + ONE_DAY_LINES + 1, len(lines))): # skip 930
+            for i in range(idx, min(idx + self.ONE_DAY_LINES + 1, len(lines))): # skip 930
                 d = lines[i]
                 ts = datafile.ItemData()
                 ts.time = url.getVal(d, 'minute', int, 0)
@@ -163,7 +164,6 @@ class SimpleTimelineModel:
             dt = self.dataFile.data[idx]
             if dt.day == day:
                 self.curData.append(dt)
-                dt.price = dt.close
                 idx += 1
             else:
                 break
@@ -244,6 +244,8 @@ class SimpleTimelineModel:
         return self.amountRange
 
 class SimpleTimelineWindow(base_win.BaseWindow):
+    ONE_DAY_LINES = 241
+
     def __init__(self) -> None:
         super().__init__()
         self.model = None
@@ -293,9 +295,8 @@ class SimpleTimelineWindow(base_win.BaseWindow):
     def getXAtMinuteIdx(self, minuteIdx, w):
         ow = w
         w -= self.paddings[0] + self.paddings[2]
-        ONE_DAY_LINES = max(self.getMinutesNum(), 240)
-        p = w / ONE_DAY_LINES
-        if minuteIdx == ONE_DAY_LINES:
+        p = w / self.ONE_DAY_LINES
+        if minuteIdx == self.ONE_DAY_LINES:
             return ow - self.paddings[2]
         return int(minuteIdx * p) + self.paddings[0]
 
@@ -319,8 +320,7 @@ class SimpleTimelineWindow(base_win.BaseWindow):
             x = w - self.paddings[2]
         x -= self.paddings[0]
         cw = w - self.paddings[0] - self.paddings[2]
-        ONE_DAY_LINES = max(self.getMinutesNum(), 240)
-        p = cw / ONE_DAY_LINES
+        p = cw / self.ONE_DAY_LINES
         x += p / 2
         idx = int(x / p)
         if idx >= len(self.model.curData):
@@ -614,11 +614,40 @@ class TimelinePanKouWindow(base_win.BaseWindow):
         pool.addTask('TLa', lda)
         pool.addTask('TLb', ldb)
 
+def test():
+    import json
+    f = open('D:/cls.js', 'w')
+    url = cls.ClsUrl()
+    mdata = url.loadFenShi('600318')
+    cm1130 = mdata['line'][120]
+    cm1301 = mdata['line'][121]
+    print(cm1130)
+    print(cm1301)
+    f.write(json.dumps(mdata['line']))
+    f.close()
+
+    url = henxin.HexinUrl()
+    kdata = url.loadKLineData('600318')
+    klast = kdata['data'][-1]
+    klast2 = kdata['data'][-2]
+    print(klast)
+    print(klast2)
+    mdata = url.loadUrlData(url.getFenShiUrl('600318'))
+    m1130 = mdata['dataArr'][120]
+    m1300 = mdata['dataArr'][121]
+    print(m1130)
+    print(m1300)
+    f = open('D:/ths.js', 'w')
+    f.write(json.dumps(mdata['dataArr']))
+    f.close()
+
 if __name__ == '__main__':
+    #test()
+
     base_win.ThreadPool.instance().start()
     win = TimelinePanKouWindow()
     win.createWindow(None, (0, 0, 1000, 600), win32con.WS_OVERLAPPEDWINDOW)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
     #win.load('002085', None)
-    win.load('300390') # cls82437 sh000001 ; 300390  600611
+    win.load('000035') # cls82437 sh000001 ; 300390  600611
     win32gui.PumpMessages()

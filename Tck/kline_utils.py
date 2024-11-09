@@ -3,7 +3,7 @@ import threading, time, datetime, sys, os, copy, pyautogui
 import os, sys, requests, traceback
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from Tdx import datafile
+from Download import datafile
 from Download import henxin, ths_ddlr
 from Common import base_win
 from Tck import ddlr_detail, timeline, kline

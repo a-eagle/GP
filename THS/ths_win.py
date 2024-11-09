@@ -18,7 +18,7 @@ class ThsWindow(base_win.BaseWindow):
         self.level2CodeHwnd = None
         self.selDayHwnd = None
         self.numberOcr = number_ocr.NumberOCR('day', '0123456789')
-        self.ocr = number_ocr.eocr
+        self.ocr = number_ocr.eocr()
 
     @classmethod
     def ins(clazz):

@@ -5,7 +5,7 @@ import peewee as pw
 from multiprocessing import shared_memory # python 3.8+
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from Tdx import datafile
+from Download import datafile
 
 class TdxDownloader:
     def __init__(self) -> None:

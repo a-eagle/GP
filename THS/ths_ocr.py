@@ -12,7 +12,7 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
     def __init__(self) -> None:
         self.titleHwnds = set()
         self.wbOcr = number_ocr.NumberOCR('wb', '+-.%0123456789')
-        self.ocr = number_ocr.eocr
+        self.ocr = number_ocr.eocr()
 
     # wb = 委比 28.45
     # diff = 委差

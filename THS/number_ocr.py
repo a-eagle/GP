@@ -3,7 +3,12 @@ from PIL import Image
 import win32gui, win32con , win32api, win32ui # pip install pywin32
 import easyocr
 
-eocr = easyocr.Reader(['en'], download_enabled = True ) # ch_sim  en
+_ecor = None
+def eocr():
+    global _ecor
+    if not _ecor:
+        _ecor = easyocr.Reader(['en'], download_enabled = True ) # ch_sim  en
+    return _ecor
 
 class RGBImage:
     def __init__(self, oimg : Image) -> None:

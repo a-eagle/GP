@@ -5,7 +5,7 @@ import os, sys, requests
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Download import henxin
 from Common import base_win
-from Tdx.datafile import DataFile
+from Download.datafile import DataFile
 
 #base_win.ThreadPool.ins.start()
 

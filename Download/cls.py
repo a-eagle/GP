@@ -1,7 +1,7 @@
 import ctypes, os, sys, requests, json, traceback, datetime
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from Tdx import datafile
+from Download import datafile
 from Download import memcache
 
 PX = os.path.join(os.path.dirname(__file__), 'cls-sign.dll')
@@ -46,6 +46,8 @@ class ClsUrl:
             return 'sh' + code
         if code[0] == '0' or code[0] == '3':
             return 'sz' + code
+        if code == '999999':
+            return 'sh000001'
         return code
     
     def signParams(self, params):
@@ -72,8 +74,11 @@ class ClsUrl:
         resp = requests.get(url)
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
+        data = js['data']
+        if data and 'line' in data:
+            self._toStds(data['line'])
         #print(js['data'])
-        return js['data']
+        return data
     
     def getVal(self, data, name, _type, default):
         if name not in data:
@@ -143,18 +148,28 @@ class ClsUrl:
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         data = js['data']
+        if data and 'line' in data:
+            self._toStds(data['line'])
         #print(data)
         return data
+
+    def _toStds(self, datas):
+        if not datas:
+            return
+        for d in datas:
+            self._toStd(d)
     
     def _toStd(self, data):
         data['day'] = data['date']
-        sc = data['secu_code']
-        if ('cls' in sc) or ('sh0' in sc):
-            data['code'] = sc
-        else:
-            data['code'] = sc[2 : ]
+        if 'secu_code' in data:
+            sc = data['secu_code']
+            if ('cls' in sc) or ('sh0' in sc):
+                data['code'] = sc
+            else:
+                data['code'] = sc[2 : ]
         if 'open_px' in data: data['open'] = self.getVal(data, 'open_px', float, 0)
         if 'close_px' in data: data['close'] = self.getVal(data, 'close_px', float, 0)
+        if 'last_px' in data: data['close'] = self.getVal(data, 'last_px', float, 0)
         if 'low_px' in data: data['low'] = self.getVal(data, 'low_px', float, 0)
         if 'high_px' in data: data['high'] = self.getVal(data, 'high_px', float, 0)
         if 'preclose_px' in data: data['pre'] = self.getVal(data, 'preclose_px', float, 0)
@@ -162,6 +177,11 @@ class ClsUrl:
         if 'tr' in data: data['rate'] = self.getVal(data, 'tr', float, 0) * 100 # %
         if 'business_amount' in data: data['vol'] = self.getVal(data, 'business_amount', float, 0)
         if 'business_balance' in data: data['amount'] = self.getVal(data, 'business_balance', float, 0)
+        if 'minute' in data:
+            data['time'] = data['minute']
+            data['price'] = data['close']
+        if 'av_px' in data:
+            data['avgPrice'] = self.getVal(data, 'av_px', float, 0)
 
     # K线数据
     # limit : K线数量

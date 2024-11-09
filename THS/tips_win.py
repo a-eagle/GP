@@ -5,7 +5,7 @@ import sys, pyautogui
 import peewee as pw
 import types
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from Tdx import datafile
+from Download import datafile
 from THS import hot_utils
 from Download import henxin, cls
 from Common import base_win, ext_win, dialog

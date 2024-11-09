@@ -1,5 +1,6 @@
-import os, struct, platform, traceback
-from collections import namedtuple
+import os, struct, platform, traceback, sys
+
+sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
 VIPDOC_BASE_PATH = r'D:\Program Files\new_tdx2\vipdoc'
 
@@ -501,6 +502,10 @@ class ThsDataFile:
     def __init__():
         pass
 
+class NetDataFile:
+    def __init__(self) -> None:
+        pass
+
 def test1():
     ld = DataFileLoader()
     #ld.mergeDayFile('999999')
@@ -541,6 +546,6 @@ def test2():
     f.close()
 
 if __name__ == '__main__':
-    test2()
+    #test2()
     pass
     

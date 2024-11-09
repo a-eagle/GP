@@ -5,7 +5,7 @@ import requests, peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from db import ths_orm, tdx_orm, tck_orm, tck_def_orm, lhb_orm
-from Tdx import datafile
+from Download import datafile
 from Download import henxin, cls
 from Common import base_win, ext_win, dialog
 from THS import hot_utils

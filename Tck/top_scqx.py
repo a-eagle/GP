@@ -5,7 +5,7 @@ import os, sys
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from db import tdx_orm
-from Tdx import datafile
+from Download import datafile
 from Download import henxin, ths_ddlr
 from THS import hot_utils
 import ddlr_detail, db.tck_orm as tck_orm

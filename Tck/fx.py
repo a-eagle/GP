@@ -5,13 +5,13 @@ import win32gui, win32con, win32api
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
 from Download import fiddler
-from Tdx.datafile import *
+from Download.datafile import *
 from Common import base_win
 from Tck import kline_utils
 
 class FenXiCode:
     def __init__(self, code) -> None:
-        self.MINUTES_IN_DAY = 240
+        self.MINUTES_IN_DAY = 241
         self.SPEED_PEROID = 10 # 时速周期 5 / 10 /15
         self.MIN_ZHANG_FU = 5 # 进攻最小涨幅
 
@@ -71,9 +71,9 @@ class FenXiCode:
                 continue
             me = self.mdf.data[maxIdx]
             if i == fromIdx and i > 0:
-                pre = self.mdf.data[i - 1].close
+                pre = self.mdf.data[i - 1].price
             else:
-                pre = self.mdf.data[i].close
+                pre = self.mdf.data[i].price
             zf = (maxPrice - pre) / pre * 100
             if zf < self.MIN_ZHANG_FU:
                 continue
@@ -111,8 +111,8 @@ class FenXiCode:
             m = self.mdf.data[i]
             if m.day != day:
                 break
-            if m.close > maxPrice:
-                maxPrice = m.close
+            if m.price > maxPrice:
+                maxPrice = m.price
                 maxIdx = i
         return maxIdx, maxPrice
     
