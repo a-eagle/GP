@@ -444,6 +444,12 @@ class SimpleTimelineWindow(base_win.BaseWindow):
         ty = H - self.paddings[3] + 5
         rc = (x - 50, ty, x + 50, H)
         self.drawer.drawText(hdc, tips, rc, 0xf06050)
+        # draw time
+        ey = H - self.paddings[3] - self.volHeight
+        rc = (max(0, x - 40), ey - self.volSpace + 1, min(W, x + 40), ey - 1)
+        ts = f'{md.time // 100}:{md.time % 100 :02d}'
+        self.drawer.fillRect(hdc, rc, self.css['bgColor'])
+        self.drawer.drawText(hdc, ts, rc, color = 0xf06050, align = win32con.DT_SINGLELINE | win32con.DT_CENTER | win32con.DT_VCENTER)
         # horizontal line
         price = self.getPriceAtY(y, H)
         if not price:
