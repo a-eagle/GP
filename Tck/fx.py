@@ -4,21 +4,25 @@ import win32gui, win32con, win32api
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
-from Download import fiddler
 from Download.datafile import *
+from Download import console
 from Common import base_win
 from Tck import kline_utils
+from db import zs_orm
 
 class FenXiCode:
     def __init__(self, code) -> None:
         self.MINUTES_IN_DAY = 241
         self.SPEED_PEROID = 10 # 时速周期 5 / 10 /15
-        self.MIN_ZHANG_FU = 5 # 进攻最小涨幅
+        self.MIN_ZHANG_SU = 5 # 最小涨速
 
         self.code = code
         self.mdf = DataFile(self.code, DataFile.DT_MINLINE)
         self.infoOfDay = {} # day : {'dayAvgAmount': xx, 'item': ItemData, }
-        self.results = [] # 进攻
+        self.results = []
+
+    def getResult(self):
+        return self.results
 
     def loadFile(self):
         if not self.mdf.data:
@@ -72,10 +76,12 @@ class FenXiCode:
             me = self.mdf.data[maxIdx]
             if i == fromIdx and i > 0:
                 pre = self.mdf.data[i - 1].price
+                cur = self.mdf.data[i].price
+                pre = min(cur, pre)
             else:
                 pre = self.mdf.data[i].price
             zf = (maxPrice - pre) / pre * 100
-            if zf < self.MIN_ZHANG_FU:
+            if zf < self.MIN_ZHANG_SU:
                 continue
             if self.results:
                 last = self.results[-1]
@@ -85,11 +91,10 @@ class FenXiCode:
                     else:
                         continue # skip
             maxAmount3 = self.getMax3MunitesAvgAmount(i, maxIdx + 1)
-            万 = 10000
             di = self.infoOfDay[m.day]
             curJg = {'day': m.day, 'fromMinute': m.time, 'endMinute': me.time, 'minuts': maxIdx - i + 1,
                      'fromIdx' : i, 'endIdx': maxIdx, 'zf': zf,
-                     'max3MinutesAvgAmount': int(maxAmount3 / 万), 'dayAvgAmount': int(di['dayAvgAmount'] / 万) # 万元
+                     'max3MinutesAvgAmount': maxAmount3, 'dayAvgAmount': di['dayAvgAmount']
                     }
             self.results.append(curJg)
         return True
@@ -115,37 +120,69 @@ class FenXiCode:
                 maxPrice = m.price
                 maxIdx = i
         return maxIdx, maxPrice
-    
-def loadAllCodes():
-    p = os.path.join(VIPDOC_BASE_PATH, '__minline')
-    cs = os.listdir(p)
-    rs = []
-    for name in cs:
-        if name[0 : 2] == 'sh' and name[2] == '6':
-            rs.append(name[2 : 8])
-        elif name[0 : 2] == 'sz' and name[2 : 4] in ('00', '30'):
-            rs.append(name[2 : 8])
-    return rs
 
-def fxAll():
-    cs = loadAllCodes()
-    for code in cs:
-        fx = FenXiCode(code)
-        fx.calcLastestDays()
+class FenXiLoader:
+    def __init__(self) -> None:
+        pass
+
+    def loadAllCodes(self):
+        cs = os.listdir(NET_MINLINE_PATH)
+        rs = []
+        FL = ('3', '0', '6')
+        for name in cs:
+            code = name[0 : 6]
+            if code[0] in FL and code[0 : 3] != '399':
+                rs.append(code)
+        return rs
+
+    def save(self, code, rs):
+        if not rs:
+            return
+        lrs = {}
+        q = zs_orm.LocalZSModel.select().where(zs_orm.LocalZSModel.code == code, zs_orm.LocalZSModel.day >= rs[0]['day'])
+        for it in q:
+            key = f"{it.day}-{it.fromMinute}"
+            lrs[key] = it
+        for r in rs:
+            key = f"{r['day']}-{r['fromMinute']}"
+            obj = lrs.get(key, None)
+            if not obj:
+                zs_orm.LocalZSModel.create(day = r['day'], code = code, fromMinute = r['fromMinute'], 
+                        endMinute = r['endMinute'], minuts = r['minuts'], zf = r['zf'], 
+                        max3MinutesAvgAmount = r['max3MinutesAvgAmount'])
+            elif obj.endMinute != r['endMinute']:
+                obj.endMinute = r['endMinute']
+                obj.minuts = r['minuts']
+                obj.zf = r['zf']
+                obj.max3MinutesAvgAmount = r['max3MinutesAvgAmount']
+                obj.save()
+
+    def fxAll(self):
+        print('---begin fenxi zhang su----')
+        x, y = console.getCursorPos()
+        cs = self.loadAllCodes()
+        for i, code in enumerate(cs):
+            fx = FenXiCode(code)
+            fx.loadFile()
+            fx.calcLastestDays()
+            self.save(code, fx.getResult())
+            console.setCursorPos(x, y)
+            print(f'Loading {i} / {len(cs)}')
 
 def test():
-    CODE = '300925'
+    CODE = '000066'
     fx = FenXiCode(CODE)
     fx.loadFile()
     fx.calcLastestDays()
-    #fx.calcOneDay(20240829)
+    print(fx.getResult())
+    base_win.ThreadPool.instance().start()
     win = kline_utils.openInCurWindow_Code(base_win.BaseWindow(), {'code': CODE, } )
-    for d in fx.results:
-        print(d)
-        win.klineWin.setMarkDay(d['day'])
     win32gui.PumpMessages()
 
 
 if __name__ == '__main__':
-    test()
+    #test()
+    ld = FenXiLoader()
+    ld.fxAll()
+    os.system('pause')
     pass

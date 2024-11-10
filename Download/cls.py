@@ -77,6 +77,7 @@ class ClsUrl:
         data = js['data']
         if data and 'line' in data:
             self._toStds(data['line'])
+        data['dataArr'] = data.get('line', None)
         #print(js['data'])
         return data
     

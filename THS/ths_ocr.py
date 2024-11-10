@@ -260,7 +260,7 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
         #priceImg.save('D:/price.bmp')
         return codeImg, priceImg
     
-    def runOcr(self, thsMainWnd, minZhangFu = 4):
+    def runOcr(self, thsMainWnd, minZhangFu = 5):
         imgs = self.dumpZhangShu(thsMainWnd)
         if not imgs:
             return None
@@ -347,7 +347,8 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
             if not ths.mainHwnd:
                 return
             ths.showMax()
-            rs = self.runOcr(ths.mainHwnd, 4)
+            MIN_ZHANG_SU = 5 # 最小涨速
+            rs = self.runOcr(ths.mainHwnd, MIN_ZHANG_SU)
             self.saveOcrResult(rs)
             self.print(rs)
         except Exception as e:

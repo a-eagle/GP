@@ -415,12 +415,12 @@ class SimpleTimelineWindow(base_win.BaseWindow):
             ex = self.getXAtMinuteIdx(self.minuteToIdx(e), W)
             psy = self.paddings[1]
             pey = vsy - self.volSpace
-            H_COLOR = 0x303030
+            H_COLOR = 0x101010
             self.drawer.fillRect(hdc, (sx, psy + 1, ex + 1, pey), H_COLOR)
             vey = H - self.paddings[3]
             self.drawer.fillRect(hdc, (sx, vsy + 1, ex + 1, vey), H_COLOR)
             txtRc = (sx, pey - 30, sx + 60, pey)
-            text = f'{info["zf"] :.1f}% \n{info["max3MinutesAvgAmount"]}万'
+            text = f'{info["zf"] :.1f}% \n{int(info["max3MinutesAvgAmount"] / 10000)}万'
             self.drawer.drawText(hdc, text, txtRc, color = 0xe0abce, align = win32con.DT_LEFT)
         win32gui.RestoreDC(hdc, sdc)
             

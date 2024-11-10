@@ -8,13 +8,16 @@ zsdb = pw.SqliteDatabase(f'{path}GP/db/ZhangSu.db')
 # Local涨速
 class LocalZSModel(pw.Model):
     day = pw.IntegerField() # 日期
-    minuts = pw.IntegerField() # 时间
     code = pw.CharField() #股票代码
+    fromMinute = pw.IntegerField()
+    endMinute  = pw.IntegerField()
+    minuts =  pw.IntegerField() # 时间
     zf = pw.FloatField() #涨幅
+    max3MinutesAvgAmount = pw.FloatField() #最大三分钟平均成交额
 
     class Meta:
         database = zsdb
-        table_name = 'LocalZS'
+        table_name = 'LocalZS_N'
 
 # 当日实时涨速
 class RealZSModel(pw.Model):

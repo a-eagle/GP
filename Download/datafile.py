@@ -312,9 +312,11 @@ class DataFile:
 
 class DataFileLoader:
     def __init__(self) -> None:
-        self.codes = self._getCodes()
+        self.codes = None
 
     def _getCodes(self):
+        if self.codes:
+            return self.codes
         from db import ths_orm
         q = ths_orm.THS_GNTC.select(ths_orm.THS_GNTC.code).tuples()
         rs = []
@@ -324,7 +326,11 @@ class DataFileLoader:
         rs.append('999999') # 上证指数
         rs.append('399001')
         rs.append('399006')
-        return rs
+        self.codes = rs
+        return self.codes
+
+    def getLastCode(self):
+        return '399006'
 
     def _adjustMinutesData(self, rs : list):
         MINUTES_IN_DAY = DataFile.MINUTES_IN_DAY
@@ -361,12 +367,12 @@ class DataFileLoader:
             print(st)
             x, y = console.getCursorPos()
             success, fail = 0, 0
-            for c in self.codes:
+            for c in self._getCodes():
                 b = self.mergeMililine(c)
                 if b: success += 1
                 else: fail += 1
                 console.setCursorPos(x, y)
-                print(f'Loading: {success} / {len(self.codes)}, fail = {fail}')
+                print(f'Loading: {success} / {len(self._getCodes())}, fail = {fail}')
                 time.sleep(internalTime)
         except Exception as e:
             traceback.print_exc()
@@ -442,12 +448,12 @@ class DataFileLoader:
         f.close()
 
     def chunkAll(self, fromDay, endDay):
-        codes = self.codes
+        codes = self._getCodes()
         for c in codes:
             self.chunkDayFile(c, fromDay, endDay)
             self.chunkMinlineFile(c, fromDay, endDay)
 
 if __name__ == '__main__':
     lodler = DataFileLoader()
-    lodler.mergeAllMililine()
+    lodler.mergeAllMililine(0.5)
     pass
