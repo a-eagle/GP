@@ -317,7 +317,7 @@ class DataFileLoader:
     def _getCodes(self):
         if self.codes:
             return self.codes
-        from db import ths_orm
+        from orm import ths_orm
         q = ths_orm.THS_GNTC.select(ths_orm.THS_GNTC.code).tuples()
         rs = []
         for t in q:

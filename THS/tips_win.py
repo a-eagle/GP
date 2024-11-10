@@ -1539,7 +1539,7 @@ class BkGnWindow(base_win.BaseWindow):
         self.hotGnObj.save()
 
     def loadHotGn(self):
-        from db import tck_def_orm
+        from orm import tck_def_orm
         qr = tck_def_orm.MyHotGn.select()
         self.hotGnObj = None
         self.hotGns = []

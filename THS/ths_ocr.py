@@ -215,7 +215,7 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
         self.thread.addIntervalTask('ZS-OCR', 10, self.run)
 
     def start(self):
-        from db import zs_orm
+        from orm import zs_orm
         today = datetime.date.today()
         iday = today.year * 10000 + today.month * 100 + today.day
         qr = zs_orm.RealZSModel.select().where(zs_orm.RealZSModel.day == iday)
@@ -358,7 +358,7 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
     def saveOcrResult(self, rs):
         if not rs:
             return
-        from db import zs_orm
+        from orm import zs_orm
         first = rs[0]
         if first['day'] != self.today:
             self.today = first['day']
