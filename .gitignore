@@ -39,3 +39,4 @@ build
 THS/*.json
 *.spec
 .vscode
+*.db
