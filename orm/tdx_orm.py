@@ -3,7 +3,7 @@ import sys
 
 path = sys.argv[0]
 path = path[0 : path.index('GP') ]
-voldb = pw.SqliteDatabase(f'{path}GP/db/Tdx.db')
+#voldb = pw.SqliteDatabase(f'{path}GP/db/Tdx.db')
 
 class TdxVolPMModel(pw.Model):
     code = pw.CharField() #股票代码
@@ -13,7 +13,7 @@ class TdxVolPMModel(pw.Model):
     pm = pw.IntegerField() #全市成交排名
 
     class Meta:
-        database = voldb
+ #       database = voldb
         table_name = '成交额排名'
 
 class TdxLSModel(pw.Model):
@@ -39,7 +39,7 @@ class TdxLSModel(pw.Model):
     d7 = pw.IntegerField(column_name='跌幅7以上', default=0) # < -7
 
     class Meta:
-        database = voldb
+        #database = voldb
         table_name = '两市总体情况'
 
-voldb.create_tables([TdxVolPMModel, TdxLSModel])
+#voldb.create_tables([TdxVolPMModel, TdxLSModel])

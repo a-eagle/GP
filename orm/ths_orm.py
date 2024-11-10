@@ -2,7 +2,7 @@ import peewee as pw
 import sys
 
 path = __file__[0 : __file__.upper().index('GP')]
-db_f10 = pw.SqliteDatabase(f'{path}GP/db/THS_F10.db')
+#db_f10 = pw.SqliteDatabase(f'{path}GP/db/THS_F10.db')
 
 # 同花顺--最新动态
 class THS_Newest(pw.Model):
@@ -14,7 +14,7 @@ class THS_Newest(pw.Model):
     cwfx = pw.CharField(null=True, column_name='财务分析')
 
     class Meta:
-        database = db_f10
+        #database = db_f10
         table_name = '最新动态'
 
 # 同花顺--前十大流通股东
@@ -24,7 +24,7 @@ class THS_Top10_LTGD(pw.Model):
     rate = pw.FloatField(null = True) # 前十大流通股东占比 %
     change = pw.FloatField(null=True, column_name='较上期变化') # 万股
     class Meta:
-        database = db_f10
+        #database = db_f10
         table_name = '前十大流通股东'
 
 # 同花顺-- 机构持股 (主力持仓)
@@ -37,7 +37,7 @@ class THS_JGCG(pw.Model):
     day_sort = pw.CharField(null=True) # 日期，用于排序
 
     class Meta:
-        database = db_f10
+        #database = db_f10
         table_name = '机构持股'
 
 # 同花顺--行业对比（排名）
@@ -59,7 +59,7 @@ class THS_HYDB(pw.Model):
     zhpm = pw.IntegerField(null = True, column_name='综合排名')
 
     class Meta:
-        database = db_f10
+        #database = db_f10
         table_name = '行业对比'
 
 db_gntc = pw.SqliteDatabase(f'{path}GP/db/THS_GNTC.db')
@@ -132,7 +132,7 @@ class THS_HotZH(pw.Model):
 #        database = db3
 
 # 大单流入流出情况
-db_ddlr = pw.SqliteDatabase(f'{path}/GP/db/THS_DDLR.db')
+#db_ddlr = pw.SqliteDatabase(f'{path}/GP/db/THS_DDLR.db')
 class THS_DDLR(pw.Model):
     day = pw.CharField(max_length = 8) # YYYYMMDD
     code = pw.CharField(max_length = 6)
@@ -144,7 +144,7 @@ class THS_DDLR(pw.Model):
     total = pw.DecimalField(column_name = '净流入_亿' , null=True, decimal_places = 1, max_digits = 10) # 亿元
     amount = pw.DecimalField(column_name='成交额_亿', null=True, decimal_places = 1, max_digits = 10)
     class Meta:
-        database = db_ddlr
+#        database = db_ddlr
         table_name = '个股大单买卖'
 
 db_thszs = pw.SqliteDatabase(f'{path}GP/db/THS_ZS.db')
@@ -177,7 +177,7 @@ class THS_ZS_ZD(pw.Model):
         database = db_thszs
         table_name = '同花顺指数涨跌信息'
 
-db_thsdde = pw.SqliteDatabase(f'{path}GP/db/THS_DDE.db')
+#db_thsdde = pw.SqliteDatabase(f'{path}GP/db/THS_DDE.db')
 class THS_DDE(pw.Model):
     day = pw.CharField() # YYYY-MM-DD
     code = pw.CharField() #指数代码
@@ -188,7 +188,7 @@ class THS_DDE(pw.Model):
     dde_pm = pw.IntegerField(default = 0) # dde大单净额排名
 
     class Meta:
-        database = db_thsdde
+        #database = db_thsdde
         table_name = 'ths_dde'
 
 #db_zt = pw.SqliteDatabase(f'{path}GP/db/THS_ZT.db')
@@ -207,13 +207,13 @@ class THS_ZT(pw.Model):
         #database = db_zt
         table_name = 'ths_zt'       
 
-db_f10.create_tables([THS_JGCG, THS_HYDB, THS_Top10_LTGD, THS_Newest])
+#db_f10.create_tables([THS_JGCG, THS_HYDB, THS_Top10_LTGD, THS_Newest])
 db_hot.create_tables([THS_Hot])
 db_hot_zh.create_tables([THS_HotZH])
-db_ddlr.create_tables([THS_DDLR])
+#db_ddlr.create_tables([THS_DDLR])
 db_thszs.create_tables([THS_ZS_ZD])
 db_gntc.create_tables([THS_GNTC])
-db_thsdde.create_tables([THS_DDE])
+#db_thsdde.create_tables([THS_DDE])
 #db_zt.create_tables([THS_ZT])
 
 
