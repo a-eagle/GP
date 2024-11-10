@@ -3,7 +3,7 @@ import threading, time, datetime, sys, os, copy, json, functools
 import os, sys, requests
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from db import tck_def_orm
+from orm import tck_def_orm
 from Common import base_win
 
 def formatDay(day):

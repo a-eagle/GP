@@ -7,7 +7,7 @@ import system_hotkey #pip install system_hotkey
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from THS import hot_utils, ths_win, hot_win, ths_ocr, tips_win
-from db import ths_orm
+from orm import ths_orm
 from Common import base_win
 
 curCode = None

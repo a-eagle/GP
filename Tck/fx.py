@@ -8,7 +8,7 @@ from Download.datafile import *
 from Download import console
 from Common import base_win
 from Tck import kline_utils
-from db import zs_orm
+from orm import zs_orm
 
 class FenXiCode:
     def __init__(self, code) -> None:

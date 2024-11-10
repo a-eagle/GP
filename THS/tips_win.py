@@ -9,7 +9,7 @@ from Download import datafile
 from THS import hot_utils
 from Download import henxin, cls
 from Common import base_win, ext_win, dialog
-from db import tck_orm, ths_orm, tck_def_orm
+from orm import tck_orm, ths_orm, tck_def_orm
 
 #-----------------------------------------------------------
 class ThsSortQuery:

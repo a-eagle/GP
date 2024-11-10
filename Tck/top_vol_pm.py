@@ -4,7 +4,7 @@ import os, sys, requests
 from Tck import timeline
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from db import tdx_orm
+from orm import tdx_orm
 from THS import ths_win
 from Common import base_win
 import kline_utils

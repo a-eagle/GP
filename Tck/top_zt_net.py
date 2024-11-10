@@ -3,10 +3,10 @@ import threading, time, datetime, sys, os, copy, pyautogui
 import os, sys, requests, re
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from db import ths_orm
+from orm import ths_orm
 from THS import ths_win, hot_utils
 from Common import base_win, ext_win
-from db import tck_orm, tck_orm
+from orm import tck_orm, tck_orm
 from Download import ths_iwencai
 from Tck import kline_utils, conf, mark_utils, utils, cache, ext_table
 

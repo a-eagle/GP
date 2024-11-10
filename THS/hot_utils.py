@@ -2,7 +2,7 @@ import peewee as pw
 import sys, os, time
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from db.ths_orm import THS_Hot, THS_HotZH, THS_GNTC
+from orm.ths_orm import THS_Hot, THS_HotZH, THS_GNTC
 
 # param day : int
 def calcHotZHOnDay(day : int):

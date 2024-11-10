@@ -3,7 +3,7 @@ import requests, json, traceback
 import datetime, time, sys, os
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from db import lhb_orm
+from orm import lhb_orm
 
 class Server:
     def __init__(self) -> None:

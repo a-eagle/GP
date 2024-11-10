@@ -7,7 +7,7 @@ import time, re
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
 from Download import fiddler
-from db import ths_orm
+from orm import ths_orm
 
 BASE_PATH = 'D:/thsdata/f10/'
 

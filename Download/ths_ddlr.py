@@ -4,7 +4,7 @@ import os, json, time, sys, pyautogui, io, datetime, win32api, win32event, winer
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
-from db import ths_orm
+from orm import ths_orm
 
 BASE_STRUCT_PATH = 'D:/ThsData/ddlr-struct/'
 BASE_DETAIL_PATH = 'D:/ThsData/ddlr-detail-src/'

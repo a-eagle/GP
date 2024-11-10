@@ -6,7 +6,7 @@ import requests, json, hashlib, random, easyocr
 import pyautogui
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from db import ths_orm, tck_orm
+from orm import ths_orm, tck_orm
 from Download import henxin
 
 hx = henxin.HexinUrl()

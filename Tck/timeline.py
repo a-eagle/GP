@@ -8,7 +8,7 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Download import datafile
 from Download import henxin, cls
 from Common import base_win, ext_win
-from db import ths_orm
+from orm import ths_orm
 from Tck import fx
 
 def getTypeByCode(code):

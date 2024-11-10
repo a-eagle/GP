@@ -3,10 +3,9 @@ import threading, time, datetime, sys, os, copy, pyautogui
 import os, sys, requests, re
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from db import tck_def_orm
+from orm import tck_def_orm, ths_orm
 from Common import base_win, sheet
 from Tck import kline_utils
-from db import ths_orm as ths_orm
 
 class DailyWindow(base_win.BaseWindow):
     def __init__(self) -> None:

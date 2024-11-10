@@ -1,7 +1,7 @@
 import sys, peewee as pw, requests, json, re, traceback, time, datetime
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from db import ths_orm
+from orm import ths_orm
 from Download import henxin, memcache
 
 def iwencai_search_info(question, intent = 'stock', input_type = 'typewrite'):

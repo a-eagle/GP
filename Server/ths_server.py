@@ -5,7 +5,7 @@ import datetime, time, sys, os, re
 
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from db import tck_orm
+from orm import tck_orm
 from Download import henxin, console, ths_iwencai
 from Common import holiday
 from THS import hot_utils

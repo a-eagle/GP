@@ -3,7 +3,7 @@ import threading, time, datetime, sys, os, copy
 import os, sys, requests
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from db import tck_def_orm
+from orm import tck_def_orm
 from THS import hot_utils
 from Common import base_win
 from Tck import  kline_utils, mark_utils, cache, utils

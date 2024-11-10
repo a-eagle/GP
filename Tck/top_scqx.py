@@ -4,11 +4,11 @@ import threading, time, datetime, sys, os, copy
 import os, sys
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from db import tdx_orm
+from orm import tdx_orm, tck_orm
 from Download import datafile
 from Download import henxin, ths_ddlr
 from THS import hot_utils
-import ddlr_detail, db.tck_orm as tck_orm
+import ddlr_detail
 from Common import base_win
 
 class KPL_Window(base_win.BaseWindow):
