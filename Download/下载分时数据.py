@@ -1,4 +1,4 @@
-import re, sys, datetime
+import re, sys, datetime, traceback
 import time, os, platform, sys
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
@@ -58,4 +58,8 @@ def main():
         loader.mergeAllMililine()
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        traceback.print_exc()
+    os.system('pause')

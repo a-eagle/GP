@@ -162,12 +162,15 @@ class FenXiLoader:
         x, y = console.getCursorPos()
         cs = self.loadAllCodes()
         for i, code in enumerate(cs):
-            fx = FenXiCode(code)
-            fx.loadFile()
-            fx.calcLastestDays()
-            self.save(code, fx.getResult())
+            self.fxOne(code)
             console.setCursorPos(x, y)
             print(f'Loading {i} / {len(cs)}')
+
+    def fxOne(self, code):
+        fx = FenXiCode(code)
+        fx.loadFile()
+        fx.calcLastestDays()
+        self.save(code, fx.getResult())
 
 def test():
     CODE = '000066'
