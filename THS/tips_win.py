@@ -486,7 +486,7 @@ class HotCardView(CardView):
         win32gui.SetWindowText(self.hwnd, self.getWindowTitle())
 
     def getWindowTitle(self):
-        obj = ths_orm.THS_Newest.get_or_none(code = f"{self.code :06d}")
+        obj = ths_orm.THS_GNTC.get_or_none(code = f"{self.code :06d}")
         if obj:
             title = f"{self.code :06d}  {obj.name}"
         else:
@@ -896,7 +896,7 @@ class HotZHCardView(ListView):
     def __init__(self, hwnd) -> None:
         super().__init__(hwnd)
         self.codeInfos = {}
-        qr = ths_orm.THS_Newest.select()
+        qr = ths_orm.THS_GNTC.select()
         for q in qr:
             self.codeInfos[q.code] = {'name': q.name}
         self.thread = base_win.Thread()
@@ -1061,7 +1061,7 @@ class HotZHCardView(ListView):
             return
         if self.curSelDay == selDay:
             return
-        qr = ths_orm.THS_Newest.select()
+        qr = ths_orm.THS_GNTC.select(ths_orm.THS_GNTC.name)
         self.codeInfos.clear()
         for q in qr:
             self.codeInfos[q.code] = {'name': q.name}

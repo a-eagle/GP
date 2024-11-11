@@ -83,7 +83,7 @@ class SimpleTimelineModel:
             lines = his5datas['line']
             idx = days.index(day) * self.ONE_DAY_LINES
             self._calcCodePre_Cls(idx, lines)
-            for i in range(idx, min(idx + self.ONE_DAY_LINES + 1, len(lines))): # skip 930
+            for i in range(idx, min(idx + self.ONE_DAY_LINES, len(lines))):
                 d = lines[i]
                 ts = datafile.ItemData()
                 ts.time = url.getVal(d, 'minute', int, 0)
@@ -155,9 +155,9 @@ class SimpleTimelineModel:
             return
         if not self.pre:
             if idx > 0:
-                self.pre = self.dataFile.data[idx - 1].close
+                self.pre = self.dataFile.data[idx - 1].price
             else:
-                self.pre = self.dataFile.data[idx].open
+                self.pre = self.dataFile.data[idx].price
 
         self.curData.clear()
         while idx < len(self.dataFile.data):

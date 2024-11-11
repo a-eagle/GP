@@ -206,9 +206,11 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
 
 # 涨速排名
 class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
+    MIN_ZHANG_SU = 4 # 最小涨速
+
     def __init__(self) -> None:
         super().__init__()
-        self.ocr = number_ocr.eocr # ch_sim
+        self.ocr = number_ocr.eocr() # ch_sim
         self.today = None
         self.datas = {} # code : []
         self.thread = base_win.TimerThread()
@@ -260,7 +262,7 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
         #priceImg.save('D:/price.bmp')
         return codeImg, priceImg
     
-    def runOcr(self, thsMainWnd, minZhangFu = 5):
+    def runOcr(self, thsMainWnd):
         imgs = self.dumpZhangShu(thsMainWnd)
         if not imgs:
             return None
@@ -288,7 +290,7 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
                 if '%' in zf:
                     zf = zf[0 : zf.index('%')]
                 zf = float(zf)
-                if zf < minZhangFu:
+                if zf < self.MIN_ZHANG_SU:
                     continue
                 item = {'code' : codeInfo[1], 'day' : day, 'minuts' : minuts, 'zf': zf, 'time': int(nowTime)}
                 #print(item)
@@ -336,7 +338,7 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
                 sufix = '\033[0m'
             print(prefix, f'  {r["code"]} {name} {r["zf"] :>5.2f}%', sufix, sep = '', end = end)
         if len(rs) % COL_NUM != 0:
-            print('\n')
+            print('')
     
     def run(self):
         try:
@@ -347,8 +349,7 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
             if not ths.mainHwnd:
                 return
             ths.showMax()
-            MIN_ZHANG_SU = 5 # 最小涨速
-            rs = self.runOcr(ths.mainHwnd, MIN_ZHANG_SU)
+            rs = self.runOcr(ths.mainHwnd)
             self.saveOcrResult(rs)
             self.print(rs)
         except Exception as e:
