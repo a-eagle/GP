@@ -21,7 +21,7 @@ class KLineModel_Ths(henxin.ThsDataFile):
 
 class KLineModel_Cls(cls.ClsDataFile):
     def __init__(self, code) -> None:
-        super().__init__(code, datafile.DataFile.DT_DAY)        
+        super().__init__(code, datafile.DataFile.DT_DAY)
 
 def getTypeByCode(code):
     if not code:
@@ -349,7 +349,7 @@ class RefZSKDrawer:
         maxVal, minVal = 0, 9999999
         last = None
         for i in range(fromIdx, endIdx):
-            it = henxin.HexinUrl.ItemData()
+            it = datafile.ItemData()
             di = i - fromIdx + sidx
             if di < 0:
                 first = self.model.data[0]

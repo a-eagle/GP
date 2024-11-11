@@ -233,7 +233,7 @@ class Server:
         # 下载dde数据, 前100 + 后100
         if curTime >= '15:15' and curTime < '16:00':
             if time.time() - self.last_dde_time >= 60 * 60:
-                self.downloadSaveDde()
+                #self.downloadSaveDde()
                 self.last_dde_time = time.time()
 
         # 下载个股板块概念信息

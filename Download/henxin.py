@@ -2,7 +2,7 @@ import datetime, time, random, requests, re, json, os, sys, struct, re, tracebac
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
-from Download.datafile import DataFile
+from Download.datafile import DataFile, ItemData
 
 class Base64:
     def __init__(self):
@@ -279,15 +279,15 @@ class HexinMemCache:
             return rs.data
         return None
     
-    # data:  {'name': xx, 'today': today,  'data': [HexinUrl.ItemData, ...]}
-    # data:  {name:xx, data: HexinUrl.ItemData}
-    # data: {name:xx, pre:xx, date:yyyymmdd, data: str;str;..., }  data: 时间，价格，成交额（元），分时均价，成交量（手）;
+    # data:  {'name': xx, 'today': today,  'data': [ItemData, ...]}
+    # data:  {name:xx, data: ItemData}
+    # data: {name:xx, pre:xx, date:yyyymmdd, line: [ItemData, ...], }  data: 时间，价格，成交额（元），分时均价，成交量（手）;
     def saveCache(self, data, kind):
         if kind == 'kline' or kind == 'today':
             if not data or not data['data']:
                 return
         elif kind == 'timeline':
-            if not data or not data['dataArr']:
+            if not data or not data['line']:
                 return
         code = data['code']
         it = CacheItem(data)
@@ -359,14 +359,6 @@ _memcache = HexinMemCache()
 
 class HexinUrl(Henxin):
     session = None
-
-    class ItemData(object):
-        def __init__(self):
-            super().__init__()
-            
-        def __repr__(self) -> str:
-            s = '<HexinUrl.ItemData> ' + str(self.__dict__)
-            return s
 
     def __init__(self) -> None:
         super().__init__()
@@ -446,9 +438,9 @@ class HexinUrl(Henxin):
         url = self._getUrlWithParam(url)
         return url
 
-    # @return today:  {name:xx, code:xx, data: HexinUrl.ItemData}
-    #         kline:  {'name': xx, code:xx, 'today': yyyymmdd(str),  'data': [HexinUrl.ItemData, ...]}
-    #         fenshi: {name:xx, code:xx, pre:xx, date:yyyymmdd(str), data: str;str;..., dataArr:[HexinUrl.ItemData...] }  data: 时间，价格，成交额（元），分时均价，成交量（手）;
+    # @return today:  {name:xx, code:xx, data: ItemData}
+    #         kline:  {'name': xx, code:xx, 'today': yyyymmdd(str),  'data': [ItemData, ...]}
+    #         fenshi: {name:xx, code:xx, pre:xx, date:yyyymmdd(str), data: str;str;..., line:[ItemData...] }  data: 时间，价格，成交额（元），分时均价，成交量（手）;
     def loadUrlData(self, url):
         if not url:
             return None
@@ -519,7 +511,7 @@ class HexinUrl(Henxin):
             for k in js:
                 js = js[k]
                 break
-            item = HexinUrl.ItemData()
+            item = ItemData()
             if js['1']:
                 setattr(item, 'day', int(js['1']))
             if js['13']:
@@ -555,23 +547,21 @@ class HexinUrl(Henxin):
             for m, d in enumerate(ds):
                 if not d:
                     continue
-                obj = HexinUrl.ItemData()
+                obj = ItemData()
                 row = d.split(',')
                 #if m == len(ds) - 1: 
                 #    print('[henxin.parseDaylyData]', name, row) # last row
                 for i, k in enumerate(keys):
                     if row[i] == '':
                         row[i] = '0' # fix bug
-                    if i == 0 or i == 5:
-                        setattr(obj, keys[i], int(row[i]))
+                    if i == 0 or i == 5 or i == 6:
+                        setattr(obj, keys[i], int(float(row[i])))
                     elif i >= 1 and i <= 4:
                         if row[i] == '0':
                             del obj
                             obj = None
                             break
                         setattr(obj, keys[i], float(row[i]))
-                    elif i == 6:
-                        setattr(obj, keys[i], int(float(row[i])))
                     elif i == 7:
                         setattr(obj, keys[i], float(row[i]))
                 if obj:
@@ -589,24 +579,28 @@ class HexinUrl(Henxin):
             for k in js:
                 js = js[k]
                 break
-            js['pre'] = float(js['pre'])
-            js['dataArr'] = []
+            rs = {}
+            rs['name'] = js['name']
+            rs['pre'] = float(js['pre'])
+            rs['date'] = int(js['date'])
+            rs['line'] = []
             iv = js['data'].split(';')
             for item in iv:
                 # 时间，价格，成交额（元），分时均价，成交量（手）
                 its = item.split(',')
-                row = {}
-                row['time'] = int(its[0])
-                if row['time'] == 1300:
+                row = ItemData()
+                row.day = rs['date']
+                row.time = int(its[0])
+                if row.time == 1300:
                     continue # skip 13:00
-                if row['time'] > 1500:
+                if row.time > 1500:
                     break
-                row['price'] = float(its[1])
-                row['money'] = float(its[2])
-                row['avgPrice'] = float(its[3])
-                row['vol'] = float(its[4] if its[4] else '0')
-                js['dataArr'].append(row)
-            return js
+                row.price = float(its[1])
+                row.amount = int(float(its[2]))
+                row.avgPrice = float(its[3])
+                row.vol = int(float(its[4] if its[4] else '0'))
+                rs['line'].append(row)
+            return rs
         except Exception as e:
             traceback.print_exc()
         return None
@@ -632,29 +626,13 @@ class ThsDataFile(DataFile):
                 self.data = None
             
 if __name__ == '__main__':
-    hx = Henxin()
-    hx.copy('A0uAxKHRqXBYdPVN2P5FRNlI2uQw4Fzq2f4jFb1dI4nj_WWaRbDvsunEs1LO')
-    print('---------------A------------------')
-    for i in range(len(hx.data)):
-        print(f'[{i}] = ', hx.data[i])
-        #print(hx.data[i])
-   
-    #n = [    203,    90,    132,    193,    102,    98,    145,    80,    102,    139,    117,    134,    210,    254,    8,    68,    1,    10,    5,    0,    3,    136,    0,    10,    0,    3,    0,    21,    4,    131,    2,    33,    14,    164,    0,    0,    0,    0,    0,    0,    0,    52,    3]
-    #rs = hx.base64.encode(n)
-    #print('encode:', rs)
+    hx = HexinUrl()
+    url = hx.getKLineUrl('002456')
+    #url = hx.getTodayKLineUrl('002456')
+    #url = hx.getKLineUrl('002456')
+    rs = hx.loadKLineData('002456')
+    print(rs)
 
-    s = hx.base64.encode(hx.toBuffer())
-    print(s)
-    
-    #url = hx.getFenShiUrl('603628')
-    #url = hx.getTodayKLineUrl('603628')
-    #url = hx.getKLineUrl('603628')
-    #rs = hx.loadUrlData(url)
-    #print(rs)
-
-if __name__ == '__main__x':
-    # javascript: window.location.href = 'https://s.thsi.cn/js/chameleon/time.1' + (new Date().getTime() / 1200000) + '.js'
-    pass
 
 # TOKEN_SERVER_TIME
 # https://s.thsi.cn/js/chameleon/chameleon.min.1704188.js 

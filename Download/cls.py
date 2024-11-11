@@ -75,10 +75,9 @@ class ClsUrl:
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         data = js['data']
+        data['code'] = code
         if data and 'line' in data:
-            self._toStds(data['line'])
-        data['dataArr'] = data.get('line', None)
-        #print(js['data'])
+            data['line'] = self._toStds(data['line'], False)
         return data
     
     def getVal(self, data, name, _type, default):
@@ -149,40 +148,55 @@ class ClsUrl:
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         data = js['data']
-        if data and 'line' in data:
-            self._toStds(data['line'])
-        #print(data)
+        data['code'] = code
+        if data and ('line' in data):
+            data['line'] = self._toStds(data['line'], False)
         return data
 
-    def _toStds(self, datas):
+    def _toStds(self, datas, kline):
         if not datas:
-            return
+            return None
+        rs = []
         for d in datas:
-            self._toStd(d)
-    
-    def _toStd(self, data):
-        data['day'] = data['date']
-        if 'secu_code' in data:
-            sc = data['secu_code']
-            if ('cls' in sc) or ('sh0' in sc):
-                data['code'] = sc
+            if kline:
+                rs.append(self._toStdKl(d))
             else:
-                data['code'] = sc[2 : ]
-        if 'open_px' in data: data['open'] = self.getVal(data, 'open_px', float, 0)
-        if 'close_px' in data: data['close'] = self.getVal(data, 'close_px', float, 0)
-        if 'last_px' in data: data['close'] = self.getVal(data, 'last_px', float, 0)
-        if 'low_px' in data: data['low'] = self.getVal(data, 'low_px', float, 0)
-        if 'high_px' in data: data['high'] = self.getVal(data, 'high_px', float, 0)
-        if 'preclose_px' in data: data['pre'] = self.getVal(data, 'preclose_px', float, 0)
-        if 'change' in data: data['zf'] = self.getVal(data, 'change', float, 0) * 100 # %  zf = 涨幅
-        if 'tr' in data: data['rate'] = self.getVal(data, 'tr', float, 0) * 100 # %
-        if 'business_amount' in data: data['vol'] = self.getVal(data, 'business_amount', float, 0)
-        if 'business_balance' in data: data['amount'] = self.getVal(data, 'business_balance', float, 0)
-        if 'minute' in data:
-            data['time'] = data['minute']
-            data['price'] = data['close']
-        if 'av_px' in data:
-            data['avgPrice'] = self.getVal(data, 'av_px', float, 0)
+                rs.append(self._toStdFs(d))
+        return rs
+
+    def _toStdFs(self, d):
+        if not d:
+            return None
+        ts = datafile.ItemData()
+        ts.day = self.getVal(d, 'date', int, 0)
+        ts.time = self.getVal(d, 'minute', int, 0)
+        ts.price = self.getVal(d, 'last_px', float, 0)
+        ts.vol = self.getVal(d, 'business_amount', int, 0)
+        ts.amount = self.getVal(d, 'business_balance', int, 0)
+        ts.avgPrice = self.getVal(d, 'av_px', float, 0)
+        return ts
+    
+    def _toStdKl(self, d):
+        if not d:
+            return None
+        ts = datafile.ItemData()
+        if 'secu_code' in d:
+            sc = d['secu_code']
+            if ('cls' in sc) or ('sh0' in sc):
+                ts.code = sc
+            else:
+                ts.code = sc[2 : ]
+        ts.day = self.getVal(d, 'date', int, 0)
+        ts.vol = self.getVal(d, 'business_amount', int, 0)
+        ts.amount = self.getVal(d, 'business_balance', int, 0)
+        ts.open = self.getVal(d, 'open_px', float, 0)
+        ts.close = self.getVal(d, 'close_px', float, 0)
+        ts.low = self.getVal(d, 'low_px', float, 0)
+        ts.high = self.getVal(d, 'high_px', float, 0)
+        ts.pre = self.getVal(d, 'preclose_px', float, 0)
+        ts.zhangFu = self.getVal(d, 'change', float, 0) * 100 # %  zf = 涨幅
+        ts.rate = self.getVal(d, 'tr', float, 0) * 100 # %
+        return ts
 
     # K线数据
     # limit : K线数量
@@ -201,10 +215,9 @@ class ClsUrl:
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         data = js['data']
-        for d in data:
-            self._toStd(d)
+        rs = self._toStds(data, True)
         #print(data)
-        return data
+        return rs
     
     # 5档盘口
     # {b_amount_1...5 买1-5手    b_px_1...5: 买1-5价 preclose_px 昨日收盘价 s_amount_1...5 s_px_1...5}
@@ -231,7 +244,7 @@ class ClsUrl:
         except Exception as e:
             traceback.print_exc()
         return None
-    
+
     # 盘口成交量
     # {end: int, volume: [{change_vol=2, change_vol_color=0, last_px=23.31, minute=102800}, ...] }
     def loadPanKouVol(self, code):
@@ -331,32 +344,11 @@ class ClsDataFile(datafile.DataFile):
             self._loadDataFile_FS()
 
     def _loadDataFile_KLine(self):
-        datas = ClsUrl().loadKline(self.code, 1200)
-        for ds in datas:
-            it = datafile.ItemData()
-            it.day = ds['date']
-            it.open = ds['open_px']
-            it.close = ds['close_px']
-            it.low = ds['low_px']
-            it.high = ds['high_px']
-            it.amount = int(ds['business_balance'])
-            it.vol = int(ds['business_amount'])
-            it.rate = ds.get('tr', 0) * 100
-            self.data.append(it)
+        self.data = ClsUrl().loadKline(self.code, 1200)
         
     def _loadDataFile_FS(self):
         datas = ClsUrl().loadHistory5FenShi(self.code)
-        for ds in datas:
-            it = datafile.ItemData()
-            it.day = ds['date']
-            it.time = ds['minute']
-            it.open = int(ds['open_px'] * 100 + 0.5)
-            it.close = int(ds['close_px'] * 100 + 0.5)
-            it.low = int(ds['low_px'] * 100 + 0.5)
-            it.high = int(ds['high_px'] * 100 + 0.5)
-            it.amount = int(ds['business_balance'])
-            it.vol = int(ds['business_amount'])
-            self.data.append(it)
+        self.data = datas['line']
 
 if __name__ == '__main__':
     #signByStr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012')
@@ -365,4 +357,7 @@ if __name__ == '__main__':
     #ClsUrl().loadDegree()
     pass
     u = ClsUrl()
-    u.loadHotTC(20241104)
+    #u.loadHotTC(20241104)
+    data = u.loadKline('002185')
+    print(data[-2])
+    print(data[-1])

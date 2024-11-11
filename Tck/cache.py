@@ -98,11 +98,11 @@ class CacheManager(base_win.Listener):
         base_win.ThreadPool.instance().addTask(code, self._downloadLocal, code, day, win)
 
     def _calcZF(self, data):
-        if (not data.get('pre', 0)) or (not data.get('dataArr', None)) :
+        if (not data.get('pre', 0)) or (not data.get('line', None)) :
             return None
         pre = data['pre']
-        last = data['dataArr'][-1]
-        price = last['price']
+        last = data['line'][-1]
+        price = last.price
         if not price:
             return
         return (price - pre) / pre
@@ -124,7 +124,7 @@ class CacheManager(base_win.Listener):
     def _downloadLocal(self, code, day, win):
         if type(day) == str:
             day = int(day.replace('-', ''))
-        ds = {'code': code, 'day': day, 'pre': 0, 'dataArr': []}
+        ds = {'code': code, 'day': day, 'pre': 0, 'line': []}
         render = TimelineRender()
         rs = {'_load_time': datetime.datetime.now(), 'render': render, 'zf': 0, 'day': day}
         self.localCache[code] = rs
@@ -140,7 +140,7 @@ class CacheManager(base_win.Listener):
         while idx < len(df.data):
             if df.data[idx].day != day:
                 break
-            ds['dataArr'].append({'price': df.data[idx].close})
+            ds['line'].append({'price': df.data[idx].close})
             idx += 1
         rs['zf'] = self._calcZF(ds)
         render.setData(ds)
@@ -160,9 +160,9 @@ class TimelineRender:
     def calcPriceRange(self):
         minVal = 100000
         maxVal = -10000
-        for d in self.data['dataArr']:
-            minVal = min(d['price'], minVal)
-            maxVal = max(d['price'], maxVal)
+        for d in self.data['line']:
+            minVal = min(d.price, minVal)
+            maxVal = max(d.price, maxVal)
         self.maxPrice = maxVal
         self.minPrice = minVal
         minVal = min(self.data['pre'], minVal)
@@ -189,9 +189,9 @@ class TimelineRender:
             return self.getPriceColor(self.maxPrice)
         if self.isDTPrice(self.minPrice):
             return self.getPriceColor(self.minPrice)
-        if 'dataArr' in self.data:
-            last = self.data['dataArr'][-1]
-            color = self.getPriceColor(last['price'])
+        if 'line' in self.data:
+            last = self.data['line'][-1]
+            color = self.getPriceColor(last.price)
             return color
         return 0x000000
     
@@ -246,14 +246,14 @@ class TimelineRender:
             return
         cwidth = rect[2] - rect[0] - self.paddings[0] - self.paddings[2]
         height = rect[3] - rect[1]
-        da = self.data['dataArr']
+        da = self.data['line']
         if not da:
             return
         dx = cwidth / 240
         drawer.use(hdc, drawer.getPen(self.getLineColor()))
         for i, d in enumerate(da):
             x = int(i * dx + self.paddings[0])
-            y = self.getYAtPrice(d['price'], height)
+            y = self.getYAtPrice(d.price, height)
             if i == 0:
                 win32gui.MoveToEx(hdc, x + rect[0], y + rect[1])
             else:
@@ -274,7 +274,7 @@ class TimelineRender:
         rc = [rect[2] - ZFW, rect[3] - 12, rect[2], rect[3]]
         drawer.drawText(hdc, f'{szf :.2f}%', rc, self.getPriceColor(self.minPrice), win32con.DT_RIGHT | win32con.DT_BOTTOM)
         # zf
-        zf = (da[-1]['price'] - self.data['pre']) / self.data['pre'] * 100
+        zf = (da[-1].price - self.data['pre']) / self.data['pre'] * 100
         rc = [rect[2] - ZFW, rect[1] + (rect[3] - rect[1]) // 2 - 5 , rect[2], rect[3]]
         drawer.drawText(hdc, f'{zf :.2f}%', rc, 0xFF3399, win32con.DT_RIGHT | win32con.DT_TOP)
 

@@ -939,10 +939,9 @@ class HotZHCardView(ListView):
             url = self.henxinUrl.getFenShiUrl(code)
             obj = self.henxinUrl.loadUrlData(url)
             data['name'] = obj['name']
-            dts = obj['data'].split(';')
+            dts = obj['line']
             if len(dts) != 0:
-                dt = dts[-1].split(',')
-                curPrice = float(dt[1])
+                curPrice = float(dts[-1].price)
                 data['HX_curPrice'] = curPrice
                 data['HX_prePrice'] = float(obj['pre'])
                 pre = data['HX_prePrice']

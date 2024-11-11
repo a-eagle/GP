@@ -20,6 +20,8 @@ def getTypeByCode(code):
         return None
     if code[0] in ('0', '3', '6'):
         return 'cls'
+    if code[0 : 2] in ('sz', 'sh'):
+        return 'cls'
     return 'ths'
 
 class SimpleTimelineModel:
@@ -39,10 +41,10 @@ class SimpleTimelineModel:
 
     def _calcCodePre_Cls(self, idx, lines):
         if idx == 0:
-            c = lines[idx]['last_px']
+            c = lines[idx].price
         else:
-            c = lines[idx - 1]['last_px']
-        self.pre = c #int(c * 100 + 0.5)
+            c = lines[idx - 1].price
+        self.pre = c
 
     def _loadCode_Cls_Newest(self, code):
         self.code = code
@@ -50,14 +52,7 @@ class SimpleTimelineModel:
         try:
             url = cls.ClsUrl()
             ds = url.loadFenShi(code)
-            for d in ds['line']:
-                ts = datafile.ItemData()
-                ts.time = url.getVal(d, 'minute', int, 0)
-                ts.price = url.getVal(d, 'last_px', float, 0) #int(url.getVal(d, 'last_px', float, 0) * 100 + 0.5)
-                ts.vol = url.getVal(d, 'business_amount', int, 0)
-                ts.amount = url.getVal(d, 'business_balance', int, 0)
-                ts.avgPrice = url.getVal(d, 'av_px', float, 0) #int(url.getVal(d, 'av_px', float, 0) * 100 + 0.5)
-                self.netData.append(ts)
+            self.netData.extend(ds['line'])
         except Exception as e:
             traceback.print_exc()
             print('[SimpleTimelineModel.loadCode] fail', code)
@@ -85,14 +80,7 @@ class SimpleTimelineModel:
             self._calcCodePre_Cls(idx, lines)
             for i in range(idx, min(idx + self.ONE_DAY_LINES, len(lines))):
                 d = lines[i]
-                ts = datafile.ItemData()
-                ts.time = url.getVal(d, 'minute', int, 0)
-                ts.close = ts.price = url.getVal(d, 'last_px', float, 0) #int(url.getVal(d, 'last_px', float, 0) * 100 + 0.5)
-                ts.vol = url.getVal(d, 'business_amount', int, 0)
-                ts.amount = url.getVal(d, 'business_balance', int, 0)
-                ts.avgPrice = url.getVal(d, 'av_px', float, 0) #int(url.getVal(d, 'av_px', float, 0) * 100 + 0.5)
-                ts.day = url.getVal(d, 'date', int, 0)
-                self.netData.append(ts)
+                self.netData.append(d)
         except Exception as e:
             traceback.print_exc()
             print('[SimpleTimelineModel.loadCode] fail', code)
@@ -115,14 +103,7 @@ class SimpleTimelineModel:
                 return False
             self.day = lastDay
             self.pre = data['pre'] #int(data['pre'] * 100 + 0.5)
-            for d in data['dataArr']:
-                ts = datafile.ItemData()
-                ts.time = d['time']
-                ts.close = ts.price = d['price'] #int(d['price'] * 100 + 0.5)
-                ts.vol = int(d['vol'])
-                ts.amount = int(d['money'])
-                ts.day = lastDay
-                self.netData.append(ts)
+            self.netData.extend(data['line'])
             return True
         except Exception as e:
             traceback.print_exc()
@@ -614,40 +595,11 @@ class TimelinePanKouWindow(base_win.BaseWindow):
         pool.addTask('TLa', lda)
         pool.addTask('TLb', ldb)
 
-def test():
-    import json
-    f = open('D:/cls.js', 'w')
-    url = cls.ClsUrl()
-    mdata = url.loadFenShi('600318')
-    cm1130 = mdata['line'][120]
-    cm1301 = mdata['line'][121]
-    print(cm1130)
-    print(cm1301)
-    f.write(json.dumps(mdata['line']))
-    f.close()
-
-    url = henxin.HexinUrl()
-    kdata = url.loadKLineData('600318')
-    klast = kdata['data'][-1]
-    klast2 = kdata['data'][-2]
-    print(klast)
-    print(klast2)
-    mdata = url.loadUrlData(url.getFenShiUrl('600318'))
-    m1130 = mdata['dataArr'][120]
-    m1300 = mdata['dataArr'][121]
-    print(m1130)
-    print(m1300)
-    f = open('D:/ths.js', 'w')
-    f.write(json.dumps(mdata['dataArr']))
-    f.close()
-
 if __name__ == '__main__':
-    #test()
-
     base_win.ThreadPool.instance().start()
     win = TimelinePanKouWindow()
     win.createWindow(None, (0, 0, 1000, 600), win32con.WS_OVERLAPPEDWINDOW)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
     #win.load('002085', None)
-    win.load('000035') # cls82437 sh000001 ; 300390  600611
+    win.load('002185') # cls82437 sh000001 ; 300390  600611
     win32gui.PumpMessages()

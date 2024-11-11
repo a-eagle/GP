@@ -28,9 +28,9 @@ def getNewestDay():
     fs = url.loadFenShi(c)
     if not fs:
         return None
-    datas = fs['dataArr']
+    datas = fs['line']
     if datas:
-        return datas[-1]['day']
+        return datas[-1].day
     return None
 
 def main():
