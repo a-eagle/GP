@@ -22,6 +22,7 @@ def createKLineWindow(parent, rect = None, style = None):
     win.addIndicator(kline.ClsZT_Indicator())
     #win.addIndicator(kline.DdeIndicator())
     win.addIndicator(kline.LhbIndicator())
+    win.addIndicator(kline.ZhangSuIndicator())
     dw = win32api.GetSystemMetrics (win32con.SM_CXSCREEN)
     dh = win32api.GetSystemMetrics (win32con.SM_CYSCREEN) - 35
     if not rect:

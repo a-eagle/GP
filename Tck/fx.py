@@ -165,6 +165,7 @@ class FenXiLoader:
             self.fxOne(code)
             console.setCursorPos(x, y)
             print(f'Loading {i} / {len(cs)}')
+        print('---end fenxi zhang su----')
 
     def fxOne(self, code):
         fx = FenXiCode(code)

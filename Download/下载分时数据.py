@@ -56,6 +56,9 @@ def main():
 
         loader = datafile.DataFileLoader()
         loader.mergeAllMililine()
+        from Tck import fx
+        ld = fx.FenXiLoader()
+        ld.fxAll()
 
 if __name__ == '__main__':
     try:

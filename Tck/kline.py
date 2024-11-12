@@ -4,7 +4,7 @@ import win32gui, win32con
 import requests, peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import ths_orm, tdx_orm, tck_orm, tck_def_orm, lhb_orm
+from orm import ths_orm, tdx_orm, tck_orm, tck_def_orm, lhb_orm, zs_orm
 from Download import datafile
 from Download import henxin, cls
 from Common import base_win, ext_win, dialog
@@ -31,6 +31,8 @@ def getTypeByCode(code):
     if type(code) != str:
         return None
     if code[0] in ('0', '3', '6'): # , '8'
+        return 'cls'
+    if code[0 : 2] in ('sh', 'sz'):
         return 'cls'
     return 'ths'
 
@@ -1633,6 +1635,65 @@ class LhbIndicator(CustomIndicator):
             win32gui.SetTextColor(hdc, color)
             win32gui.DrawText(hdc, f'Y', -1, rc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
+# 涨速，用于指明进攻意愿
+class ZhangSuIndicator(CustomIndicator):
+    def __init__(self, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 30
+        super().__init__(config)
+        if 'title' not in self.config:
+            self.config['title'] = '[涨速]'
+
+    def setData(self, data):
+        super().setData(data)
+        if not self.klineWin.model:
+            self.setCustomData(None)
+            return
+        code = self.klineWin.model.code
+        qr = zs_orm.LocalZSModel.select().where(zs_orm.LocalZSModel.code == code).dicts()
+        maps = {}
+        for d in qr:
+            day = d['day']
+            if day not in maps:
+                maps[day] = [d]
+            else:
+                maps[day].append(d)
+        rs = []
+        for d in data:
+            fd = maps.get(d.day, None)
+            if not fd:
+                fd = {'day': d.day, 'val': None}
+            else:
+                fd = {'day': d.day, 'val': fd}
+            rs.append(fd)
+        self.setCustomData(rs)
+
+    def drawItem(self, idx, hdc, pens, hbrs, x):
+        iw = self.config['itemWidth']
+        cdata = self.customData[idx]
+        selIdx = self.klineWin.selIdx
+        selData = self.data[selIdx] if selIdx >= 0 and selIdx < len(self.data) else None
+        selDay = int(selData.day) if selData else 0
+        rc = (x + 1, 1, x + iw, self.height)
+        if selDay == int(cdata['__day']):
+            win32gui.FillRect(hdc, rc, hbrs['light_dark'])
+        if not cdata or not cdata.get('val', None):
+            return
+        
+        MAX_ITEM_ZF = 5
+        IW = 2
+        zs = 0
+        for it in cdata['val']:
+            zs += it['zf']
+        import math
+        aw = math.ceil(zs / MAX_ITEM_ZF)
+        w = aw * IW
+        sx = (iw - w) // 2 + x
+        rc = (sx, 2, sx + w, self.height - 1)
+        drawer : base_win.Drawer = self.klineWin.drawer
+        drawer.fillRect(hdc, rc, 0x3C14DC)
+
 class KLineSelTipWindow(base_win.BaseWindow):
     def __init__(self, klineWin) -> None:
         super().__init__()
@@ -1844,6 +1905,7 @@ class DrawLineManager:
         drawer.drawText(hdc, text, rc, color = 0x404040, align = win32con.DT_LEFT)
 
     def onDrawLine(self, hdc, line : tck_def_orm.DrawLine):
+        W, H = self.klineWin.getClientSize()
         if not self.isValidLine(line) or (not self.klineWin.klineIndicator.visibleRange):
             return
         sidx = self.klineWin.model.getItemIdx(int(line.info['startX']))
@@ -1870,10 +1932,12 @@ class DrawLineManager:
             for dx in range(-n, n + 1):
                 x = sx + dx
                 y = ey + n * d
-                if x > 0 and y > 0:
+                if x > 0 and y > 0 and x < W and y < H:
                     win32gui.SetPixel(hdc, x, y, 0x30f030)
     
     def onDraw(self, hdc):
+        if not self.klineWin.model or not self.klineWin.model.data:
+            return
         dateType = self.klineWin.dateType
         for line in self.lines:
             if line.kind == 'text':
@@ -3023,8 +3087,10 @@ if __name__ == '__main__':
     win.addIndicator(ClsZT_Indicator()) # {'height' : 50}
     win.addIndicator(DdeIndicator()) # {'height' : 50}
     win.addIndicator(LhbIndicator())
+    win.addIndicator(ZhangSuIndicator())
+    
     rect = (0, 0, 1920, 850)
     win.createWindow(None, rect, win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW)
-    win.changeCode('600611') # cls82475 002085 603390 002085 002869  002055 000755
+    win.changeCode('300622') # cls82475 002085 603390 002085 002869  002055 000755
     win.klineWin.setMarkDay(20240822)
     win32gui.PumpMessages()
