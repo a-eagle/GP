@@ -222,7 +222,10 @@ class DataFile:
             d = self.data[idx]
             sumamount += d.amount
             sumVol += d.vol
-            d.avgPrice = int(sumamount / sumVol * 100 + 0.5)
+            if sumVol == 0:
+                d.avgPrice = d.close
+            else:
+                d.avgPrice = int(sumamount / sumVol * 100 + 0.5)
             idx += 1
 
     def calcMA(self, N):

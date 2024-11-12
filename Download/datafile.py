@@ -453,7 +453,55 @@ class DataFileLoader:
             self.chunkDayFile(c, fromDay, endDay)
             self.chunkMinlineFile(c, fromDay, endDay)
 
-if __name__ == '__main__':
+def merge_old(code):
+    import tdx_datafile
+    print('Load', code, end = '')
+    newDf = DataFile(code, DataFile.DT_MINLINE)
+    newDf.loadData(DataFile.FLAG_ALL)
+    oldDf = tdx_datafile.DataFile(code, DataFile.DT_MINLINE)
+    oldDf.loadData(tdx_datafile.DataFile.FLAG_ALL)
+    if not oldDf.data:
+        print(' --> No old data')
+        return True
+    for d in oldDf.days:
+        oldDf.calcAvgPriceOfDay(d)
+    if len(oldDf.data) % 240 != 0:
+        print(' --> Error data')
+        return False
+    ph = os.path.join(NET_MINLINE_PATH, f'{code}.lc1')
+    
+    firstDay = 0
+    if newDf.data:
+        firstDay = newDf.data[0].day
+    if firstDay <= oldDf.data[0].day:
+        print(' --> No Need')
+        return True
+    f = open(ph, 'wb')
+    arr = bytearray(24)
+    for d in oldDf.data:
+        if d.day >= firstDay:
+            break
+        if d.time == 931:
+            struct.pack_into('2l4f', arr, 0, d.day, 930, d.close, d.avgPrice, 0, 0)
+            f.write(arr)
+        struct.pack_into('2l4f', arr, 0, d.day, d.time, d.close, d.avgPrice, d.amount, d.vol)
+        f.write(arr)
+    for d in newDf.data:
+        struct.pack_into('2l4f', arr, 0, d.day, d.time, d.price, d.avgPrice, d.amount, d.vol)
+        f.write(arr)
+    f.close()
+    print(' --> Success')
+    return True
+
+def merge_old_all():
     lodler = DataFileLoader()
-    lodler.mergeAllMililine(0.5)
+    #lodler.mergeAllMililine(0.5)
+    codes = lodler._getCodes()
+    for c in codes:
+        merge_old(c)
+
+if __name__ == '__main__':
+    #lodler = DataFileLoader()
+    #lodler.mergeAllMililine(0.5)
+    #merge_old_all()
     pass
