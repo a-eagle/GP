@@ -224,7 +224,10 @@ class DataFile:
             d = self.data[idx]
             sumamount += d.amount
             sumVol += d.vol
-            d.avgPrice = sumamount / sumVol * 100
+            if sumVol > 0:
+                d.avgPrice = sumamount / sumVol
+            else:
+                d.avgPrice = d.price
             idx += 1
 
     def calcMA(self, N):
@@ -395,8 +398,6 @@ class DataFileLoader:
         return True
 
     def mergeMinlineFile(self, code, minlineDatas):
-        if len(minlineDatas) % DataFile.MINUTES_IN_DAY != 0:
-            return False
         ph = os.path.join(NET_MINLINE_PATH,f'{code}.lc1')
         dst = DataFile(code, DataFile.DT_MINLINE)
         dst.loadData(DataFile.FLAG_NEWEST)
@@ -405,10 +406,17 @@ class DataFileLoader:
         if dst.data:
             lastDay = dst.data[-1].day
         arr = bytearray(24)
-        for d in minlineDatas:
-            if d['day'] > lastDay:
-                struct.pack_into('2l4f', arr, 0, d['day'], d['time'], d['price'], d['avgPrice'], d['amount'], d['vol'])
-                f.write(arr)
+        for i, d in enumerate(minlineDatas):
+            if d.day <= lastDay:
+                continue
+            if d.time == 930:
+                if i + DataFile.MINUTES_IN_DAY > len(minlineDatas):
+                    break
+                td = minlineDatas[i + DataFile.MINUTES_IN_DAY - 1]
+                if td.time != 1500:
+                    break
+            struct.pack_into('2l4f', arr, 0, d.day, d.time, d.price, d.avgPrice, d.amount, d.vol)
+            f.write(arr)
         f.close()
 
     # only save data from [fromDay, endDay]
@@ -501,7 +509,16 @@ def merge_old_all():
         merge_old(c)
 
 if __name__ == '__main__':
-    #lodler = DataFileLoader()
+    df = DataFile('600843', DataFile.DT_MINLINE)
+    df.loadData(DataFile.FLAG_NEWEST)
+    print(df.data[0])
+
+    lodler = DataFileLoader()
+    #lodler.mergeMililine('600843')
     #lodler.mergeAllMililine(0.5)
     #merge_old_all()
+
+    df = DataFile('600843', DataFile.DT_MINLINE)
+    df.loadData(DataFile.FLAG_NEWEST)
+    print(df.data[0])
     pass
