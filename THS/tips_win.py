@@ -701,7 +701,7 @@ class SimpleWindow(CardWindow):
         if type_ == 'HOT':
             super().__init__((200, 238), (150, 30))
         else:
-            super().__init__((250, 250), (150, 30))
+            super().__init__((200, 250), (150, 30))
         self.curCode = None
         self.selectDay = 0
         self.zsCardView = None

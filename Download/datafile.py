@@ -461,7 +461,15 @@ class DataFileLoader:
             self.chunkDayFile(c, fromDay, endDay)
             self.chunkMinlineFile(c, fromDay, endDay)
 
-def merge_old(code):
+    def writeToFile(self, df):
+        f = open(df.getPath(), 'wb')
+        arr = bytearray(24)
+        for d in df.data:
+            struct.pack_into('2l4f', arr, 0, d.day, d.time, d.price, d.avgPrice, d.amount, d.vol)
+            f.write(arr)
+        f.close()
+
+def merge_tdx(code):
     import tdx_datafile
     print('Load', code, end = '')
     newDf = DataFile(code, DataFile.DT_MINLINE)
@@ -489,6 +497,8 @@ def merge_old(code):
     for d in oldDf.data:
         if d.day >= firstDay:
             break
+        if d.avgPrice > d.close * 20:
+            d.avgPrice /= 100
         if d.time == 931:
             struct.pack_into('2l4f', arr, 0, d.day, 930, d.close, d.avgPrice, 0, 0)
             f.write(arr)
@@ -501,24 +511,20 @@ def merge_old(code):
     print(' --> Success')
     return True
 
-def merge_old_all():
+def merge_tdx_all():
     lodler = DataFileLoader()
     #lodler.mergeAllMililine(0.5)
     codes = lodler._getCodes()
     for c in codes:
-        merge_old(c)
+        merge_tdx(c)
 
 if __name__ == '__main__':
     df = DataFile('600843', DataFile.DT_MINLINE)
-    df.loadData(DataFile.FLAG_NEWEST)
-    print(df.data[0])
+    df.loadData(DataFile.FLAG_ALL)
+    idx = df.getItemIdx(20241023)
+    print(df.data[idx + 1])
+    print(df.data[idx + 2])
 
-    lodler = DataFileLoader()
     #lodler.mergeMililine('600843')
     #lodler.mergeAllMililine(0.5)
     #merge_old_all()
-
-    df = DataFile('600843', DataFile.DT_MINLINE)
-    df.loadData(DataFile.FLAG_NEWEST)
-    print(df.data[0])
-    pass

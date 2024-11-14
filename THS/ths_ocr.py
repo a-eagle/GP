@@ -351,7 +351,7 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
             ths.showMax()
             rs = self.runOcr(ths.mainHwnd)
             self.saveOcrResult(rs)
-            self.print(rs)
+            #self.print(rs)
         except Exception as e:
             traceback.print_exc()
             pass
