@@ -601,5 +601,5 @@ if __name__ == '__main__':
     win.createWindow(None, (0, 0, 1000, 600), win32con.WS_OVERLAPPEDWINDOW)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
     #win.load('002085', None)
-    win.load('002185') # cls82437 sh000001 ; 300390  600611
+    win.load('002866') # cls82437 sh000001 ; 300390  600611
     win32gui.PumpMessages()

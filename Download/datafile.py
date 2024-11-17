@@ -316,8 +316,9 @@ class DataFile:
 class DataFileLoader:
     def __init__(self) -> None:
         self.codes = None
+        self.newestDay = None
 
-    def _getCodes(self):
+    def getCodes(self):
         if self.codes:
             return self.codes
         from orm import ths_orm
@@ -325,15 +326,12 @@ class DataFileLoader:
         rs = []
         for t in q:
             rs.append(t[0])
+        rs.insert(0, '999999') # 上证指数
         rs.sort()
-        rs.append('999999') # 上证指数
         rs.append('399001')
         rs.append('399006')
         self.codes = rs
         return self.codes
-
-    def getLastCode(self):
-        return '399006'
 
     def _adjustMinutesData(self, rs : list):
         MINUTES_IN_DAY = DataFile.MINUTES_IN_DAY
@@ -350,32 +348,45 @@ class DataFileLoader:
         for i in range(num):
             rs.pop(-1)
 
-    def mergeMililine(self, code):
+    def downloadAndMergeMililine(self, code):
         try:
             from Download import cls
+            dst = DataFile(code, DataFile.DT_MINLINE)
+            dst.loadData(DataFile.FLAG_NEWEST)
+            if dst.data:
+                lastDay = dst.data[-1].day
+                if self.newestDay and self.newestDay <= lastDay:
+                    return True
             url = cls.ClsUrl()
             datas = url.loadHistory5FenShi(code)
-            self.mergeMinlineFile(code, datas['line'])
+            if datas and ('line' in datas):
+                self.mergeMinlineFile(code, datas['line'])
         except Exception as e:
             traceback.print_exc()
+            print('DataFile exception: ', code)
             return False
         return True
 
-    def mergeAllMililine(self, internalTime = 2):
+    def downloadAndMergeAllMililine(self, internalTime):
         try:
             from Download import console
             print(f'-----begin download militime--------')
+            self.newestDay = self.getNetNewestDay()
+            if not self.newestDay:
+                return
             st = datetime.datetime.now()
             st = st.strftime('%Y-%m-%d %H:%M')
             print(st)
             x, y = console.getCursorPos()
             success, fail = 0, 0
-            for c in self._getCodes():
-                b = self.mergeMililine(c)
+            for c in self.getCodes():
+                b = self.downloadAndMergeMililine(c)
                 if b: success += 1
                 else: fail += 1
+                if not b:
+                    x, y = console.getCursorPos()
                 console.setCursorPos(x, y)
-                print(f'Loading: {success} / {len(self._getCodes())}, fail = {fail}')
+                print(f'Loading: {success} / {len(self.getCodes())}, fail = {fail}')
                 time.sleep(internalTime)
         except Exception as e:
             traceback.print_exc()
@@ -398,6 +409,8 @@ class DataFileLoader:
         return True
 
     def mergeMinlineFile(self, code, minlineDatas):
+        if not minlineDatas:
+            return
         ph = os.path.join(NET_MINLINE_PATH,f'{code}.lc1')
         dst = DataFile(code, DataFile.DT_MINLINE)
         dst.loadData(DataFile.FLAG_NEWEST)
@@ -456,7 +469,7 @@ class DataFileLoader:
         f.close()
 
     def chunkAll(self, fromDay, endDay):
-        codes = self._getCodes()
+        codes = self.getCodes()
         for c in codes:
             self.chunkDayFile(c, fromDay, endDay)
             self.chunkMinlineFile(c, fromDay, endDay)
@@ -468,6 +481,28 @@ class DataFileLoader:
             struct.pack_into('2l4f', arr, 0, d.day, d.time, d.price, d.avgPrice, d.amount, d.vol)
             f.write(arr)
         f.close()
+
+    def getNetNewestDay(self):
+        from Download import cls
+        url = cls.ClsUrl()
+        fs = url.loadHistory5FenShi('999999')
+        if not fs or ('line' not in fs):
+            return None
+        datas = fs['line']
+        if not datas:
+            return None
+        for i in range(len(datas) - 1, -1, -1):
+            if datas[i].time == 1500:
+                return datas[i].day
+        return None
+    
+    def getLocalNewestDay(self):
+        df = DataFile('999999', DataFile.DT_MINLINE)
+        df.loadData(DataFile.FLAG_NEWEST)
+        lastDay = 0
+        if df.data:
+            lastDay = df.data[-1].day
+        return lastDay
 
 def merge_tdx(code):
     import tdx_datafile
@@ -514,17 +549,10 @@ def merge_tdx(code):
 def merge_tdx_all():
     lodler = DataFileLoader()
     #lodler.mergeAllMililine(0.5)
-    codes = lodler._getCodes()
+    codes = lodler.getCodes()
     for c in codes:
         merge_tdx(c)
 
 if __name__ == '__main__':
-    df = DataFile('600843', DataFile.DT_MINLINE)
-    df.loadData(DataFile.FLAG_ALL)
-    idx = df.getItemIdx(20241023)
-    print(df.data[idx + 1])
-    print(df.data[idx + 2])
-
-    #lodler.mergeMililine('600843')
-    #lodler.mergeAllMililine(0.5)
-    #merge_old_all()
+    ld = DataFileLoader()
+    ld.downloadAndMergeAllMililine(0.5)

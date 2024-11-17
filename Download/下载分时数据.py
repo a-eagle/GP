@@ -7,31 +7,9 @@ from Download import datafile, cls
 def acceptTime():
     now = datetime.datetime.now()
     ts = now.strftime('%H:%M')
-    if ts > '15:30' and ts < '23:59':
+    if ts > '15:00' and ts < '23:59':
         return True
     return False
-
-def getLocalLastDay():
-    loader = datafile.DataFileLoader()
-    c = loader.getLastCode()
-    df = datafile.DataFile(c, datafile.DataFile.DT_MINLINE)
-    df.loadData(datafile.DataFile.FLAG_NEWEST)
-    lastDay = 0
-    if df.data:
-        lastDay = df.data[-1].day
-    return lastDay
-
-def getNewestDay():
-    loader = datafile.DataFileLoader()
-    c = loader.getLastCode()
-    url = cls.ClsUrl()
-    fs = url.loadFenShi(c)
-    if not fs:
-        return None
-    datas = fs['line']
-    if datas:
-        return datas[-1].day
-    return None
 
 def main():
     cache = {} # day : True | False
@@ -44,8 +22,9 @@ def main():
         if cache.get(today, False):
             time.sleep(60 * 5)
             continue
-        lastDay = getLocalLastDay()
-        newestDay = getNewestDay()
+        loader = datafile.DataFileLoader()
+        lastDay = loader.getLocalNewestDay()
+        newestDay = loader.getNetNewestDay()
         if not newestDay:
             time.sleep(60 * 5)
             continue
@@ -53,9 +32,7 @@ def main():
             cache[today] = True
             time.sleep(60 * 5)
             continue
-
-        loader = datafile.DataFileLoader()
-        loader.mergeAllMililine()
+        loader.downloadAndMergeAllMililine(0.5)
         from Tck import fx
         ld = fx.FenXiLoader()
         ld.fxAll()

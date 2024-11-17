@@ -3091,6 +3091,6 @@ if __name__ == '__main__':
     
     rect = (0, 0, 1920, 850)
     win.createWindow(None, rect, win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW)
-    win.changeCode('300622') # cls82475 002085 603390 002085 002869  002055 000755
+    win.changeCode('002866') # cls82475 002085 603390 002085 002869  002055 000755
     win.klineWin.setMarkDay(20240822)
     win32gui.PumpMessages()
