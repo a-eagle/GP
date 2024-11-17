@@ -363,8 +363,9 @@ class Drawer:
             return ps
         return None
 
-    def getFont(self, name = '宋体', fontSize = 14, weight = 0):
-        key = f'{name}:{fontSize}:{weight}'
+    # weight = 400 is normal, 700 is bold
+    def getFont(self, name = '宋体', fontSize = 14, weight = 0, italic = False, underline = False):
+        key = f'{name}:{fontSize}:{weight}:{italic}:{underline}'
         font = self.fonts.get(key, None)
         if not font:
             a = win32gui.LOGFONT()
@@ -372,6 +373,8 @@ class Drawer:
             a.lfFaceName = name
             if weight > 0:
                 a.lfWeight = weight
+            a.lfItalic = 1 if italic else 0
+            a.lfUnderline = 1 if underline else 0
             self.fonts[key] = font = win32gui.CreateFontIndirect(a)
         return font
 
@@ -1564,6 +1567,8 @@ class Button(BaseWindow):
         rc = (0, 0,  w, h)
         rc = (0, (h - TH) // 2,  w, h - (h - TH) // 2)
         self.drawer.drawText(hdc, self.info['title'], rc, self.css['textColor'])
+        #w, *_ = win32gui.GetTextExtentPoint32(hdc, ' ')
+        #print('Button.onDraw ', w)
 
     def onClick(self, x, y):
         self.notifyListener(self.Event('Click', self, info = self.info))
