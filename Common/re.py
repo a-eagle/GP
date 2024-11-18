@@ -317,6 +317,7 @@ class RichEditorRender:
 class RichEditor(base_win.BaseEditor):
     def __init__(self) -> None:
         super().__init__()
+        self.css['fontSize'] = 16
         self.css['bgColor'] = 0xf0f0f0
         self.css['textColor'] = 0x202020
         self.css['borderColor'] = 0xdddddd
@@ -337,7 +338,6 @@ class RichEditor(base_win.BaseEditor):
         pds = self.css['paddings']
         lineNoRect = (0, pds[1], pds[0], H)
         self.drawer.fillRect(hdc, lineNoRect, self.css['lineNoBgColor'])
-
         self.model.calcSize(hdc)
         #self.drawSelRange(hdc)
         sy = pds[1]
@@ -347,10 +347,12 @@ class RichEditor(base_win.BaseEditor):
                 break
             line : Line = self.model.lines[i]
             rc = (sx, sy, W - pds[2], sy + line.lineHeight)
+            sdc = win32gui.SaveDC(hdc)
             self.drawLine(hdc, i, rc)
-
+            win32gui.RestoreDC(hdc, sdc)
             lineNo = i - self.startRow + 1
             rc2 = (lineNoRect[0], rc[1], lineNoRect[2], rc[3])
+            self.drawer.use(hdc, self.getDefFont())
             self.drawer.drawText(hdc, f'{lineNo :>3d}', rc2, color = self.css['lineNoTextColor'], align = win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
             sy += line.lineHeight
 
@@ -376,7 +378,8 @@ class RichEditor(base_win.BaseEditor):
 
 if __name__ == '__main__':
     editor = RichEditor()
-    editor.model.insertRichText(Pos(0, 0), '<Text fs=5 c=daefc0 bg=aa33dd> Hello World 你发</Text>')
+    html = '<Text fs=5 c=daefc0 bg=aa33dd> Hello World 你发</Text>\n<Text fs=2> 不错呀</Text>'
+    editor.model.insertRichText(Pos(0, 0), html)
     editor.createWindow(None, (0, 0, 700, 400), style = win32con.WS_OVERLAPPEDWINDOW)
     win32gui.ShowWindow(editor.hwnd, win32con.SW_SHOW)
     win32gui.PumpMessages()
