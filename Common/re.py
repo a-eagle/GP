@@ -75,7 +75,7 @@ class Line:
         self.lineHeight = 0
         self.calcLineHeight()
 
-    def calcSize(self, hdc):
+    def calcWordsSize(self, hdc):
         for w in self.words:
             w.calcWidth(hdc)
         self.calcLineHeight()
@@ -133,15 +133,15 @@ class RichEditorModel:
 
     def insertWord(self, pos : Pos, word : Word):
         if not pos or not word or not word.char:
-            return
+            return False
         if not self.isValidPos(pos):
-            return
+            return False
         line : Line = self.lines[pos.row]
         if word.char != '\n':
             line.words.insert(pos.col, word)
             line.changed()
             pos.col += 1
-            return
+            return True
         pre = line.words[0 : pos.col]
         suff = line.words[pos.col : ]
         line.words = pre
@@ -151,14 +151,15 @@ class RichEditorModel:
         self.lines.insert(pos.row + 1, suffLine)
         pos.row += 1
         pos.col = 0
+        return True
 
     def beforeDeleteWord(self, pos : Pos):
         if not self.isValidPos(pos):
-            return
+            return False
         line : Line = self.lines[pos.row]
         if pos.col == 0:
             if pos.row == 0:
-                return
+                return False
             pre : Line = self.lines[pos.row - 1]
             self.lines.pop(pos.row)
             pre.words.extend(line.words)
@@ -168,14 +169,15 @@ class RichEditorModel:
             line.words.pop(pos.col - 1)
             pos.col -= 1
             line.changed()
+        return True
 
     def afterDeleteWord(self, pos : Pos):
         if not self.isValidPos(pos):
-            return
+            return False
         line : Line = self.lines[pos.row]
         if pos.col == len(line.words):
             if pos.row == len(self.lines) - 1:
-                return
+                return False
             next : Line = self.lines[pos.row + 1]
             line.words.extend(next.words)
             self.lines.pop(pos.row + 1)
@@ -184,6 +186,7 @@ class RichEditorModel:
         else:
             line.words.pop(pos.col)
             line.changed()
+        return True
 
     def isValidPos(self, pos : Pos):
         if not pos:
@@ -195,11 +198,8 @@ class RichEditorModel:
 
     def getPlainText(self, startPos : Pos, endPos : Pos):
         rs = self.getWords(startPos, endPos)
-        if not rs:
-            return ''
-        text = io.StringIO()
-        for w in rs:
-            text.write(w.char)
+        txt = self.getWordsPlainText(rs)
+        return txt
 
     def getWords(self, startPos : Pos, endPos : Pos):
         if not self.isValidPos(startPos) or not self.isValidPos(endPos):
@@ -225,14 +225,55 @@ class RichEditorModel:
         rs.extend(sline.words[0 : endPos.col])
         return rs
 
+    def delWords(self, startPos : Pos, endPos : Pos):
+        if not self.isValidPos(startPos) or not self.isValidPos(endPos):
+            return False
+        if startPos == endPos:
+            return False
+        if startPos > endPos:
+            startPos, endPos = endPos, startPos
+        if startPos.row == endPos.row:
+            cline : Line = self.lines[startPos.row]
+            del cline.words[startPos.col : endPos.col]
+            cline.changed()
+            return True
+        sline : Line = self.lines[startPos.row]
+        del sline.words[startPos.col : len(sline.words)]
+        rowIdx = startPos.row + 1
+        for r in range(rowIdx, endPos.row):
+            sline : Line = self.lines[r]
+            sline.words.clear()
+            self.lines.pop(rowIdx)
+        sline : Line = self.lines[rowIdx]
+        if len(sline.words) == endPos.col:
+            # del full row
+            sline.words.clear()
+            self.lines.pop(rowIdx)
+        else:
+            del sline.words[0 : endPos.col]
+            sline.changed()
+        return True
+
     def getRichText(self, startPos : Pos, endPos : Pos):
         rs = self.getWords(startPos, endPos)
-        if not rs:
+        txt = self.getWordsRichText(rs)
+        return txt
+
+    def getWordsPlainText(self, words : list):
+        if not words:
+            return ''
+        text = io.StringIO()
+        for w in words:
+            text.write(w.char)
+        return text.getvalue()
+        
+    def getWordsRichText(self, words : list):
+        if not words:
             return ''
         text = io.StringIO()
         groups = []
         last : Word = None
-        for w in rs:
+        for w in words:
             if w.char == '\n':
                 groups.append('\n')
             elif last == None:
@@ -243,7 +284,7 @@ class RichEditorModel:
                 groups.append([w])
             last = w
         for ws in groups:
-            if isinstance(ws, str):
+            if ws and isinstance(ws, str):
                 text.write(ws)
                 continue
             first = ws[0]
@@ -274,18 +315,19 @@ class RichEditorModel:
 
     def insertRichText(self, pos : Pos, text):
         if not text or not self.isValidPos(pos):
-            return
+            return False
         i = 0
         while True:
             ei, w = self._pullNext(i, text)
-            if isinstance(w, list):
+            if w and isinstance(w, list):
                 for m in w:
                     self.insertWord(pos, m)
-            elif isinstance(w, Word):
+            elif w and isinstance(w, Word):
                 self.insertWord(pos, w)
             else:
                 break
             i = ei
+        return True
 
     def _pullNext(self, i, text : str):
         if i >= len(text):
@@ -419,7 +461,7 @@ class RichEditor(base_win.BaseEditor):
                 break
             sy += self.model.lines[i].lineHeight
         if findRow < 0:
-            return Pos(len(self.model.lines), 0)
+            findRow = len(self.model.lines) - 1
         ln : Line = self.model.lines[findRow]
         sx = 0
         for i in range(len(ln.words)):
@@ -431,15 +473,15 @@ class RichEditor(base_win.BaseEditor):
             sx += w
         return Pos(findRow, len(ln.words))
 
-    def calcSize(self, hdc):
+    def calcWordsSize(self, hdc):
         for w in self.model.lines:
-            w.calcSize(hdc)
+            w.calcWordsSize(hdc)
 
     def _onDraw(self, hdc, W, H):
         pds = self.css['paddings']
         lineNoRect = (0, pds[1], pds[0], H)
         self.drawer.fillRect(hdc, lineNoRect, self.css['lineNoBgColor'])
-        self.calcSize(hdc)
+        self.calcWordsSize(hdc)
         sy = pds[1]
         sx = pds[0]
         for i in range(self.startRow, len(self.model.lines)):
@@ -545,40 +587,98 @@ class RichEditor(base_win.BaseEditor):
         if not self._caretVisible:
             return
         if key == 8:
-            self.onKeyBackspace()
+            #self.onKeyBackspace()
             return
         if key == 127:
-            self.onKeyDelete()
+            #self.onKeyDelete()
             return
-        if key == 10 or key == 13: # return key
+        if key == 10 or key == win32con.VK_RETURN: # return key
             key = 10
-        if key < 32 and key != 10:
+        if key < 32 and key != 10 and key != win32con.VK_TAB:
             return
         ch = chr(key)
-        self.model.insertRichText(self.insertPos, ch)
-        self.setInsertPos(self.insertPos)
+        if not self.model.insertRichText(self.insertPos, ch):
+            return
         self.invalidWindow()
+        win32gui.UpdateWindow(self.hwnd) # calc size
+        self.setInsertPos(self.insertPos)
+
+    def hasSelRange(self):
+        if not self.selRange:
+            return False
+        b, e = self.selRange
+        if b is None or e is None:
+            return False
+        if self.model.isValidPos(b) and self.model.isValidPos(e):
+            return b != e
+        return False
+
+    def deleteSelRange(self):
+        if not self.hasSelRange():
+            return False
+        b, e = self.selRange
+        if b > e:
+            b, e = e, b
+        ok = self.model.delWords(b, e)
+        if not ok:
+            return False
+        self.selRange = None
+        self.setInsertPos(b)
+        self.invalidWindow()
+        return True
 
     def onKeyDelete(self):
-        if self.selRange:
-            self.deleteSelRangeText()
-        elif self.text and self.insertPos < len(self.text):
-            self.text = self.text[0 : self.insertPos] + self.text[self.insertPos + 1 : ]
-            self.selRange = None
-            self.makePosVisible(self.insertPos)
-            self.setInsertPos(self.insertPos)
+        if self.deleteSelRange():
+            return
+        if self.model.afterDeleteWord(self.insertPos):
             self.invalidWindow()
 
     def onKeyBackspace(self):
-        if self.selRange:
-            self.deleteSelRangeText()
-        elif self.text and self.insertPos > 0:
-            self.text = self.text[0 : self.insertPos - 1] + self.text[self.insertPos : ]
-            pos = self.insertPos - 1
-            self.selRange = None
-            self.makePosVisible(pos)
-            self.setInsertPos(pos)
+        if self.deleteSelRange():
+            return
+        if self.model.beforeDeleteWord(self.insertPos):
+            self.setInsertPos(self.insertPos)
             self.invalidWindow()
+
+    def scroll(self, delta):
+        delta *= 3
+        if delta > 0:
+            self.startRow = min(self.startRow + delta, len(self.model.lines) - 1)
+        else:
+            self.startRow = max(self.startRow + delta, 0)
+        self.invalidWindow()
+        if not self.model.isValidPos(self.insertPos):
+            return
+        if self.isPosVisible(self.insertPos):
+            self.setInsertPos(self.insertPos)
+            self.showCaret()
+        else:
+            self.hideCaret()
+
+    def doCopy(self, selRange):
+        if not selRange:
+            return
+        ws = self.model.getWords(selRange[0], selRange[1])
+        if not ws:
+            return
+        # RegisterClipboardFormatA
+        text = self.model.getWordsPlainText(ws)
+        html = self.model.getWordsRichText(ws)
+        b = ctypes.windll.user32.OpenClipboard(self.hwnd)
+        if not b:
+            return
+        ctypes.windll.user32.EmptyClipboard()
+        GMEM_MOVEABLE = 0x0002
+        h = ctypes.windll.kernel32.GlobalAlloc(GMEM_MOVEABLE, len(text) * 3 + 1)
+        if h:
+            ph = ctypes.windll.kernel32.GlobalLock(h)
+            #memcpy(ph, 'xxx')
+            ctypes.windll.user32.SetClipboardData(win32con.CF_TEXT, ph)
+            ctypes.windll.kernel32.GlobalUnlock(h)
+        ctypes.windll.user32.CloseClipboard()
+
+    def doPaste(self):
+        pass
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_LBUTTONDOWN:
@@ -593,10 +693,18 @@ class RichEditor(base_win.BaseEditor):
             if wParam & win32con.MK_LBUTTON:
                 x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
                 pos = self.getInsertPosAtXY(x, y)
-                self.setSelRange('NotSet', pos)
-                self.setInsertPos(pos)
+                if pos:
+                    self.setSelRange('NotSet', pos)
+                    self.setInsertPos(pos)
                 self.invalidWindow()
             return True
+        if msg == win32con.WM_MOUSEWHEEL:
+            delta = (wParam >> 16) & 0xffff
+            if delta & 0x8000:
+                delta = delta - 0xffff - 1
+            delta = delta // 120
+            self.scroll(- delta)
+            win32gui.InvalidateRect(self.hwnd, None, True)
         if msg == win32con.WM_IME_CHAR or msg == win32con.WM_CHAR:
             self.onKey(wParam)
             return True
@@ -606,12 +714,10 @@ class RichEditor(base_win.BaseEditor):
             elif wParam == win32con.VK_BACK:
                 self.onKeyBackspace()
             elif wParam == ord('V') and self.getKeyState(win32con.VK_CONTROL):
-                txt = self.copyFromClipboard()
-                self.insertText(txt)
-            elif wParam == ord('C') and self.getKeyState(win32con.VK_CONTROL) and self.selRange and self.text:
-                txt = self.text[self.selRange[0] : self.selRange[1]]
-                self.copyToClipboard(txt)
-            elif wParam == ord('X') and self.getKeyState(win32con.VK_CONTROL) and self.selRange and self.text:
+                self.doPaste()
+            elif wParam == ord('C') and self.getKeyState(win32con.VK_CONTROL):
+                self.doCopy(self.selRange)
+            elif wParam == ord('X') and self.getKeyState(win32con.VK_CONTROL):
                 txt = self.text[self.selRange[0] : self.selRange[1]]
                 if self.copyToClipboard(txt):
                     self.deleteSelRangeText()

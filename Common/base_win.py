@@ -1,5 +1,5 @@
 import win32gui, win32con , win32api, win32ui, win32gui_struct, win32clipboard # pip install pywin32
-import threading, time, datetime, sys, os, copy, calendar, functools
+import threading, time, datetime, sys, os, copy, calendar, functools, ctypes
 import pyperclip # pip install pyperclip
 from multiprocessing import shared_memory # python 3.8+
 import ctypes
@@ -2316,7 +2316,15 @@ class BaseEditor(BaseWindow):
         #win32clipboard.CloseClipboard()
         return True
 
-    def copyFromClipboard(self):
+    def copyFromClipboard(self, fmt = win32con.CF_TEXT):
+        #b = ctypes.windll.user32.OpenClipboard(self.hwnd)
+        #if not b:
+        #    return ''
+        #fmt = 0
+        #fmt = ctypes.windll.user32.EnumClipboardFormats(fmt)
+        #v = ctypes.windll.user32.GetClipboardData(fmt)
+
+        #ctypes.windll.user32.CloseClipboard()
         val = pyperclip.paste()
         #win32clipboard.OpenClipboard(None)
         #val = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
@@ -2351,7 +2359,6 @@ class BaseEditor(BaseWindow):
         if msg == win32con. WM_IME_COMPOSITION:
             GCS_COMPSTR = 8
             if lParam & GCS_COMPSTR:
-                import ctypes
                 himc = ctypes.windll.imm32.ImmGetContext(hwnd)
                 buf = ctypes.create_string_buffer(100)
                 ctypes.windll.imm32.ImmGetCompositionStringA(himc, GCS_COMPSTR, buf, 100)
