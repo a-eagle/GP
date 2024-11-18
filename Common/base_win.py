@@ -364,7 +364,7 @@ class Drawer:
         return None
 
     # weight = 400 is normal, 700 is bold
-    def getFont(self, name = '宋体', fontSize = 14, weight = 0, italic = False, underline = False):
+    def getFont(self, name = '新宋体', fontSize = 14, weight = 0, italic = False, underline = False):
         key = f'{name}:{fontSize}:{weight}:{italic}:{underline}'
         font = self.fonts.get(key, None)
         if not font:
@@ -485,6 +485,19 @@ class Drawer:
             rect = tuple(rect)
         hbr = self.getBrush(color)
         win32gui.FillRect(hdc, rect, hbr)
+    
+    # color1Aplha : 0 ~ 1
+    def blendColor(self, color1, color2, color1Aplha : float):
+        if color1 is None and color2 is None:
+            return None
+        if color1 is None:
+            return color2
+        if color2 is None:
+            return color1
+        r = int((color1 & 0xff) * color1Aplha + (color2 & 0xff) * (1 - color1Aplha)) & 0xff
+        g = (int(((color1 >> 8) & 0xff) * color1Aplha + ((color2 >> 8) & 0xff) * (1 - color1Aplha)) & 0xff) << 8
+        b = (int(((color1 >> 16) & 0xff) * color1Aplha + ((color2 >> 16) & 0xff) * (1 - color1Aplha)) & 0xff) << 16
+        return r | g | b
     
     # rect = list or tuple (left, top, right, botton)
     # color = int(0xbbggrr color) | None(not set color)
@@ -2262,6 +2275,7 @@ class BaseEditor(BaseWindow):
         super().__init__()
         self._caretCreated = False
         self._caretVisible = False
+        self._caretHeight = 0
 
     def showCaret(self):
         if (not self._caretCreated) or self._caretVisible or (win32gui.GetFocus() != self.hwnd):
@@ -2320,6 +2334,7 @@ class BaseEditor(BaseWindow):
             ok = win32gui.CreateCaret(hwnd, None, 2, self.lineHeight)
             if ok != 0: # success
                 self._caretCreated = True
+                self._caretHeight = self.lineHeight
             self.onSetFocus()
             return True
         if msg == win32con.WM_KILLFOCUS:

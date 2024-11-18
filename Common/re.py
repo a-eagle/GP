@@ -6,27 +6,35 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Common import base_win
 
 class Word:
-    def __init__(self, fontSize, char = '') -> None:
+    def __init__(self, fontName, fontSize, char = '') -> None:
         self.char = char
-        self.fontSize = fontSize
+        self.fontName = fontName
+        self._fontSize = fontSize
         self.bold = False
         self.italic = False
         self.underline = False
         self.bgColor = None
         self.color = None
         self.width = 0
-        self.height = 0
+
+    @property
+    def fontSize(self):
+        return self._fontSize
+    
+    @fontSize.setter
+    def fontSize(self, val):
+        self._fontSize = val
+        self.fontChanged()
 
     def getFont(self):
         drawer = base_win.Drawer.instance()
         weight = 700 if self.bold else 0
-        font = drawer.getFont(fontSize = self.fontSize, weight = weight, italic = self.italic, underline = self.underline)
+        font = drawer.getFont(self.fontName, fontSize = self.fontSize, weight = weight, italic = self.italic, underline = self.underline)
         return font
 
-    def calcSize(self, hdc):
-        if self.height > 0:
+    def calcWidth(self, hdc):
+        if self.width > 0:
             return
-        self.height = self.fontSize
         self.width = 0
         if not self.char:
             return
@@ -41,20 +49,21 @@ class Word:
         self.width = w
 
     def fontChanged(self):
-        self.width = self.height = 0
+        self.width = 0
 
     def isSameStyle(self, w):
         if not w:
             return False
-        return self.fontSize == w.fontSize and self.bold == w.bold and \
+        return self.fontName == w.fontName and self.fontSize == w.fontSize and self.bold == w.bold and \
             self.italic == w.italic and self.underline == w.underline and \
             self.bgColor == w.bgColor and self.color == w.color
 
 class Line:
-    LINE_PADDING = 6
+    LINE_PADDING = 4
 
-    def __init__(self) -> None:
+    def __init__(self, defaultFontSize) -> None:
         self.lineHeight = 0
+        self.defaultFontSize = defaultFontSize
         self.words = []
 
     def invalidSize(self):
@@ -64,21 +73,22 @@ class Line:
 
     def changed(self):
         self.lineHeight = 0
+        self.calcLineHeight()
 
     def calcSize(self, hdc):
         for w in self.words:
-            w.calcSize(hdc)
-        self.calcLineHeight(hdc)
+            w.calcWidth(hdc)
+        self.calcLineHeight()
 
-    def calcLineHeight(self, hdc):
+    def calcLineHeight(self):
         if self.lineHeight > 0:
-            return
-        h = 0
+            return self.lineHeight
+        h = self.defaultFontSize
         for d in self.words:
-            d.calcSize(hdc)
-            h = max(h, d.height)
+            h = max(h, d.fontSize)
         h += self.LINE_PADDING
         self.lineHeight = h
+        return h
 
     def isEmpty(self):
         for w in self.words:
@@ -106,12 +116,20 @@ class Pos:
         return False
 
     def __eq__(self, th) -> bool:
+        if th is None:
+            return False
         return self.row == th.row and self.col == th.col
 
 class RichEditorModel:
-    def __init__(self) -> None:
-        self.defaultFontSize = 16
-        self.lines = [Line()]
+    def __init__(self, css) -> None:
+        self.css = css
+        self.lines = [Line(self.defaultFontSize())]
+
+    def defaultFontSize(self):
+        return self.css['fontSize']
+    
+    def defaultFontName(self):
+        return self.css['fontName']
 
     def insertWord(self, pos : Pos, word : Word):
         if not pos or not word or not word.char:
@@ -128,7 +146,7 @@ class RichEditorModel:
         suff = line.words[pos.col : ]
         line.words = pre
         line.changed()
-        suffLine = Line()
+        suffLine = Line(self.defaultFontSize())
         suffLine.words = suff
         self.lines.insert(pos.row + 1, suffLine)
         pos.row += 1
@@ -229,10 +247,22 @@ class RichEditorModel:
                 text.write(ws)
                 continue
             first = ws[0]
-            text.write(f'<Text fs={self.getSerializeFontStyle(first)} c={first.color :X} bg={first.bgColor :X} >')
+            fs = self.getSerializeFontStyle(first)
+            text.write(f'<T ')
+            if first.fontName and first.fontName != self.defaultFontName():
+                text.write(f"fn='{first.fontName}' ")
+            if fs != 0:
+                text.write(f'fs={fs} ')
+            if first.fontSize:
+                text.write(f'fz={first.fontSize :X} ')
+            if type(first.color) == int:
+                text.write(f'c={first.color :X} ')
+            if type(first.bgColor) == int:
+                text.write(f'bg={first.bgColor :X} ')
+            text.write('>')
             for w in ws:
                 text.write(w.char)
-            text.write('</Text>')
+            text.write('</T>')
         return text.getvalue()
 
     def getSerializeFontStyle(self, w : Word):
@@ -240,8 +270,6 @@ class RichEditorModel:
         if w.bold: fs |= 1
         if w.italic: fs |= 2
         if w.underline: fs |= 4
-        z = w.fontSize or self.defaultFontSize
-        fs |= z << 8
         return fs
 
     def insertRichText(self, pos : Pos, text):
@@ -263,31 +291,35 @@ class RichEditorModel:
         if i >= len(text):
             return i, None
         if text[i] != '<':
-            return i + 1, Word(self.defaultFontSize, text[i])
+            return i + 1, Word(self.defaultFontName(), self.defaultFontSize(), text[i])
         ei = text.find('>', i)
         if ei < 0:
             return ei, None
 
+        fn = self._getStrAttrVal('fn', text, i, ei)
         fs = self._getNumAttrVal('fs', text, i, ei)
+        fz = self._getNumAttrVal('fz', text, i, ei)
         color = self._getNumAttrVal('c', text, i, ei)
         bgColor = self._getNumAttrVal('bg', text, i, ei)
         si = ei + 1
-        ei = text.find('</Text>', si)
+        ei = text.find('</T>', si)
+        bei = ei + 4 # skip end tag </T>
         if ei < 0:
             return -1, None
         rs = []
         for i in range(si, ei):
-            w = Word(self.defaultFontSize)
-            if fs >> 8: w.fontSize = fs >> 8
-            if fs & 1: w.bold = True
-            if fs & 2: w.italic = True
-            if fs & 4: w.underline = True
+            w = Word(self.defaultFontName(), self.defaultFontSize())
+            if fn: w.fontName = fn
+            if fz: w.fontSize = fz
+            if type(fs) == int:
+                if fs & 1: w.bold = True
+                if fs & 2: w.italic = True
+                if fs & 4: w.underline = True
             if color != None: w.color = color
             if bgColor != None: w.bgColor = bgColor
             w.char = text[i]
             rs.append(w)
-        ei += 7
-        return ei, rs
+        return bei, rs
 
     def _isalpha(self, ch):
             return (ch >= '0' and ch <= '9') or (ch >= 'a' and ch <= 'z') or (ch >= 'A' and ch <= 'Z')
@@ -302,10 +334,23 @@ class RichEditorModel:
             v += text[idx]
             idx += 1
         return int(v.strip(), base = 16)
-
-    def calcSize(self, hdc):
-        for w in self.lines:
-            w.calcSize(hdc)
+    
+    def _getStrAttrVal(self, attrName, text, fromIdx, endIdx):
+        idx = text.find(f'{attrName}=', fromIdx, endIdx)
+        if idx < 0:
+            return None
+        idx += len(attrName) + 1
+        if idx >= endIdx:
+            return None
+        q = text[idx]
+        v = ''
+        idx += 1
+        while (idx < endIdx and text[idx] != q):
+            v += text[idx]
+            idx += 1
+        if idx < endIdx and text[idx] == q:
+            return v.strip()
+        return None
 
 class RichEditorRender:
     def __init__(self) -> None:
@@ -318,28 +363,83 @@ class RichEditor(base_win.BaseEditor):
     def __init__(self) -> None:
         super().__init__()
         self.css['fontSize'] = 16
-        self.css['bgColor'] = 0xf0f0f0
+        self.css['bgColor'] = 0xfdfdfd
         self.css['textColor'] = 0x202020
         self.css['borderColor'] = 0xdddddd
-        self.css['selBgColor'] = 0xf0c0c0
-        self.css['lineNoBgColor'] = 0xE0E0E0
-        self.css['lineNoTextColor'] = 0xD3B291
-        self.css['paddings'] = (40, 0, 5, 0)
+        self.css['selBgColor'] = 0xC0C0C0
+        self.css['lineNoBgColor'] = 0xE4E4E4
+        self.css['lineNoTextColor'] = 0x919191
+        self.css['insertLineBgColor'] = 0xFFE8E8
+        self.css['paddings'] = (40, 0, 0, 0)
         self.startRow = 0
-        self.model = RichEditorModel()
-        self.insertPos = None # Pos object
+        self.model = RichEditorModel(self.css)
+        self.insertPos : Pos = None # Pos object
         self.selRange = None # (begin-Pos, end-Pos)
 
     def onDraw(self, hdc):
         W, H = self.getClientSize()
         self._onDraw(hdc, W, H)
 
+    def getTextXY(self, pos : Pos):
+        if not self.model.isValidPos(pos):
+            return None
+        if pos.row < self.startRow:
+            return None
+        y = 0
+        for i in range(self.startRow, pos.row):
+            ln : Line = self.model.lines[i]
+            y += ln.lineHeight
+        ln : Line = self.model.lines[pos.row]
+        x = 0
+        for i in range(0, pos.col):
+            x += ln.words[i].width
+        return (x, y)
+    
+    def getXY(self, pos : Pos):
+        xy = self.getTextXY(pos)
+        if not xy:
+            return None
+        pds = self.css['paddings']
+        x, y = xy
+        x += pds[0]
+        y += pds[1]
+        return (x, y)
+
+    def getInsertPosAtXY(self, x, y):
+        pds = self.css['paddings']
+        x -= pds[0]
+        y -= pds[1]
+        if x < 0 or y < 0:
+            return None
+        sy = 0
+        findRow = -1
+        for i in range(self.startRow, len(self.model.lines)):
+            if sy <= y and y < sy + self.model.lines[i].lineHeight:
+                findRow = i
+                break
+            sy += self.model.lines[i].lineHeight
+        if findRow < 0:
+            return Pos(len(self.model.lines), 0)
+        ln : Line = self.model.lines[findRow]
+        sx = 0
+        for i in range(len(ln.words)):
+            w = ln.words[i].width
+            if sx <= x and x <= sx + w // 2:
+                return Pos(findRow, i)
+            elif sx <= x and x < sx + w:
+                return Pos(findRow, i + 1)
+            sx += w
+        return Pos(findRow, len(ln.words))
+
+    def calcSize(self, hdc):
+        for w in self.model.lines:
+            w.calcSize(hdc)
+
     def _onDraw(self, hdc, W, H):
         pds = self.css['paddings']
         lineNoRect = (0, pds[1], pds[0], H)
         self.drawer.fillRect(hdc, lineNoRect, self.css['lineNoBgColor'])
-        self.model.calcSize(hdc)
-        #self.drawSelRange(hdc)
+        self.calcSize(hdc)
         sy = pds[1]
         sx = pds[0]
         for i in range(self.startRow, len(self.model.lines)):
@@ -347,39 +447,182 @@ class RichEditor(base_win.BaseEditor):
                 break
             line : Line = self.model.lines[i]
             rc = (sx, sy, W - pds[2], sy + line.lineHeight)
+            if self.model.isValidPos(self.insertPos) and self.insertPos.row == i:
+                # hilight insert line
+                self.drawer.fillRect(hdc, rc, color = self.css['insertLineBgColor'])
             sdc = win32gui.SaveDC(hdc)
-            self.drawLine(hdc, i, rc)
+            self.drawLineContent(hdc, i, rc)
             win32gui.RestoreDC(hdc, sdc)
+
+            sdc = win32gui.SaveDC(hdc)
             lineNo = i - self.startRow + 1
             rc2 = (lineNoRect[0], rc[1], lineNoRect[2], rc[3])
             self.drawer.use(hdc, self.getDefFont())
             self.drawer.drawText(hdc, f'{lineNo :>3d}', rc2, color = self.css['lineNoTextColor'], align = win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
             sy += line.lineHeight
+            win32gui.RestoreDC(hdc, sdc)
 
-    def drawLine(self, hdc, lineIdx, rc):
+    def isInSelRange(self, row, col):
+        if not self.selRange or row < 0 or col < 0:
+            return False
+        b, e = self.selRange
+        if b == e:
+            return False
+        if b > e:
+            b, e = e, b
+        if b.row == e.row:
+            if b.row == row:
+                return b.col <= col and col < e.col
+            return False
+        if b.row == row:
+            return b.col <= col
+        if e.row == row:
+            return col < e.col
+        if row > b.row and row < e.row:
+            return True
+        return False
+        
+    def drawLineContent(self, hdc, lineIdx, rc):
         line = self.model.lines[lineIdx]
-        #groups = []
-        #last : Word = None
-        #for w in line.words:
-        #    if w.isSameStyle(last):
-        #        groups[-1].append(w)
-        #    else:
-        #        groups.append([w])
-        #    last = w
         sx = rc[0]
-        for w in line.words:
+        for i, w in enumerate(line.words):
+            sdc = win32gui.SaveDC(hdc)
             self.drawer.use(hdc, w.getFont())
-            my = rc[1] + (line.lineHeight - w.height) // 2
-            mrc = (sx, my, sx + w.width, my + w.height)
-            if w.bgColor != None:
-                self.drawer.fillRect(hdc, mrc, w.bgColor)
-            self.drawer.drawText(hdc, w.char, mrc, color = w.color, align = win32con.DT_LEFT)
+            my = rc[1] + (line.lineHeight - w.fontSize) // 2
+            mrc = (sx, my, sx + w.width, my + w.fontSize)
+            bg = w.bgColor
+            if self.isInSelRange(lineIdx, i):
+                bg = self.drawer.blendColor(self.css['selBgColor'], w.bgColor, 0.5)
+            if bg is not None:
+                self.drawer.fillRect(hdc, (sx, rc[1], sx + w.width, rc[3]), bg)
+            c = w.color if w.color != None else self.css['textColor']
+            self.drawer.drawText(hdc, w.char, mrc, color = c, align = win32con.DT_LEFT)
             sx += w.width
+            win32gui.RestoreDC(hdc, sdc)
 
+    def isPosVisible(self, pos):
+        if not self.model.isValidPos(pos):
+            return False
+        xy = self.getXY(pos)
+        if not xy:
+            return False
+        W, H = self.getClientSize()
+        x, y = xy
+        if x < W and y < H:
+            return True
+        return False
+        
+    def setInsertPos(self, pos):
+        if not self.isPosVisible(pos): # clear pos
+            self.insertPos = None
+            self.hideCaret()
+        else:
+            self.insertPos = pos
+            x, y = self.getXY(pos)
+            ln : Line = self.model.lines[pos.row]
+            y += (ln.lineHeight - self._caretHeight) // 2
+            self.setCaretPos(x, y)
+            self.showCaret()
+
+    def setSelRange(self, beginPos, endPos):
+        if beginPos == None or endPos == None:
+            self.selRange = None
+            return
+        if type(beginPos) == str and beginPos == 'NotSet':
+            beginPos = self.selRange[0] if self.selRange else None
+        if type(endPos) == str and endPos == 'NotSet':
+            endPos = self.selRange[1] if self.selRange else None
+        if beginPos == None or endPos == None:
+            self.selRange = None
+            return
+        self.selRange = (beginPos, endPos)
+
+    def onKey(self, key):
+        if not self.model.isValidPos(self.insertPos):
+            return
+        if not self.isPosVisible(self.insertPos):
+            return
+        if not self._caretVisible:
+            return
+        if key == 8:
+            self.onKeyBackspace()
+            return
+        if key == 127:
+            self.onKeyDelete()
+            return
+        if key == 10 or key == 13: # return key
+            key = 10
+        if key < 32 and key != 10:
+            return
+        ch = chr(key)
+        self.model.insertRichText(self.insertPos, ch)
+        self.setInsertPos(self.insertPos)
+        self.invalidWindow()
+
+    def onKeyDelete(self):
+        if self.selRange:
+            self.deleteSelRangeText()
+        elif self.text and self.insertPos < len(self.text):
+            self.text = self.text[0 : self.insertPos] + self.text[self.insertPos + 1 : ]
+            self.selRange = None
+            self.makePosVisible(self.insertPos)
+            self.setInsertPos(self.insertPos)
+            self.invalidWindow()
+
+    def onKeyBackspace(self):
+        if self.selRange:
+            self.deleteSelRangeText()
+        elif self.text and self.insertPos > 0:
+            self.text = self.text[0 : self.insertPos - 1] + self.text[self.insertPos : ]
+            pos = self.insertPos - 1
+            self.selRange = None
+            self.makePosVisible(pos)
+            self.setInsertPos(pos)
+            self.invalidWindow()
+
+    def winProc(self, hwnd, msg, wParam, lParam):
+        if msg == win32con.WM_LBUTTONDOWN:
+            win32gui.SetFocus(self.hwnd)
+            x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
+            pos = self.getInsertPosAtXY(x, y)
+            self.setSelRange(pos, pos)
+            self.setInsertPos(pos)
+            self.invalidWindow()
+            return True
+        if msg == win32con.WM_MOUSEMOVE:
+            if wParam & win32con.MK_LBUTTON:
+                x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
+                pos = self.getInsertPosAtXY(x, y)
+                self.setSelRange('NotSet', pos)
+                self.setInsertPos(pos)
+                self.invalidWindow()
+            return True
+        if msg == win32con.WM_IME_CHAR or msg == win32con.WM_CHAR:
+            self.onKey(wParam)
+            return True
+        if msg == win32con.WM_KEYDOWN:
+            if wParam == win32con.VK_DELETE:
+                self.onKeyDelete()
+            elif wParam == win32con.VK_BACK:
+                self.onKeyBackspace()
+            elif wParam == ord('V') and self.getKeyState(win32con.VK_CONTROL):
+                txt = self.copyFromClipboard()
+                self.insertText(txt)
+            elif wParam == ord('C') and self.getKeyState(win32con.VK_CONTROL) and self.selRange and self.text:
+                txt = self.text[self.selRange[0] : self.selRange[1]]
+                self.copyToClipboard(txt)
+            elif wParam == ord('X') and self.getKeyState(win32con.VK_CONTROL) and self.selRange and self.text:
+                txt = self.text[self.selRange[0] : self.selRange[1]]
+                if self.copyToClipboard(txt):
+                    self.deleteSelRangeText()
+            return True
+        return super().winProc(hwnd, msg, wParam, lParam)
+    
 if __name__ == '__main__':
     editor = RichEditor()
-    html = '<Text fs=5 c=daefc0 bg=aa33dd> Hello World 你发</Text>\n<Text fs=2> 不错呀</Text>'
+    html = '<T fs=1 c=ff0000 bg=aa33dd >Hello World</T>\n<T fs=5 fz=20 >卡拉123</T>卡拉123\n卡拉123'
     editor.model.insertRichText(Pos(0, 0), html)
+    editor.insertPos = Pos(2, 0)
     editor.createWindow(None, (0, 0, 700, 400), style = win32con.WS_OVERLAPPEDWINDOW)
     win32gui.ShowWindow(editor.hwnd, win32con.SW_SHOW)
     win32gui.PumpMessages()
