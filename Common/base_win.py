@@ -1716,6 +1716,7 @@ class PopupWindow(BaseWindow):
         self.ownerHwnd = None
         self.css['borderColor'] = 0xaaaaaa
         self.destroyOnHide = True
+        self.hideOnInactive = True
 
     def createWindow(self, parentWnd, rect, style = win32con.WS_POPUP, className = 'STATIC', title = ''):
         #style = win32con.WS_POPUP | win32con.WS_CHILD
@@ -1756,7 +1757,7 @@ class PopupWindow(BaseWindow):
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_ACTIVATE:
             ac = wParam & 0xffff
-            if ac == win32con.WA_INACTIVE:
+            if ac == win32con.WA_INACTIVE and self.hideOnInactive:
                 self.hide()
             return True
         return super().winProc(hwnd, msg, wParam, lParam)

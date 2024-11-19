@@ -408,21 +408,24 @@ class RichEditorRender:
 class SettingsWindow(base_win.PopupWindow):
     def __init__(self) -> None:
         super().__init__()
+        self.css['fontSize'] = 16
         self.css['borderColor'] = 0x505050
-        self.css['bgColor'] = 0xf0f0f0
+        self.css['bgColor'] = 0xfafafa
         self.css['textColor'] = 0x202020
         self.css['paddings'] = (3, 5, 3, 5)
         self.destroyOnHide = False
-        self.hoverIdx = 2
-
+        self.hideOnInactive = False
+        self.hover = None
+        DEF_W = 30
+        DEF_H = 30
         self.items = [
-            {'name': 'bold', 'width': 25, 'height': 25},
-            {'name': 'italic', 'width': 25, 'height': 25},
-            {'name': 'underline', 'width': 25, 'height': 25},
-            {'name': 'bgcolor', 'width': 40, 'height': 25, 'more': 15, 'value': 0xca93de},
-            {'name': 'color', 'width': 40, 'height': 25, 'more': 15},
-            {'name': 'fontSize+', 'width': 25, 'height': 25},
-            {'name': 'fontSize-', 'width': 25, 'height': 25},
+            {'name': 'bold', 'width': DEF_W, 'height': DEF_H},
+            {'name': 'italic', 'width': DEF_W, 'height': DEF_H},
+            {'name': 'underline', 'width': DEF_W, 'height': DEF_H},
+            {'name': 'bgcolor', 'width': DEF_W + 15, 'height': DEF_H, 'more': 15, 'value': 0xca93de},
+            {'name': 'color', 'width': DEF_W + 15, 'height': DEF_H, 'more': 15},
+            {'name': 'fontSize+', 'width': DEF_W, 'height': DEF_H},
+            {'name': 'fontSize-', 'width': DEF_W, 'height': DEF_H},
         ]
 
     def createWindow(self, parentWnd, rect = None, style = win32con.WS_POPUP, className = 'STATIC', title = ''):
@@ -454,13 +457,17 @@ class SettingsWindow(base_win.PopupWindow):
     def onDrawItem(self, hdc, idx, item):
         MDT_CENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER
         rc = (item['x'], item['y'], item['x'] + item['width'], item['y'] + item['height'])
-        if idx == self.hoverIdx:
-            if item.get('more', None):
-                self.drawer.use(hdc, self.drawer.getPen(0xc0c0c0))
-            else:
-                win32gui.SelectObject(hdc, win32gui.GetStockObject(win32con.NULL_PEN))
-                self.drawer.use(hdc, self.drawer.getBrush(0xc0c0c0))
+
+        if self.hover and idx == self.hover[0]:
+            HILIGHT_COLOR = 0xcfcfcf
+            HILIGHT_BORDER_COLOR = 0xc0c0c0
+            self.drawer.use(hdc, self.drawer.getPen(HILIGHT_BORDER_COLOR))
+            #win32gui.SelectObject(hdc, win32gui.GetStockObject(win32con.NULL_PEN))
+            self.drawer.use(hdc, self.drawer.getBrush(HILIGHT_COLOR))
             win32gui.RoundRect(hdc, *rc, 0, 0)
+            if item.get('more', None):
+                lx = item['x'] + item['width'] - item['more']
+                self.drawer.drawLine(hdc, lx, rc[1], lx, rc[3], HILIGHT_BORDER_COLOR)
         
         if item['name'] == 'bold':
             fnt = self.drawer.getFont(name = self.css['fontName'], fontSize = self.css['fontSize'], weight = 700)
@@ -484,13 +491,45 @@ class SettingsWindow(base_win.PopupWindow):
             if color is not None:
                 self.drawer.fillRect(hdc, boxRc, color)
         elif item['name'] == 'color':
-            pass
+            leftRc = (item['x'], item['y'], item['x'] + item['width'] - item['more'], item['y'] + item['height'])
+            rightRc = (leftRc[2], leftRc[1], item['x'] + item['width'], leftRc[3])
+            self.drawer.use(hdc, self.getDefFont())
+            color = item.get('value', 0x202020)
+            self.drawer.drawText(hdc, 'A', leftRc, color = color, align = MDT_CENTER)
+            y = leftRc[3] - (leftRc[3] - leftRc[1] - self.css['fontSize']) // 2
+            CW = 12
+            x = leftRc[0] + (leftRc[2] - leftRc[0] - CW) // 2
+            self.drawer.fillRect(hdc, (x, y, x + CW, y + 3), color = color)
         elif item['name'] == 'fontSize+':
             self.drawer.use(hdc, self.getDefFont())
             self.drawer.drawText(hdc, 'A+', rc, color = self.css['textColor'], align = MDT_CENTER)
         elif item['name'] == 'fontSize-':
             self.drawer.use(hdc, self.getDefFont())
             self.drawer.drawText(hdc, 'A-', rc, color = self.css['textColor'], align = MDT_CENTER)
+
+    # return idx, is-in-more(bool)
+    def whereIsXY(self, x, y):
+        for idx, it in enumerate(self.items):
+            isIn = x >= it['x'] and x < it['x'] + it['width'] and y >= it['y'] and y < it['y'] + it['height']
+            if isIn:
+                break
+        if idx >= len(self.items):
+            return -1, False
+        if not it.get('more', None):
+            return idx, False
+        if x >= it['x'] + it['width'] - it['more']:
+            return idx, True
+        return idx, False
+
+    def winProc(self, hwnd, msg, wParam, lParam):
+        if msg == win32con.WM_MOUSEMOVE:
+            x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
+            old = self.hover
+            self.hover = self.whereIsXY(x, y)
+            if old != self.hover:
+                self.invalidWindow()
+            return True
+        return super().winProc(hwnd, msg, wParam, lParam)
 
 class RichEditor(base_win.BaseEditor):
     def __init__(self) -> None:
