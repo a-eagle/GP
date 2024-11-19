@@ -1,6 +1,7 @@
 import win32gui, win32con , win32api, win32ui, win32gui_struct, win32clipboard # pip install pywin32
 import threading, time, datetime, sys, os, copy, calendar, functools, io
 import ctypes
+from ctypes import wintypes
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Common import base_win
@@ -162,6 +163,8 @@ class RichEditorModel:
                 return False
             pre : Line = self.lines[pos.row - 1]
             self.lines.pop(pos.row)
+            pos.row -= 1
+            pos.col = len(pre.words)
             pre.words.extend(line.words)
             line.words.clear()
             pre.changed()
@@ -218,10 +221,10 @@ class RichEditorModel:
         rs.extend(sline.words[startPos.col : len(sline.words)])
         for r in range(startPos.row + 1, endPos.row):
             sline : Line = self.lines[r]
-            rs.append(Word(1, '\n'))
+            rs.append(Word(self.defaultFontName(), 1, '\n'))
             rs.extend(sline.words[0 : len(sline.words)])
         sline : Line = self.lines[endPos.row]
-        rs.append(Word(1, '\n'))
+        rs.append(Word(self.defaultFontName(), 1, '\n'))
         rs.extend(sline.words[0 : endPos.col])
         return rs
 
@@ -655,30 +658,128 @@ class RichEditor(base_win.BaseEditor):
         else:
             self.hideCaret()
 
+    def _copyToClipboard(self, cf, text):
+        if not text:
+            return False
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        kernel32.GlobalAlloc.argtypes = (wintypes.UINT, wintypes.DWORD)
+        kernel32.GlobalAlloc.restype = wintypes.HGLOBAL
+        kernel32.GlobalUnlock.argtypes = (wintypes.HGLOBAL, )
+        kernel32.GlobalUnlock.restype = wintypes.BOOL
+        kernel32.GlobalLock.argtypes = (wintypes.HGLOBAL, )
+        kernel32.GlobalLock.restype = wintypes.LPVOID
+        user32.SetClipboardData.argtypes = (wintypes.UINT, wintypes.HANDLE)
+        user32.SetClipboardData.restype = wintypes.HANDLE
+
+        h = kernel32.GlobalAlloc(win32con.GMEM_MOVEABLE, len(text) * 2 + 2)
+        if not h:
+            return False
+        ph = kernel32.GlobalLock(h)
+        if not ph:
+            return False
+        if not getattr(self, 'libc', None):
+            libc = ctypes.cdll.LoadLibrary('msvcrt')
+            self.libc = libc
+        libc = self.libc
+        ptext = ctypes.create_unicode_buffer(text)
+        libc.memcpy.argtypes = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t)
+        libc.memcpy(ph, ptext, ctypes.sizeof(ctypes.c_wchar) * (len(text) + 1))
+        kernel32.GlobalUnlock(h)
+        user32.SetClipboardData(cf, h)
+        return True
+    
+    def _copyFromClipboard(self, cf):
+        if not cf:
+            return False
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        kernel32.GlobalAlloc.argtypes = (wintypes.UINT, wintypes.DWORD)
+        kernel32.GlobalAlloc.restype = wintypes.HGLOBAL
+        kernel32.GlobalUnlock.argtypes = (wintypes.HGLOBAL, )
+        kernel32.GlobalUnlock.restype = wintypes.BOOL
+        kernel32.GlobalLock.argtypes = (wintypes.HGLOBAL, )
+        kernel32.GlobalLock.restype = wintypes.LPVOID
+        user32.SetClipboardData.argtypes = (wintypes.UINT, wintypes.HANDLE)
+        user32.SetClipboardData.restype = wintypes.HANDLE
+        user32.IsClipboardFormatAvailable.argtypes = (wintypes.UINT, )
+        user32.GetClipboardData.restype = wintypes.HANDLE
+
+        if not user32.IsClipboardFormatAvailable(cf):
+            return False
+        h = user32.GetClipboardData(cf)
+        if not h:
+            return False
+        ph = kernel32.GlobalLock(h)
+        if not ph:
+            return False
+        if not getattr(self, 'libc', None):
+            libc = ctypes.cdll.LoadLibrary('msvcrt')
+            self.libc = libc
+        libc = self.libc
+        val = io.StringIO()
+        pcst = ctypes.cast(ph, ctypes.c_wchar_p)
+        kernel32.GlobalUnlock(h)
+        return pcst.value
+
     def doCopy(self, selRange):
         if not selRange:
             return
         ws = self.model.getWords(selRange[0], selRange[1])
         if not ws:
             return
-        # RegisterClipboardFormatA
         text = self.model.getWordsPlainText(ws)
         html = self.model.getWordsRichText(ws)
-        b = ctypes.windll.user32.OpenClipboard(self.hwnd)
+
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        b = user32.OpenClipboard(self.hwnd)
         if not b:
             return
-        ctypes.windll.user32.EmptyClipboard()
-        GMEM_MOVEABLE = 0x0002
-        h = ctypes.windll.kernel32.GlobalAlloc(GMEM_MOVEABLE, len(text) * 3 + 1)
-        if h:
-            ph = ctypes.windll.kernel32.GlobalLock(h)
-            #memcpy(ph, 'xxx')
-            ctypes.windll.user32.SetClipboardData(win32con.CF_TEXT, ph)
-            ctypes.windll.kernel32.GlobalUnlock(h)
-        ctypes.windll.user32.CloseClipboard()
+        user32.EmptyClipboard()
+        self._copyToClipboard(win32con.CF_UNICODETEXT, text)
+        user32.RegisterClipboardFormatA.argtypes = (wintypes.LPCSTR, )
+        user32.RegisterClipboardFormatA.restype = wintypes.UINT
+        cf = user32.RegisterClipboardFormatA(b'RichEdior_Html')
+        if cf: self._copyToClipboard(cf, html)
+        user32.CloseClipboard()
 
     def doPaste(self):
-        pass
+        if not self.model.isValidPos(self.insertPos):
+            return
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        b = user32.OpenClipboard(self.hwnd)
+        if not b:
+            return
+        user32.RegisterClipboardFormatA.argtypes = (wintypes.LPCSTR, )
+        user32.RegisterClipboardFormatA.restype = wintypes.UINT
+        cf = user32.RegisterClipboardFormatA(b'RichEdior_Html')
+        val = None
+        if cf and user32.IsClipboardFormatAvailable(cf):
+            val = self._copyFromClipboard(cf)
+        if val is False:
+            val = self.copyFromClipboard(win32con.CF_UNICODETEXT)
+        if not val:
+            return
+        self.deleteSelRange()
+        if not self.model.isValidPos(self.insertPos):
+            return
+        self.model.insertRichText(self.insertPos, val)
+        self.invalidWindow()
+        win32gui.UpdateWindow(self.hwnd)
+        self.setInsertPos(self.insertPos)
+
+    def doCut(self):
+        if not self.selRange:
+            return
+        b, e = self.selRange
+        if not self.model.isValidPos(b) or not self.model.isValidPos(b):
+            return
+        if b == e:
+            return
+        self.doCopy(self.selRange)
+        self.deleteSelRange()
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_LBUTTONDOWN:
@@ -718,15 +819,13 @@ class RichEditor(base_win.BaseEditor):
             elif wParam == ord('C') and self.getKeyState(win32con.VK_CONTROL):
                 self.doCopy(self.selRange)
             elif wParam == ord('X') and self.getKeyState(win32con.VK_CONTROL):
-                txt = self.text[self.selRange[0] : self.selRange[1]]
-                if self.copyToClipboard(txt):
-                    self.deleteSelRangeText()
+                self.doCut()
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
     
 if __name__ == '__main__':
     editor = RichEditor()
-    html = '<T fs=1 c=ff0000 bg=aa33dd >Hello World</T>\n<T fs=5 fz=20 >卡拉123</T>卡拉123\n卡拉123'
+    html = '<T fs=1 c=ff0000 bg=aa33dd >Hello World</T>\n<T fs=5 fz=20 >卡拉ACB123</T>卡拉DEF123\n卡拉CEA123'
     editor.model.insertRichText(Pos(0, 0), html)
     editor.insertPos = Pos(2, 0)
     editor.createWindow(None, (0, 0, 700, 400), style = win32con.WS_OVERLAPPEDWINDOW)

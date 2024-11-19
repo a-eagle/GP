@@ -239,7 +239,7 @@ class ZT_Window(base_win.BaseWindow):
             detail = detail.replace('\r\n', ' | ')
             detail = detail.replace('\n', ' | ')
             if obj:
-                obj['cls_detail'] = detail
+                #obj['cls_detail'] = detail
                 obj['cls_ztReason'] = d['ztReason'].upper()
         for item in rs:
             obj = utils.get_THS_GNTC(item['code'])
