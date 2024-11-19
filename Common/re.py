@@ -410,14 +410,16 @@ class SettingsWindow(base_win.PopupWindow):
         super().__init__()
         self.css['borderColor'] = 0x505050
         self.css['bgColor'] = 0xf0f0f0
-        self.css['paddings'] = (1, 1, 1, 1)
-        self.hoverIdx = -1
+        self.css['textColor'] = 0x202020
+        self.css['paddings'] = (3, 5, 3, 5)
+        self.destroyOnHide = False
+        self.hoverIdx = 2
 
         self.items = [
             {'name': 'bold', 'width': 25, 'height': 25},
             {'name': 'italic', 'width': 25, 'height': 25},
             {'name': 'underline', 'width': 25, 'height': 25},
-            {'name': 'bgcolor', 'width': 40, 'height': 25, 'more': 15},
+            {'name': 'bgcolor', 'width': 40, 'height': 25, 'more': 15, 'value': 0xca93de},
             {'name': 'color', 'width': 40, 'height': 25, 'more': 15},
             {'name': 'fontSize+', 'width': 25, 'height': 25},
             {'name': 'fontSize-', 'width': 25, 'height': 25},
@@ -446,32 +448,49 @@ class SettingsWindow(base_win.PopupWindow):
             sx += it['width']
 
     def onDraw(self, hdc):
-        for it in self.items:
-            self.onDrawItem(it, hdc)
+        for idx, it in enumerate(self.items):
+            self.onDrawItem(hdc, idx, it)
 
-    def onDrawItem(self, item, hdc):
-        DT_CENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER
+    def onDrawItem(self, hdc, idx, item):
+        MDT_CENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER
         rc = (item['x'], item['y'], item['x'] + item['width'], item['y'] + item['height'])
+        if idx == self.hoverIdx:
+            if item.get('more', None):
+                self.drawer.use(hdc, self.drawer.getPen(0xc0c0c0))
+            else:
+                win32gui.SelectObject(hdc, win32gui.GetStockObject(win32con.NULL_PEN))
+                self.drawer.use(hdc, self.drawer.getBrush(0xc0c0c0))
+            win32gui.RoundRect(hdc, *rc, 0, 0)
+        
         if item['name'] == 'bold':
-            fnt = self.drawer.getFont(weight = 700)
+            fnt = self.drawer.getFont(name = self.css['fontName'], fontSize = self.css['fontSize'], weight = 700)
             self.drawer.use(hdc, fnt)
-            self.drawer.drawText(hdc, 'B', rc, align = DT_CENTER)
+            self.drawer.drawText(hdc, 'B', rc, color = self.css['textColor'], align = MDT_CENTER)
         elif item['name'] == 'italic':
-            fnt = self.drawer.getFont(italic = True)
+            fnt = self.drawer.getFont(name = self.css['fontName'], fontSize = self.css['fontSize'], italic = True)
             self.drawer.use(hdc, fnt)
-            self.drawer.drawText(hdc, 'I', rc, align = DT_CENTER)
+            self.drawer.drawText(hdc, 'I', rc, color = self.css['textColor'], align = MDT_CENTER)
         elif item['name'] == 'underline':
-            fnt = self.drawer.getFont(underline = True)
+            fnt = self.drawer.getFont(name = self.css['fontName'], fontSize = self.css['fontSize'], underline = True)
             self.drawer.use(hdc, fnt)
-            self.drawer.drawText(hdc, 'U', rc, align = DT_CENTER)
+            self.drawer.drawText(hdc, 'U', rc, color = self.css['textColor'], align = MDT_CENTER)
         elif item['name'] == 'bgcolor':
-            pass
+            BOX = 10
+            leftRc = (item['x'], item['y'], item['x'] + item['width'] - item['more'], item['y'] + item['height'])
+            rightRc = (leftRc[2], leftRc[1], item['x'] + item['width'], leftRc[3])
+            lw, lh = leftRc[2] - leftRc[0], leftRc[3] - leftRc[1]
+            boxRc = (leftRc[0] + (lw - BOX) // 2, leftRc[1] + (lh - BOX) // 2, leftRc[0] + (lw + BOX) // 2, leftRc[1] + (lh + BOX) // 2)
+            color = item.get('value', None)
+            if color is not None:
+                self.drawer.fillRect(hdc, boxRc, color)
         elif item['name'] == 'color':
             pass
         elif item['name'] == 'fontSize+':
-            pass
+            self.drawer.use(hdc, self.getDefFont())
+            self.drawer.drawText(hdc, 'A+', rc, color = self.css['textColor'], align = MDT_CENTER)
         elif item['name'] == 'fontSize-':
-            pass
+            self.drawer.use(hdc, self.getDefFont())
+            self.drawer.drawText(hdc, 'A-', rc, color = self.css['textColor'], align = MDT_CENTER)
 
 class RichEditor(base_win.BaseEditor):
     def __init__(self) -> None:
@@ -895,12 +914,12 @@ class RichEditor(base_win.BaseEditor):
 if __name__ == '__main__':
     st = SettingsWindow()
     st.createWindow(None)
-
+    st.show(100, 100)
 
     editor = RichEditor()
     html = '<T fs=1 c=ff0000 bg=aa33dd >Hello World</T>\n<T fs=5 fz=20 >卡拉ACB123</T>卡拉DEF123\n卡拉CEA123'
     editor.model.insertRichText(Pos(0, 0), html)
     editor.insertPos = Pos(2, 0)
-    editor.createWindow(None, (0, 0, 700, 400), style = win32con.WS_OVERLAPPEDWINDOW)
-    win32gui.ShowWindow(editor.hwnd, win32con.SW_SHOW)
+    #editor.createWindow(None, (0, 0, 700, 400), style = win32con.WS_OVERLAPPEDWINDOW)
+    #win32gui.ShowWindow(editor.hwnd, win32con.SW_SHOW)
     win32gui.PumpMessages()
