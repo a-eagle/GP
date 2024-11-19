@@ -1717,7 +1717,7 @@ class PopupWindow(BaseWindow):
         self.css['borderColor'] = 0xaaaaaa
         self.destroyOnHide = True
 
-    def createWindow(self, parentWnd, rect, style = win32con.WS_POPUP, className='STATIC', title=''):
+    def createWindow(self, parentWnd, rect, style = win32con.WS_POPUP, className = 'STATIC', title = ''):
         #style = win32con.WS_POPUP | win32con.WS_CHILD
         self.ownerHwnd = parentWnd
         super().createWindow(parentWnd, rect, style, className, title)

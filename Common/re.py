@@ -1,3 +1,4 @@
+from win32.lib.win32con import WS_POPUP
 import win32gui, win32con , win32api, win32ui, win32gui_struct, win32clipboard # pip install pywin32
 import threading, time, datetime, sys, os, copy, calendar, functools, io
 import ctypes
@@ -403,6 +404,74 @@ class RichEditorRender:
 
     def getXY(self, pos : Pos):
         pass
+
+class SettingsWindow(base_win.PopupWindow):
+    def __init__(self) -> None:
+        super().__init__()
+        self.css['borderColor'] = 0x505050
+        self.css['bgColor'] = 0xf0f0f0
+        self.css['paddings'] = (1, 1, 1, 1)
+        self.hoverIdx = -1
+
+        self.items = [
+            {'name': 'bold', 'width': 25, 'height': 25},
+            {'name': 'italic', 'width': 25, 'height': 25},
+            {'name': 'underline', 'width': 25, 'height': 25},
+            {'name': 'bgcolor', 'width': 40, 'height': 25, 'more': 15},
+            {'name': 'color', 'width': 40, 'height': 25, 'more': 15},
+            {'name': 'fontSize+', 'width': 25, 'height': 25},
+            {'name': 'fontSize-', 'width': 25, 'height': 25},
+        ]
+
+    def createWindow(self, parentWnd, rect = None, style = win32con.WS_POPUP, className = 'STATIC', title = ''):
+        # layout
+        w, h = 0, 0
+        for it in self.items:
+            w += it['width']
+            h = max(h, it['height'])
+        pds = self.css['paddings']
+        w += pds[0] + pds[2]
+        h += pds[1] + pds[3]
+        if not rect:
+            x, y = 0, 0
+        else:
+            x, y = rect[0], rect[1]
+        rect = (x, y, w, h)
+        super().createWindow(parentWnd, rect, style, className, title)
+        sx = pds[0]
+        sy = pds[1]
+        for it in self.items:
+            it['x'] = sx
+            it['y'] = sy
+            sx += it['width']
+
+    def onDraw(self, hdc):
+        for it in self.items:
+            self.onDrawItem(it, hdc)
+
+    def onDrawItem(self, item, hdc):
+        DT_CENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER
+        rc = (item['x'], item['y'], item['x'] + item['width'], item['y'] + item['height'])
+        if item['name'] == 'bold':
+            fnt = self.drawer.getFont(weight = 700)
+            self.drawer.use(hdc, fnt)
+            self.drawer.drawText(hdc, 'B', rc, align = DT_CENTER)
+        elif item['name'] == 'italic':
+            fnt = self.drawer.getFont(italic = True)
+            self.drawer.use(hdc, fnt)
+            self.drawer.drawText(hdc, 'I', rc, align = DT_CENTER)
+        elif item['name'] == 'underline':
+            fnt = self.drawer.getFont(underline = True)
+            self.drawer.use(hdc, fnt)
+            self.drawer.drawText(hdc, 'U', rc, align = DT_CENTER)
+        elif item['name'] == 'bgcolor':
+            pass
+        elif item['name'] == 'color':
+            pass
+        elif item['name'] == 'fontSize+':
+            pass
+        elif item['name'] == 'fontSize-':
+            pass
 
 class RichEditor(base_win.BaseEditor):
     def __init__(self) -> None:
@@ -824,6 +893,10 @@ class RichEditor(base_win.BaseEditor):
         return super().winProc(hwnd, msg, wParam, lParam)
     
 if __name__ == '__main__':
+    st = SettingsWindow()
+    st.createWindow(None)
+
+
     editor = RichEditor()
     html = '<T fs=1 c=ff0000 bg=aa33dd >Hello World</T>\n<T fs=5 fz=20 >卡拉ACB123</T>卡拉DEF123\n卡拉CEA123'
     editor.model.insertRichText(Pos(0, 0), html)
