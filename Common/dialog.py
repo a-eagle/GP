@@ -206,7 +206,10 @@ class PopupColorWindow(base_win.NoActivePopupWindow):
     def createWindow(self, parentWnd, rect = None, style = win32con.WS_POPUP | win32con.WS_CHILD, className='STATIC', title=''):
         W = self.CELL_SIZE * self.COL_NUM
         H = self.CELL_SIZE * self.ROW_NUM
-        rect = (rect[0], rect[1], W, H)
+        if rect:
+            rect = (rect[0], rect[1], W, H)
+        else:
+            rect = (0, 0, W, H)
         super().createWindow(parentWnd, rect, style, className, title)
 
     def winProc(self, hwnd, msg, wParam, lParam):

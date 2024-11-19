@@ -6,6 +6,7 @@ from ctypes import wintypes
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Common import base_win
+from Common import dialog
 
 class Word:
     def __init__(self, fontName, fontSize, char = '') -> None:
@@ -408,13 +409,13 @@ class RichEditorRender:
 class SettingsWindow(base_win.PopupWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.css['fontSize'] = 16
+        self.css['fontSize'] = 14
         self.css['borderColor'] = 0x505050
         self.css['bgColor'] = 0xfafafa
         self.css['textColor'] = 0x202020
         self.css['paddings'] = (3, 5, 3, 5)
         self.destroyOnHide = False
-        self.hideOnInactive = False
+        self.hideOnInactive = True
         self.hover = None
         DEF_W = 30
         DEF_H = 30
@@ -422,8 +423,8 @@ class SettingsWindow(base_win.PopupWindow):
             {'name': 'bold', 'width': DEF_W, 'height': DEF_H},
             {'name': 'italic', 'width': DEF_W, 'height': DEF_H},
             {'name': 'underline', 'width': DEF_W, 'height': DEF_H},
-            {'name': 'bgcolor', 'width': DEF_W + 15, 'height': DEF_H, 'more': 15, 'value': 0xca93de},
-            {'name': 'color', 'width': DEF_W + 15, 'height': DEF_H, 'more': 15},
+            {'name': 'color', 'width': DEF_W + 5, 'height': DEF_H, 'more': 15, 'value': 0xfff00},
+            {'name': 'bgcolor', 'width': DEF_W + 5, 'height': DEF_H, 'more': 15, 'value-': 0xca93de},
             {'name': 'fontSize+', 'width': DEF_W, 'height': DEF_H},
             {'name': 'fontSize-', 'width': DEF_W, 'height': DEF_H},
         ]
@@ -457,10 +458,11 @@ class SettingsWindow(base_win.PopupWindow):
     def onDrawItem(self, hdc, idx, item):
         MDT_CENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER
         rc = (item['x'], item['y'], item['x'] + item['width'], item['y'] + item['height'])
+        isHoverCur = self.hover and idx == self.hover[0]
 
-        if self.hover and idx == self.hover[0]:
+        if isHoverCur:
             HILIGHT_COLOR = 0xcfcfcf
-            HILIGHT_BORDER_COLOR = 0xc0c0c0
+            HILIGHT_BORDER_COLOR = 0xA0A0A0
             self.drawer.use(hdc, self.drawer.getPen(HILIGHT_BORDER_COLOR))
             #win32gui.SelectObject(hdc, win32gui.GetStockObject(win32con.NULL_PEN))
             self.drawer.use(hdc, self.drawer.getBrush(HILIGHT_COLOR))
@@ -468,7 +470,6 @@ class SettingsWindow(base_win.PopupWindow):
             if item.get('more', None):
                 lx = item['x'] + item['width'] - item['more']
                 self.drawer.drawLine(hdc, lx, rc[1], lx, rc[3], HILIGHT_BORDER_COLOR)
-        
         if item['name'] == 'bold':
             fnt = self.drawer.getFont(name = self.css['fontName'], fontSize = self.css['fontSize'], weight = 700)
             self.drawer.use(hdc, fnt)
@@ -482,24 +483,40 @@ class SettingsWindow(base_win.PopupWindow):
             self.drawer.use(hdc, fnt)
             self.drawer.drawText(hdc, 'U', rc, color = self.css['textColor'], align = MDT_CENTER)
         elif item['name'] == 'bgcolor':
-            BOX = 10
+            BOX_H, BOX_W =  self.css['fontSize'], 10
             leftRc = (item['x'], item['y'], item['x'] + item['width'] - item['more'], item['y'] + item['height'])
             rightRc = (leftRc[2], leftRc[1], item['x'] + item['width'], leftRc[3])
             lw, lh = leftRc[2] - leftRc[0], leftRc[3] - leftRc[1]
-            boxRc = (leftRc[0] + (lw - BOX) // 2, leftRc[1] + (lh - BOX) // 2, leftRc[0] + (lw + BOX) // 2, leftRc[1] + (lh + BOX) // 2)
-            color = item.get('value', None)
-            if color is not None:
-                self.drawer.fillRect(hdc, boxRc, color)
+            boxRc = (leftRc[0] + (lw - BOX_W) // 2, leftRc[1] + (lh - BOX_H) // 2, leftRc[0] + (lw + BOX_W) // 2, leftRc[1] + (lh + BOX_H) // 2)
+            color = item.get('value', 0xfcfcfc)
+            self.drawer.fillRect(hdc, boxRc, color)
+            self.drawer.drawRect(hdc, boxRc, borderColor = 0xa0a0a0)
+            if isHoverCur:
+                AH, AW = 6, 4
+                sx = rightRc[0] + (rightRc[2] - rightRc[0] - AW) // 2
+                sy = rightRc[1] + (rightRc[3] - rightRc[1] - AH) // 2
+                self.drawer.use(hdc, self.drawer.getPen(0xff00ff))
+                self.drawer.use(hdc, self.drawer.getBrush(0xff00ff))
+                self.drawer.drawLine(hdc, sx, sy, sx + AW // 2, sy + AH, color = 0x202020, width = 1)
+                self.drawer.drawLine(hdc, sx + AW, sy, sx + AW // 2, sy + AH, color = 0x202020, width = 1)
         elif item['name'] == 'color':
             leftRc = (item['x'], item['y'], item['x'] + item['width'] - item['more'], item['y'] + item['height'])
             rightRc = (leftRc[2], leftRc[1], item['x'] + item['width'], leftRc[3])
             self.drawer.use(hdc, self.getDefFont())
             color = item.get('value', 0x202020)
             self.drawer.drawText(hdc, 'A', leftRc, color = color, align = MDT_CENTER)
-            y = leftRc[3] - (leftRc[3] - leftRc[1] - self.css['fontSize']) // 2
+            y = leftRc[3] - (leftRc[3] - leftRc[1] - self.css['fontSize']) // 2 - 1
             CW = 12
             x = leftRc[0] + (leftRc[2] - leftRc[0] - CW) // 2
-            self.drawer.fillRect(hdc, (x, y, x + CW, y + 3), color = color)
+            self.drawer.fillRect(hdc, (x, y, x + CW, y + 2), color = color)
+            if isHoverCur:
+                AH, AW = 6, 4
+                sx = rightRc[0] + (rightRc[2] - rightRc[0] - AW) // 2
+                sy = rightRc[1] + (rightRc[3] - rightRc[1] - AH) // 2
+                self.drawer.use(hdc, self.drawer.getPen(0xff00ff))
+                self.drawer.use(hdc, self.drawer.getBrush(0xff00ff))
+                self.drawer.drawLine(hdc, sx, sy, sx + AW // 2, sy + AH, color = 0x202020, width = 1)
+                self.drawer.drawLine(hdc, sx + AW, sy, sx + AW // 2, sy + AH, color = 0x202020, width = 1)
         elif item['name'] == 'fontSize+':
             self.drawer.use(hdc, self.getDefFont())
             self.drawer.drawText(hdc, 'A+', rc, color = self.css['textColor'], align = MDT_CENTER)
@@ -513,13 +530,34 @@ class SettingsWindow(base_win.PopupWindow):
             isIn = x >= it['x'] and x < it['x'] + it['width'] and y >= it['y'] and y < it['y'] + it['height']
             if isIn:
                 break
-        if idx >= len(self.items):
-            return -1, False
+        if not isIn:
+            return None
         if not it.get('more', None):
             return idx, False
         if x >= it['x'] + it['width'] - it['more']:
             return idx, True
         return idx, False
+
+    def onClick(self, idx, more):
+        if idx < 0:
+            return
+        item = self.items[idx]
+        if not more:
+            self.notifyListener(self.Event('Click', self, style = item['name'], value = item.get('value', None)))
+            return
+        if item['name'] == 'color' or item['name'] == 'bgcolor':
+            pcw = dialog.PopupColorWindow()
+            pcw.addNamedListener('InputEnd', self.onSelectColor, item)
+            pcw.createWindow(self.hwnd)
+            x, y, *_ = win32gui.GetWindowRect(self.hwnd)
+            x += item['x']
+            y += item['y'] + item['height']
+            pcw.show(x, y)
+
+    def onSelectColor(self, evt, item):
+        item['value'] = evt.color
+        self.invalidWindow()
+        self.notifyListener(self.Event('Click', self, style = item['name'], value = evt.color))
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_MOUSEMOVE:
@@ -528,6 +566,12 @@ class SettingsWindow(base_win.PopupWindow):
             self.hover = self.whereIsXY(x, y)
             if old != self.hover:
                 self.invalidWindow()
+            return True
+        if msg == win32con.WM_LBUTTONUP:
+            x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
+            hover = self.whereIsXY(x, y)
+            if hover:
+                self.onClick(*hover)
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
 
@@ -908,6 +952,24 @@ class RichEditor(base_win.BaseEditor):
         self.doCopy(self.selRange)
         self.deleteSelRange()
 
+    def onSettings(self, evt, args):
+        if not self.hasSelRange():
+            return
+        if evt.style == 'bold':
+            pass
+        elif evt.style == 'italic':
+            pass
+        elif evt.style == 'underline':
+            pass
+        elif evt.style == 'color':
+            pass
+        elif evt.style == 'bgcolor':
+            pass
+        elif evt.style == 'fontSize+':
+            pass
+        elif evt.style == 'fontSize-':
+            pass
+
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_LBUTTONDOWN:
             win32gui.SetFocus(self.hwnd)
@@ -925,6 +987,30 @@ class RichEditor(base_win.BaseEditor):
                     self.setSelRange('NotSet', pos)
                     self.setInsertPos(pos)
                 self.invalidWindow()
+                return True
+        if msg == win32con.WM_LBUTTONUP:
+            if not self.hasSelRange():
+                return True
+            x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
+            # show settings
+            sw = getattr(self, 'settings_win', None)
+            if not sw: 
+                sw = self.settings_win = SettingsWindow()
+                sw.createWindow(self.hwnd)
+                sw.addNamedListener('Click', self.onSettings)
+            px, py, pex, pey = win32gui.GetWindowRect(self.hwnd)
+            W, H = pex - px, pey - py
+            SW, SH = sw.getClientSize()
+            y += 20
+            if y + SH > pey:
+                y = pey - SH
+            else:
+                y += 20
+            if x + SW + 20 >= W:
+                x = max(W - SW - 10, 0)
+            else:
+                x += 20
+            sw.show(x + px, y + py)
             return True
         if msg == win32con.WM_MOUSEWHEEL:
             delta = (wParam >> 16) & 0xffff
@@ -951,14 +1037,14 @@ class RichEditor(base_win.BaseEditor):
         return super().winProc(hwnd, msg, wParam, lParam)
     
 if __name__ == '__main__':
-    st = SettingsWindow()
-    st.createWindow(None)
-    st.show(100, 100)
+    #st = SettingsWindow()
+    #st.createWindow(None)
+    #st.show(100, 100)
 
     editor = RichEditor()
     html = '<T fs=1 c=ff0000 bg=aa33dd >Hello World</T>\n<T fs=5 fz=20 >卡拉ACB123</T>卡拉DEF123\n卡拉CEA123'
     editor.model.insertRichText(Pos(0, 0), html)
     editor.insertPos = Pos(2, 0)
-    #editor.createWindow(None, (0, 0, 700, 400), style = win32con.WS_OVERLAPPEDWINDOW)
-    #win32gui.ShowWindow(editor.hwnd, win32con.SW_SHOW)
+    editor.createWindow(None, (0, 0, 700, 400), style = win32con.WS_OVERLAPPEDWINDOW)
+    win32gui.ShowWindow(editor.hwnd, win32con.SW_SHOW)
     win32gui.PumpMessages()
