@@ -1414,7 +1414,8 @@ class RecordWindow(richeditor.RichEditor):
             self.model.insertRichText(richeditor.Pos(0, 0), obj.info)
 
     def onSave(self):
-        txt = self.getText()
+        ls = self.model.lines
+        txt = self.model.getRichText(richeditor.Pos(0, 0), richeditor.Pos(len(ls), len(ls[-1].words)))
         if not self.noteObj:
             self.noteObj = tck_def_orm.MyNote.create(info = txt)
         else:

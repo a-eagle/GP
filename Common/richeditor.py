@@ -245,10 +245,8 @@ class RichEditorModel:
         sline : Line = self.lines[startPos.row]
         del sline.words[startPos.col : len(sline.words)]
         rowIdx = startPos.row + 1
-        for r in range(rowIdx, endPos.row):
-            sline : Line = self.lines[r]
-            sline.words.clear()
-            self.lines.pop(rowIdx)
+        if endPos.row > rowIdx:
+            del self.lines[rowIdx : endPos.row]
         sline : Line = self.lines[rowIdx]
         if len(sline.words) == endPos.col:
             # del full row
@@ -1048,7 +1046,7 @@ class RichEditor(base_win.BaseEditor):
                 x = max(W - SW - 10, 0)
             else:
                 x += 20
-            sw.show(x + px, y + py, False)
+            sw.show(x + px, y + py)
             return True
         if msg == win32con.WM_MOUSEWHEEL:
             delta = (wParam >> 16) & 0xffff

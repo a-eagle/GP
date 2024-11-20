@@ -1772,11 +1772,9 @@ class NoActivePopupWindow(BaseWindow):
         self.user32 = ctypes.windll.user32
 
     # x, y is screen pos
-    def show(self, x, y, modal = True):
+    def show(self, x, y):
         win32gui.SetWindowPos(self.hwnd, 0, x, y, 0, 0, win32con.SWP_NOZORDER | win32con.SWP_NOSIZE | win32con.SWP_NOACTIVATE)
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNOACTIVATE)
-        if modal:
-            self.msgLoop()
 
     def setVisible(self, visible : bool):
         if not win32gui.IsWindow(self.hwnd):
@@ -1899,6 +1897,7 @@ class PopupMenu(NoActivePopupWindow):
             y = SH - h - 40
         self.resize(w, h)
         super().show(x, y)
+        self.msgLoop()
     
     def calcSize(self):
         w, h = 0, 0
@@ -2269,6 +2268,7 @@ class DatePicker(BaseWindow):
             else:
                 rc = win32gui.GetWindowRect(self.hwnd)
                 self.popWin.show(rc[0], rc[3])
+                self.popWin.msgLoop()
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
 
