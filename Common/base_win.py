@@ -3322,6 +3322,7 @@ class ThsShareMemory:
         if not ins:
             ins = ThsShareMemory()
             setattr(cls, '_ins_', ins)
+            ins.open()
         return ins
 
     # func = function(code, day)
