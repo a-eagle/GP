@@ -586,7 +586,7 @@ class RichEditor(base_win.BaseEditor):
         self.css['lineNoBgColor'] = 0xE4E4E4
         self.css['lineNoTextColor'] = 0x919191
         self.css['insertLineBgColor'] = 0xFFE8E8
-        self.css['paddings'] = (40, 0, 0, 0)
+        self.css['paddings'] = (40, 1, 1, 1)
         self.startRow = 0
         self.model = RichEditorModel(self.css)
         self.insertPos : Pos = None # Pos object
@@ -771,8 +771,15 @@ class RichEditor(base_win.BaseEditor):
         if key < 32 and key != 10 and key != win32con.VK_TAB:
             return
         ch = chr(key)
-        if not self.model.insertRichText(self.insertPos, ch):
-            return
+        ln : Line = self.model.lines[self.insertPos.row]
+        if ln.words and self.insertPos.col - 1 >= 0:
+            w = ln.words[self.insertPos.col - 1]
+            style = copy.copy(w)
+            style.char = ch
+            self.model.insertWord(self.insertPos, style)
+        else:
+            if not self.model.insertRichText(self.insertPos, ch):
+                return
         self.invalidWindow()
         win32gui.UpdateWindow(self.hwnd) # calc size
         self.setInsertPos(self.insertPos)
@@ -786,6 +793,14 @@ class RichEditor(base_win.BaseEditor):
         if self.model.isValidPos(b) and self.model.isValidPos(e):
             return b != e
         return False
+
+    def getSelRangeLineRange(self):
+        if not self.hasSelRange():
+            return None
+        b, e = self.selRange
+        if b > e:
+            b, e = e, b
+        return b.row, e.row + 1
 
     def deleteSelRange(self):
         if not self.hasSelRange():
@@ -955,20 +970,37 @@ class RichEditor(base_win.BaseEditor):
     def onSettings(self, evt, args):
         if not self.hasSelRange():
             return
+        words = self.model.getWords(*self.selRange)
         if evt.style == 'bold':
-            pass
+            b = not words[0].bold
+            for w in words: w.bold = b
         elif evt.style == 'italic':
-            pass
+            b = not words[0].italic
+            for w in words: 
+                w.italic = b
+                if b: w.fontChanged()
         elif evt.style == 'underline':
-            pass
+            b = not words[0].underline
+            for w in words: w.underline = b
         elif evt.style == 'color':
-            pass
+            for w in words:
+                w.color = evt.value
         elif evt.style == 'bgcolor':
-            pass
+            for w in words:
+                w.bgColor = evt.value
         elif evt.style == 'fontSize+':
-            pass
+            for w in words:
+                w.fontSize = w.fontSize + 1
         elif evt.style == 'fontSize-':
-            pass
+            for w in words:
+                w.fontSize = max(w.fontSize - 1, 5)
+
+        lr = self.getSelRangeLineRange()
+        if lr:
+            for r in range(lr[0], lr[1]):
+                self.model.lines[r].changed()
+        self.invalidWindow()
+        win32gui.UpdateWindow(self.hwnd)
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_LBUTTONDOWN:

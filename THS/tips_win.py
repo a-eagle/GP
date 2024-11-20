@@ -8,7 +8,7 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Download import datafile
 from THS import hot_utils
 from Download import henxin, cls
-from Common import base_win, ext_win, dialog
+from Common import base_win, ext_win, dialog, richeditor
 from orm import tck_orm, ths_orm, tck_def_orm
 
 #-----------------------------------------------------------
@@ -1382,7 +1382,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
 
-class RecordWindow(base_win.MutiEditor):
+class RecordWindow(richeditor.RichEditor):
     def __init__(self) -> None:
         super().__init__()
         self.css['bgColor'] = 0xf3fef4
@@ -1398,7 +1398,6 @@ class RecordWindow(base_win.MutiEditor):
         W, H = self.DEF_SIZE
         rect = ((SW - W) // 2, (SH - H) // 2, *self.DEF_SIZE)
         super().createWindow(parentWnd, rect, style, className, title)
-        self.enableLineNo()
         self.initText()
 
     def initText(self):
@@ -1409,10 +1408,10 @@ class RecordWindow(base_win.MutiEditor):
         if not obj:
             self.noteObj = None
             txt = '【复盘】\n观察近一周热点股的走势，总结出一套战法; 复盘涨停板; 复盘热点股; 复盘涨跌前列的指数;\n---------------------------------------\n\n '
-            self.setText(txt)
+            self.model.insertRichText(richeditor.Pos(0, 0), txt)
         else:
             self.noteObj = obj
-            self.setText(obj.info)
+            self.model.insertRichText(richeditor.Pos(0, 0), obj.info)
 
     def onSave(self):
         txt = self.getText()
