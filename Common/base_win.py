@@ -1772,10 +1772,11 @@ class NoActivePopupWindow(BaseWindow):
         self.user32 = ctypes.windll.user32
 
     # x, y is screen pos
-    def show(self, x, y):
+    def show(self, x, y, modal = True):
         win32gui.SetWindowPos(self.hwnd, 0, x, y, 0, 0, win32con.SWP_NOZORDER | win32con.SWP_NOSIZE | win32con.SWP_NOACTIVATE)
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOWNOACTIVATE)
-        self.msgLoop()
+        if modal:
+            self.msgLoop()
 
     def setVisible(self, visible : bool):
         if not win32gui.IsWindow(self.hwnd):

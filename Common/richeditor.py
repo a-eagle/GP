@@ -406,7 +406,7 @@ class RichEditorRender:
     def getXY(self, pos : Pos):
         pass
 
-class SettingsWindow(base_win.PopupWindow):
+class SettingsWindow(base_win.NoActivePopupWindow):
     def __init__(self) -> None:
         super().__init__()
         self.css['fontSize'] = 14
@@ -1003,7 +1003,13 @@ class RichEditor(base_win.BaseEditor):
         win32gui.UpdateWindow(self.hwnd)
 
     def winProc(self, hwnd, msg, wParam, lParam):
+        if msg == win32con.WM_RBUTTONDOWN:
+            sw = getattr(self, 'settings_win', None)
+            if sw: sw.setVisible(False)
+            return True
         if msg == win32con.WM_LBUTTONDOWN:
+            sw = getattr(self, 'settings_win', None)
+            if sw: sw.setVisible(False)
             win32gui.SetFocus(self.hwnd)
             x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
             pos = self.getInsertPosAtXY(x, y)
@@ -1026,7 +1032,7 @@ class RichEditor(base_win.BaseEditor):
             x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
             # show settings
             sw = getattr(self, 'settings_win', None)
-            if not sw: 
+            if not sw:
                 sw = self.settings_win = SettingsWindow()
                 sw.createWindow(self.hwnd)
                 sw.addNamedListener('Click', self.onSettings)
@@ -1042,7 +1048,7 @@ class RichEditor(base_win.BaseEditor):
                 x = max(W - SW - 10, 0)
             else:
                 x += 20
-            sw.show(x + px, y + py)
+            sw.show(x + px, y + py, False)
             return True
         if msg == win32con.WM_MOUSEWHEEL:
             delta = (wParam >> 16) & 0xffff
