@@ -2485,14 +2485,60 @@ class KLineWindow(base_win.BaseWindow):
     def drawCodeInfo(self, hdc, pens, hbrs):
         if not self.model:
             return
+        if getattr(self, 'richRender', None) is None:
+            self.richRender = ext_win.RichTextRender(14)
+            qr = tck_def_orm.MyHotGn.select()
+            for q in qr:
+                if q.info:
+                    gns = q.info.strip().split(' ')
+                    configHotGns = [it.strip() for it in gns if it.strip()]
+                else:
+                    configHotGns = []
+                break
+            # draw gn hy
+            hy = getattr(self.model, "hy", [])
+            gn = getattr(self.model, "gn", [])
+            ex = set()
+            gnhy = []
+            gnhy.append('【')
+            for i, h in enumerate(hy):
+                gnhy.append(h)
+                if i != len(hy) - 1:
+                    gnhy.append(' - ')
+            gnhy.append('】 ')
+            hotGns = []
+            for i, g in enumerate(gn):
+                for n in configHotGns:
+                    if n.upper() in g.upper():
+                        hotGns.append(g)
+                        gn.pop(i)
+                        ex.add(n)
+            DEF_COLOR = 0x22cc22
+            HOT_COLOR = 0xff3399
+            for g in gnhy:
+                c = DEF_COLOR
+                for n in configHotGns:
+                    if n.upper() in g.upper():
+                        c = HOT_COLOR
+                        ex.add(n)
+                        break
+                self.richRender.addText(g, color = c, fontSize = 12)
+            for g in hotGns:
+                self.richRender.addText(g, color = HOT_COLOR, fontSize = 12)
+                self.richRender.addText(' | ', color = DEF_COLOR, fontSize = 12)
+            for g in gn:
+                self.richRender.addText(g + ' | ', color = DEF_COLOR, fontSize = 12)
+            less = set(configHotGns) - ex
+            for g in less:
+                self.richRender.addText(g + ' | ', color = 0x606060, fontSize = 12)
         code = self.model.code
         name = self.model.name
-        # draw gn hy
-        gnhy = '【' + ' - '.join(getattr(self.model, "hy", [])) + '】' + '│'.join(getattr(self.model, "gn", []))
+        #gnhy = '【' + ' - '.join(getattr(self.model, "hy", [])) + '】' + '│'.join(getattr(self.model, "gn", []))
         rc = (0, 0, int(self.getClientSize()[0] * 0.7), 70)
-        font = self.drawer.getFont('宋体', 12)
-        self.drawer.use(hdc, font)
-        self.drawer.drawText(hdc, gnhy, rc, 0x00cc00, win32con.DT_LEFT | win32con.DT_EDITCONTROL | win32con.DT_WORDBREAK)
+        self.richRender.draw(hdc, self.drawer, rc)
+        #font = self.drawer.getFont('宋体', 12)
+        #self.drawer.use(hdc, font)
+        #self.drawer.drawText(hdc, gnhy, rc, 0x00cc00, win32con.DT_LEFT | win32con.DT_EDITCONTROL | win32con.DT_WORDBREAK)
         
         if self.showCodeName:
             sdc = win32gui.SaveDC(hdc)
@@ -3091,6 +3137,6 @@ if __name__ == '__main__':
     
     rect = (0, 0, 1920, 850)
     win.createWindow(None, rect, win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW)
-    win.changeCode('002866') # cls82475 002085 603390 002085 002869  002055 000755
+    win.changeCode('300058') # cls82475 002085 603390 002085 002869  002055 000755
     win.klineWin.setMarkDay(20240822)
     win32gui.PumpMessages()
