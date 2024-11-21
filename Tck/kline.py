@@ -2085,6 +2085,7 @@ class KLineWindow(base_win.BaseWindow):
         self.indicators.append(idt)
         self.klineIndicator = idt
         self.lineMgr = DrawLineManager(self)
+        self.hygnRender = None
 
     def addIndicator(self, indicator : Indicator):
         indicator.init(self)
@@ -2150,6 +2151,7 @@ class KLineWindow(base_win.BaseWindow):
         return [idt.x, idt.y, idt.width, idt.height]
 
     def setModel(self, model : KLineModel_DateType):
+        self.hygnRender = None
         self.selIdx = -1
         self.dateType = 'day'
         self.model = model
@@ -2482,60 +2484,66 @@ class KLineWindow(base_win.BaseWindow):
         win32gui.SetTextColor(hdc, 0xdddddd)
         win32gui.DrawText(hdc, day, len(day), rc, win32con.DT_CENTER)
 
+    def initHyGnRender(self):
+        if not self.model:
+            return
+        if self.hygnRender:
+            return
+        self.hygnRender = ext_win.RichTextRender(14)
+        qr = tck_def_orm.MyHotGn.select()
+        for q in qr:
+            if q.info:
+                gns = q.info.strip().split(' ')
+                configHotGns = [it.strip() for it in gns if it.strip()]
+            else:
+                configHotGns = []
+            break
+        # draw gn hy
+        hy = getattr(self.model, "hy", [])
+        gn = getattr(self.model, "gn", [])
+        ex = set()
+        gnhy = []
+        gnhy.append('【')
+        for i, h in enumerate(hy):
+            gnhy.append(h)
+            if i != len(hy) - 1:
+                gnhy.append(' - ')
+        gnhy.append('】 ')
+        hotGns = []
+        for i, g in enumerate(gn):
+            for n in configHotGns:
+                if n.upper() in g.upper():
+                    hotGns.append(g)
+                    gn.pop(i)
+                    ex.add(n)
+        DEF_COLOR = 0x22cc22
+        HOT_COLOR = 0xff3399
+        for g in gnhy:
+            c = DEF_COLOR
+            for n in configHotGns:
+                if n.upper() in g.upper():
+                    c = HOT_COLOR
+                    ex.add(n)
+                    break
+            self.hygnRender.addText(g, color = c, fontSize = 12)
+        for g in hotGns:
+            self.hygnRender.addText(g, color = HOT_COLOR, fontSize = 12)
+            self.hygnRender.addText(' | ', color = DEF_COLOR, fontSize = 12)
+        for g in gn:
+            self.hygnRender.addText(g + ' | ', color = DEF_COLOR, fontSize = 12)
+        less = set(configHotGns) - ex
+        for g in less:
+            self.hygnRender.addText(g + ' | ', color = 0x606060, fontSize = 12)
+
     def drawCodeInfo(self, hdc, pens, hbrs):
         if not self.model:
             return
-        if getattr(self, 'richRender', None) is None:
-            self.richRender = ext_win.RichTextRender(14)
-            qr = tck_def_orm.MyHotGn.select()
-            for q in qr:
-                if q.info:
-                    gns = q.info.strip().split(' ')
-                    configHotGns = [it.strip() for it in gns if it.strip()]
-                else:
-                    configHotGns = []
-                break
-            # draw gn hy
-            hy = getattr(self.model, "hy", [])
-            gn = getattr(self.model, "gn", [])
-            ex = set()
-            gnhy = []
-            gnhy.append('【')
-            for i, h in enumerate(hy):
-                gnhy.append(h)
-                if i != len(hy) - 1:
-                    gnhy.append(' - ')
-            gnhy.append('】 ')
-            hotGns = []
-            for i, g in enumerate(gn):
-                for n in configHotGns:
-                    if n.upper() in g.upper():
-                        hotGns.append(g)
-                        gn.pop(i)
-                        ex.add(n)
-            DEF_COLOR = 0x22cc22
-            HOT_COLOR = 0xff3399
-            for g in gnhy:
-                c = DEF_COLOR
-                for n in configHotGns:
-                    if n.upper() in g.upper():
-                        c = HOT_COLOR
-                        ex.add(n)
-                        break
-                self.richRender.addText(g, color = c, fontSize = 12)
-            for g in hotGns:
-                self.richRender.addText(g, color = HOT_COLOR, fontSize = 12)
-                self.richRender.addText(' | ', color = DEF_COLOR, fontSize = 12)
-            for g in gn:
-                self.richRender.addText(g + ' | ', color = DEF_COLOR, fontSize = 12)
-            less = set(configHotGns) - ex
-            for g in less:
-                self.richRender.addText(g + ' | ', color = 0x606060, fontSize = 12)
+        self.initHyGnRender()
         code = self.model.code
         name = self.model.name
         #gnhy = '【' + ' - '.join(getattr(self.model, "hy", [])) + '】' + '│'.join(getattr(self.model, "gn", []))
         rc = (0, 0, int(self.getClientSize()[0] * 0.7), 70)
-        self.richRender.draw(hdc, self.drawer, rc)
+        self.hygnRender.draw(hdc, self.drawer, rc)
         #font = self.drawer.getFont('宋体', 12)
         #self.drawer.use(hdc, font)
         #self.drawer.drawText(hdc, gnhy, rc, 0x00cc00, win32con.DT_LEFT | win32con.DT_EDITCONTROL | win32con.DT_WORDBREAK)
