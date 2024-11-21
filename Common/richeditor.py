@@ -201,7 +201,10 @@ class RichEditorModel:
         line : Line = self.lines[pos.row]
         return pos.col <= len(line.words)
 
-    def getPlainText(self, startPos : Pos, endPos : Pos):
+    def getPlainText(self, startPos : Pos, endPos : Pos = None):
+        if endPos is None:
+            ls = self.model.lines
+            endPos = Pos(len(ls), len(ls[-1].words))
         rs = self.getWords(startPos, endPos)
         txt = self.getWordsPlainText(rs)
         return txt
@@ -257,7 +260,10 @@ class RichEditorModel:
             sline.changed()
         return True
 
-    def getRichText(self, startPos : Pos, endPos : Pos):
+    def getRichText(self, startPos : Pos, endPos : Pos = None):
+        if endPos is None:
+            ls = self.model.lines
+            endPos = Pos(len(ls), len(ls[-1].words))
         rs = self.getWords(startPos, endPos)
         txt = self.getWordsRichText(rs)
         return txt

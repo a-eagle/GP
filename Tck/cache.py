@@ -134,13 +134,13 @@ class CacheManager(base_win.Listener):
         if idx < 0:
             return
         if idx == 0:
-            ds['pre'] = df.data[idx].open
+            ds['pre'] = df.data[idx].price
         else:
-            ds['pre'] = df.data[idx -1].close
+            ds['pre'] = df.data[idx -1].price
         while idx < len(df.data):
             if df.data[idx].day != day:
                 break
-            ds['line'].append({'price': df.data[idx].close})
+            ds['line'].append({'price': df.data[idx].price})
             idx += 1
         rs['zf'] = self._calcZF(ds)
         render.setData(ds)
