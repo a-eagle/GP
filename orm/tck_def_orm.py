@@ -72,6 +72,7 @@ class MyObserve(pw.Model):
 
 class MyNote(pw.Model):
     info = pw.CharField(null = True)
+    tag = pw.CharField(null = True)
     class Meta:
         database = db_tck_def
         table_name = '笔记'

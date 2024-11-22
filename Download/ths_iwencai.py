@@ -357,6 +357,27 @@ def download_zt_zb(day = None):
         rs.append(obj)
     return rs
 
+# 连板天梯
+def download_lianban(day = None):
+    if type(day) == str:
+        day = day.replace('-', '')
+    if day is None:
+        day = ''
+    try:
+        url = f'https://data.10jqka.com.cn/dataapi/limit_up/continuous_limit_up?filter=HS,GEM2STAR&date={day}'
+        resp = requests.get(url)
+        if resp.status_code != 200:
+            return None
+        txt = resp.content.decode('utf-8')
+        js = json.loads(txt)
+        if js['status_code'] != 0:
+            print('[ths_iwencai.download_lianban] Error: ', js['status_msg'])
+            return None
+        data = js['data']
+        return data
+    except Exception as e:
+        traceback.print_exc()
+    return None
 
 if __name__ == '__main__':
     #download_one_dde('300139')
@@ -370,7 +391,7 @@ if __name__ == '__main__':
     #rs = download_zs_zd()
     #save_zs_zd(rs)
 
-    rs = download_zt_zb(20241101)
+    rs = download_lianban()
     for r in rs:
         print(r)
     pass

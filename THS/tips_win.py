@@ -1387,7 +1387,7 @@ class RecordWindow(richeditor.RichEditor):
         super().__init__()
         self.css['bgColor'] = 0xf3fef4
         self.DEF_SIZE = (900, 500)
-        self.noteObj = None
+        self.recObj = {}
 
     def show(self):
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW)
@@ -1401,25 +1401,22 @@ class RecordWindow(richeditor.RichEditor):
         self.initText()
 
     def initText(self):
-        qr = tck_def_orm.MyNote.select()
-        obj = None
-        for obj in qr:
-            break
-        if not obj:
-            self.noteObj = None
-            txt = '【复盘】\n观察近一周热点股的走势，总结出一套战法; 复盘涨停板; 复盘热点股; 复盘涨跌前列的指数;\n---------------------------------------\n\n '
-            self.model.insertRichText(richeditor.Pos(0, 0), txt)
+        #gp = tck_def_orm.MyNote.get_or_none(tck_def_orm.MyNote.tag == 'GP')
+        rec = tck_def_orm.MyNote.get_or_none(tck_def_orm.MyNote.tag == 'REC')
+        TEXT = '【复盘】\n观察近一周热点股的走势，总结出一套战法; 复盘涨停板; 复盘热点股; 复盘涨跌前列的指数'
+        if not rec:
+            self.recObj = tck_def_orm.MyNote.create(tag = 'REC', info = TEXT)
+            self.model.insertRichText(richeditor.Pos(0, 0), TEXT)
         else:
-            self.noteObj = obj
-            self.model.insertRichText(richeditor.Pos(0, 0), obj.info)
+            if not rec.info:
+                rec.info = TEXT
+            self.recObj = rec
+            self.model.insertRichText(richeditor.Pos(0, 0), rec.info)
 
     def onSave(self):
         txt = self.model.getRichText(richeditor.Pos(0, 0))
-        if not self.noteObj:
-            self.noteObj = tck_def_orm.MyNote.create(info = txt)
-        else:
-            self.noteObj.info = txt
-            self.noteObj.save()
+        self.recObj.info = txt
+        self.recObj.save()
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_NCLBUTTONDBLCLK:

@@ -203,7 +203,7 @@ class RichEditorModel:
 
     def getPlainText(self, startPos : Pos, endPos : Pos = None):
         if endPos is None:
-            ls = self.model.lines
+            ls = self.lines
             endPos = Pos(len(ls), len(ls[-1].words))
         rs = self.getWords(startPos, endPos)
         txt = self.getWordsPlainText(rs)
@@ -262,7 +262,7 @@ class RichEditorModel:
 
     def getRichText(self, startPos : Pos, endPos : Pos = None):
         if endPos is None:
-            ls = self.model.lines
+            ls = self.lines
             endPos = Pos(len(ls), len(ls[-1].words))
         rs = self.getWords(startPos, endPos)
         txt = self.getWordsRichText(rs)
