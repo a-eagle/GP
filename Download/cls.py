@@ -358,6 +358,5 @@ if __name__ == '__main__':
     pass
     u = ClsUrl()
     #u.loadHotTC(20241104)
-    data = u.loadKline('002185')
-    print(data[-2])
-    print(data[-1])
+    data = u.loadKline('002185', 2)
+    print(data)

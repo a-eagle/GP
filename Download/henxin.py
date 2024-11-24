@@ -627,10 +627,11 @@ class ThsDataFile(DataFile):
             
 if __name__ == '__main__':
     hx = HexinUrl()
-    url = hx.getKLineUrl('002456')
-    #url = hx.getTodayKLineUrl('002456')
     #url = hx.getKLineUrl('002456')
-    rs = hx.loadKLineData('002456')
+    url = hx.getTodayKLineUrl('002456')
+    rs = hx.loadUrlData(url)
+    #url = hx.getKLineUrl('002456')
+    #rs = hx.loadKLineData('002456')
     print(rs)
 
 
