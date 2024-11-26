@@ -98,7 +98,7 @@ def openKlineMinutes_Simple(evt, parent : base_win.BaseWindow):
     return win
 
 def openInThsWindow(data):
-    thsWin = ths_win.ThsWindow._ins
+    thsWin = ths_win.ThsWindow.ins()
     if not thsWin.topHwnd or not win32gui.IsWindow(thsWin.topHwnd):
         thsWin.topHwnd = None
         thsWin.init()

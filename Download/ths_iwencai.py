@@ -358,7 +358,7 @@ def download_zt_zb(day = None):
     return rs
 
 # 连板天梯
-def download_lianban(day = None):
+def download_zt_lianban(day = None):
     if type(day) == str:
         day = day.replace('-', '')
     if day is None:
@@ -379,6 +379,22 @@ def download_lianban(day = None):
         traceback.print_exc()
     return None
 
+def getTradeDays():
+    try:
+        today = datetime.date.today()
+        today = today.strftime('%Y%m%d')
+        resp = requests.get(f'https://data.10jqka.com.cn/dataapi/limit_up/trade_day?date={today}&stock=stock&next=1&prev=60')
+        txt = resp.content.decode('utf-8')
+        js = json.loads(txt)
+        data = js['data']
+        rs = data['prev_dates']
+        if data['trade_day']:
+            rs.append(today)
+        return rs
+    except Exception as e:
+        traceback.print_exc()
+    return None
+
 if __name__ == '__main__':
     #download_one_dde('300139')
 
@@ -391,7 +407,7 @@ if __name__ == '__main__':
     #rs = download_zs_zd()
     #save_zs_zd(rs)
 
-    rs = download_lianban()
+    rs = download_zt_lianban()
     for r in rs:
         print(r)
     pass
