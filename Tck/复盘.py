@@ -3,7 +3,7 @@ import win32gui, win32con, sys, os, win32api
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Common import base_win
 import ddlr_detail, top_scqx, ddlr_struct, top_zs, top_zt_net
-import top_vol_pm, top_cls_bk, top_hots, top_vol_lb, top_diary, top_dde, top_observe, top_hot_tc, top_lhb, top_bk
+import top_vol_pm, top_cls_bk, top_hots, top_vol_lb, top_diary, top_dde, top_observe, top_hot_tc, top_lhb, top_bk, top_zt_lianban
 
 class FuPanMgrWindow(base_win.BaseWindow):
     def __init__(self) -> None:
@@ -25,6 +25,7 @@ class FuPanMgrWindow(base_win.BaseWindow):
             {'name': 'HOTS', 'title': '热度',  'class': top_hots.Hots_Window},
             #{'name': 'HOTS', 'title': '板块',  'class': top_bk.Bk_Window},
             {'name': 'LHB', 'title': '龙虎榜',  'class': top_lhb.LHB_Window},
+            {'name': 'LB-ZT', 'title': '连板',  'class': top_zt_lianban.ZT_Window},
             #{'name': 'TCGN', 'title': '题材梳理',  'class': tcgn2.TCGN_Window},
             #{'name': 'CLS_BK', 'title': '财联社板块',  'class': top_cls_bk.ClsBkWindow},
             #{'name': 'MY', 'title': '自选',  'class': top_observe.MyWindow},

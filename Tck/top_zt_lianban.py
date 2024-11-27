@@ -103,7 +103,7 @@ class LianBanWindow(base_win.BaseWindow):
         W, H = self.getClientSize()
         drc = (0, 0, W, self.DAY_HEIGHT - 2)
         self.drawer.fillRect(hdc, drc, color = 0xDADAEA)
-        self.drawer.drawText(hdc, '    ' + self.day, drc, color = 0xFF00FF, align = win32con.DT_LEFT | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+        self.drawer.drawText(hdc, f'    {self.day}   连板：{len(self.items) if self.items else 0}', drc, color = 0xFF00FF, align = win32con.DT_LEFT | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
         if not self.items:
             return
         for it in self.items:
@@ -149,7 +149,7 @@ class LianBanWindow(base_win.BaseWindow):
         if info['zt']:
             return 0xcc2222
         if info['dt']:
-            return 0x22aaaa
+            return 0x22aa22
         color = 0x202020
         if info['zf'] > 0: color = 0x2222ff
         elif info['zf'] < 0: color = 0x22aa22
@@ -162,7 +162,26 @@ class LianBanWindow(base_win.BaseWindow):
         if msg == win32con.WM_LBUTTONDBLCLK:
             x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
             self.onDbClick(x, y)
+            return True
         return super().winProc(hwnd, msg, wParam, lParam)
+    
+    def onMouseWheel(self, delta):
+        delta = -delta
+        if not self.items:
+            return
+        W, H = self.getClientSize()
+        halfMaxRow = max(H // (self.ROW_HEIGHT + self.ITEM_Y_SPACE) // 2, 1)
+        s = self.startRow + delta
+        if s < 0:
+            self.startRow = 0
+            self.invalidWindow()
+            return
+        lastRow = self.items[-1]['row'] - s
+        if lastRow <= halfMaxRow:
+            diff = halfMaxRow - lastRow
+            s -= diff
+        self.startRow = s
+        self.invalidWindow()
 
     def onDbClick(self, x, y):
         pos = self.getItemAt(x, y)
@@ -228,8 +247,6 @@ class LianBanWindow(base_win.BaseWindow):
         self.invalidWindow()
 
     def onQuery(self, search : str):
-        if not self.items:
-            return
         if search is None:
             search = ''
         search = search.strip().upper()
@@ -273,7 +290,13 @@ class ZT_Window(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
         self.layout = base_win.GridLayout((30, '1fr'), ('1fr', '1fr', '1fr', ), (5, 10))
-        self.editorWin = base_win.Editor()
+        self.editorWin = base_win.ComboBox()
+        self.editorWin.editable = True
+        self.editorWin.setPopupTip([
+            {'title': '固态电池'}, 
+            {'title': 'AI | 人工智能 | 传媒'},
+            {'title': '机器人'}
+            ])
         self.editorWin.placeHolder = ' or条件: |分隔; and条件: 空格分隔'
         self.checkBox = base_win.CheckBox({'title': '在同花顺中打开'})
         self.lianBanWins = []
@@ -324,7 +347,14 @@ class ZT_Window(base_win.BaseWindow):
             win.addNamedListener('OpenCode', self.onOpenCode)
 
         fs = {'margins': (0, 3, 0, 0)}
+        btn2 = base_win.Button({'title': '今天'})
+        btn2.createWindow(self.hwnd, (0, 0, 60, 30))
+        def onSetToday(evt, args):
+            dp.setSelDay(datetime.date.today())
+            self.runTask(dp.getSelDay())
+        btn2.addNamedListener('Click', onSetToday)
         flowLayout.addContent(dp)
+        flowLayout.addContent(btn2)
         flowLayout.addContent(self.editorWin)
         flowLayout.addContent(btn)
         flowLayout.addContent(self.checkBox)
@@ -357,56 +387,6 @@ class ZT_Window(base_win.BaseWindow):
         else:
             win = kline_utils.openInCurWindow_Code(self, data)
         
-    def loadAllData(self, day):
-        self.tckData = None
-        self.tableWin.setData(None)
-        self.tableWin.invalidWindow()
-        thsQr = tck_orm.THS_ZT.select().where(tck_orm.THS_ZT.day == day).dicts()
-        clsQr = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day == day).dicts()
-        hotZH = ths_orm.THS_HotZH.select().where(ths_orm.THS_HotZH.day == int(day.replace('-', ''))).dicts()
-
-        rs = ths_iwencai.download_zt_zb(day)
-        allDicts = {}
-        for d in rs:
-            allDicts[d['code']] = d
-        for d in hotZH:
-            it = allDicts.get(f"{d['code'] :06d}", None)
-            if it: it['zhHotOrder'] = d['zhHotOrder']
-
-        htsNewest = hot_utils.DynamicHotZH.instance().getNewestHotZH()
-        for d in htsNewest:
-            item = htsNewest[d]
-            cday = item['day']
-            cday = f"{cday // 10000}-{cday // 100 % 100 :02d}-{cday % 100 :02d}"
-            if cday != day:
-                break
-            it = allDicts.get(f"{item['code'] :06d}", None)
-            if it:
-                it['zhHotOrder'] = item['zhHotOrder']
-
-        for d in thsQr:
-            k = d['code']
-            it = allDicts.get(k, None)
-            if it:
-                it['ths_ztReason'] = d['ztReason'].upper()
-
-        for d in clsQr:
-            k = d['code']
-            obj = allDicts.get(k, None)
-            if not obj:
-                continue
-            detail = d['detail'].upper()
-            detail = detail.replace('\r\n', ' | ')
-            detail = detail.replace('\n', ' | ')
-            if obj:
-                #obj['cls_detail'] = detail
-                obj['cls_ztReason'] = d['ztReason'].upper()
-        for item in rs:
-            obj = utils.get_THS_GNTC(item['code'])
-            if obj: item.update(obj)
-        self.tckData = rs
-
-    
 if __name__ == '__main__':
     base_win.ThreadPool.instance().start()
     ins = base_win.ThsShareMemory.instance()
@@ -419,5 +399,6 @@ if __name__ == '__main__':
     w, h = fp.getClientSize()
     fp.layout.resize(0, 0, w, h)
     #fp.loadData(20241121)
+    #fp.loadFromDay()
     win32gui.ShowWindow(fp.hwnd, win32con.SW_MAXIMIZE)
     win32gui.PumpMessages()

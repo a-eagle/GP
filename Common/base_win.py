@@ -104,6 +104,13 @@ class BaseWindow(Listener):
                 self.layout.resize(pds[0], pds[1], w, h)
             self.invalidWindow()
             return True
+        if msg == win32con.WM_MOUSEWHEEL:
+            delta = (wParam >> 16) & 0xffff
+            if delta & 0x8000:
+                delta = delta - 0xffff - 1
+            delta = delta // 120
+            self.onMouseWheel(delta)
+            return True
         return False
 
     def _draw(self, hdc):
@@ -137,7 +144,8 @@ class BaseWindow(Listener):
     
     def onDestory(self):
         pass
-
+    def onMouseWheel(self, delta):
+        pass
     @staticmethod
     def _WinProc(hwnd, msg, wParam, lParam):
         self = BaseWindow.bindHwnds.get(hwnd, None)
