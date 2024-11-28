@@ -12,7 +12,7 @@ from Download import ths_iwencai, cls
 from Tck import kline_utils, conf, mark_utils, utils, cache, ext_table
 
 net_caches = {} # code : zf
-
+    
 class LianBanWindow(base_win.BaseWindow):
     ROW_HEIGHT = 60
     LB_WIDTH = 40
@@ -215,8 +215,9 @@ class LianBanWindow(base_win.BaseWindow):
         return None
 
     def loadCurZF(self, code):
+        now = time.time()
         zf = net_caches.get(code, None)
-        if zf is not None:
+        if zf is not None and now - zf['time'] <= 3 * 60:
             return zf
         base_win.ThreadPool.instance().addTask(f'LB-ZF-{code}', self._loadCurZF, code)
         return None
@@ -229,7 +230,7 @@ class LianBanWindow(base_win.BaseWindow):
         pre = data[-2].close
         cur = data[-1].close
         zf = (cur - pre) / pre * 100 if pre else 0
-        info = net_caches[code] = {'zf': zf}
+        info = net_caches[code] = {'zf': zf, 'time': time.time()}
         # check is ZT
         MZF = 20 if code[0] == '3' or code[0 : 3] == '688' else 10
         icur = int(cur * 100 + 0.5)
