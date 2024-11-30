@@ -1403,7 +1403,7 @@ class RecordWindow(richeditor.RichEditor):
     def initText(self):
         #gp = tck_def_orm.MyNote.get_or_none(tck_def_orm.MyNote.tag == 'GP')
         rec = tck_def_orm.MyNote.get_or_none(tck_def_orm.MyNote.tag == 'REC')
-        TEXT = '【复盘】\n观察近一周热点股的走势，总结出一套战法; 复盘涨停板; 复盘热点股; 复盘涨跌前列的指数'
+        TEXT = '【战法】：有主线->做主线，其它不看; 有趋势容易核心, 一直玩到没力量为止。没容量的可做了，切换到低位，找低位的。\n无主线->说明是轮动，低吸热点个股。'
         if not rec:
             self.recObj = tck_def_orm.MyNote.create(tag = 'REC', info = TEXT)
             self.model.insertRichText(richeditor.Pos(0, 0), TEXT)
