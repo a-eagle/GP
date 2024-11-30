@@ -103,7 +103,7 @@ class BaseWindow(Listener):
                 h -= pds[1] + pds[3]
                 self.layout.resize(pds[0], pds[1], w, h)
             self.invalidWindow()
-            return True
+            #return True
         if msg == win32con.WM_MOUSEWHEEL:
             delta = (wParam >> 16) & 0xffff
             if delta & 0x8000:

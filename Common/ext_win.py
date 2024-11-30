@@ -1,5 +1,6 @@
 import win32gui, win32con , win32api, win32ui # pip install pywin32
-import os, sys
+import os, sys, io
+from PIL import Image as PIL_Image
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Common import base_win
@@ -453,6 +454,11 @@ def testOptionsWindow():
     win.setData(data)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
 
-if __name__ == '__main__':
-    testOptionsWindow()
-    win32gui.PumpMessages()
+class ImageWindow(base_win.BaseWindow):
+    def __init__(self) -> None:
+        super().__init__()
+        self.img : PIL_Image = None
+
+    def onDraw(self, hdc):
+        win32gui.BitBlt(hdc, 0, 0, )
+        pass

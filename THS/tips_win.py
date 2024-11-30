@@ -1382,12 +1382,17 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
 
-class RecordWindow(richeditor.RichEditor):
+class RecordWindow(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
         self.css['bgColor'] = 0xf3fef4
         self.DEF_SIZE = (900, 500)
-        self.recObj = {}
+        self.layout = base_win.GridLayout((200, '1fr'), ('1fr', ), (10, 10))
+        self.editorWin = richeditor.RichEditor()
+        from Tck import swdt
+        self.swdtWin = swdt.SwdtWindow()
+        self.recObj = None
+        self.swdtObj = None
 
     def show(self):
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW)
@@ -1398,25 +1403,35 @@ class RecordWindow(richeditor.RichEditor):
         W, H = self.DEF_SIZE
         rect = ((SW - W) // 2, (SH - H) // 2, *self.DEF_SIZE)
         super().createWindow(parentWnd, rect, style, className, title)
-        self.initText()
+        self.swdtWin.createWindow(self.hwnd, (0, 0, 1, 1))
+        self.editorWin.createWindow(self.hwnd, (0, 0, 1, 1))
+        self.layout.setContent(0, 0, self.swdtWin)
+        self.layout.setContent(1, 0, self.editorWin)
+        W, H = self.getClientSize()
+        self.layout.resize(0, 0, W, H)
+        self.initContent()
+        self.rebindWinProc()
 
-    def initText(self):
-        #gp = tck_def_orm.MyNote.get_or_none(tck_def_orm.MyNote.tag == 'GP')
+    def initContent(self):
+        self.swdtObj = tck_def_orm.MyNote.get_or_none(tck_def_orm.MyNote.tag == 'GP-SWDT')
         rec = tck_def_orm.MyNote.get_or_none(tck_def_orm.MyNote.tag == 'REC')
         TEXT = '【战法】：有主线->做主线，其它不看; 有趋势容易核心, 一直玩到没力量为止。没容量的可做了，切换到低位，找低位的。\n无主线->说明是轮动，低吸热点个股。'
         if not rec:
             self.recObj = tck_def_orm.MyNote.create(tag = 'REC', info = TEXT)
-            self.model.insertRichText(richeditor.Pos(0, 0), TEXT)
+            self.editorWin.model.insertRichText(richeditor.Pos(0, 0), TEXT)
         else:
             if not rec.info:
                 rec.info = TEXT
             self.recObj = rec
-            self.model.insertRichText(richeditor.Pos(0, 0), rec.info)
+            self.editorWin.model.insertRichText(richeditor.Pos(0, 0), rec.info)
 
     def onSave(self):
-        txt = self.model.getRichText(richeditor.Pos(0, 0))
+        txt = self.editorWin.model.getRichText(richeditor.Pos(0, 0))
         self.recObj.info = txt
         self.recObj.save()
+    
+    def getKeyState(self, vk):
+        return (win32api.GetKeyState(vk) & 0x80000000) != 0
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_NCLBUTTONDBLCLK:
@@ -1431,6 +1446,33 @@ class RecordWindow(richeditor.RichEditor):
             win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
             return 0
         return super().winProc(hwnd, msg, wParam, lParam)
+
+    @staticmethod
+    def swdt_winProc(swdtWin, hwnd, msg, wParam, lParam):
+        self = swdtWin.pwin
+        if msg == win32con.WM_KEYDOWN:
+            if wParam == ord('S') and self.getKeyState(win32con.VK_CONTROL):
+                self.onSave()
+        old = swdtWin.old_win_proc
+        return old(hwnd, msg, wParam, lParam)
+
+    @staticmethod
+    def edit_winProc(swdtWin, hwnd, msg, wParam, lParam):
+        self = swdtWin.pwin
+        if msg == win32con.WM_KEYDOWN:
+            if wParam == ord('S') and self.getKeyState(win32con.VK_CONTROL):
+                self.onSave()
+        old = swdtWin.old_win_proc
+        return old(hwnd, msg, wParam, lParam)
+    
+    def rebindWinProc(self):
+        self.swdtWin.pwin = self
+        self.swdtWin.old_win_proc = self.swdtWin.winProc
+        #self.swdtWin.winProc = types.MethodType(RecordWindow.swdt_winProc, self.swdtWin)
+        self.editorWin.pwin = self
+        self.editorWin.old_win_proc = self.editorWin.winProc
+        self.editorWin.winProc = types.MethodType(RecordWindow.edit_winProc, self.editorWin)
+
 
 class BkGnWindow(base_win.BaseWindow):
     TITLE_HEIGHT = 15
@@ -1720,7 +1762,10 @@ def test():
     pass
 
 if __name__ == '__main__':
-    test()
+    ed = RecordWindow() # richeditor.RichEditor()
+    ed.createWindow(None, (100, 100, 500, 300), win32con.WS_OVERLAPPEDWINDOW)
+    win32gui.ShowWindow(ed.hwnd, win32con.SW_SHOW)
+    win32gui.PumpMessages()
 
     import ths_win
     thsWin = ths_win.ThsWindow()
