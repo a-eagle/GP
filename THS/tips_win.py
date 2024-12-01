@@ -1400,7 +1400,6 @@ class RecordWindow(base_win.BaseWindow):
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW)
 
     def createWindow(self, parentWnd, rect = None, style = None, className = 'STATIC', title='记'):
-        style = win32con.WS_POPUP | win32con.WS_CAPTION | win32con.WS_VISIBLE | win32con.WS_SYSMENU | win32con.WS_MINIMIZEBOX | win32con.WS_MAXIMIZEBOX
         SW, SH = win32api.GetSystemMetrics(win32con.SM_CXSCREEN), win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
         W, H = self.DEF_SIZE
         rect = ((SW - W) // 2, (SH - H) // 2, *self.DEF_SIZE)
@@ -1484,7 +1483,6 @@ class RecordWindow(base_win.BaseWindow):
         self.editorWin.pwin = self
         self.editorWin.old_win_proc = self.editorWin.winProc
         self.editorWin.winProc = types.MethodType(RecordWindow.edit_winProc, self.editorWin)
-
 
 class BkGnWindow(base_win.BaseWindow):
     TITLE_HEIGHT = 15
