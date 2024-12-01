@@ -61,6 +61,13 @@ class Word:
             self.italic == w.italic and self.underline == w.underline and \
             self.bgColor == w.bgColor and self.color == w.color
 
+    @staticmethod
+    def copyStyle(word):
+        cp = copy.copy(word)
+        cp.char = ''
+        cp.width = 0
+        return cp
+
 class Line:
     LINE_PADDING = 4
 
@@ -203,11 +210,15 @@ class RichEditorModel:
 
     def getPlainText(self, startPos : Pos, endPos : Pos = None):
         if endPos is None:
-            ls = self.lines
-            endPos = Pos(len(ls), len(ls[-1].words))
+            endPos = self.getLastPos()
         rs = self.getWords(startPos, endPos)
         txt = self.getWordsPlainText(rs)
         return txt
+
+    def getLastPos(self):
+        ls = self.lines
+        endPos = Pos(len(ls) - 1, len(ls[-1].words))
+        return endPos
 
     def getWords(self, startPos : Pos, endPos : Pos):
         if not self.isValidPos(startPos) or not self.isValidPos(endPos):
@@ -262,11 +273,13 @@ class RichEditorModel:
 
     def getRichText(self, startPos : Pos, endPos : Pos = None):
         if endPos is None:
-            ls = self.lines
-            endPos = Pos(len(ls), len(ls[-1].words))
+            endPos = self.getLastPos()
         rs = self.getWords(startPos, endPos)
         txt = self.getWordsRichText(rs)
         return txt
+
+    def getAllRichText(self):
+        return self.getRichText(Pos(0, 0), self.getLastPos())
 
     def getWordsPlainText(self, words : list):
         if not words:
@@ -338,14 +351,19 @@ class RichEditorModel:
             i = ei
         return True
 
+    def clear(self):
+        self.lines.clear()
+        self.lines.append(Line(self.defaultFontSize()))
+
     def _pullNext(self, i, text : str):
         if i >= len(text):
             return i, None
-        if text[i] != '<':
+        isStartTag = (len(text) - i >= 7) and (text[i : i + 2] == '<T') and (text[i + 2] == ' ' or text[i + 2] == '\t')
+        if not isStartTag:
             return i + 1, Word(self.defaultFontName(), self.defaultFontSize(), text[i])
         ei = text.find('>', i)
         if ei < 0:
-            return ei, None
+            return i + 1, Word(self.defaultFontName(), self.defaultFontSize(), text[i])
 
         fn = self._getStrAttrVal('fn', text, i, ei)
         fs = self._getNumAttrVal('fs', text, i, ei)
@@ -356,7 +374,8 @@ class RichEditorModel:
         ei = text.find('</T>', si)
         bei = ei + 4 # skip end tag </T>
         if ei < 0:
-            return -1, None
+            ei = len(text)
+            bei = ei
         rs = []
         for i in range(si, ei):
             w = Word(self.defaultFontName(), self.defaultFontSize())
@@ -778,7 +797,7 @@ class RichEditor(base_win.BaseEditor):
         ln : Line = self.model.lines[self.insertPos.row]
         if ln.words and self.insertPos.col - 1 >= 0:
             w = ln.words[self.insertPos.col - 1]
-            style = copy.copy(w)
+            style = Word.copyStyle(w)
             style.char = ch
             self.model.insertWord(self.insertPos, style)
         else:
@@ -819,6 +838,12 @@ class RichEditor(base_win.BaseEditor):
         self.setInsertPos(b)
         self.invalidWindow()
         return True
+    
+    def clear(self):
+        self.selRange = None
+        self.model.clear()
+        self.setInsertPos(None)
+        self.invalidWindow()
 
     def onKeyDelete(self):
         if self.deleteSelRange():
@@ -948,8 +973,8 @@ class RichEditor(base_win.BaseEditor):
         val = None
         if cf and user32.IsClipboardFormatAvailable(cf):
             val = self._copyFromClipboard(cf)
-        if val is False:
-            val = self.copyFromClipboard(win32con.CF_UNICODETEXT)
+        if val is False or val is None:
+            val = self._copyFromClipboard(win32con.CF_UNICODETEXT)
         if not val:
             return
         self.deleteSelRange()
@@ -1085,8 +1110,8 @@ if __name__ == '__main__':
 
     editor = RichEditor()
     html = '<T fs=1 c=ff0000 bg=aa33dd >Hello World</T>\n<T fs=5 fz=20 >卡拉ACB123</T>卡拉DEF123\n卡拉CEA123'
-    editor.model.insertRichText(Pos(0, 0), html)
-    editor.insertPos = Pos(2, 0)
+    #editor.model.insertRichText(Pos(0, 0), html)
+    #editor.insertPos = Pos(2, 0)
     editor.createWindow(None, (0, 0, 700, 400), style = win32con.WS_OVERLAPPEDWINDOW)
     win32gui.ShowWindow(editor.hwnd, win32con.SW_SHOW)
     win32gui.PumpMessages()

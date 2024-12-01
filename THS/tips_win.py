@@ -1385,20 +1385,21 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
 class RecordWindow(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.css['bgColor'] = 0xf3fef4
-        self.DEF_SIZE = (900, 500)
+        self.css['bgColor'] = 0x303030 #0xf3fef4
+        self.DEF_SIZE = (1280, 500)
         self.layout = base_win.GridLayout((200, '1fr'), ('1fr', ), (10, 10))
-        self.editorWin = richeditor.RichEditor()
+        self.editorWin = base_win.MutiEditor()
         from Tck import swdt
         self.swdtWin = swdt.SwdtWindow()
         self.recObj = None
         self.swdtObj = None
+        self.editForTag = 'Tips-Record' # 'Tips-GP-SWDT'
 
     def show(self):
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW)
 
     def createWindow(self, parentWnd, rect = None, style = None, className = 'STATIC', title='记'):
-        style = win32con.WS_POPUP | win32con.WS_CAPTION | win32con.WS_VISIBLE | win32con.WS_SYSMENU
+        style = win32con.WS_POPUP | win32con.WS_CAPTION | win32con.WS_VISIBLE | win32con.WS_SYSMENU | win32con.WS_MINIMIZEBOX | win32con.WS_MAXIMIZEBOX
         SW, SH = win32api.GetSystemMetrics(win32con.SM_CXSCREEN), win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
         W, H = self.DEF_SIZE
         rect = ((SW - W) // 2, (SH - H) // 2, *self.DEF_SIZE)
@@ -1413,22 +1414,21 @@ class RecordWindow(base_win.BaseWindow):
         self.rebindWinProc()
 
     def initContent(self):
-        self.swdtObj = tck_def_orm.MyNote.get_or_none(tck_def_orm.MyNote.tag == 'GP-SWDT')
-        rec = tck_def_orm.MyNote.get_or_none(tck_def_orm.MyNote.tag == 'REC')
-        TEXT = '【战法】：有主线->做主线，其它不看; 有趋势容易核心, 一直玩到没力量为止。没容量的可做了，切换到低位，找低位的。\n无主线->说明是轮动，低吸热点个股。'
-        if not rec:
-            self.recObj = tck_def_orm.MyNote.create(tag = 'REC', info = TEXT)
-            self.editorWin.model.insertRichText(richeditor.Pos(0, 0), TEXT)
-        else:
-            if not rec.info:
-                rec.info = TEXT
-            self.recObj = rec
-            self.editorWin.model.insertRichText(richeditor.Pos(0, 0), rec.info)
+        self.swdtObj, *_ = tck_def_orm.MyNote.get_or_create(tag = 'Tips-GP-SWDT')
+        self.recObj, *_ = tck_def_orm.MyNote.get_or_create(tag = 'Tips-Record')
+        self.editorWin.setText(self.recObj.info)
+        self.swdtWin.loads(self.swdtObj.info)
 
     def onSave(self):
-        txt = self.editorWin.model.getRichText(richeditor.Pos(0, 0))
-        self.recObj.info = txt
-        self.recObj.save()
+        if self.editForTag == 'Tips-Record':
+            txt = self.editorWin.getText()
+            self.recObj.info = txt
+            self.recObj.save()
+        elif self.editForTag == 'Tips-GP-SWDT':
+            txt = self.editorWin.getText()
+            self.swdtObj.info = txt
+            self.swdtObj.save()
+            self.swdtWin.loads(txt)
     
     def getKeyState(self, vk):
         return (win32api.GetKeyState(vk) & 0x80000000) != 0
@@ -1453,6 +1453,16 @@ class RecordWindow(base_win.BaseWindow):
         if msg == win32con.WM_KEYDOWN:
             if wParam == ord('S') and self.getKeyState(win32con.VK_CONTROL):
                 self.onSave()
+                return True
+        if msg == win32con.WM_LBUTTONDBLCLK:
+            if self.editForTag == 'Tips-Record':
+                self.editorWin.setText(self.swdtObj.info)
+                self.editForTag = 'Tips-GP-SWDT'
+            elif self.editForTag == 'Tips-GP-SWDT':
+                self.editorWin.setText(self.recObj.info)
+                self.editForTag = 'Tips-Record'
+            self.editorWin.invalidWindow()
+            return True
         old = swdtWin.old_win_proc
         return old(hwnd, msg, wParam, lParam)
 
@@ -1462,13 +1472,14 @@ class RecordWindow(base_win.BaseWindow):
         if msg == win32con.WM_KEYDOWN:
             if wParam == ord('S') and self.getKeyState(win32con.VK_CONTROL):
                 self.onSave()
+                return True
         old = swdtWin.old_win_proc
         return old(hwnd, msg, wParam, lParam)
     
     def rebindWinProc(self):
         self.swdtWin.pwin = self
         self.swdtWin.old_win_proc = self.swdtWin.winProc
-        #self.swdtWin.winProc = types.MethodType(RecordWindow.swdt_winProc, self.swdtWin)
+        self.swdtWin.winProc = types.MethodType(RecordWindow.swdt_winProc, self.swdtWin)
         self.editorWin.pwin = self
         self.editorWin.old_win_proc = self.editorWin.winProc
         self.editorWin.winProc = types.MethodType(RecordWindow.edit_winProc, self.editorWin)

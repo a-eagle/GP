@@ -91,6 +91,11 @@ class SwdtWindow(base_win.BaseWindow):
         self.css['bgColor'] = 0xf0f0f0
         self.model = SwdtModel()
         self.needRebuild = True
+
+    def loads(self, strs):
+        self.model.loads(strs)
+        self.needRebuild = True
+        self.invalidWindow()
     
     def buildViews(self):
         hdc = win32gui.GetDC(self.hwnd)
