@@ -83,12 +83,14 @@ class SwdtModel:
             self.data.append(item)
 
 class SwdtWindow(base_win.BaseWindow):
-    ITEM_SPACE_X = 80
-    ITEM_SPACE_Y = 20
+    ITEM_SPACE_X = 60
+    ITEM_SPACE_Y = 10
+    ITEM_INNER_X = 20
+    ITEM_INNER_Y = 10
 
     def __init__(self) -> None:
         super().__init__()
-        self.css['bgColor'] = 0xf0f0f0
+        self.css['bgColor'] = 0xfdfdfd
         self.model = SwdtModel()
         self.needRebuild = True
 
@@ -112,8 +114,8 @@ class SwdtWindow(base_win.BaseWindow):
             _iw, _ih = win32gui.GetTextExtentPoint32(hdc, row)
             iw = max(_iw, iw)
             ih += _ih
-        item.width = iw + 20 + item.borderWidth * 2
-        item.height = ih + 6 + item.borderWidth * 2
+        item.width = iw + self.ITEM_INNER_X + item.borderWidth * 2
+        item.height = ih + self.ITEM_INNER_Y + item.borderWidth * 2
         if not item.children:
             return
         for it in item.children:

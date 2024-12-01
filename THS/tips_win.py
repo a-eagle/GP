@@ -1385,10 +1385,11 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
 class RecordWindow(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.css['bgColor'] = 0x303030 #0xf3fef4
+        self.css['bgColor'] = 0x808080
         self.DEF_SIZE = (1280, 500)
-        self.layout = base_win.GridLayout((200, '1fr'), ('1fr', ), (10, 10))
+        self.layout = base_win.GridLayout((160, '1fr'), ('1fr', ), (3, 0))
         self.editorWin = base_win.MutiEditor()
+        self.editorWin.css['bgColor'] = 0xf3fef4
         from Tck import swdt
         self.swdtWin = swdt.SwdtWindow()
         self.recObj = None
