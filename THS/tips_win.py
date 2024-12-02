@@ -1399,10 +1399,10 @@ class RecordWindow(base_win.BaseWindow):
     def show(self):
         win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW)
 
-    def createWindow(self, parentWnd, rect = None, style = None, className = 'STATIC', title='记'):
+    def createWindow(self, parentWnd, rect, style = None, className = 'STATIC', title='记'):
         SW, SH = win32api.GetSystemMetrics(win32con.SM_CXSCREEN), win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
         W, H = self.DEF_SIZE
-        rect = ((SW - W) // 2, (SH - H) // 2, *self.DEF_SIZE)
+        #rect = ((SW - W) // 2, (SH - H) // 2, *self.DEF_SIZE)
         super().createWindow(parentWnd, rect, style, className, title)
         self.swdtWin.createWindow(self.hwnd, (0, 0, 1, 1))
         self.editorWin.createWindow(self.hwnd, (0, 0, 1, 1))
@@ -1713,9 +1713,6 @@ class ToolBarWindow(base_win.BaseWindow):
         if item['win']:
             return item['win']
         item['win'] = win = item['class']()
-        if item['name'] == 'Record':
-            win.createWindow(self.hwnd)
-            return win
         win.css['paddings'] = (4, 4, 4, 4)
         sw = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
         sh = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
