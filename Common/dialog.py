@@ -52,15 +52,18 @@ class Dialog(base_win.BaseWindow):
     def close(self):
         if self.modal:
             self.setModal(False)
-        #win32gui.CloseWindow(self.hwnd)
-        win32gui.DestroyWindow(self.hwnd)
+        #win32gui.CloseWindow(self.hwnd) # is real mean min-size window
+        win32gui.SendMessage(self.hwnd, win32con.WM_SYSCOMMAND, win32con.SC_CLOSE, 0)
     
     def onClose(self):
         pass
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_CLOSE:
+            self.hide()
             self.onClose()
+            if not self.destroyOnHide:
+                return 0
             # go through, no return
         return super().winProc(hwnd, msg, wParam, lParam)
 
@@ -110,6 +113,12 @@ class MultiInputDialog(Dialog):
         self.css['paddings'] = (5, 5, 5, 5)
         self.layout = base_win.GridLayout(('1fr', 30), ('1fr', 50, 50), (5, 10))
         self.editor = base_win.MutiEditor()
+
+    def setText(self, text):
+        self.editor.setText(text)
+
+    def getText(self):
+        return self.editor.text
 
     def createWindow(self, parentWnd, rect, style = win32con.WS_POPUP | win32con.WS_CAPTION | win32con.WS_SYSMENU, className='STATIC', title='Input'):
         super().createWindow(parentWnd, rect, style, className, title)
@@ -231,7 +240,8 @@ if __name__ == '__main__':
     #cw.showCenter()
 
     cw = MultiInputDialog()
-    cw.createWindow(None, (0, 0, 300, 150), style = win32con.WS_POPUP)
+    cw.destroyOnHide = False
+    cw.createWindow(None, (0, 0, 300, 150), style = win32con.WS_POPUPWINDOW)
 
     win32gui.ShowWindow(cw.hwnd, win32con.SW_SHOW)
     win32gui.PumpMessages()

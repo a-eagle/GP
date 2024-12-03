@@ -126,6 +126,22 @@ class DynamicHotZH:
             dt[d['code']] = d
         return dt
     
+    # return {code : THS_HotZH.__data__, ... }
+    def getHotsZH(self, day):
+        if type(day) == str:
+            day = int(day.replace('-', ''))
+        hotZHMaxDay = THS_HotZH.select(pw.fn.max(THS_HotZH.day)).scalar()
+        if day <= hotZHMaxDay:
+            rs = {}
+            qs = THS_HotZH.select().where(THS_HotZH.day == day).dicts()
+            for q in qs:
+                rs[q['code']] = q
+            return rs
+        hotMaxDay = getLastTradeDay()
+        if day == hotMaxDay:
+            return self.getNewestHotZH()
+        return None
+
 DynamicHotZH.ins = DynamicHotZH()
 
 

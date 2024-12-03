@@ -1385,11 +1385,11 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
 class RecordWindow(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.css['bgColor'] = 0x808080
+        self.css['bgColor'] = 0x606060
         self.DEF_SIZE = (1280, 500)
         self.layout = base_win.GridLayout((160, '1fr'), ('1fr', ), (3, 0))
         self.editorWin = base_win.MutiEditor()
-        self.editorWin.css['bgColor'] = 0xf3fef4
+        self.editorWin.css['bgColor'] = 0xfafafa
         from Tck import swdt
         self.swdtWin = swdt.SwdtWindow()
         self.recObj = None
@@ -1554,7 +1554,7 @@ class BkGnWindow(base_win.BaseWindow):
 
     def onSettings(self, evt, args):
         if evt.item['name'] == 'hot':
-            dlg = dialog.InputDialog()
+            dlg = dialog.MultiInputDialog()
             dlg.setText(self.hotGnObj.info or '')
             prc = win32gui.GetWindowRect(self.hwnd)
             def onInputEnd(evt, args):
@@ -1564,7 +1564,7 @@ class BkGnWindow(base_win.BaseWindow):
                 self.buildBkgn()
                 self.invalidWindow()
             dlg.addNamedListener('InputEnd', onInputEnd)
-            dlg.createWindow(self.hwnd, (prc[0], prc[1], 400, 70))
+            dlg.createWindow(win32gui.GetParent(self.hwnd), (prc[0], prc[1], 450, 200), title = '设置热点概念')
             dlg.showCenter()
     
     def onDraw(self, hdc):
@@ -1593,7 +1593,7 @@ class BkGnWindow(base_win.BaseWindow):
         for obj in qr:
             self.hotGnObj = obj
             if obj.info:
-                sx = obj.info.split(' ')
+                sx = obj.info.replace('\n', ' ').split(' ')
                 for s in sx:
                     if s.strip(): self.hotGns.append(s.strip())
             break

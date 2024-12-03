@@ -2462,7 +2462,7 @@ class Editor(BaseEditor):
         stw, *_ = win32gui.GetTextExtentPoint32(hdc, self.text[0 : pos])
         px = self.scrollX + stw + self.css['paddings'][0]
         if px < self.css['paddings'][0]:
-            self.scrollX += self.self.css['paddings'][0] - px
+            self.scrollX += self.css['paddings'][0] - px
         elif px > W - self.css['paddings'][2]:
             self.scrollX -= px - (W - self.css['paddings'][2])
         win32gui.ReleaseDC(self.hwnd, hdc)
@@ -2735,7 +2735,7 @@ class MutiEditor(BaseEditor):
         ls = text.splitlines()
         for l in ls:
             self.lines.append({'text': l})
-        self.setInsertPos(MutiEditor.Pos(0, 0))
+        #self.setInsertPos(MutiEditor.Pos(0, 0))
 
     def getText(self):
         txt = ''

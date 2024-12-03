@@ -2921,12 +2921,17 @@ class KLineCodeWindow(base_win.BaseWindow):
                 color = 0x00dd00
             else:
                 color = win.css['textColor']
-            self.drawer.drawText(hdc, value, rect, color = color)
-            
+            self.drawer.drawText(hdc, value, rect, color = color, align = win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+        
+        def hotFormater(colName, val, rowData):
+            if not val:
+                return ''
+            return str(val)
+
         self.refZtReasonDetailWin.headers = [
-            {'name': '#idx',  'width': 20},
-            {'name': 'name', 'title': '关联股票', 'width': 0, 'stretch': 1, 'render': renderReasonDetail},
-            {'name': 'num', 'title': 'ZT', 'width': 20}
+            {'name': '#idx',  'width': 20, 'textAlign': win32con.DT_VCENTER | win32con.DT_SINGLELINE},
+            {'name': 'name', 'title': '关联股票', 'width': 0, 'stretch': 1, 'render': renderReasonDetail, 'textAlign': win32con.DT_VCENTER | win32con.DT_SINGLELINE},
+            {'name': 'hotZH', 'title': 'Hot', 'width': 25, 'formater': hotFormater, 'textAlign': win32con.DT_VCENTER | win32con.DT_SINGLELINE}
         ]
         self.refZtReasonDetailWin.addListener(self.onSelectZtResasonDetail)
         self.refZtReasonDetailWin.createWindow(self.hwnd, (0, 0, 1, 1))
@@ -2941,7 +2946,13 @@ class KLineCodeWindow(base_win.BaseWindow):
             info = self.findInBk(rowData)
         else:
             info = self.findInZtReason(rowData)
-        #print('[onSelectZtResason]: ', info)
+        day = int(rowData['day'].replace('-', ''))
+        hots = hot_utils.DynamicHotZH.instance().getHotsZH(day)
+        for d in info:
+            cc = int(d['code'])
+            if cc in hots:
+                d['hotZH'] = hots[cc]['zhHotOrder']
+        info.sort(key = lambda k : k.get('hotZH', 1000), reverse = False)
         self.refZtReasonDetailWin.setData(info)
         self.refZtReasonDetailWin.invalidWindow()
 
@@ -2953,57 +2964,43 @@ class KLineCodeWindow(base_win.BaseWindow):
     
     def findInBk(self, rowData):
         bkCodes = []
-        bkCodeNames = {}
-        fromDay = rowData['fromDay']
         key = rowData['name']
+        day = rowData['day']
         q = ths_orm.THS_GNTC.select().where(ths_orm.THS_GNTC.hy_2_name == key)
         KV = ('0', '3', '6')
         for it in q:
             if it.code[0] not in KV:
                 continue
             bkCodes.append(it.code)
-            bkCodeNames[it.code] = it.name
         i = 0
-        rs = {}
+        rs = []
         while i < len(bkCodes):
             ei = min(i + 50, len(bkCodes))
             bc = bkCodes[i : ei]
             i = ei
-            q = tck_orm.THS_ZT.select(tck_orm.THS_ZT.code, pw.fn.count(tck_orm.THS_ZT.code).alias('cc')).where(tck_orm.THS_ZT.day >= fromDay, tck_orm.THS_ZT.code.in_(bc)).group_by(tck_orm.THS_ZT.code).dicts()
+            q = tck_orm.THS_ZT.select(tck_orm.THS_ZT.code, tck_orm.THS_ZT.name).distinct().where(tck_orm.THS_ZT.day == day, tck_orm.THS_ZT.code.in_(bc)).dicts()
             for it in q:
-                num = it['cc']
-                c = it['code']
-                if c in rs:
-                    rs[c]['num'] += num
-                else:
-                    rs[c] = {'code': c, 'name': bkCodeNames[c], 'num': num, 'fromDay': fromDay}
-        arr = [rs[k] for k in rs]
-        arr.sort(key = lambda it: it['num'], reverse = True)
-        return arr
+                rs.append({'code': it['code'], 'name': it['name'],  'day': day})
+        #arr.sort(key = lambda it: it['num'], reverse = True)
+        return rs
 
     def findInZtReason(self, rowData):
-        fromDay = rowData['fromDay']
+        day = rowData['day']
         key = rowData['name']
-        q1 = tck_orm.THS_ZT.select().where(tck_orm.THS_ZT.day >= fromDay, tck_orm.THS_ZT.ztReason.contains(key))
-        q2 = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day >= fromDay, tck_orm.CLS_ZT.ztReason.contains(key))
+        q1 = tck_orm.THS_ZT.select().where(tck_orm.THS_ZT.day == day, tck_orm.THS_ZT.ztReason.contains(key))
+        q2 = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day == day, tck_orm.CLS_ZT.ztReason.contains(key))
         rs = {}
         for q in (q1, q2):
             for it in q:
                 if not it.ztReason:
                     continue
                 rzs = it.ztReason.split('+')
-                if key in rzs:
-                    if it.code in rs:
-                        item = rs[it.code]
-                        if it.day not in item['days']:
-                            item['num'] += 1
-                            item['days'].add(it.day)
-                    else:
-                        ds = set()
-                        ds.add(it.day)
-                        rs[it.code] = {'code': it.code, 'name': it.name, 'num': 1, 'fromDay': fromDay, 'days': ds}
+                if key not in rzs:
+                    continue
+                if it.code not in rs:
+                    rs[it.code] = {'code': it.code, 'name': it.name, 'day': day}
         arr = [rs[k] for k in rs]
-        arr.sort(key = lambda it: it['num'], reverse = True)
+        #arr.sort(key = lambda it: it['num'], reverse = True)
         return arr
 
     def _getCode(self, d):
@@ -3096,35 +3093,25 @@ class KLineCodeWindow(base_win.BaseWindow):
             day = f'{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}'
         if len(day) == 8:
             day = f'{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}'
-        fday = datetime.date.fromisoformat(day)
-        fromDay = fday - datetime.timedelta(days = 45) # 仅查找前45天之内的
-        fromDay = fromDay.strftime('%Y-%m-%d')
         gntc = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
-        markDay = int(fromDay.replace('-', ''))
         ds = self.klineWin.model.data
-        for i in range(len(ds) - 1, -1, -1):
-            if ds[i].day <= markDay:
-                markDay = ds[i].day
-                break
-        self.klineWin.setMarkDay(markDay, 'ZT-B')
-
         if gntc and gntc.hy:
             hys = gntc.hy.split('-')
-            rs.append({'gn': '【' + hys[1] + '】', 'is_bk': True, 'day': day, 'name': hys[1], 'fromDay': fromDay})
+            rs.append({'gn': '【' + hys[1] + '】', 'is_bk': True, 'day': day, 'name': hys[1], 'fromDay': day})
         ths = tck_orm.THS_ZT.get_or_none(tck_orm.THS_ZT.code == code, tck_orm.THS_ZT.day == day)
         if ths and ths.ztReason:
             its = ths.ztReason.split('+')
             for it in its: 
                 it = it.strip()
                 gns.append(it)
-                rs.append({'gn': it, 'is_bk': False, 'day': day, 'type': 'ths', 'name': it, 'fromDay': fromDay})
+                rs.append({'gn': it, 'is_bk': False, 'day': day, 'type': 'ths', 'name': it, 'fromDay': day})
         cls = tck_orm.CLS_ZT.get_or_none(tck_orm.CLS_ZT.code == code, tck_orm.CLS_ZT.day == day)
         if cls and cls.ztReason:
             its = cls.ztReason.split('+')
             for it in its: 
                 it = it.strip()
                 if it not in gns:
-                    rs.append({'gn': it, 'is_bk': False, 'day': day, 'type': 'cls', 'name': it, 'fromDay': fromDay})
+                    rs.append({'gn': it, 'is_bk': False, 'day': day, 'type': 'cls', 'name': it, 'fromDay': day})
         self.refZtReasonWin.setData(rs)
         self.refZtReasonWin.invalidWindow()
 
@@ -3145,6 +3132,6 @@ if __name__ == '__main__':
     
     rect = (0, 0, 1920, 850)
     win.createWindow(None, rect, win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW)
-    win.changeCode('300058') # cls82475 002085 603390 002085 002869  002055 000755
-    win.klineWin.setMarkDay(20240822)
+    win.changeCode('002031') # cls82475 002085 603390 002085 002869  002055 000755
+    #win.klineWin.setMarkDay(20240822)
     win32gui.PumpMessages()
