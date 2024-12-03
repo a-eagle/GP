@@ -1666,7 +1666,7 @@ class ToolBarWindow(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
         self.css['borderColor'] = 0x00ffff
-        self.DEF_SIZE = (200, 25)
+        self.DEF_SIZE = (250, 25)
         self.MOVE_BOX_WIDTH = 20
         self.ITEM_WIDTH = 40
         from Tck import top_zt_net, top_bk, top_lhb, top_zt_lianban

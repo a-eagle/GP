@@ -2493,7 +2493,7 @@ class KLineWindow(base_win.BaseWindow):
         qr = tck_def_orm.MyHotGn.select()
         for q in qr:
             if q.info:
-                gns = q.info.strip().split(' ')
+                gns = q.info.strip().replace('\n', ' ').split(' ')
                 configHotGns = [it.strip() for it in gns if it.strip()]
             else:
                 configHotGns = []
