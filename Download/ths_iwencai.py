@@ -274,12 +274,16 @@ def save_zs_zd(datas):
             datas[i].zdf_PM = i + 1
         else:
             datas[i].zdf_PM = i - len(datas)
-    d50 = [d for d in datas if d.money >= 50]
-    for i in range(len(d50)):
-        if i <= len(d50) // 2:
-            d50[i].zdf_50PM = i + 1
+    subGn = ('AIGC概念', 'ChatGP概念', 'MLOps概念', 'MCU芯片', '中芯国际概念', '光刻胶', 'EDR概念', '比亚迪概念', '钠离子电池',
+             '钒电池', 'PVDF概念', '高压快冲', '血氧仪', '智能家居', '智能音箱', '智能穿戴', '无线耳机', '核电', '光热发电',
+             '风电', '光伏概念', '光伏建筑', '钙钛矿电池', 'TOPCON电池', 'HJT电池', '超超临界发电', '生物质能发电',
+             '数据中心', '信创', '网络安全', '国产操作系统', '数字货币', '数字乡村')
+    topLevels = [d for d in datas if d.code[0 : 3] != '884' or (d.name not in subGn)]
+    for i in range(len(topLevels)):
+        if i <= len(topLevels) // 2:
+            topLevels[i].zdf_topLevelPM = i + 1
         else:
-            d50[i].zdf_50PM = i - len(d50)
+            topLevels[i].zdf_topLevelPM = i - len(topLevels)
     day = datas[0].day
     q = ths_orm.THS_ZS_ZD.select().where(ths_orm.THS_ZS_ZD.day == day).dicts()
     ex = {}

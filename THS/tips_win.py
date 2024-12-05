@@ -311,7 +311,7 @@ class ZSCardView(CardView):
             y = (idx % MAX_ROWS) * H + 2 + H
             x = (idx // MAX_ROWS) * COL_WIDTH
             rect = (x + 2, y, x + COL_WIDTH, y + H)
-            line = f'{day}    {zs["zdf_PM"] :< 4d}     {zs["zdf_50PM"] :< 6d}'
+            line = f'{day}    {zs["zdf_PM"] :< 4d}     {zs["zdf_topLevelPM"] :< 6d}'
             win32gui.DrawText(hdc, line, len(line), rect, win32con.DT_LEFT | win32con.DT_SINGLELINE | win32con.DT_VCENTER)
         # draw title
         pen = win32gui.CreatePen(win32con.PS_SOLID, 1, 0xaaccaa)
@@ -319,7 +319,7 @@ class ZSCardView(CardView):
         win32gui.SetTextColor(hdc, 0xdddddd)
         for i in range(COL_NUM):
             trc = (i * COL_WIDTH, 0, i * COL_WIDTH + COL_WIDTH, H)
-            title = f'       全市排名  50亿排名'
+            title = f'       全市排名  一级排名'
             win32gui.DrawText(hdc, title, len(title), trc, win32con.DT_LEFT)
         win32gui.MoveToEx(hdc, 0, H)
         win32gui.LineTo(hdc, RW, H)

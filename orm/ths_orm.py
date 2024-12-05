@@ -169,7 +169,7 @@ class THS_ZS_ZD(pw.Model):
     money = pw.FloatField(default = 0) #亿(元)
     vol = pw.FloatField(default = 0) # 亿(股)
     zdf = pw.FloatField(default = 0) #涨跌幅
-    zdf_50PM = pw.IntegerField(default = 0) # 50亿以上排名
+    zdf_topLevelPM = pw.IntegerField(default = 0) # 一级概念、行业排名
     zdf_PM = pw.IntegerField(default = 0) # 全部排名
     markColor = pw.IntegerField(null = True, column_name = 'mark_1') # 标记 1
 

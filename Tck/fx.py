@@ -162,16 +162,24 @@ class FenXiLoader:
         x, y = console.getCursorPos()
         cs = self.loadAllCodes()
         for i, code in enumerate(cs):
-            self.fxOne(code)
+            flag = self.fxOne(code)
+            if not flag:
+                x, y = console.getCursorPos()
             console.setCursorPos(x, y)
             print(f'Loading {i} / {len(cs)}')
         print('---end fenxi zhang su----')
 
     def fxOne(self, code):
-        fx = FenXiCode(code)
-        fx.loadFile()
-        fx.calcLastestDays()
-        self.save(code, fx.getResult())
+        try:
+            fx = FenXiCode(code)
+            fx.loadFile()
+            fx.calcLastestDays()
+            self.save(code, fx.getResult())
+            return True
+        except Exception as e:
+            traceback.print_exc()
+            print('Exception at code: ', code)
+        return False
 
 def test():
     CODE = '000066'

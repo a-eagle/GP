@@ -264,4 +264,6 @@ class Server:
 if __name__ == '__main__':
     #autoLoadHistory(20240708)
     #downloadOneDay(20240702)
+
+    #Server().downloadSaveZs()
     pass

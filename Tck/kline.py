@@ -1192,7 +1192,7 @@ class ThsZsPMIndicator(CustomIndicator):
         for d in data:
             fd = maps.get(d.day, None)
             if not fd:
-                fd = {'day': d.day, 'zdf_50PM': 0, 'zdf_PM': 0}
+                fd = {'day': d.day, 'zdf_topLevelPM': 0, 'zdf_PM': 0}
             rs.append(fd)
         self.setCustomData(rs)
 
@@ -1208,10 +1208,10 @@ class ThsZsPMIndicator(CustomIndicator):
         cdata = self.customData[idx]
         win32gui.SetTextColor(hdc, 0xcccccc)
 
-        if cdata['zdf_50PM'] != 0:
+        if cdata['zdf_topLevelPM'] != 0:
             sy = 5
             rc = (x, sy, x + iw, sy + 16)
-            win32gui.DrawText(hdc, f"{cdata['zdf_50PM'] :<3d}", -1, rc, win32con.DT_CENTER) #  | win32con.DT_VCENTER | win32con.DT_SINGLELINE
+            win32gui.DrawText(hdc, f"{cdata['zdf_topLevelPM'] :<3d}", -1, rc, win32con.DT_CENTER) #  | win32con.DT_VCENTER | win32con.DT_SINGLELINE
 
         if cdata['zdf_PM'] != 0:
             sy = 25
@@ -1224,7 +1224,7 @@ class ThsZT_Indicator(CustomIndicator):
         if 'height' not in config:
             config['height'] = 50
         if 'itemWidth' not in config:
-            config['itemWidth'] = 160
+            config['itemWidth'] = 80
         super().__init__(config)
         if 'title' not in self.config:
             self.config['title'] = '[同花顺涨停]'
@@ -1259,7 +1259,9 @@ class ThsZT_Indicator(CustomIndicator):
             win32gui.FillRect(hdc, rc, hbrs['light_dark'])
         win32gui.SetTextColor(hdc, 0xcccccc)
         rc = (x + 3, 3, x + iw - 3, self.height)
-        win32gui.DrawText(hdc, cdata['ztReason'], -1, rc, win32con.DT_CENTER | win32con.DT_WORDBREAK) #  | win32con.DT_VCENTER | win32con.DT_SINGLELINE
+        drawer : base_win.Drawer = self.klineWin.drawer
+        drawer.use(hdc, drawer.getFont(fontSize = 12))
+        win32gui.DrawText(hdc, cdata['ztReason'], -1, rc, win32con.DT_WORDBREAK) #  | win32con.DT_VCENTER | win32con.DT_SINGLELINE | win32con.DT_CENTER | 
 
 class ClsZT_Indicator(CustomIndicator):
     def __init__(self, config = None) -> None:
@@ -1267,7 +1269,7 @@ class ClsZT_Indicator(CustomIndicator):
         if 'height' not in config:
             config['height'] = 30
         if 'itemWidth' not in config:
-            config['itemWidth'] = 160
+            config['itemWidth'] = 80
         super().__init__(config)
         if 'title' not in self.config:
             self.config['title'] = '[财联社涨停]'
@@ -1302,7 +1304,9 @@ class ClsZT_Indicator(CustomIndicator):
             win32gui.FillRect(hdc, rc, hbrs['light_dark'])
         win32gui.SetTextColor(hdc, 0xcccccc)
         rc = (x + 3, 3, x + iw - 3, self.height)
-        win32gui.DrawText(hdc, cdata['ztReason'], -1, rc, win32con.DT_CENTER | win32con.DT_WORDBREAK) #  | win32con.DT_VCENTER | win32con.DT_SINGLELINE
+        drawer : base_win.Drawer = self.klineWin.drawer
+        drawer.use(hdc, drawer.getFont(fontSize = 12))
+        win32gui.DrawText(hdc, cdata['ztReason'], -1, rc, win32con.DT_WORDBREAK) #  | win32con.DT_VCENTER | win32con.DT_SINGLELINE | win32con.DT_CENTER | 
 
     def onMouseClick(self, x, y):
         if self.changeSelIdx(x, y):
