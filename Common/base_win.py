@@ -1641,7 +1641,7 @@ class Label(BaseWindow):
         rc = (0, (h - TH) // 2,  w, h - (h - TH) // 2)
         self.drawer.drawText(hdc, self.text, rc, self.css['textColor'], self.css['textAlign'])
 
-# listeners : Checked = {src, info}
+# listeners : Checked = {src, info, checked}
 class CheckBox(BaseWindow):
     _groups = {}
 
@@ -1688,8 +1688,7 @@ class CheckBox(BaseWindow):
             self.uncheckedGroup(name)
         self.info['checked'] = checked
         self.invalidWindow()
-        if checked:
-            self.notifyListener(self.Event('Checked', self, info = self.info))
+        self.notifyListener(self.Event('Checked', self, info = self.info, checked = checked))
 
     def uncheckedGroup(self, name):
         if not name:
@@ -1850,7 +1849,7 @@ class PopupMenu(NoActivePopupWindow):
         self.css['textColor'] = 0x222222
         self.css['disableTextColor'] = 0x909090
         self.destroyOnHide = True
-        self.LEFT_RIGHT_PADDING = 20
+        self.css['paddings'] = (20, 0, 20, 0)
         self.SEPRATOR_HEIGHT = 2
         self.ARROW_HEIGHT = 10
         self.VISIBLE_MAX_ITEM = 15 # 最大显示的个数
@@ -1925,7 +1924,7 @@ class PopupMenu(NoActivePopupWindow):
             title = m.get('title', '')
             sz = win32gui.GetTextExtentPoint32(hdc, title)
             w = max(w, sz[0])
-        w += self.LEFT_RIGHT_PADDING * 2
+        w += self.css['paddings'][0] + self.css['paddings'][2]
         win32gui.ReleaseDC(self.hwnd, hdc)
         if len(self.model) > self.VISIBLE_MAX_ITEM:
             h += self.ARROW_HEIGHT * 2
@@ -1983,7 +1982,7 @@ class PopupMenu(NoActivePopupWindow):
         self.drawer.use(hdc, self.drawer.getBrush(0x333333))
         self.drawer.use(hdc, win32gui.GetStockObject(win32con.NULL_PEN))
         sy = (rect[3] - rect[1] - AH) // 2 + rect[1]
-        sx = rect[2] + (self.LEFT_RIGHT_PADDING - AW) // 2
+        sx = rect[2] + (self.css['paddings'][2] - AW) // 2
         pts = [(sx, sy), (sx + AW, AH // 2 + sy), (sx, AH + sy)]
         win32gui.Polygon(hdc, pts)
 
@@ -1994,7 +1993,7 @@ class PopupMenu(NoActivePopupWindow):
         self.drawUpDownArrow(hdc)
         w = self.getClientSize()[0]
         sy = 0 if len(self.model) <= self.VISIBLE_MAX_ITEM else self.ARROW_HEIGHT
-        rc = [self.LEFT_RIGHT_PADDING, sy, w - self.LEFT_RIGHT_PADDING, sy]
+        rc = [self.css['paddings'][0], sy, w - self.css['paddings'][2], sy]
         for i in range(self.startIdx, min(self.startIdx + self.VISIBLE_MAX_ITEM, len(self.model))):
             m = self.model[i]
             title = m.get('title', '')
@@ -2023,7 +2022,7 @@ class PopupMenu(NoActivePopupWindow):
         checked = item.get('checked', None)
         if not isinstance(checked, bool):
             return
-        box = [0, rowRect[1], self.LEFT_RIGHT_PADDING, rowRect[3]]
+        box = [0, rowRect[1], self.css['paddings'][0], rowRect[3]]
         BOX_IN = 6
         x = ((box[2] - box[0]) - BOX_IN) // 2
         y = ((box[3] - box[1]) - BOX_IN) // 2
@@ -2592,6 +2591,7 @@ class Editor(BaseEditor):
         def onCc(evt, args):
             self.setSelectItem(evt.item)
         menu = PopupMenu.create(self.hwnd, self.popupTipModel)
+        menu.css['paddings'] = (0, 0, 20, 0)
         menu.addNamedListener('Select', onCc)
         rc = win32gui.GetWindowRect(self.hwnd)
         menu.minItemWidth = rc[2] - rc[0]
@@ -3239,7 +3239,7 @@ class MutiEditor(BaseEditor):
         pds = self.css['paddings']
         self.css['paddings'] = (40, pds[1], pds[2], pds[3])
 
-# listeners : Select = {src, tip-item}
+# listeners : Select = {src, item: xxx }
 class ComboBox(Editor):
     def __init__(self) -> None:
         super().__init__()
@@ -3259,6 +3259,7 @@ class ComboBox(Editor):
     #      str -> tip model' name
     #      dict -> tip model' item
     def setSelectItem(self, tip):
+        oldSelIdx = self.selIdx
         self.selIdx = -1
         if not self.popupTipModel:
             return
@@ -3283,8 +3284,9 @@ class ComboBox(Editor):
                 break
         self.setText(item['title'])
         self.invalidWindow()
-        newEvt = self.Event('Select', self, **item)
-        self.notifyListener(newEvt)
+        if self.selIdx != oldSelIdx:
+            newEvt = self.Event('Select', self, **item)
+            self.notifyListener(newEvt)
 
     def onDraw(self, hdc):
         super().onDraw(hdc)

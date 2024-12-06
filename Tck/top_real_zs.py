@@ -19,8 +19,11 @@ class ZS_Window(base_win.BaseWindow):
         self.datePicker = None
         self.editorWin.placeHolder = ' or条件: |分隔; and条件: 空格分隔'
         self.checkBox = base_win.CheckBox({'title': '在同花顺中打开'})
+        self.checkBoxGn = base_win.CheckBox({'title': '搜索时包括概念'})
+        self.searchModeWin = base_win.ComboBox()
         self.tckData = None
-        self.searchText = ''
+        self.lastSearchText = ''
+        self.searchIdx = -1
         self.inputTips = []
 
     def runTask(self):
@@ -30,7 +33,7 @@ class ZS_Window(base_win.BaseWindow):
         self.loadAllData()
         if not self.tableWin.hwnd:
             return
-        self.onQuery(self.editorWin.text)
+        self.doSearch(self.editorWin.text)
 
     def createWindow(self, parentWnd, rect, style=win32con.WS_VISIBLE | win32con.WS_CHILD, className='STATIC', title=''):
         super().createWindow(parentWnd, rect, style, className, title)
@@ -44,26 +47,33 @@ class ZS_Window(base_win.BaseWindow):
 
         headers = [ {'title': '', 'width': 30, 'name': '#idx','textAlign': win32con.DT_SINGLELINE | win32con.DT_CENTER | win32con.DT_VCENTER },
                    {'title': '日期', 'width': 80, 'name': 'day', 'sortable':True , 'fontSize' : 14},
-                   {'title': '时间', 'width': 80, 'name': 's_minuts', 'sortable':True , 'fontSize' : 14},
+                   {'title': '时间', 'width': 80, 'name': 'minuts', 'sortable':True , 'fontSize' : 14},
                    {'title': '代码', 'width': 80, 'name': 'code', 'sortable':True , 'fontSize' : 14},
                    {'title': '名称', 'width': 80, 'name': 'name', 'sortable':True , 'fontSize' : 14},
                    {'title': '涨速A', 'width': 80, 'name': 'zf', 'sortable':True , 'fontSize' : 14, 'formater': formateZS},
-                   {'title': '热度', 'width': 80, 'name': 'zhHotOrder', 'sortable':True , 'fontSize' : 14, 'sorter-a': sortHot},
+                   {'title': '热度', 'width': 80, 'name': 'zhHotOrder', 'sortable':True , 'fontSize' : 14, 'sorter': sortHot},
                    {'title': '同花顺', 'width': 150, 'name': 'ths_ztReason', 'fontSize' : 12, 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'sortable':True},
                    {'title': '', 'width': 10, 'name': 'sp'},
                    {'title': '财联社', 'width': 120, 'name': 'cls_ztReason', 'fontSize' : 12 ,'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'sortable':True },
                    {'title': '板块', 'width': 220, 'name': 'hy', 'sortable':True , 'fontSize' : 12, 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER},
-                   {'title': '分时图', 'width': 350, 'name': 'FS', 'render': self.renderTimeline, 'LOCAL-FS-DAY': None},
+                   {'title': '分时图', 'width': 350, 'name': 'FS', 'render': self.renderTimeline, 'LOCAL-FS-DAY': self.getCurDayFs},
                    ]
         flowLayout = base_win.FlowLayout(20)
         self.checkBox.createWindow(self.hwnd, (0, 0, 150, 30))
+        self.checkBoxGn.createWindow(self.hwnd, (0, 0, 150, 30))
+        self.searchModeWin.setPopupTip([{'key': 'DingWei', 'title':'定位搜索' }, {'key': 'Filter', 'title':'过滤搜索' }])
+        self.searchModeWin.createWindow(self.hwnd, (0, 0, 100, 30))
         self.editorWin.createWindow(self.hwnd, (0, 0, 300, 30))
         self.tableWin.createWindow(self.hwnd, (0, 0, 1, 1))
+        self.tableWin.css['selBgColor'] = 0xd0d0d0
         self.tableWin.rowHeight = 50
         self.tableWin.headers = headers
         btn = base_win.Button({'title': '刷新'})
         btn.createWindow(self.hwnd, (0, 0, 60, 30))
-        btn.addListener(self.onRefresh)
+        btn2 = base_win.Button({'title': '同步'})
+        btn2.createWindow(self.hwnd, (0, 0, 60, 30))
+        btn.addNamedListener('Click', self.onRefresh)
+        btn2.addNamedListener('Click', self.onSync)
         self.datePicker = dp = base_win.DatePicker()
         dp.createWindow(self.hwnd, (0, 0, 120, 30))
         def onPickDate(evt, args):
@@ -71,22 +81,42 @@ class ZS_Window(base_win.BaseWindow):
         dp.addNamedListener('Select', onPickDate)
 
         flowLayout.addContent(dp)
+        flowLayout.addContent(self.checkBoxGn, {'margins': (20, 0, 0, 0)})
+        flowLayout.addContent(self.searchModeWin)
         flowLayout.addContent(self.editorWin)
         flowLayout.addContent(btn)
+        flowLayout.addContent(btn2)
         flowLayout.addContent(self.checkBox)
         self.layout.setContent(0, 0, flowLayout, {'horExpand': -1})
         self.layout.setContent(1, 0, self.tableWin, {'horExpand': -1})
         def onPressEnter(evt, args):
             q = evt.text.strip()
-            self.onQuery(q)
+            self.doSearch(q)
             if q and (q not in self.inputTips):
                 self.inputTips.append(q)
         self.editorWin.addNamedListener('PressEnter', onPressEnter, None)
         self.tableWin.addListener(self.onDbClick, None)
         self.tableWin.addNamedListener('ContextMenu', self.onContextMenu)
         self.tableWin.addNamedListener('SelectRow', self.onSelectRow)
+        self.searchModeWin.setSelectItem(0)
+        self.searchModeWin.addNamedListener('Select', self.onChangeSearchMode)
         sm = base_win.ThsShareMemory.instance()
         sm.open()
+
+    def getCurDayFs(self):
+        today = datetime.date.today()
+        today = today.strftime('%Y-%m-%d')
+        selDay = self.datePicker.getSelDay()
+        if today == selDay or not selDay:
+            return None
+        return selDay
+
+    def onChangeSearchMode(self, evt, args):
+        self.searchIdx = -1
+        if self.isDingWeiSearch():
+            self.tableWin.setData(self.tckData)
+            self.tableWin.invalidWindow()
+        self.doSearch(self.editorWin.getText())
 
     def onSelectRow(self, evt, args):
         if evt.data:
@@ -94,7 +124,7 @@ class ZS_Window(base_win.BaseWindow):
 
     # 分时图
     def renderTimeline(self, win : base_win.TableWindow, hdc, row, col, colName, value, rowData, rect):
-        if rowData.get('show-fs', False):
+        #if rowData.get('show-fs', False):
             cache.renderTimeline(win, hdc, row, col, colName, value, rowData, rect)
 
     def onContextMenu(self, evt, args):
@@ -110,17 +140,27 @@ class ZS_Window(base_win.BaseWindow):
         x, y = win32gui.GetCursorPos()
         menu.show(x, y)
 
-    def onRefresh(self, evt, args):
-        if evt.name == 'Click':
-            self.runTask()
+    def onSync(self, evt, args):
+        sm = base_win.ThsShareMemory.instance()
+        code = sm.readCode()
+        if not code:
+            return
+        code = f'{code: 06d}'
+        name = ''
+        if code[0 : 2] == '88':
+            obj = ths_orm.THS_ZS.get_or_none(code == code)
+            if obj: name = obj.name
+        else:
+            obj = utils.get_THS_GNTC(code)
+            if obj: name = obj['name']
+        txt = code + ('' if not name else ' | ' + name)
+        self.editorWin.setText(txt)
+        self.editorWin.invalidWindow()
+        self.doSearch(txt)
 
-    def onQuery(self, queryText):
-        self.tableWin.setData(None)
-        self.tableWin.invalidWindow()
-        self.doSearch(queryText)
-        self.tableWin.setData(self.tckSearchData)
-        self.tableWin.invalidWindow()
-    
+    def onRefresh(self, evt, args):
+        self.runTask()
+
     def onDbClick(self, evt, args):
         if evt.name != 'RowEnter' and evt.name != 'DbClick':
             return
@@ -136,47 +176,46 @@ class ZS_Window(base_win.BaseWindow):
     def loadAllData(self):
         self.tckData = None
         self.tableWin.setData(None)
+        self.searchIdx = -1
         self.tableWin.invalidWindow()
         day = self.datePicker.getSelDay2()
         if not day:
             return
-        #today = datetime.date.today()
-        #fd = today - datetime.timedelta(days = 60)
-        #fromDay = f"{fd.year}-{fd.month :02d}-{fd.day :02d}"
-        #thsQr = tck_orm.THS_ZT.select().where(tck_orm.THS_ZT.day >= fromDay).dicts()
-        #clsQr = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day >= fromDay).dicts()
-        days = hot_utils.getTradeDaysByHot()
-        qr = zs_orm.RealZSModel.select().where(zs_orm.RealZSModel.day >= days[-1]).dicts()
-        
+        iday = self.datePicker.getSelDayInt()
+        endDay = self.datePicker.getSelDay()
+        fd = day - datetime.timedelta(days = 45)
+        fromDay = f"{fd.year}-{fd.month :02d}-{fd.day :02d}"
+        thsRs = {}
+        clsRs = {}
+        thsQr = tck_orm.THS_ZT.select(tck_orm.THS_ZT.code, tck_orm.THS_ZT.ztReason).where(tck_orm.THS_ZT.day >= fromDay, tck_orm.THS_ZT.day <= endDay).tuples()
+        clsQr = tck_orm.CLS_ZT.select(tck_orm.CLS_ZT.code, tck_orm.CLS_ZT.ztReason).where(tck_orm.CLS_ZT.day >= fromDay, tck_orm.CLS_ZT.day <= endDay).tuples()
+        qr = zs_orm.RealZSModel.select().where(zs_orm.RealZSModel.day == iday).dicts()
+        hots = hot_utils.DynamicHotZH.instance().getHotsZH(iday)
+        for q in thsQr:
+            thsRs[q[0]] = q[1]
+        for q in clsQr:
+            clsRs[q[0]] = q[1]
         datas = []
         for d in qr:
+            d['day'] = utils.formatDate(d['day'])
             m = d['minuts']
-            d['s_minuts'] = f'{m // 10000 :02d}:{m // 100 % 100 :02d}:{m % 100 :02d}' 
-            nn = utils.get_THS_GNTC(d['code'])
+            d['minuts'] = f'{m // 10000 :02d}:{m // 100 % 100 :02d}:{m % 100 :02d}'
+            code = d['code']
+            d['ths_ztReason'] = thsRs.get(code, '')
+            d['cls_ztReason'] = clsRs.get(code, '')
+            nn = utils.get_THS_GNTC(code)
             if nn:
-                d.update(nn)
+                d['name'] = nn['name']
+                d['gn'] = nn['gn']
+                d['hy'] = nn['hy']
+            if hots and int(code) in hots:
+                d['zhHotOrder'] = hots[int(code)]['zhHotOrder']
             datas.append(d)
-
-        #htsNewest = hot_utils.DynamicHotZH.instance().getNewestHotZH()
-        #for d in htsNewest:
-        #    item = htsNewest[d]
-        #    day = item['day']
-        #    day = f"{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}"
-        #    k = f"{day}:{item['code'] :06d}"
-        #    hots[k] = item['zhHotOrder']
-      
-        #rs.sort(key = lambda d : d['day'], reverse = True)
         self.tckData = datas
+        self.tableWin.setData(datas)
+        self.tableWin.invalidWindow()
 
-    def doSearch(self, search : str):
-        self.searchText = search
-        if not self.tckData:
-            self.tckSearchData = None
-            return
-        if not search or not search.strip():
-            self.tckSearchData = self.tckData
-            return
-        search = search.strip().upper()
+    def getSearchCond(self, search):
         if '|' in search:
             qs = search.split('|')
             cond = 'OR'
@@ -188,28 +227,72 @@ class ZS_Window(base_win.BaseWindow):
             q = q.strip()
             if q and (q not in qrs):
                 qrs.append(q)
+        return qrs, cond
 
-        def match(data, qrs, cond):
-            for q in qrs:
-                fd = False
-                for k in data:
-                    if ('_id' not in k) and isinstance(data[k], str) and (q in data[k]):
-                        fd = True
-                        break
-                if cond == 'AND' and not fd:
-                    return False
-                if cond == 'OR' and fd:
-                    return True
-            if cond == 'AND':
-                return True
-            return False
+    def isDingWeiSearch(self):
+        item = self.searchModeWin.getSelectItem()
+        return item['key'] == 'DingWei'
 
-        #keys = ('day', 'code', 'name', 'kpl_ztReason', 'ths_ztReason', 'cls_ztReason', 'cls_detail')
+    def doSearch(self, search : str):
+        if search is None: search = ''
+        search = search.strip().upper()
+        if self.isDingWeiSearch():
+            if search != self.lastSearchText or not search:
+                self.searchIdx = -1
+            self.lastSearchText = search
+            if not search:
+                return
+            qrs, cond = self.getSearchCond(search)
+            self.doSearchDW(qrs, cond)
+        else:
+            #if self.lastSearchText == search:
+            #    return
+            self.lastSearchText = search
+            if not search:
+                self.tableWin.setData(self.tckData)
+                self.tableWin.invalidWindow()
+                return
+            qrs, cond = self.getSearchCond(search)
+            self.doSearchFilter(qrs, cond)
+
+    def doSearchFilter(self, qrs, cond):
         rs = []
         for d in self.tckData:
-            if match(d, qrs, cond):
+            if self.match(d, qrs, cond):
                 rs.append(d)
-        self.tckSearchData = rs
+        self.tableWin.setData(rs)
+        self.tableWin.invalidWindow()
+
+    def doSearchDW(self, qrs, cond):
+        for i in range(self.searchIdx + 1, len(self.tckData)):
+            d = self.tckData[i]
+            if self.match(d, qrs, cond):
+                self.searchIdx = i
+                break
+        if self.searchIdx >= 0:
+            self.tableWin.setSelRow(self.searchIdx)
+            self.tableWin.showRow(self.searchIdx)
+
+    def match(self, data, qrs, cond):
+        if not qrs:
+            return True
+        hasGn = self.checkBoxGn.isChecked()
+        for q in qrs:
+            fd = False
+            for k in data:
+                if not hasGn and k == 'gn':
+                    continue
+                if ('_id' not in k) and isinstance(data[k], str) and (q in data[k]):
+                    fd = True
+                    break
+            if cond == 'AND' and not fd:
+                return False
+            if cond == 'OR' and fd:
+                return True
+        if cond == 'AND':
+            return True
+        return False
+
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_SIZE:
@@ -223,12 +306,12 @@ if __name__ == '__main__':
     ins = base_win.ThsShareMemory.instance()
     ins.open()
     base_win.ThreadPool.instance().start()
-    fp = ZS_Window()
+    win = ZS_Window()
     SW = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
     SH = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
     h = 500
-    fp.createWindow(None, (0, SH - h - 35, SW, h), win32con.WS_OVERLAPPEDWINDOW | win32con.WS_VISIBLE)
-    w, h = fp.getClientSize()
-    fp.layout.resize(0, 0, w, h)
+    win.createWindow(None, (0, SH - h - 35, SW, h), win32con.WS_OVERLAPPEDWINDOW | win32con.WS_VISIBLE)
+    w, h = win.getClientSize()
+    win.layout.resize(0, 0, w, h)
     #win32gui.ShowWindow(fp.hwnd, win32con.SW_MAXIMIZE)
     win32gui.PumpMessages()
