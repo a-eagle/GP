@@ -161,16 +161,20 @@ class ClsUrl:
             if kline:
                 rs.append(self._toStdKl(d))
             else:
-                rs.append(self._toStdFs(d))
+                dx = self._toStdFs(d)
+                if dx: rs.append(dx)
         return rs
 
     def _toStdFs(self, d):
         if not d:
             return None
+        price = self.getVal(d, 'last_px', float, 0)
+        if price == 0:
+            return None
         ts = datafile.ItemData()
         ts.day = self.getVal(d, 'date', int, 0)
         ts.time = self.getVal(d, 'minute', int, 0)
-        ts.price = self.getVal(d, 'last_px', float, 0)
+        ts.price = price
         ts.vol = self.getVal(d, 'business_amount', int, 0)
         ts.amount = self.getVal(d, 'business_balance', int, 0)
         ts.avgPrice = self.getVal(d, 'av_px', float, 0)
@@ -358,5 +362,5 @@ if __name__ == '__main__':
     pass
     u = ClsUrl()
     #u.loadHotTC(20241104)
-    data = u.loadKline('002185', 2)
+    data = u.loadKline('000859', 2)
     print(data)

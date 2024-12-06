@@ -2238,6 +2238,9 @@ class DatePicker(BaseWindow):
         self.popWin.setSelDay(selDay)
         self.invalidWindow()
     
+    def getSelDay2(self):
+        return self.popWin.curSelDay # datetime.date, may be None
+
     def getSelDay(self):
         day = self.popWin.curSelDay
         if not day:

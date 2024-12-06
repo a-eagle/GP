@@ -123,7 +123,7 @@ class LianBanWindow(base_win.BaseWindow):
             self.drawer.fillRect(hdc, rc, color = 0xE0E0E0)
             nameRc = (rc[0] + 20, rc[1], rc[0] + 80, rc[1] + ISP)
             self.drawer.use(hdc, self.drawer.getFont(fontSize = 14, weight = 700))
-            self.drawer.fillRect(hdc, nameRc, 0xD8D8FF)
+            #self.drawer.fillRect(hdc, nameRc, 0xD8D8FF)
             self.drawer.drawText(hdc, it['name'], nameRc, color = TEXT_COLOR, align = win32con.DT_VCENTER | win32con.DT_SINGLELINE)
             self.drawer.use(hdc, self.drawer.getFont(fontSize = 12, weight = 0))
             cc = self.loadCurZF(it['code'])

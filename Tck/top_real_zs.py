@@ -7,19 +7,19 @@ from orm import ths_orm
 from THS import ths_win, hot_utils
 from Common import base_win, ext_win
 from orm import tck_orm, zs_orm
-from Tck import kline_utils, conf, mark_utils, utils
+from Tck import kline_utils, conf, mark_utils, utils, cache, ext_table
 
 # 涨速
 class ZS_Window(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.layout = base_win.GridLayout((30, '1fr'), (200, '1fr', ), (5, 10))
-        self.tableWin = ext_win.EditTableWindow()
+        self.layout = base_win.GridLayout((30, '1fr'), ('1fr', ), (5, 10))
+        self.tableWin = ext_table.TimelineTableWindow()
         self.editorWin = base_win.Editor()
+        self.datePicker = None
         self.editorWin.placeHolder = ' or条件: |分隔; and条件: 空格分隔'
         self.checkBox = base_win.CheckBox({'title': '在同花顺中打开'})
         self.tckData = None
-        self.tckSearchData = None
         self.searchText = ''
         self.inputTips = []
 
@@ -45,19 +45,15 @@ class ZS_Window(base_win.BaseWindow):
         headers = [ {'title': '', 'width': 30, 'name': '#idx','textAlign': win32con.DT_SINGLELINE | win32con.DT_CENTER | win32con.DT_VCENTER },
                    {'title': '日期', 'width': 80, 'name': 'day', 'sortable':True , 'fontSize' : 14},
                    {'title': '时间', 'width': 80, 'name': 's_minuts', 'sortable':True , 'fontSize' : 14},
-                   {'title': '代码', 'width': 50, 'name': 'code', 'sortable':True , 'fontSize' : 14},
+                   {'title': '代码', 'width': 80, 'name': 'code', 'sortable':True , 'fontSize' : 14},
                    {'title': '名称', 'width': 80, 'name': 'name', 'sortable':True , 'fontSize' : 14},
-                   {'title': '涨速', 'width': 60, 'name': 'zf', 'sortable':True , 'fontSize' : 14, 'formater': formateZS},
-                   
-                   #{'title': '热度', 'width': 60, 'name': 'zhHotOrder', 'sortable':True , 'fontSize' : 14, 'sorter': sortHot},
-                   #{'title': '开盘啦', 'width': 100, 'name': 'kpl_ztReason', 'sortable':True , 'fontSize' : 12},
-                   #{'title': '连板', 'width': 60, 'name': 'ths_status', 'sortable':True , 'fontSize' : 12},
-                   #{'title': '同花顺', 'width': 150, 'name': 'ths_ztReason', 'fontSize' : 12, 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'sortable':True},
-                   #{'title': '', 'width': 10, 'name': 'sp'},
-                   #{'title': '同花顺备注', 'width': 120, 'name': 'ths_mark_1', 'fontSize' : 12 , 'editable':True, 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'sortable':True },
-                   #{'title': '财联社', 'width': 120, 'name': 'cls_ztReason', 'fontSize' : 12 ,'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'sortable':True },
+                   {'title': '涨速A', 'width': 80, 'name': 'zf', 'sortable':True , 'fontSize' : 14, 'formater': formateZS},
+                   {'title': '热度', 'width': 80, 'name': 'zhHotOrder', 'sortable':True , 'fontSize' : 14, 'sorter-a': sortHot},
+                   {'title': '同花顺', 'width': 150, 'name': 'ths_ztReason', 'fontSize' : 12, 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'sortable':True},
+                   {'title': '', 'width': 10, 'name': 'sp'},
+                   {'title': '财联社', 'width': 120, 'name': 'cls_ztReason', 'fontSize' : 12 ,'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'sortable':True },
                    {'title': '板块', 'width': 220, 'name': 'hy', 'sortable':True , 'fontSize' : 12, 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER},
-                   #{'title': '财联社详细', 'width': 0, 'name': 'cls_detail', 'stretch': 1 , 'fontSize' : 12, 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER},
+                   {'title': '分时图', 'width': 350, 'name': 'FS', 'render': self.renderTimeline, 'LOCAL-FS-DAY': None},
                    ]
         flowLayout = base_win.FlowLayout(20)
         self.checkBox.createWindow(self.hwnd, (0, 0, 150, 30))
@@ -68,7 +64,7 @@ class ZS_Window(base_win.BaseWindow):
         btn = base_win.Button({'title': '刷新'})
         btn.createWindow(self.hwnd, (0, 0, 60, 30))
         btn.addListener(self.onRefresh)
-        dp = base_win.DatePicker()
+        self.datePicker = dp = base_win.DatePicker()
         dp.createWindow(self.hwnd, (0, 0, 120, 30))
         def onPickDate(evt, args):
             self.runTask()
@@ -79,7 +75,7 @@ class ZS_Window(base_win.BaseWindow):
         flowLayout.addContent(btn)
         flowLayout.addContent(self.checkBox)
         self.layout.setContent(0, 0, flowLayout, {'horExpand': -1})
-        self.layout.setContent(1, 1, self.tableWin, {'horExpand': -1})
+        self.layout.setContent(1, 0, self.tableWin, {'horExpand': -1})
         def onPressEnter(evt, args):
             q = evt.text.strip()
             self.onQuery(q)
@@ -88,8 +84,18 @@ class ZS_Window(base_win.BaseWindow):
         self.editorWin.addNamedListener('PressEnter', onPressEnter, None)
         self.tableWin.addListener(self.onDbClick, None)
         self.tableWin.addNamedListener('ContextMenu', self.onContextMenu)
+        self.tableWin.addNamedListener('SelectRow', self.onSelectRow)
         sm = base_win.ThsShareMemory.instance()
         sm.open()
+
+    def onSelectRow(self, evt, args):
+        if evt.data:
+            evt.data['show-fs'] = True
+
+    # 分时图
+    def renderTimeline(self, win : base_win.TableWindow, hdc, row, col, colName, value, rowData, rect):
+        if rowData.get('show-fs', False):
+            cache.renderTimeline(win, hdc, row, col, colName, value, rowData, rect)
 
     def onContextMenu(self, evt, args):
         row = self.tableWin.selRow
@@ -106,9 +112,7 @@ class ZS_Window(base_win.BaseWindow):
 
     def onRefresh(self, evt, args):
         if evt.name == 'Click':
-            self.tckData = None
-            base_win.ThreadPool.instance().addTask('TCK', self.runTask)
-            #self.onQuery(self.editorWin.text)
+            self.runTask()
 
     def onQuery(self, queryText):
         self.tableWin.setData(None)
@@ -130,12 +134,15 @@ class ZS_Window(base_win.BaseWindow):
             win.setCodeList(self.tableWin.getData(), self.tableWin.selRow)
         
     def loadAllData(self):
-        if self.tckData != None:
+        self.tckData = None
+        self.tableWin.setData(None)
+        self.tableWin.invalidWindow()
+        day = self.datePicker.getSelDay2()
+        if not day:
             return
         #today = datetime.date.today()
         #fd = today - datetime.timedelta(days = 60)
         #fromDay = f"{fd.year}-{fd.month :02d}-{fd.day :02d}"
-        #kplQr = tck_orm.KPL_ZT.select().where(tck_orm.KPL_ZT.day >= fromDay).order_by(tck_orm.KPL_ZT.day.desc(), tck_orm.KPL_ZT.id.asc()).dicts()
         #thsQr = tck_orm.THS_ZT.select().where(tck_orm.THS_ZT.day >= fromDay).dicts()
         #clsQr = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day >= fromDay).dicts()
         days = hot_utils.getTradeDaysByHot()
@@ -148,7 +155,6 @@ class ZS_Window(base_win.BaseWindow):
             nn = utils.get_THS_GNTC(d['code'])
             if nn:
                 d.update(nn)
-            
             datas.append(d)
 
         #htsNewest = hot_utils.DynamicHotZH.instance().getNewestHotZH()

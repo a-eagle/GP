@@ -278,7 +278,7 @@ def save_zs_zd(datas):
              '钒电池', 'PVDF概念', '高压快冲', '血氧仪', '智能家居', '智能音箱', '智能穿戴', '无线耳机', '核电', '光热发电',
              '风电', '光伏概念', '光伏建筑', '钙钛矿电池', 'TOPCON电池', 'HJT电池', '超超临界发电', '生物质能发电',
              '数据中心', '信创', '网络安全', '国产操作系统', '数字货币', '数字乡村')
-    topLevels = [d for d in datas if d.code[0 : 3] != '884' or (d.name not in subGn)]
+    topLevels = [d for d in datas if d.code[0 : 3] != '884' and (d.name not in subGn)]
     for i in range(len(topLevels)):
         if i <= len(topLevels) // 2:
             topLevels[i].zdf_topLevelPM = i + 1
@@ -400,18 +400,4 @@ def getTradeDays():
     return None
 
 if __name__ == '__main__':
-    #download_one_dde('300139')
-
-    #rs = download_dde_money()
-    #save_dde_money(rs)
-    
-    #u, i = download_hygn()
-    #save_hygn(u, i)
-    #rs = download_hot()
-    #rs = download_zs_zd()
-    #save_zs_zd(rs)
-
-    rs = download_zt_lianban()
-    for r in rs:
-        print(r)
     pass

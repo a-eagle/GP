@@ -186,15 +186,18 @@ def test():
     fx = FenXiCode(CODE)
     fx.loadFile()
     fx.calcLastestDays()
-    print(fx.getResult())
-    base_win.ThreadPool.instance().start()
-    win = kline_utils.openInCurWindow_Code(base_win.BaseWindow(), {'code': CODE, } )
-    win32gui.PumpMessages()
 
 
 if __name__ == '__main__':
     #test()
-    ld = FenXiLoader()
-    ld.fxAll()
-    os.system('pause')
+    #ld = FenXiLoader()
+    #ld.fxAll()
+    #os.system('pause')
+    #ld.fxOne('300688')
+
+    #df = DataFile('000859', DataFile.DT_MINLINE)
+    #df.loadData(DataFile.FLAG_ALL)
+    #df.calcDays()
+    #print(df.days)
+    #DataFileLoader().chunkMinlineFile(df.code, 20240301, 20241129)
     pass
