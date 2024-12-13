@@ -104,7 +104,7 @@ class Hots_Window(base_win.BaseWindow):
         self.initTips()
 
     def initTips(self):
-        import conf
+        from Tck import conf
         model = conf.top_hot_tips
         for q in self.inputTips:
             finded = False

@@ -1672,8 +1672,8 @@ class ToolBarWindow(base_win.BaseWindow):
         from Tck import top_zt_net, top_bk, top_lhb, top_zt_lianban, top_real_zs, top_hots
         self.model = [
             {'title': '记', 'name': 'Record', 'class': RecordWindow, 'win': None, 'win-title': '笔记'},
-            {'title': '涨停', 'name': 'ZT', 'class': top_zt_net.ZT_Window, 'win': None, 'win-title': '涨停'},
             {'title': '板块', 'name': 'BK', 'class': top_bk.Bk_Window, 'win': None, 'win-title': '板块概念'},
+            {'title': '涨停', 'name': 'ZT', 'class': top_zt_net.ZT_Window, 'win': None, 'win-title': '涨停'},
             {'title': '天梯', 'name': 'BK', 'class': top_zt_lianban.ZT_Window, 'win': None, 'win-title': '连板天梯'},
             #{'title': '龙','name': 'LHB', 'class': top_lhb.LHB_Window, 'win': None, 'win-title': '龙虎榜'},
             {'title': '速', 'name': 'SU', 'class': top_real_zs.ZS_Window, 'win': None, 'win-title': '涨速联动'},
