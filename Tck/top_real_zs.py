@@ -145,7 +145,7 @@ class ZS_Window(base_win.BaseWindow):
         code = sm.readCode()
         if not code:
             return
-        code = f'{code: 06d}'
+        code = f'{code :06d}'
         name = ''
         if code[0 : 2] == '88':
             obj = ths_orm.THS_ZS.get_or_none(code == code)

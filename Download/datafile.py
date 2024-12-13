@@ -407,6 +407,12 @@ class DataFileLoader:
                 f.write(arr)
         f.close()
         return True
+    
+    def checkMinutes(self, md, fromIdx, endIdx):
+        sum = 0
+        for i in range(fromIdx, endIdx):
+            sum += md[i].amount
+        return sum > 0
 
     def mergeMinlineFile(self, code, minlineDatas):
         if not minlineDatas:
@@ -427,6 +433,8 @@ class DataFileLoader:
                     break
                 td = minlineDatas[i + DataFile.MINUTES_IN_DAY - 1]
                 if td.time != 1500:
+                    break
+                if not self.checkMinutes(minlineDatas, i, i + DataFile.MINUTES_IN_DAY):
                     break
             struct.pack_into('2l4f', arr, 0, d.day, d.time, d.price, d.avgPrice, d.amount, d.vol)
             f.write(arr)
@@ -555,4 +563,9 @@ def merge_tdx_all():
 
 if __name__ == '__main__':
     ld = DataFileLoader()
-    ld.downloadAndMergeAllMililine(0.5)
+    #ld.downloadAndMergeAllMililine(0.5)
+    ld.downloadAndMergeMililine('300420')
+    #ld.chunkMinlineFile('300420', 20240301, 20241206)
+    df = DataFile('300420', DataFile.DT_MINLINE)
+    df.loadData(DataFile.FLAG_ALL)
+    print(df.days)
