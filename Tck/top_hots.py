@@ -12,7 +12,7 @@ class Hots_Window(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
         rows = (30, '1fr')
-        self.cols = (150, 300, 120, 70, 30, 70, 150, '1fr')
+        self.cols = (150, 400, 120, 70, 30, 70, 150, '1fr')
         self.layout = base_win.GridLayout(rows, self.cols, (5, 10))
         self.tableWin = ext_win.EditTableWindow()
         self.tableWin.css['selBgColor'] = 0xEAD6D6

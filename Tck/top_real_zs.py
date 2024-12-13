@@ -21,6 +21,7 @@ class ZS_Window(base_win.BaseWindow):
         self.checkBox = base_win.CheckBox({'title': '在同花顺中打开'})
         self.checkBoxGn = base_win.CheckBox({'title': '搜索时包括概念'})
         self.searchModeWin = base_win.ComboBox()
+        self.dbWin = base_win.ComboBox()
         self.tckData = None
         self.lastSearchText = ''
         self.searchIdx = -1
@@ -49,7 +50,7 @@ class ZS_Window(base_win.BaseWindow):
                    {'title': '日期', 'width': 80, 'name': 'day', 'sortable':True , 'fontSize' : 14},
                    {'title': '时间', 'width': 80, 'name': 'minuts', 'sortable':True , 'fontSize' : 14},
                    {'title': '代码', 'width': 80, 'name': 'code', 'sortable':True , 'fontSize' : 14},
-                   {'title': '名称', 'width': 80, 'name': 'name', 'sortable':True , 'fontSize' : 14},
+                   {'title': '名称', 'width': 80, 'name': 'name', 'sortable':True , 'fontSize' : 14, 'render': mark_utils.markColorTextRender},
                    {'title': '涨速A', 'width': 80, 'name': 'zf', 'sortable':True , 'fontSize' : 14, 'formater': formateZS},
                    {'title': '热度', 'width': 80, 'name': 'zhHotOrder', 'sortable':True , 'fontSize' : 14, 'sorter': sortHot},
                    {'title': '同花顺', 'width': 150, 'name': 'ths_ztReason', 'fontSize' : 12, 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'sortable':True},
@@ -63,6 +64,9 @@ class ZS_Window(base_win.BaseWindow):
         self.checkBoxGn.createWindow(self.hwnd, (0, 0, 150, 30))
         self.searchModeWin.setPopupTip([{'key': 'DingWei', 'title':'定位搜索' }, {'key': 'Filter', 'title':'过滤搜索' }])
         self.searchModeWin.createWindow(self.hwnd, (0, 0, 100, 30))
+        self.dbWin.setPopupTip([{'key': 'real', 'title':'实时数据' }, {'key': 'local', 'title':'本地数据' }])
+        self.dbWin.createWindow(self.hwnd, (0, 0, 100, 30))
+        self.dbWin.setSelectItem(0)
         self.editorWin.createWindow(self.hwnd, (0, 0, 300, 30))
         self.tableWin.createWindow(self.hwnd, (0, 0, 1, 1))
         self.tableWin.css['selBgColor'] = 0xd0d0d0
@@ -81,8 +85,9 @@ class ZS_Window(base_win.BaseWindow):
         dp.addNamedListener('Select', onPickDate)
 
         flowLayout.addContent(dp)
-        flowLayout.addContent(self.checkBoxGn, {'margins': (20, 0, 0, 0)})
+        flowLayout.addContent(self.dbWin)
         flowLayout.addContent(self.searchModeWin)
+        flowLayout.addContent(self.checkBoxGn, {'margins': (20, 0, 0, 0)})
         flowLayout.addContent(self.editorWin)
         flowLayout.addContent(btn)
         flowLayout.addContent(btn2)
@@ -100,8 +105,13 @@ class ZS_Window(base_win.BaseWindow):
         self.tableWin.addNamedListener('SelectRow', self.onSelectRow)
         self.searchModeWin.setSelectItem(0)
         self.searchModeWin.addNamedListener('Select', self.onChangeSearchMode)
+        self.dbWin.addNamedListener('Select', self.onDbChanged)
         sm = base_win.ThsShareMemory.instance()
         sm.open()
+
+    def onDbChanged(self, evt, args):
+        self.loadAllData()
+        self.doSearch(self.editorWin.text)
 
     def getCurDayFs(self):
         today = datetime.date.today()
@@ -133,7 +143,7 @@ class ZS_Window(base_win.BaseWindow):
         model = mark_utils.getMarkModel(row >= 0)
         menu = base_win.PopupMenu.create(self.hwnd, model)
         def onMenuItem(evt, rd):
-            mark_utils.saveOneMarkColor({'kind': 'zt', 'code': rowData['code']}, evt.item['markColor'], endDay = rowData['day'])
+            #mark_utils.saveOneMarkColor({'kind': 'zt', 'code': rowData['code']}, evt.item['markColor'], endDay = rowData['day'])
             rd['markColor'] = evt.item['markColor']
             self.tableWin.invalidWindow()
         menu.addNamedListener('Select', onMenuItem, rowData)
@@ -189,7 +199,11 @@ class ZS_Window(base_win.BaseWindow):
         clsRs = {}
         thsQr = tck_orm.THS_ZT.select(tck_orm.THS_ZT.code, tck_orm.THS_ZT.ztReason).where(tck_orm.THS_ZT.day >= fromDay, tck_orm.THS_ZT.day <= endDay).tuples()
         clsQr = tck_orm.CLS_ZT.select(tck_orm.CLS_ZT.code, tck_orm.CLS_ZT.ztReason).where(tck_orm.CLS_ZT.day >= fromDay, tck_orm.CLS_ZT.day <= endDay).tuples()
-        qr = zs_orm.RealZSModel.select().where(zs_orm.RealZSModel.day == iday).dicts()
+        dbWhere = self.dbWin.getSelectItem()
+        if dbWhere['key'] == 'real':
+            qr = zs_orm.RealZSModel.select().where(zs_orm.RealZSModel.day == iday).dicts()
+        else:
+            qr = zs_orm.LocalZSModel.select().where(zs_orm.LocalZSModel.day == iday).order_by(zs_orm.LocalZSModel.fromMinute.asc()).dicts()
         hots = hot_utils.DynamicHotZH.instance().getHotsZH(iday)
         for q in thsQr:
             thsRs[q[0]] = q[1]
@@ -198,7 +212,10 @@ class ZS_Window(base_win.BaseWindow):
         datas = []
         for d in qr:
             d['day'] = utils.formatDate(d['day'])
-            m = d['minuts']
+            if 'fromMinute' in d:
+                m = d['fromMinute'] * 100
+            else:
+                m = d['minuts']
             d['minuts'] = f'{m // 10000 :02d}:{m // 100 % 100 :02d}:{m % 100 :02d}'
             code = d['code']
             d['ths_ztReason'] = thsRs.get(code, '')
