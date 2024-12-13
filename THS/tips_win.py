@@ -1666,10 +1666,10 @@ class ToolBarWindow(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
         self.css['borderColor'] = 0x00ffff
-        self.DEF_SIZE = (250, 25)
+        self.DEF_SIZE = (280, 25)
         self.MOVE_BOX_WIDTH = 20
         self.ITEM_WIDTH = 40
-        from Tck import top_zt_net, top_bk, top_lhb, top_zt_lianban, top_real_zs
+        from Tck import top_zt_net, top_bk, top_lhb, top_zt_lianban, top_real_zs, top_hots
         self.model = [
             {'title': '记', 'name': 'Record', 'class': RecordWindow, 'win': None, 'win-title': '笔记'},
             {'title': '涨停', 'name': 'ZT', 'class': top_zt_net.ZT_Window, 'win': None, 'win-title': '涨停'},
@@ -1677,7 +1677,7 @@ class ToolBarWindow(base_win.BaseWindow):
             {'title': '天梯', 'name': 'BK', 'class': top_zt_lianban.ZT_Window, 'win': None, 'win-title': '连板天梯'},
             #{'title': '龙','name': 'LHB', 'class': top_lhb.LHB_Window, 'win': None, 'win-title': '龙虎榜'},
             {'title': '速', 'name': 'SU', 'class': top_real_zs.ZS_Window, 'win': None, 'win-title': '涨速联动'},
-            {'title': '热', 'name': 'SU', 'class': top_real_zs.ZS_Window, 'win': None, 'win-title': '涨速联动'},
+            {'title': '热', 'name': 'SU', 'class': top_hots.Hots_Window, 'win': None, 'win-title': '热度'},
         ]
 
     def setVisible(self, visible : bool):

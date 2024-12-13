@@ -28,6 +28,7 @@ class LianBanWindow(base_win.BaseWindow):
         self.startRow = 0
         self.itemWidth = 0
         self.day = None
+        self.curSelectCode = None
 
     def loadData(self, day):
         if not day:
@@ -120,7 +121,9 @@ class LianBanWindow(base_win.BaseWindow):
             
             x = self.LB_WIDTH + it['col'] * (self.itemWidth + self.ITEM_X_SPACE)
             rc = (x, y, x + self.itemWidth, y + self.ROW_HEIGHT)
-            self.drawer.fillRect(hdc, rc, color = 0xE0E0E0)
+            self.drawer.fillRect(hdc, rc, color = 0xE8E5E5)
+            if it['code'] == self.curSelectCode:
+                self.drawer.drawRect(hdc, rc, 0x248BCB)
             nameRc = (rc[0] + 20, rc[1], rc[0] + 80, rc[1] + ISP)
             self.drawer.use(hdc, self.drawer.getFont(fontSize = 14, weight = 700))
             #self.drawer.fillRect(hdc, nameRc, 0xD8D8FF)
@@ -163,6 +166,10 @@ class LianBanWindow(base_win.BaseWindow):
             x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
             self.onDbClick(x, y)
             return True
+        if msg == win32con.WM_LBUTTONUP:
+            x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
+            self.onClick(x, y)
+            return True
         return super().winProc(hwnd, msg, wParam, lParam)
     
     def onMouseWheel(self, delta):
@@ -189,6 +196,21 @@ class LianBanWindow(base_win.BaseWindow):
         if not item:
             return
         self.notifyListener(self.Event('OpenCode', self, data = item))
+
+    def onClick(self, x, y):
+        pos = self.getItemAt(x, y)
+        item = self.getItemByPos(pos)
+        if not item:
+            return
+        self.curSelectCode = item['code']
+        self.notifyListener(self.Event('SelectCode', self, code = item['code']))
+        self.invalidWindow()
+
+    def onSelectCode(self, code):
+        if self.curSelectCode == code:
+            return
+        self.curSelectCode = code
+        self.invalidWindow()
         
     def getItemAt(self, x, y):
         x -= self.LB_WIDTH
@@ -346,6 +368,7 @@ class ZT_Window(base_win.BaseWindow):
             win.createWindow(self.hwnd, (0, 0, 1, 1))
             self.layout.setContent(1, i, win)
             win.addNamedListener('OpenCode', self.onOpenCode)
+            win.addNamedListener('SelectCode', self.onSelectCode)
 
         fs = {'margins': (0, 3, 0, 0)}
         btn2 = base_win.Button({'title': '今天'})
@@ -367,6 +390,11 @@ class ZT_Window(base_win.BaseWindow):
             if q and (q not in self.inputTips):
                 self.inputTips.append(q)
         self.editorWin.addNamedListener('PressEnter', onPressEnter, None)
+
+    def onSelectCode(self, evt, args):
+        code = evt.code
+        for w in self.lianBanWins:
+            w.onSelectCode(code)
 
     def onRefresh(self, evt, args):
         if evt.name == 'Click':
