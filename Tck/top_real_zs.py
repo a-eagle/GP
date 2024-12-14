@@ -143,7 +143,7 @@ class ZS_Window(base_win.BaseWindow):
         model = mark_utils.getMarkModel(row >= 0)
         menu = base_win.PopupMenu.create(self.hwnd, model)
         def onMenuItem(evt, rd):
-            #mark_utils.saveOneMarkColor({'kind': 'zt', 'code': rowData['code']}, evt.item['markColor'], endDay = rowData['day'])
+            #mark_utils.saveOneMarkColor({'kind': 'real-zs', 'code': rowData['code']}, evt.item['markColor'], endDay = rowData['day'])
             rd['markColor'] = evt.item['markColor']
             self.tableWin.invalidWindow()
         menu.addNamedListener('Select', onMenuItem, rowData)
