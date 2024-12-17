@@ -134,7 +134,7 @@ class ZS_Window(base_win.BaseWindow):
 
     # 分时图
     def renderTimeline(self, win : base_win.TableWindow, hdc, row, col, colName, value, rowData, rect):
-        #if rowData.get('show-fs', False):
+        if rowData.get('show-fs', False):
             cache.renderTimeline(win, hdc, row, col, colName, value, rowData, rect)
 
     def onContextMenu(self, evt, args):

@@ -2230,6 +2230,7 @@ class KLineWindow(base_win.BaseWindow):
               {'title': '- 删除画线', 'name': 'del-draw-line'},
               {'title': 'LINE'},
               {'title': '涨停原因', 'name':'zt-reason', 'enable': selDay > 0},
+              {'title': '涨速联动', 'name':'zs-liandong', 'enable': selDay > 0, 'day': selDay},
               {'title': '加自选', 'name':'JZX', 'sub-menu': zx},
               {'title': '- 删自选', 'name':'SZX', 'sub-menu': zx}
               ]
@@ -2282,6 +2283,21 @@ class KLineWindow(base_win.BaseWindow):
                 base_win.ThsShareMemory.instance().writeMarkDay(selDay)
                 evt = self.Event('zt-reason', self, code = self.model.code, day = selDay)
                 self.notifyListener(evt)
+            elif name == 'zs-liandong':
+                from Tck import top_real_zs, utils
+                win = top_real_zs.ZS_Window()
+                rc = win32gui.GetWindowRect(self.hwnd)
+                W, H = rc[2] - rc[0], rc[3] - rc[1]
+                win.createWindow(self.hwnd, (rc[0], rc[1], W, H), win32con.WS_POPUPWINDOW | win32con.WS_CAPTION | win32con.WS_MINIMIZEBOX | win32con.WS_MAXIMIZEBOX)
+                win.datePicker.setSelDay(evt.item['day'])
+                if not self.model.name:
+                    obj = utils.get_THS_GNTC(self.model.code)
+                    if obj: self.model.name = obj['name'] or ''
+                win.editorWin.setText(self.model.code + ' | ' + self.model.name)
+                w, h = win.getClientSize()
+                win.layout.resize(0, 0, w, h)
+                win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
+                win.runTask()
         menu.addNamedListener('Select', onMM)
         menu.show(x, y)
 
