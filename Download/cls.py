@@ -355,12 +355,11 @@ class ClsDataFile(datafile.DataFile):
         self.data = datas['line']
 
 if __name__ == '__main__':
-    #signByStr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012')
+    m = signByStr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012')
+    print(m)
     #signByStr('app=CailianpressWeb&fields=date,minute,last_px,business_balance,business_amount,open_px,preclose_px,av_px&os=web&secu_code=sz301488&sv=7.7.5')
     #ClsUrl().loadHistory5FenShi('cls80133') #cls80133
     #ClsUrl().loadDegree()
     pass
     u = ClsUrl()
     #u.loadHotTC(20241104)
-    data = u.loadKline('000859', 2)
-    print(data)
