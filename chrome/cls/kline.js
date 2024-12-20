@@ -461,7 +461,8 @@ class TimeLineView extends Listener {
         if (tag == 'ZT' || tag == 'ZTZB')
             return 'rgb(0, 0, 240)';
         if (tag == 'DT' || tag == 'DTZB')
-            return 'rgb(255, 153, 53)';
+            //return 'rgb(255, 153, 53)';
+            return '#FFA500';
         if (tag == 'Z')
             return 'rgb(255, 0, 0)';
         return 'rgb(0, 204, 0)';
