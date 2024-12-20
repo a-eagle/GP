@@ -41,6 +41,14 @@ function adjustZTInfo(response) {
 	console.log('[After]', json);
 	//window.postMessage({cmd: 'ZT-INFO', data: rs}, '*');
 	window['zt-info'] = rs;
+
+	let text = '涨停&nbsp;' + rs.length;
+	if ($('#real-zt-div').length == 0) {
+		let div = $('<div id="real-zt-div" style="padding-left:250px; font-size:20px; color: #f00;" > ' + text + '</div>');
+		$('.event-querydate-box').append(div);
+	} else {
+		$('#real-zt-div').html(text);
+	}
 }
 
 function hook_proxy() {
@@ -63,6 +71,7 @@ function hook_proxy() {
 
 hook_proxy();
 console.log('in hook :', window.location.href);
+
 
 /*
 var _can2DProto = CanvasRenderingContext2D.prototype;
