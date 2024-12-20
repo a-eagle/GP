@@ -399,7 +399,7 @@ class TimeLineView extends Listener {
         let canvas = $('<canvas style="width: ' + width + 'px; height: ' + height + 'px; " />'); //border-right: solid 1px #ccc;
         canvas = canvas.get(0);
         canvas.addEventListener('mousemove', function(e) {
-            //thiz.mouseMove(e.offsetX, e.offsetY, true);
+            thiz.mouseMove(e.offsetX, e.offsetY, true);
         });
         canvas.addEventListener('mouseleave', function(e) {
             //thiz.mouseLeave(true);
@@ -578,7 +578,7 @@ class TimeLineView extends Listener {
         }
         this.ctx.beginPath();
         this.ctx.strokeStyle = 'black';
-        this.ctx.setLineDash([1, 4]);
+        this.ctx.setLineDash([4, 2]);
         this.ctx.lineWidth = 1;
         this.ctx.moveTo(x + 0.5, 0);
         this.ctx.lineTo(x + 0.5, this.height);
@@ -588,8 +588,8 @@ class TimeLineView extends Listener {
     }
 
     mouseMove(x, y, notify) {
-        //this.draw();
-        //this.drawMouse(x);
+        this.draw();
+        this.drawMouse(x);
         if (notify) {
             this.notify({name : 'MouseMove', x : x, y : y, source : this});
         }
@@ -765,30 +765,30 @@ class KLineUIManager extends Listener {
     }
 }
 
-
 class TimeLineUIManager extends Listener {
     constructor() {
         super();
-        this.timeLineUIArr = [];
+        this.views = [];
     }
 
-    add(timeLineUI) {
+    // view = TimeLineView
+    add(view) {
         let thiz = this;
-        this.timeLineUIArr.push(timeLineUI);
-        timeLineUI.addListener('MouseMove', function(event) {thiz.onUserEvent(event);});
-        timeLineUI.addListener('Click', function(event) {thiz.onUserEvent(event);});
-        timeLineUI.addListener('MouseLeave', function(event) {thiz.onUserEvent(event);});
+        this.views.push(view);
+        view.addListener('MouseMove', function(event) {thiz.onUserEvent(event);});
+        //view.addListener('Click', function(event) {thiz.onUserEvent(event);});
+        //view.addListener('MouseLeave', function(event) {thiz.onUserEvent(event);});
     }
 
     onUserEvent(event) {
         let newEvent = $.extend({}, event);
         newEvent.name = 'Virtual' + event.name;
-        for (let i in this.timeLineUIArr) {
-            let cur = this.timeLineUIArr[i];
+        for (let i in this.views) {
+            let cur = this.views[i];
             if (event.source != cur) {
                 if (event.name == 'MouseMove') cur.mouseMove(event.x, event.y, false);
                 // else if (event.name == 'Click') cur.click(event.x, event.y, false);
-                else if (event.name == 'MouseLeave') cur.mouseLeave(false);
+                //else if (event.name == 'MouseLeave') cur.mouseLeave(false);
             }
             cur.notify(newEvent);
         }
