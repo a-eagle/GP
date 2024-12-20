@@ -393,3 +393,66 @@ function cls_digist(urlParam) {
     let rs = b.run(dx);
     return rs;
 }
+
+class ClsUrl {
+    _getTagCode(code) {
+        if (code[0] == '6')
+            return 'sh' + code
+        if (code[0] == '0' || code[0] == '3')
+            return 'sz' + code
+        if (code == '999999')
+            return 'sh000001'
+        return code;
+    }
+    
+    signParams(params) {
+        if (typeof(params) == 'string') {
+            let sign = cls_digist(params);
+            return params + '&sign=' + sign;
+        }
+        // is map
+        let ks = [];
+        for (let k in params) {
+            ks.push(k);
+        }
+        ks.sort();
+        let ps = [];
+        for (let i = 0; i < ks.length; i++) {
+            ps.push(ks[i] + '=' + params[ks[i]]);
+        }
+        let sparams = ps.join('&');
+        let sign = cls_digist(sparams);
+        return sparams + '&sign=' + sign;
+    }
+
+    // 近5日分时
+    loadHistory5FenShi(code, callback) {
+        let params = {
+            'secu_code': this._getTagCode(code),
+            'app': 'CailianpressWeb',
+            'os': 'web',
+            'sv': '7.7.5'
+        };
+        let url = 'https://x-quote.cls.cn/quote/stock/tline_history?' + this.signParams(params);
+        $.ajax({
+            'type': 'GET', 'url': url, 'dataType': 'json',
+            success: function(resp) {
+                let data = resp.data;
+                if (callback)
+                    callback(data);
+            },
+            error: function(xhr, status, error) {
+            }
+        });
+
+        /*
+        data = js['data']
+        data['code'] = code
+        if (data && data['line'])
+            data['line'] = this._toStds(data['line'], False)
+        return data;
+        */
+    }
+};
+
+// new ClsUrl().loadHistory5FenShi('688787');

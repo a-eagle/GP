@@ -411,7 +411,7 @@ class TimeLineView extends Listener {
     }
 
     setData(data) {
-        // {pre: xx, dataArr: [{time, price, money, avgPrice, vol}, ...] }
+        // {pre: xx, line: [{time, price, money, avgPrice, vol}, ...] }
         this.data = data;
     }
 
@@ -419,11 +419,11 @@ class TimeLineView extends Listener {
         //算最大值，最小值
         let maxPrice = 0;
         let minPrice = 9999999;
-        for (var i = 0; i < this.data.dataArr.length; i++) {
-            if (! this.data.dataArr[i]) {
+        for (var i = 0; i < this.data.line.length; i++) {
+            if (! this.data.line[i]) {
                 continue;
             }
-            var price = this.data.dataArr[i].price;
+            var price = this.data.line[i].price;
             if (price > maxPrice) {
                 maxPrice = price;
             }
@@ -436,7 +436,7 @@ class TimeLineView extends Listener {
     }
 
     draw() {
-        if (! this.data || this.data.dataArr.length == 0) {
+        if (! this.data || this.data.line.length == 0) {
             return;
         }
         let ctx = this.ctx;
@@ -455,18 +455,18 @@ class TimeLineView extends Listener {
         ctx.fillStyle = 'rgb(255, 255, 255)';
         ctx.lineWidth = 1;
         this.ctx.clearRect(0, 0, this.width, this.height);
-        if (this.data.dataArr[this.data.dataArr.length - 1].price >= this.data.pre)
+        if (this.data.line[this.data.line.length - 1].price >= this.data.pre)
             ctx.strokeStyle = 'rgb(255, 0, 0)';
         else
             ctx.strokeStyle = 'rgb(0, 204, 0)';
         ctx.beginPath();
         ctx.setLineDash([]);
-        for (let i = 0, pts = 0; i < this.data.dataArr.length; i++) {
+        for (let i = 0, pts = 0; i < this.data.line.length; i++) {
             if (i % POINT_NN != 0) {
                 continue;
             }
             let x = pts * pointsDistance;
-            let y = this.height - (this.data.dataArr[i].price - this.minPrice) * this.height / (this.maxPrice - this.minPrice);
+            let y = this.height - (this.data.line[i].price - this.minPrice) * this.height / (this.maxPrice - this.minPrice);
             if (pts == 0) {
                 ctx.moveTo(x, y);
             } else {

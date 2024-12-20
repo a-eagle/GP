@@ -7,14 +7,12 @@ const ADD_WIDTH = 300;
 function updateTimelineUI(code, rowIdx, tr) {
     let item = timelines[code];
     if (! item) {
-        loadTimeLine(code, rowIdx);
+        item = createTimeLine(code, rowIdx);
+        updateTimelineView(code, item);
+    }
+    if (item.canvas.is(':visible')) {
         return;
     }
-    if (item.canvas.is(':visible')) { // && item.rowIdx == rowIdx
-        console.log('[updateTimelineUI] rowIdx=', rowIdx, ' not need update');
-        return;
-    }
-    item.canvas.remove();
     let tds = tr.find('td');
     let td = null;
     if (tds.length < pageInfo.tableColNum) {
@@ -24,17 +22,40 @@ function updateTimelineUI(code, rowIdx, tr) {
         td = tr.find('td:last');
         td.empty();
     }
-    td.append(item.ui);
+    td.css('padding', '3px 15px');
+    td.append(item.canvas);
 }
 
-function loadTimeLine(code, rowIdx) {
-    let item = {code: code, model: null, ui: null, view: null, rowIdx: rowIdx};
+function createTimeLine(code, rowIdx) {
+    let item = {code: code, model: null, view: null, rowIdx: rowIdx, time: 0};
     item.view = new TimeLineView(ADD_WIDTH, 60);
     item.canvas = $(item.view.canvas);
     timelines[code] = item;
-    // TODO: ajax load timeline
-    // item.view.setData(item.model);
-    // item.view.draw();
+    return item;
+}
+
+function updateTimelineView(code, item) {
+    let cu = new ClsUrl();
+    cu.loadHistory5FenShi(code, function(data5) {
+        if (! data5 || !data5['date'] || !data5.date.length || !data5['line'] || !data5.line.length)
+            return;
+        let idx = (data5.date.length - 1) * 241;
+        let pre = 0;
+        if (idx > 0){
+            pre = data5.line[idx - 1].last_px;
+        } else {
+            pre = data5.line[0].last_px;
+        }
+        let ds = {date: data5.line[idx].date, pre: pre, line: []};
+        for (let i = idx; i < data5.line.length; i++) {
+            let ct = data5.line[i];
+            ds.line.push({time: ct.minute, price: ct.last_px, money: ct.business_balance, avgPrice: ct.av_px});
+        }
+        item.time = Date.now();
+        item.view.setData(ds);
+        item.view.draw();
+    });
+    return item;
 }
 
 function extendWidth(obj, aw) {
@@ -57,13 +78,13 @@ function initTimelineUI() {
     extendWidth($('div.content-main-box div.watch-content-left'), ADD_WIDTH);
     let trs = $('table.watch-table tr');
     pageInfo.tableColNum = trs.find('th').length + 1;
+    let tr0 = $('table.watch-table tr:nth-child(1)');
+    if (tr0.children('th').length < pageInfo.tableColNum) {
+        tr0.append('<th style="width:' + ADD_WIDTH + 'px">分时</th>');
+    }
 
     function loadAllCodes(tk, resolve) {
-        let tr0 = $('table.watch-table tr:nth-child(1)');
-        if (tr0.children('th').length < pageInfo.tableColNum) {
-            tr0.append('<th style="width:' + ADD_WIDTH + 'px">分时</th>');
-        }
-
+        let trs = $('table.watch-table tr');
         for (let i = 1; i < trs.length; i++) {
             trs.eq(i).css('border-top', 'solid 1px #ccc');
             trs.eq(i).css('height', '60px');
@@ -125,12 +146,7 @@ function initTimelineUI_ZT_Num() {
 }
 
 let url = window.location.href;
-if (url == 'https://www.cls.cn/finance') {
-    setTimeout(() => {
-        //initTimelineUI();
-        // initTimelineUI_ZT_Num();
-    }, 1500);
-} else if (url.indexOf('https://www.cls.cn/plate?code=') >= 0) {
+if (url.indexOf('https://www.cls.cn/plate?code=') >= 0) {
     setTimeout(() => {
         initPlatePage();
         initTimelineUI();
