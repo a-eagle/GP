@@ -119,7 +119,7 @@ class KLineModel_DateType(datafile.DataFile):
         week = None
         for item in ds:
             dd = datetime.date(item.day // 10000, item.day // 100 % 100, item.day % 100)
-            w = dd.isocalendar().week
+            w = dd.isocalendar()[1]
             if cur == None or week != w:
                 week = w
                 cur = self._copyItem(item)

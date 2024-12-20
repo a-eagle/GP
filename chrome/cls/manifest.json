@@ -32,7 +32,7 @@
 		{
 			"matches": ["https://www.cls.cn/plate*"],
             "run_at": "document_idle",
-            "js": ["jquery-3.6.min.js", "kline.js", "thread.js", "digest.js", "plate-cnt.js"],
+            "js": ["jquery-3.6.min.js", "kline.js", "thread.js", "clsurl.js", "plate-cnt.js"],
 			"all_frames" : true
 		}
     ],

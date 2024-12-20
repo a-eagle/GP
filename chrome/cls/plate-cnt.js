@@ -1,16 +1,15 @@
-let timelines = {}; // key : {model, ui }
+let timelines = {}; // code : TimeLineView
 let pageInfo = { tableColNum : 0 };
 window['pageInfo'] = pageInfo;
 let thread = new Thread();
 const ADD_WIDTH = 300;
 
 function updateTimelineUI(code, rowIdx, tr) {
-    let item = timelines[code];
-    if (! item) {
-        item = createTimeLine(code, rowIdx);
-        updateTimelineView(code, item);
+    let view = timelines[code];
+    if (! view) {
+        view = createTimeLineView(code);
     }
-    if (item.canvas.is(':visible')) {
+    if ($(view.canvas).is(':visible')) {
         return;
     }
     let tds = tr.find('td');
@@ -23,39 +22,16 @@ function updateTimelineUI(code, rowIdx, tr) {
         td.empty();
     }
     td.css('padding', '3px 15px');
-    td.append(item.canvas);
+    td.append(view.canvas);
 }
 
-function createTimeLine(code, rowIdx) {
-    let item = {code: code, model: null, view: null, rowIdx: rowIdx, time: 0};
-    item.view = new TimeLineView(ADD_WIDTH, 60);
-    item.canvas = $(item.view.canvas);
-    timelines[code] = item;
-    return item;
-}
-
-function updateTimelineView(code, item) {
-    let cu = new ClsUrl();
-    cu.loadHistory5FenShi(code, function(data5) {
-        if (! data5 || !data5['date'] || !data5.date.length || !data5['line'] || !data5.line.length)
-            return;
-        let idx = (data5.date.length - 1) * 241;
-        let pre = 0;
-        if (idx > 0){
-            pre = data5.line[idx - 1].last_px;
-        } else {
-            pre = data5.line[0].last_px;
-        }
-        let ds = {date: data5.line[idx].date, pre: pre, line: []};
-        for (let i = idx; i < data5.line.length; i++) {
-            let ct = data5.line[i];
-            ds.line.push({time: ct.minute, price: ct.last_px, money: ct.business_balance, avgPrice: ct.av_px});
-        }
-        item.time = Date.now();
-        item.view.setData(ds);
-        item.view.draw();
-    });
-    return item;
+function createTimeLineView(code, width, height) {
+    width = width || ADD_WIDTH;
+    height = height || 60;
+    let view = new TimeLineView(width, height);
+    timelines[code] = view;
+    view.loadData(code);
+    return view;
 }
 
 function extendWidth(obj, aw) {
@@ -113,9 +89,10 @@ function initPlatePage() {
     let lh = window.location.href;
     let TAG = 'https://www.cls.cn/plate?code=';
     let code = lh.substring(TAG.length);
-    let href = 'https://www.cls.cn/stock?code=' + code;
-    let obj = $(' <a style="margin-left: 50px; color:#c03030; " href="' + href +'" target="_blank" >  查看K线、分时图 </a>');
-    obj.insertAfter('.stock-detail > span:eq(1)');
+    let view = createTimeLineView(code, 600, 80);
+    let ui = $(view.canvas);
+    ui.css('margin-left', '50px').css('background-color', '#f8f8f8');
+    ui.insertAfter('.stock-detail > span:eq(1)');
 }
 
 function initTimelineUI_ZT_Num() {

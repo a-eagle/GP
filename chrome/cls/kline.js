@@ -396,7 +396,7 @@ class TimeLineView extends Listener {
         super();
         this.data = null;
         let thiz = this;
-        let canvas = $('<canvas style="width: ' + width + 'px; height: ' + height + 'px; border-right: solid 1px #ccc;" />');
+        let canvas = $('<canvas style="width: ' + width + 'px; height: ' + height + 'px; " />'); //border-right: solid 1px #ccc;
         canvas = canvas.get(0);
         canvas.addEventListener('mousemove', function(e) {
             //thiz.mouseMove(e.offsetX, e.offsetY, true);
@@ -408,11 +408,33 @@ class TimeLineView extends Listener {
         canvas.width = this.width  = width;
         canvas.height =  this.height = height;
         this.ctx = canvas.getContext("2d");
+        this.updateTime = 0; // load timeline data time mili-seconds
+        this.code = null; // 股票代码
     }
 
     setData(data) {
-        // {pre: xx, line: [{time, price, money, avgPrice, vol}, ...] }
+        // {code: xx, date:xx, pre: xx, line: [{time, price, money, avgPrice, vol}, ...] }
         this.data = data;
+        if (!data || !data['line'] || !data.line.length) {
+            return;
+        }
+        // calc low, high price
+        let low = 0, high = 0;
+        let ln = data.line;
+        for (let i = 0; i < ln.length; i++) {
+            let price = ln[i].price;
+            if (low == 0 || high == 0) {
+                low = high = price;
+            } else {
+                low = price < low ? price : low;
+                high = price > high ? price : high;
+            }
+        }
+        // append attr: low, high, close
+        data.low = low;
+        data.high = high;
+        data.close = ln[ln.length - 1].price;
+        this.code = data.code;
     }
 
     calcMinMax() {
@@ -435,8 +457,18 @@ class TimeLineView extends Listener {
         this.minPrice = minPrice;
     }
 
+    getLineColor(tag) {
+        if (tag == 'ZT' || tag == 'ZTZB')
+            return 'rgb(0, 0, 240)';
+        if (tag == 'DT' || tag == 'DTZB')
+            return 'rgb(255, 153, 53)';
+        if (tag == 'Z')
+            return 'rgb(255, 0, 0)';
+        return 'rgb(0, 204, 0)';
+    }
+
     draw() {
-        if (! this.data || this.data.line.length == 0) {
+        if (! this.data || !this.data['line'] || this.data.line.length == 0) {
             return;
         }
         let ctx = this.ctx;
@@ -455,10 +487,8 @@ class TimeLineView extends Listener {
         ctx.fillStyle = 'rgb(255, 255, 255)';
         ctx.lineWidth = 1;
         this.ctx.clearRect(0, 0, this.width, this.height);
-        if (this.data.line[this.data.line.length - 1].price >= this.data.pre)
-            ctx.strokeStyle = 'rgb(255, 0, 0)';
-        else
-            ctx.strokeStyle = 'rgb(0, 204, 0)';
+        let tag = this.getZDTag();
+        ctx.strokeStyle = this.getLineColor(tag);
         ctx.beginPath();
         ctx.setLineDash([]);
         for (let i = 0, pts = 0; i < this.data.line.length; i++) {
@@ -485,16 +515,53 @@ class TimeLineView extends Listener {
         ctx.lineTo(this.width - PADDING_X, y);
         ctx.stroke();
         // 画最高、最低价
-        this.drawZhangFu( (this.maxPrice - this.data.pre) * 100 / this.data.pre, this.width, 10);
-        this.drawZhangFu( (this.minPrice - this.data.pre) * 100 / this.data.pre, this.width, this.height - 5);
+        this.drawZhangFu(true, this.maxPrice, this.width, 10);
+        this.drawZhangFu(false, this.minPrice, this.width, this.height - 5);
+    }
+
+    getZDTag() {
+        if (! this.data) {
+            return 'E';
+        }
+        let ZRDP = this.data.pre;
+        let cur = this.data;
+        let price = cur.close;
+        let is20P = this.data.code.substring(0, 3) == '688' || this.data.code.substring(0, 2) == '30';
+        let ZT = is20P ? 20 : 10;
+        let isZT = (parseInt(ZRDP  * (100 + ZT) + 0.5) <= parseInt(price * 100 + 0.5));
+        if (isZT) {
+            return 'ZT';
+        }
+        let isZTZB = (parseInt(ZRDP  * (100 + ZT)+ 0.5) <= parseInt(cur.high * 100 + 0.5))  && (cur.high != price);
+        if (isZTZB) {
+            return 'ZTZB';
+        }
+        let isDT = (parseInt(ZRDP * (100 - ZT) + 0.5) >= parseInt(price * 100 + 0.5));
+        if (isDT) {
+            return 'DT';
+        }
+        let isDTZB = (parseInt(ZRDP * (100 - ZT) + 0.5) >= parseInt(cur.low * 100 + 0.5)) && (cur.low != price);
+        if (isDTZB) {
+            return 'DTZB';
+        }
+        if (ZRDP <= price) {
+            return 'Z';
+        } else {
+            return 'D';
+        }
     }
     
-    drawZhangFu(zf, x, y) {
-        if (zf >= 0) {
-            this.ctx.fillStyle = 'rgb(255, 0, 0)';
+    drawZhangFu(up, price, x, y) {
+        let zf = (price - this.data.pre) * 100 / this.data.pre;
+        let tag = this.getZDTag();
+        if (up && (tag == 'ZT' || tag == 'ZTZB')) {
+            // pass
+        } else if (!up && (tag == 'DT' || tag == 'DTZB')) {
+            // pass
         } else {
-            this.ctx.fillStyle = 'rgb(0, 204, 0)';
+            tag = zf >= 0 ? 'Z' : 'D';
         }
+        this.ctx.fillStyle = this.getLineColor(tag);
         zf = '' + zf;
         let pt = zf.indexOf('.');
         if (pt > 0) {
@@ -535,41 +602,42 @@ class TimeLineView extends Listener {
         }
     }
 
-    loadData(code) {
+    // cb(code, TimeLineView)
+    loadData(code, cb) {
         let thiz = this;
         this.loadData_(code, function(rs) {
             thiz.setData(rs);
             thiz.draw();
             thiz.notify({name: 'LoadDataEnd' });
+            if (cb) cb(code, this);
         });
     }
 
+    reloadData() {
+        this.loadData(this.code);
+    }
+
     loadData_(code, callback) {
-        const FEN_SHI_DATA_ITEM_SIZE = 5;
-        let url = getFenShiUrl(code);
-        $.ajax({
-            url: url, type: 'GET', dataType : 'text',
-            success: function(data) {
-                let idx = data.indexOf(':');
-                let eidx = data.indexOf('}})');
-                data = data.substring(idx + 1, eidx + 1);
-                data = JSON.parse(data);
-                let rs = {};
-                rs.pre = data.pre; // 昨日收盘价
-                rs.dataArr = [];
-                let iv = data.data.split(/;|,/g);
-                // 时间，价格，成交额（元），分时均价，成交量（手）
-                for (let i = 0; i < iv.length; i += FEN_SHI_DATA_ITEM_SIZE) {
-                    let item = {};
-                    item['time'] = parseInt(iv[i]);
-                    item['price'] = parseFloat(iv[i + 1]);
-                    item['money'] = parseInt(iv[i + 2]);
-                    item['avgPrice'] = parseFloat(iv[i + 3]);
-                    item['vol'] = parseInt(iv[i + 4]);
-                    rs.dataArr.push(item);
-                }
-                callback(rs);
+        this.code = code;
+        let cu = new ClsUrl();
+        let thiz = this;
+        cu.loadHistory5FenShi(code, function(data5) {
+            if (! data5 || !data5['date'] || !data5.date.length || !data5['line'] || !data5.line.length)
+                return;
+            let idx = (data5.date.length - 1) * 241;
+            let pre = 0;
+            if (idx > 0){
+                pre = data5.line[idx - 1].last_px;
+            } else {
+                pre = data5.line[0].last_px;
             }
+            let ds = {code: code, date: data5.line[idx].date, pre: pre, line: []};
+            for (let i = idx; i < data5.line.length; i++) {
+                let ct = data5.line[i];
+                ds.line.push({time: ct.minute, price: ct.last_px, money: ct.business_balance, avgPrice: ct.av_px});
+            }
+            thiz.updateTime = Date.now();
+            callback(ds);
         });
     }
 }
