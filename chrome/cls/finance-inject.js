@@ -62,7 +62,7 @@ function hook_proxy() {
 }
 
 hook_proxy();
-console.log('in hook :', window.location.href)
+console.log('in hook :', window.location.href);
 
 /*
 var _can2DProto = CanvasRenderingContext2D.prototype;

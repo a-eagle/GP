@@ -32,12 +32,12 @@
 		{
 			"matches": ["https://www.cls.cn/plate*"],
             "run_at": "document_idle",
-            "js": ["jquery-3.6.min.js", "kline.js", "thread.js", "clsurl.js", "plate-cnt.js"],
+            "js": ["plate-cnt.js"],
 			"all_frames" : true
 		}
     ],
 
 	"web_accessible_resources": [
-		"jquery-3.6.min.js",  "ajax-hook.js", "mybase64.js", "finance-inject.js"
+		"jquery-3.6.min.js",  "ajax-hook.js", "mybase64.js", "finance-inject.js", "clsurl.js", "plate-inject.js", "kline.js", "thread.js"
 	]
 }
