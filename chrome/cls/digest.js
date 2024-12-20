@@ -56,56 +56,53 @@ class ClsDigest  {
 		e[15 + (2 + (t >> 2) & -16)] = n << 3;
 	}
 
-    x2d(v) {
-        let b0 = v & 0xff;
-        let b1 = (v >> 8) & 0xff;
-        let b2 = (v >> 16) & 0xff;
-        let b3 = (v >> 24) & 0xff;
-        return (b0 << 24) | (b1 << 16) | (b2 << 8) | b3;
-    }
-
     _c(e, pos) {
 		let n = new Int32Array(e, pos + 320, 5);
-		let buf = new Int32Array(5);
-		buf[0] = this.x2d(n[0]);
-		buf[1] = this.x2d(n[1]);
-		buf[2] = this.x2d(n[2]);
-		buf[3] = this.x2d(n[3]);
-		buf[4] = this.x2d(n[4]);
-		return buf;
+		let r = new Int32Array(5);
+        let o = new DataView(r.buffer);
+        o.setInt32(0, n[0], !1);
+        o.setInt32(4, n[1], !1);
+        o.setInt32(8, n[2], !1);
+        o.setInt32(12, n[3], !1);
+        o.setInt32(16, n[4], !1);
+		return r;
 	}
 
     _a2(e, t, n, r, o, i) {
-		let u = 0;
-		let a = i % 4;
-		let s = (o + a) % 4;
-		let c = o - s;
-		switch (a) {
-		case 0:
-			t[i] = e[r + 3];
-		case 1:
-			t[i + 1 - (a << 1) | 0] = e[r + 2];
-		case 2:
-			t[i + 2 - (a << 1) | 0] = e[r + 1];
-		case 3:
-			t[i + 3 - (a << 1) | 0] = e[r];
-		}
-		if (!(o < s + (4 - a))) {
-			for (u = 4 - a; u < c; u = u + 4 | 0)
-				n[i + u >> 2] = e[r + u] << 24 | e[r + u + 1] << 16 | e[r + u + 2] << 8 | e[r + u + 3];
-			switch (s) {
-			case 3:
-				t[i + c + 1 | 0] = e[r + c + 2];
-			case 2:
-				t[i + c + 2 | 0] = e[r + c + 1];
-			case 1:
-				t[i + c + 3 | 0] = e[r + c];
-			}
-		}
+        var mm = t;
+        mm = n;
+        var a = void 0
+            , u = i % 4
+            , s = (o + u) % 4
+            , c = o - s;
+        switch (u) {
+        case 0:
+            t[i] = e.charCodeAt(r + 3);
+        case 1:
+            t[i + 1 - (u << 1) | 0] = e.charCodeAt(r + 2);
+        case 2:
+            t[i + 2 - (u << 1) | 0] = e.charCodeAt(r + 1);
+        case 3:
+            t[i + 3 - (u << 1) | 0] = e.charCodeAt(r)
+        }
+        if (!(o < s + (4 - u))) {
+            for (a = 4 - u; a < c; a = a + 4 | 0)
+                n[i + a >> 2] = e.charCodeAt(r + a) << 24 | e.charCodeAt(r + a + 1) << 16 | e.charCodeAt(r + a + 2) << 8 | e.charCodeAt(r + a + 3);
+            switch (s) {
+            case 3:
+                t[i + c + 1 | 0] = e.charCodeAt(r + c + 2);
+            case 2:
+                t[i + c + 2 | 0] = e.charCodeAt(r + c + 1);
+            case 1:
+                t[i + c + 3 | 0] = e.charCodeAt(r + c)
+            }
+        }
+        // TODO:
+        var mm = this._h32;
 	}
 
     _write(e, t, n, r) {
-        r = r || 0
+        r = r || 0;
 		this._a2(e, this._h8, this._h32, t, n, r);
 	}
     
@@ -114,20 +111,24 @@ class ClsDigest  {
         this._write(e, t, n);
         if (o)
             i = this._padChunk(n, r);
+        // TODO:
+        var mm = this._h32;
         this.hash(i, this._padMaxChunkLen);
     }
     
     rawDigest(e) {
-        var t = e.byteLength || e.length || e.size || 0;
+        var t = e.length;
         this._initState(this._heap, this._padMaxChunkLen);
         var n = 0, r = this._maxChunkLen;
         this._coreCall(e, n, t - n, t, !0);
-        return this._c(this._heap, this._padMaxChunkLen)
+        // TODO:
+        var mm = this._h32;
+        return this._c(this._heap, this._padMaxChunkLen);
     }
 
     toHex(e) {
-        for (var n = new Array(256), r = 0; r < 256; r++)
-            n[r] = (r < 16 ? "0" : "") + r.toString(16);
+        for (var n = new Array(256), r = 0; r < 256; r++)   
+            n[r] = (r < 16 ? "0" : "") + Number(r).toString(16);
 		let t = new Uint8Array(e);
         r = new Array(e.byteLength);
 		for (let o = 0; o < r.length; o++) {
@@ -138,7 +139,7 @@ class ClsDigest  {
 	
 	digest(e) {
 		let d1 = this.rawDigest(e);
-		let s = this.toHex(d1);
+		let s = this.toHex(d1.buffer);
 		return s;
 	}
 
@@ -390,9 +391,5 @@ function cls_digist(urlParam) {
     let b = new ClsBin2Hex();
     let dx = d.digest(urlParam);
     let rs = b.run(dx);
-    console.log(rs);
     return rs;
 }
-
-cls_digist('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012')
-// 99a8a8a01ccc1b7508a0eac200155cda
