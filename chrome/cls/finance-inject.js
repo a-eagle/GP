@@ -44,7 +44,7 @@ function adjustZTInfo(response) {
 
 	let text = '涨停&nbsp;' + rs.length;
 	if ($('#real-zt-div').length == 0) {
-		let div = $('<div id="real-zt-div" style="padding-left:250px; font-size:20px; color: #f00;" > ' + text + '</div>');
+		let div = $('<div id="real-zt-div" style="padding-left:250px; font-size:20px; color: #ad1078;" > ' + text + '</div>');
 		$('.event-querydate-box').append(div);
 	} else {
 		$('#real-zt-div').html(text);
