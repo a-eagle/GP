@@ -359,7 +359,7 @@ if __name__ == '__main__':
     #print(m)
     #signByStr('app=CailianpressWeb&fields=date,minute,last_px,business_balance,business_amount,open_px,preclose_px,av_px&os=web&secu_code=sz301488&sv=7.7.5')
     cu = ClsUrl()
-    ds = cu.loadHistory5FenShi('688018') #cls80133
+    ds = cu.loadHistory5FenShi('cls82545') #cls80133
     print(ds)
     #ClsUrl().loadDegree()
     pass

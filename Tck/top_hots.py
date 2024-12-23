@@ -237,7 +237,9 @@ class Hots_Window(base_win.BaseWindow):
             for q in qrs:
                 fd = False
                 for k in data:
-                    if ('_id' not in k) and isinstance(data[k], str) and (q in data[k].upper()):
+                    if ('_id' in k or k == '_detail_'):
+                        continue
+                    if isinstance(data[k], str) and (q in data[k].upper()):
                         fd = True
                         break
                 if cond == 'AND' and not fd:

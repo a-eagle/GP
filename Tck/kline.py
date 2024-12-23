@@ -567,7 +567,7 @@ class KLineIndicator(Indicator):
             return
         for idx in range(*self.visibleRange):
             cx = self.getCenterX(idx)
-            if self.visibleRefZS:
+            if self.visibleRefZS and self.refZSDrawer:
                 self.refZSDrawer.drawKLineItem(hdc, pens, hbrs, idx - self.visibleRange[0], cx, self.getItemWidth(), self.getYAtValue)
             self.drawKLineItem(idx, hdc, pens, hbrs, hbrs['black'])
 
