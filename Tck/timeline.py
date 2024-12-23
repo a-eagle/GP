@@ -247,10 +247,9 @@ class SimpleTimelineWindow(base_win.BaseWindow):
 
     def initHilights(self):
         self.hilights.clear()
-        day = self.model.day
         fxc = fx.FenXiCode(self.model.code)
-        fxc.loadFile()
-        fxc.calcOneDay(day)
+        fxc.mdf = self.model.dataFile
+        fxc.calcOneDay(self.model.day)
         for x in fxc.results:
             self.addHilight(x['fromMinute'], x['endMinute'], x)
         self.invalidWindow()
@@ -601,5 +600,5 @@ if __name__ == '__main__':
     win.createWindow(None, (0, 0, 1000, 600), win32con.WS_OVERLAPPEDWINDOW)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
     #win.load('002085', None)
-    win.load('002866') # cls82437 sh000001 ; 300390  600611
+    win.load('600579') # cls82437 sh000001 ; 300390  600611
     win32gui.PumpMessages()

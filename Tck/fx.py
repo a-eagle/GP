@@ -26,8 +26,14 @@ class FenXiCode:
         return self.results
 
     def loadFile(self):
-        if not self.mdf.data:
-            self.mdf.loadData(DataFile.FLAG_ALL)
+        if self.mdf.data:
+            return
+        self.mdf.loadData(DataFile.FLAG_ALL)
+    
+    def loadFileOfDays(self, daysNum):
+        if self.mdf.data:
+            return
+        self.mdf.loadDataOfDays(daysNum)
 
     def calcLastestDays(self, lastDayNum = 30):
         if not self.mdf.data:
@@ -38,17 +44,6 @@ class FenXiCode:
         for i in range(fromIdx, dayNum):
             d = self.mdf.data[i * self.MINUTES_IN_DAY]
             self.calcOneDay(d.day)
-
-    def calcAppendDays(self):
-        if not self.mdf.data:
-            return
-        fromDay = 20241001
-        q = zs_orm.LocalZSModel.select(pw.fn.max(zs_orm.LocalZSModel.day)).where(zs_orm.LocalZSModel.code == self.code).scalar()
-        if q: fromDay = q
-        self.mdf.calcDays()
-        for d in self.mdf.days:
-            if d > fromDay:
-                self.calcOneDay(d)
 
     def calcOneDay(self, day):
         if day is None:
@@ -158,7 +153,6 @@ class FenXiLoader:
                 rs.append(code)
         return rs
 
-
     def save(self, code, rs):
         if not rs:
             return
@@ -189,7 +183,7 @@ class FenXiLoader:
         print('start', now.strftime('%Y-%m-%d %H:%M:%S'))
         startTime = time.time()
         for i, code in enumerate(cs):
-            flag = self.fxOne(code)
+            flag = self.fxOneOfDays(code)
             if not flag:
                 x, y = console.getCursorPos()
             console.setCursorPos(x, y)
@@ -207,7 +201,19 @@ class FenXiLoader:
         try:
             fx = FenXiCode(code)
             fx.loadFile()
-            fx.calcAppendDays()
+            fx.calcLastestDays()
+            self.save(code, fx.getResult())
+            return True
+        except Exception as e:
+            traceback.print_exc()
+            print('Exception at code: ', code)
+        return False
+    
+    def fxOneOfDays(self, code, daysNum = 5):
+        try:
+            fx = FenXiCode(code)
+            fx.loadFileOfDays(daysNum)
+            fx.calcLastestDays()
             self.save(code, fx.getResult())
             return True
         except Exception as e:
@@ -218,7 +224,7 @@ class FenXiLoader:
 def test():
     CODE = '000066'
     fx = FenXiCode(CODE)
-    fx.loadFile()
+    fx.loadFileOfDays()
     fx.calcLastestDays()
 
 if __name__ == '__main__':
