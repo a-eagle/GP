@@ -100,6 +100,9 @@ function initPlatePage() {
     let ui = $(view.canvas);
     ui.css('margin-left', '50px').css('background-color', '#f8f8f8');
     ui.insertAfter('.stock-detail > span:eq(1)');
+    let span = $('.stock-detail span:first');
+    let txt = span.text();
+    span.html('<a href="https://www.cls.cn/stock?code=' + code + '" target=_blank>' + txt + ' </a> ');
 }
 
 let url = window.location.href;

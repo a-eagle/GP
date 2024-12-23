@@ -376,6 +376,7 @@ class DataFileLoader:
                 return
             st = datetime.datetime.now()
             st = st.strftime('%Y-%m-%d %H:%M')
+            startTime = time.time()
             print(st)
             x, y = console.getCursorPos()
             success, fail = 0, 0
@@ -386,7 +387,12 @@ class DataFileLoader:
                 if not b:
                     x, y = console.getCursorPos()
                 console.setCursorPos(x, y)
-                print(f'Loading: {success} / {len(self.getCodes())}, fail = {fail}')
+                diffTime = int(time.time() - startTime)
+                h = diffTime // 3600
+                m = diffTime % 3600 // 60
+                s = diffTime % 60
+                ut = f'{h}:{m :02d}:{s :02d}'
+                print(f'Loading: {success} / {len(self.getCodes())}, fail = {fail},  {ut}')
                 time.sleep(internalTime)
         except Exception as e:
             traceback.print_exc()

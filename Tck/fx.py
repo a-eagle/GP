@@ -1,6 +1,7 @@
 import os, json, sys, functools
 import time, re
 import win32gui, win32con, win32api
+import peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
@@ -38,6 +39,17 @@ class FenXiCode:
             d = self.mdf.data[i * self.MINUTES_IN_DAY]
             self.calcOneDay(d.day)
 
+    def calcAppendDays(self):
+        if not self.mdf.data:
+            return
+        fromDay = 20241001
+        q = zs_orm.LocalZSModel.select(pw.fn.max(zs_orm.LocalZSModel.day)).where(zs_orm.LocalZSModel.code == '600258').scalar()
+        if q: fromDay = q
+        self.mdf.calcDays()
+        for d in self.mdf.days:
+            if d > fromDay:
+                self.calcOneDay(d)
+
     def calcOneDay(self, day):
         if day is None:
             return
@@ -74,12 +86,12 @@ class FenXiCode:
             if maxIdx < 0:
                 continue
             me = self.mdf.data[maxIdx]
-            if i == fromIdx and i > 0:
-                pre = self.mdf.data[i - 1].price
-                cur = self.mdf.data[i].price
-                pre = min(cur, pre)
-            else:
-                pre = self.mdf.data[i].price
+            #if i == fromIdx and i > 0:
+            #    pre = self.mdf.data[i - 1].price
+            #    cur = self.mdf.data[i].price
+            #    pre = min(cur, pre)
+            #else:
+            pre = self.mdf.data[i].price
             zf = (maxPrice - pre) / pre * 100
             if zf < self.MIN_ZHANG_SU:
                 continue
@@ -125,7 +137,7 @@ class FenXiLoader:
     def __init__(self) -> None:
         pass
 
-    def loadAllCodes(self):
+    def loadAllCodes_Local(self):
         cs = os.listdir(NET_MINLINE_PATH)
         rs = []
         FL = ('3', '0', '6')
@@ -134,6 +146,18 @@ class FenXiLoader:
             if code[0] in FL and code[0 : 3] != '399':
                 rs.append(code)
         return rs
+
+    def loadAllCodes(self):
+        from orm import ths_orm
+        qr = ths_orm.THS_GNTC.select()
+        rs = []
+        FL = ('3', '0', '6')
+        for it in qr:
+            code = it.code
+            if code[0] in FL and code[0 : 3] != '399':
+                rs.append(code)
+        return rs
+
 
     def save(self, code, rs):
         if not rs:
@@ -161,19 +185,29 @@ class FenXiLoader:
         print('---begin fenxi zhang su----')
         x, y = console.getCursorPos()
         cs = self.loadAllCodes()
+        now = datetime.datetime.now()
+        print('start', now.strftime('%Y-%m-%d %H:%M:%S'))
+        startTime = time.time()
         for i, code in enumerate(cs):
             flag = self.fxOne(code)
             if not flag:
                 x, y = console.getCursorPos()
             console.setCursorPos(x, y)
-            print(f'Loading {i} / {len(cs)}')
+            diffTime = int(time.time() - startTime)
+            h = diffTime // 3600
+            m = diffTime % 3600 // 60
+            s = diffTime % 60
+            ut = f'{h}:{m :02d}:{s :02d}'
+            print(f'Loading {i} / {len(cs)}, {ut}')
+        now = datetime.datetime.now()
+        print('end', now.strftime('%Y-%m-%d %H:%M:%S'))
         print('---end fenxi zhang su----')
 
     def fxOne(self, code):
         try:
             fx = FenXiCode(code)
             fx.loadFile()
-            fx.calcLastestDays()
+            fx.calcAppendDays()
             self.save(code, fx.getResult())
             return True
         except Exception as e:
@@ -187,11 +221,10 @@ def test():
     fx.loadFile()
     fx.calcLastestDays()
 
-
 if __name__ == '__main__':
     #test()
-    #ld = FenXiLoader()
-    #ld.fxAll()
+    ld = FenXiLoader()
+    ld.fxAll()
     #os.system('pause')
     #ld.fxOne('300688')
 

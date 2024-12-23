@@ -32,7 +32,7 @@ def main():
             cache[today] = True
             time.sleep(60 * 5)
             continue
-        loader.downloadAndMergeAllMililine(1.5)
+        loader.downloadAndMergeAllMililine(0.1)
         from Tck import fx
         ld = fx.FenXiLoader()
         ld.fxAll()

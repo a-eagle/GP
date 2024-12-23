@@ -565,10 +565,11 @@ class KLineIndicator(Indicator):
     def drawKLines(self, hdc, pens, hbrs):
         if not self.visibleRange:
             return
-        for idx in range(*self.visibleRange):
+        vr = self.visibleRange
+        for idx in range(*vr):
             cx = self.getCenterX(idx)
-            if self.visibleRefZS and self.refZSDrawer:
-                self.refZSDrawer.drawKLineItem(hdc, pens, hbrs, idx - self.visibleRange[0], cx, self.getItemWidth(), self.getYAtValue)
+            if self.visibleRefZS:
+                self.refZSDrawer.drawKLineItem(hdc, pens, hbrs, idx - vr[0], cx, self.getItemWidth(), self.getYAtValue)
             self.drawKLineItem(idx, hdc, pens, hbrs, hbrs['black'])
 
     def drawBackground(self, hdc, pens, hbrs):
@@ -589,17 +590,20 @@ class KLineIndicator(Indicator):
             win32gui.DrawText(hdc, price, len(price), rt, win32con.DT_LEFT)
 
     def drawMA(self, hdc, n):
+        vr = self.visibleRange
+        if not vr:
+            return
         if n == 5:
             pen = win32gui.CreatePen(win32con.PS_SOLID, 1, 0x00ffff)
             win32gui.SelectObject(hdc, pen)
         elif n == 10:
             pen = win32gui.CreatePen(win32con.PS_SOLID, 2, 0xee00ee)
             win32gui.SelectObject(hdc, pen)
-        bi = self.visibleRange[0]
+        bi = vr[0]
 
         ma = f'MA{n}'
         moveToFlag = False
-        for i in range(bi, self.visibleRange[1]):
+        for i in range(bi, vr[1]):
             if not moveToFlag:
                 mx = getattr(self.data[i], ma, 0)
                 if mx > 0:
@@ -895,9 +899,10 @@ class CustomIndicator(Indicator):
     def draw(self, hdc, pens, hbrs):
         if not self.visibleRange:
             return
+        vr = self.visibleRange
         itemWidth = self.config['itemWidth']
-        for idx in range(*self.visibleRange):
-            i = (idx - self.visibleRange[0])
+        for idx in range(*vr):
+            i = (idx - vr[0])
             self.drawItemBackground(idx, hdc, pens, hbrs, i * itemWidth)
             self.drawItem(idx, hdc, pens, hbrs, i * itemWidth)
         # draw title
@@ -919,9 +924,10 @@ class CustomIndicator(Indicator):
     def changeSelIdx(self, x, y):
         if not self.visibleRange or not self.data or not self.customData:
             return False
+        vr = self.visibleRange
         itemWidth = self.config['itemWidth']
-        idx = x // itemWidth + self.visibleRange[0]
-        if idx >= self.visibleRange[1]:
+        idx = x // itemWidth + vr[0]
+        if idx >= vr[1]:
             return False
         dx = x % itemWidth
         # click item idx

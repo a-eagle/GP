@@ -444,14 +444,29 @@ class ClsUrl {
             error: function(xhr, status, error) {
             }
         });
+    }
 
-        /*
-        data = js['data']
-        data['code'] = code
-        if (data && data['line'])
-            data['line'] = this._toStds(data['line'], False)
-        return data;
-        */
+    loadKline(code, limit, callback) {
+        let params = {
+            'secu_code': this._getTagCode(code),
+            'app': 'CailianpressWeb',
+            'os': 'web',
+            'sv': '7.7.5',
+            'offset': 0,
+            'limit': limit,
+            'type': 'fd1'
+        };
+        let url = 'https://x-quote.cls.cn/quote/stock/kline?' + this.signParams(params);
+        $.ajax({
+            'type': 'GET', 'url': url, 'dataType': 'json',
+            success: function(resp) {
+                let data = resp.data;
+                if (callback)
+                    callback(data);
+            },
+            error: function(xhr, status, error) {
+            }
+        });
     }
 };
 

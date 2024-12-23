@@ -17,7 +17,7 @@ class LocalZSModel(pw.Model):
 
     class Meta:
         database = zsdb
-        table_name = 'LocalZS_N'
+        table_name = 'LocalZS'
 
 # 当日实时涨速
 class RealZSModel(pw.Model):
