@@ -203,11 +203,19 @@ class DataFile:
         self.days.clear()
         if not self.data:
             return
-        for d in self.data:
-            if not self.days:
-                self.days.append(d.day)
-            elif self.days[-1] != d.day:
-                self.days.append(d.day)
+        if self.dataType == self.DT_DAY:
+            for d in self.data:
+                if not self.days:
+                    self.days.append(d.day)
+                elif self.days[-1] != d.day:
+                    self.days.append(d.day)
+        elif self.dataType == self.DT_MINLINE:
+            for i in range(0, len(self.data), self.MINUTES_IN_DAY):
+                curDay = self.data[i].day
+                if not self.days:
+                    self.days.append(curDay)
+                elif self.days[-1] != curDay:
+                    self.days.append(curDay)
 
     # 分时均线
     def calcAvgPriceOfDay(self, day):
@@ -326,8 +334,8 @@ class DataFileLoader:
         rs = []
         for t in q:
             rs.append(t[0])
-        rs.insert(0, '999999') # 上证指数
         rs.sort()
+        rs.insert(0, '999999') # 上证指数
         rs.append('399001')
         rs.append('399006')
         self.codes = rs

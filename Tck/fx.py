@@ -43,7 +43,7 @@ class FenXiCode:
         if not self.mdf.data:
             return
         fromDay = 20241001
-        q = zs_orm.LocalZSModel.select(pw.fn.max(zs_orm.LocalZSModel.day)).where(zs_orm.LocalZSModel.code == '600258').scalar()
+        q = zs_orm.LocalZSModel.select(pw.fn.max(zs_orm.LocalZSModel.day)).where(zs_orm.LocalZSModel.code == self.code).scalar()
         if q: fromDay = q
         self.mdf.calcDays()
         for d in self.mdf.days:
