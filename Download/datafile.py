@@ -65,6 +65,8 @@ class DataFile:
         if key not in self.cache:
             needLoad = True
         if needLoad:
+            if self.isValidFileData() == False:
+                raise Exception(f'Exception: invalide data file {self.code}')
             path = self.getPath()
             if flag == DataFile.FLAG_NEWEST:
                 self.data = self._loadDataFile_Newest(path)
@@ -78,6 +80,57 @@ class DataFile:
             obj = self.cache[key]
             self.data = obj.data[ : ]
             self.calcDays()
+
+    # day = str | int | date
+    def loadDataByDay(self, day):
+        if not day:
+            return
+        if isinstance(day, datetime.date):
+            day = int(day.strftime('%Y%m%d'))
+        elif isinstance(day, str):
+            day = int(day.replace('-', ''))
+        if not isinstance(day, int):
+            return
+        path = self.getPath()
+        rs = []
+        if not os.path.exists(path):
+            return
+        f = open(path, 'rb')
+        filesize = os.path.getsize(path)
+        if filesize == 0:
+            f.close()
+            return
+        if self.isValidFileData() == False:
+            raise Exception(f'Exception: invalide data file {self.code}')
+        if self.dataType == self.DT_DAY:
+            RL = 32
+            # TODO
+            pass
+        elif self.dataType == self.DT_MINLINE:
+            RL = 24
+            numDays = filesize // (RL * self.MINUTES_IN_DAY)
+            PAGE_SIZE = self.MINUTES_IN_DAY * RL
+            for i in range(numDays):
+                f.seek(-RL - PAGE_SIZE * i , 2)
+                bs = f.read(RL)
+                cday, *_ = struct.unpack('2l4f', bs)
+                if cday < day:
+                    break
+                if cday == day:
+                    if i != numDays - 1:
+                        i += 1
+                        break
+            rd = min(i + 1, numDays)
+            pos = rd * PAGE_SIZE
+            f.seek(- pos, 2)
+            for j in range(min(rd, 2) * self.MINUTES_IN_DAY):
+                bs = f.read(RL)
+                items = struct.unpack('2l4f', bs)
+                v = ItemData(*items)
+                rs.append(v)
+        f.close()
+        self.data = rs
+        self.calcDays()
 
     # flag is only FLAG_NEWEST_DAYS
     def loadDataOfDays(self, daysNum, flag = -4):
@@ -194,8 +247,6 @@ class DataFile:
         if filesize == 0:
             f.close()
             return rs
-        if self.isValidFileData() == False:
-            raise Exception(f'Exception: invalide data file {self.code}')
         if self.dataType == self.DT_DAY:
             RL = 32
             maxDays = filesize // RL
@@ -221,7 +272,6 @@ class DataFile:
         f.close()
         return rs
 
-
     # True | False | None(no data file)
     def isValidFileData(self):
         path = self.getPath()
@@ -235,7 +285,6 @@ class DataFile:
         filesize = os.path.getsize(path)
         return filesize % RL == 0
 
-    
     def _loadDataFile_Oldest(self, path):
         rs = []
         if not os.path.exists(path):
@@ -634,8 +683,8 @@ def merge_tdx_all():
         merge_tdx(c)
 
 if __name__ == '__main__':
-    df = DataFile('301598', DataFile.DT_MINLINE)
-    df.loadDataOfDays(5)
+    df = DataFile('300843', DataFile.DT_MINLINE)
+    df.loadDataByDay(20241221)
     print(df.days)
 
     ld = DataFileLoader()

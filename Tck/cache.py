@@ -129,7 +129,8 @@ class CacheManager(base_win.Listener):
         rs = {'_load_time': datetime.datetime.now(), 'render': render, 'zf': 0, 'day': day}
         self.localCache[code] = rs
         df = DataFile(code, DataFile.DT_MINLINE)
-        df.loadData(DataFile.FLAG_ALL)
+        #df.loadData(DataFile.FLAG_ALL)
+        df.loadDataByDay(day)
         idx = df.getItemIdx(day)
         if idx < 0:
             return
