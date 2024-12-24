@@ -1,15 +1,17 @@
 import json, os, sys, datetime, threading, time
 import traceback
 import requests, json, logging
+import peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import tck_orm
-from Download import console
+from Download import console, cls, ths_iwencai
 
 class Server:
     def __init__(self) -> None:
         self._runInfo = {}
         self._lastLoadTime = 0
+        self._lastLoadHotTcTime = 0
 
     def now(self):
         return datetime.datetime.now().strftime('%H:%M')
@@ -127,6 +129,43 @@ class Server:
         if curTime >= '09:30' and curTime <= '16:00':
             self.downloadClsZT()
 
+    def loadHotTc(self):
+        try:
+            if time.time() - self._lastLoadHotTcTime < 30:
+                return
+            days = ths_iwencai.getTradeDays()
+            if not days:
+                return
+            maxDay = tck_orm.CLS_HotTc.select(pw.fn.max(tck_orm.CLS_HotTc.day)).scalar()
+            if not maxDay:
+                maxDay = days[-10]
+            maxDay = maxDay.replace('-', '')
+            for d in days:
+                if d >= maxDay:
+                    self._loadHotTcOfDay(d)
+            self._lastLoadHotTcTime = time.time()
+        except Exception as e:
+            traceback.print_exc()
+
+    def _loadHotTcOfDay(self, day):
+        url = cls.ClsUrl()
+        ds = url.loadHotTC(day)
+        if not ds:
+            return
+        cday = ds[0]['c_time'].split(' ')[0]
+        exists = {}
+        qr = tck_orm.CLS_HotTc.select().where(tck_orm.CLS_HotTc.day == cday)
+        for it in qr:
+            key = it.name + ' ' + it.ctime
+            exists[key] = True
+        for d in ds:
+            cts = d['c_time'].split(' ')
+            day, ctime = cts
+            key = f'{d["symbol_name"]} {ctime}'
+            if exists.get(key, False):
+                continue
+            tck_orm.CLS_HotTc.create(day = day, name = d['symbol_name'], up = d['float'] == 'up', ctime = ctime)
+
 def do_reason():
     qr = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day >= '2024-07-26')
     for it in qr:
@@ -140,6 +179,8 @@ def do_reason():
             it.save()
 
 if __name__ == '__main__':
+    svr = Server()
+    svr.loadHotTc()
     #downloadClsZT()
     #tryDownloadDegree()
     pass

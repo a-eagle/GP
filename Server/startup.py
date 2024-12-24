@@ -11,6 +11,7 @@ lhbServer = lhb_server.Server()
 def runner():
     while True:
         thsServer.loadHotsOneTime()
+        clsServer.loadHotTc()
         time.sleep(10)
 
 def loop():

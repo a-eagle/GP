@@ -22,6 +22,7 @@ class ZS_Window(base_win.BaseWindow):
         self.checkBoxGn = base_win.CheckBox({'title': '搜索时包括概念'})
         self.searchModeWin = base_win.ComboBox()
         self.dbWin = base_win.ComboBox()
+        self.autoCB = base_win.CheckBox({'title': '自动显示分时图'})
         self.tckData = None
         self.lastSearchText = ''
         self.searchIdx = -1
@@ -76,6 +77,7 @@ class ZS_Window(base_win.BaseWindow):
         btn.createWindow(self.hwnd, (0, 0, 60, 30))
         btn2 = base_win.Button({'title': '同步'})
         btn2.createWindow(self.hwnd, (0, 0, 60, 30))
+        self.autoCB.createWindow(self.hwnd, (0, 0, 120, 30))
         btn.addNamedListener('Click', self.onRefresh)
         btn2.addNamedListener('Click', self.onSync)
         self.datePicker = dp = base_win.DatePicker()
@@ -92,6 +94,7 @@ class ZS_Window(base_win.BaseWindow):
         flowLayout.addContent(btn)
         flowLayout.addContent(btn2)
         flowLayout.addContent(self.checkBox)
+        flowLayout.addContent(self.autoCB)
         self.layout.setContent(0, 0, flowLayout, {'horExpand': -1})
         self.layout.setContent(1, 0, self.tableWin, {'horExpand': -1})
         def onPressEnter(evt, args):
@@ -134,7 +137,8 @@ class ZS_Window(base_win.BaseWindow):
 
     # 分时图
     def renderTimeline(self, win : base_win.TableWindow, hdc, row, col, colName, value, rowData, rect):
-        if rowData.get('show-fs', False):
+        if rowData.get('show-fs', False) or self.autoCB.isChecked():
+            rowData['show-fs'] = True
             cache.renderTimeline(win, hdc, row, col, colName, value, rowData, rect)
 
     def onContextMenu(self, evt, args):
@@ -309,7 +313,6 @@ class ZS_Window(base_win.BaseWindow):
         if cond == 'AND':
             return True
         return False
-
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_SIZE:

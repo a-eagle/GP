@@ -62,4 +62,26 @@ class CLS_SCQX(pw.Model):
         database = db_tck
         table_name = '财联社市场情绪'
 
-db_tck.create_tables([THS_ZT, CLS_ZT, KPL_ZT, KPL_SCQX, CLS_SCQX])
+class CLS_HotTc(pw.Model):
+    day = pw.CharField() # YYYY-MM-DD
+    name = pw.CharField()
+    up = pw.BooleanField() # 是否是上涨, 还是下跌
+    ctime = pw.CharField()
+
+    class Meta:
+        database = db_tck
+        table_name = '财联社热度题材'
+
+cls_ths_names = {
+    '旅游酒店': '旅游及酒店',
+    '高铁及轨交': '高铁,轨交设备',
+    '大金融': '多元金融,互联网金融',
+    '芯片产业链': '半导体,芯片',
+    '高速连接器': '高速连接'
+}
+
+def clsTcName2ThsName(clsTcName):
+    return cls_ths_names.get(clsTcName, '')
+
+#db_tck.drop_tables([CLS_HotTc])
+db_tck.create_tables([THS_ZT, CLS_ZT, KPL_ZT, KPL_SCQX, CLS_SCQX, CLS_HotTc])

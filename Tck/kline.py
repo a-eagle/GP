@@ -2513,53 +2513,16 @@ class KLineWindow(base_win.BaseWindow):
     def initHyGnRender(self):
         if not self.model:
             return
-        if self.hygnRender:
+        code = self.model.code
+        if self.hygnRender and self.hygnRender.code == code:
             return
         self.hygnRender = ext_win.RichTextRender(14)
-        qr = tck_def_orm.MyHotGn.select()
-        for q in qr:
-            if q.info:
-                gns = q.info.strip().replace('\n', ' ').split(' ')
-                configHotGns = [it.strip() for it in gns if it.strip()]
-            else:
-                configHotGns = []
-            break
-        # draw gn hy
-        hy = getattr(self.model, "hy", [])
-        gn = getattr(self.model, "gn", [])
-        ex = set()
-        gnhy = []
-        gnhy.append('【')
-        for i, h in enumerate(hy):
-            gnhy.append(h)
-            if i != len(hy) - 1:
-                gnhy.append(' - ')
-        gnhy.append('】 ')
-        hotGns = []
-        for i, g in enumerate(gn):
-            for n in configHotGns:
-                if n.upper() in g.upper():
-                    hotGns.append(g)
-                    gn.pop(i)
-                    ex.add(n)
-        DEF_COLOR = 0x22cc22
-        HOT_COLOR = 0xff3399
-        for g in gnhy:
-            c = DEF_COLOR
-            for n in configHotGns:
-                if n.upper() in g.upper():
-                    c = HOT_COLOR
-                    ex.add(n)
-                    break
-            self.hygnRender.addText(g, color = c, fontSize = 12)
-        for g in hotGns:
-            self.hygnRender.addText(g, color = HOT_COLOR, fontSize = 12)
-            self.hygnRender.addText(' | ', color = DEF_COLOR, fontSize = 12)
-        for g in gn:
-            self.hygnRender.addText(g + ' | ', color = DEF_COLOR, fontSize = 12)
-        less = set(configHotGns) - ex
-        for g in less:
-            self.hygnRender.addText(g + ' | ', color = 0x606060, fontSize = 12)
+        self.hygnRender.code = code
+        from THS import tips_win
+        rr = tips_win.BkGnWindow()
+        rr.DEF_COLOR = 0x22cc22
+        rr.richRender = self.hygnRender
+        rr.changeCode(code)
 
     def drawCodeInfo(self, hdc, pens, hbrs):
         if not self.model:

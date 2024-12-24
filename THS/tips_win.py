@@ -1485,12 +1485,13 @@ class RecordWindow(base_win.BaseWindow):
         self.editorWin.winProc = types.MethodType(RecordWindow.edit_winProc, self.editorWin)
 
 class BkGnWindow(base_win.BaseWindow):
-    TITLE_HEIGHT = 15
-    DEF_COLOR = 0xa0a0a0
-    HOT_COLOR = 0xff3399
-
     def __init__(self) -> None:
         super().__init__()
+        self.TITLE_HEIGHT = 15
+        self.DEF_COLOR = 0xa0a0a0
+        self.HOT_DEF_COLOR = 0xff3399
+        self.HOT_CLS_COLOR = 0x14698B
+
         self.css['bgColor'] = 0x050505
         self.css['borderColor'] = 0x22dddd
         self.css['enableBorder'] = True
@@ -1501,6 +1502,7 @@ class BkGnWindow(base_win.BaseWindow):
         self.hotGnObj = None
         self.hotGns = []
         self.richRender = None
+        self.clsHotTc = []
 
     def createWindow(self, parentWnd, rect = None, style = win32con.WS_POPUP, className='STATIC', title=''):
         sz =  self.MAX_SIZE if self.maxMode else self.MIN_SIZE
@@ -1560,7 +1562,7 @@ class BkGnWindow(base_win.BaseWindow):
             def onInputEnd(evt, args):
                 if not evt.ok:
                     return
-                self.saveHotGn(evt.text)
+                self.saveDefHotGn(evt.text)
                 self.buildBkgn()
                 self.invalidWindow()
             dlg.addNamedListener('InputEnd', onInputEnd)
@@ -1581,11 +1583,11 @@ class BkGnWindow(base_win.BaseWindow):
         self.buildBkgn()
         self.invalidWindow()
 
-    def saveHotGn(self, txt):
+    def saveDefHotGn(self, txt):
         self.hotGnObj.info = txt or ''
         self.hotGnObj.save()
 
-    def loadHotGn(self):
+    def loadDefHotGn(self):
         from orm import tck_def_orm
         qr = tck_def_orm.MyHotGn.select()
         self.hotGnObj = None
@@ -1600,54 +1602,103 @@ class BkGnWindow(base_win.BaseWindow):
         if not self.hotGnObj:
             self.hotGnObj = tck_def_orm.MyHotGn.create(info = '')
 
+    # return [(ths-name, num, cls-name), ...]
+    def loadClsHotTc(self):
+        from orm import tck_orm
+        qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.day.distinct()).order_by(tck_orm.CLS_HotTc.day.desc()).tuples()
+        days = []
+        for it in qr:
+            if len(days) > 5: # 仅显示近5天的热点概念
+                break
+            days.append(it[0])
+        if not days:
+            return
+        fromDay = days[-1]
+        rs = []
+        qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.name, pw.fn.count()).where(tck_orm.CLS_HotTc.day >= fromDay, tck_orm.CLS_HotTc.up == True).group_by(tck_orm.CLS_HotTc.name).tuples()
+        for it in qr:
+            clsName, num = it
+            thsNames = tck_orm.clsTcName2ThsName(clsName)
+            rs.append((thsNames.strip(), num, clsName))
+        self.clsHotTc = rs
+
     def buildBkgn(self):
-        self.loadHotGn()
+        self.loadDefHotGn()
+        self.loadClsHotTc()
         self.richRender.specs.clear()
         obj = ths_orm.THS_GNTC.get_or_none(code = self.curCode)
         if not obj:
             return
         data = obj.__data__
         self.richRender.addText('【', self.DEF_COLOR)
-        self.richRender.addText(data['hy_2_name'], self.getBkColor(data['hy_2_name']))
+        info1 = self.getTypeNameAndColor(data['hy_2_name'], True)
+        self.richRender.addText(info1[1], info1[2])
         self.richRender.addText(' | ', self.DEF_COLOR)
-        self.richRender.addText(data['hy_3_name'], self.getBkColor(data['hy_3_name']))
+        info2 = self.getTypeNameAndColor(data['hy_3_name'], True)
+        self.richRender.addText(info2[1], info2[2])
         self.richRender.addText('】 ', self.DEF_COLOR)
         gn = data['gn']
         if not gn:
             return
         gns = gn.split(';')
-        hots = []
+        defHots = []
+        clsHots = []
         notHots = []
         for g in gns:
-            if self.isInHot(g):
-                hots.append(g)
-            else:
-                notHots.append(g)
-        for h in hots:
-            self.richRender.addText(h, self.HOT_COLOR)
+           info = self.getTypeNameAndColor(g, True)
+           if info[0] == 1: defHots.append(info)
+           elif info[0] == 2: clsHots.append(info)
+           else: notHots.append(info)
+        for h in defHots:
+            self.richRender.addText(h[1], h[2])
+            self.richRender.addText(' | ', self.DEF_COLOR)
+        for h in clsHots:
+            self.richRender.addText(h[1], h[2])
             self.richRender.addText(' | ', self.DEF_COLOR)
         for h in notHots:
-            self.richRender.addText(h, self.DEF_COLOR)
+            self.richRender.addText(h[1], h[2])
             self.richRender.addText(' | ', self.DEF_COLOR)
-
-        lastHotGns = self.hotGns[ : ]
-        for h in hots:
-            self.removeHotGn(lastHotGns, h)
-        self.removeHotGn(lastHotGns, data['hy_2_name'])
-        self.removeHotGn(lastHotGns, data['hy_3_name'])
-        for h in lastHotGns:
+        for h in self.hotGns:
             self.richRender.addText(h + ' ', 0x404040)
 
-    def getBkColor(self, bk):
-        return self.HOT_COLOR if self.isInHot(bk) else self.DEF_COLOR
+    def getTypeNameAndColor(self, bk, remove):
+        idx = self.getDefHotIndex(bk)
+        if idx >= 0:
+            if remove: self.hotGns.pop(idx)
+            return 1, bk, self.HOT_DEF_COLOR
+        idx = self.getClsHotIndex(bk)
+        if idx >= 0:
+            thsName, num, clsName = self.clsHotTc[idx]
+            self.clsHotTc.pop(idx)
+            name = f'{bk}（{num} {clsName}）'
+            return 2, name, self.HOT_CLS_COLOR
+        return 3, bk, self.DEF_COLOR
 
-    def isInHot(self, bk):
-        for h in self.hotGns:
-            if h in bk:
-                return True
-        return False
+    def getBkColor(self, bk):
+        if self.getDefHotIndex(bk):
+            return self.HOT_DEF_COLOR
+        if self.getClsHotIndex(bk) >= 0:
+            return self.HOT_CLS_COLOR
+        return self.DEF_COLOR
+
+    def getDefHotIndex(self, bk):
+        for i, h in enumerate(self.hotGns):
+            if h in bk or bk in h:
+                return i
+        return -1
     
-    def removeHotGn(self, hotGns : list, gn):
+    def getClsHotIndex(self, bk):
+        for i, it in enumerate(self.clsHotTc):
+            thsName, num, clsName = it
+            ts = thsName or clsName
+            ts = ts.split(',')
+            for t in ts:
+                t = t.strip()
+                if t in bk or bk in t:
+                    return i
+        return -1
+    
+    def removeDefHotGn(self, hotGns : list, gn):
         for i, h in enumerate(hotGns):
             if h in gn:
                 hotGns.pop(i)
@@ -1770,15 +1821,17 @@ def test():
     pass
 
 if __name__ == '__main__':
-    ed = RecordWindow() # richeditor.RichEditor()
-    ed.createWindow(None, (100, 100, 500, 300), win32con.WS_OVERLAPPEDWINDOW)
-    win32gui.ShowWindow(ed.hwnd, win32con.SW_SHOW)
+    #win = RecordWindow() # richeditor.RichEditor()
+    win = BkGnWindow()
+    win.createWindow(None)
+    win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
+    win.changeCode('600171')
     win32gui.PumpMessages()
 
-    import ths_win
-    thsWin = ths_win.ThsWindow()
-    thsWin.init()
-    rwin = ToolBarWindow()
-    rwin.createWindow(thsWin.topHwnd)
-    win32gui.ShowWindow(rwin.hwnd, win32con.SW_SHOW)
-    win32gui.PumpMessages()
+    #import ths_win
+    #thsWin = ths_win.ThsWindow()
+    #thsWin.init()
+    #rwin = ToolBarWindow()
+    #rwin.createWindow(thsWin.topHwnd)
+    #win32gui.ShowWindow(rwin.hwnd, win32con.SW_SHOW)
+    #win32gui.PumpMessages()
