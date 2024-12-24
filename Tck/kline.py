@@ -2511,13 +2511,14 @@ class KLineWindow(base_win.BaseWindow):
         win32gui.DrawText(hdc, day, len(day), rc, win32con.DT_CENTER)
 
     def initHyGnRender(self):
-        if not self.model:
+        if not self.model or not self.model.data:
             return
         code = self.model.code
-        if self.hygnRender and self.hygnRender.code == code:
+        day = self.model.data[self.selIdx].day
+        if self.hygnRender and self.hygnRender._code == code:
             return
         self.hygnRender = ext_win.RichTextRender(14)
-        self.hygnRender.code = code
+        self.hygnRender._code = code
         from THS import tips_win
         rr = tips_win.BkGnWindow()
         rr.DEF_COLOR = 0x22cc22

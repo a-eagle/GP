@@ -383,11 +383,11 @@ def download_zt_lianban(day = None):
         traceback.print_exc()
     return None
 
-def getTradeDays():
+def getTradeDays(prev = 60):
     try:
         today = datetime.date.today()
         today = today.strftime('%Y%m%d')
-        resp = requests.get(f'https://data.10jqka.com.cn/dataapi/limit_up/trade_day?date={today}&stock=stock&next=1&prev=60')
+        resp = requests.get(f'https://data.10jqka.com.cn/dataapi/limit_up/trade_day?date={today}&stock=stock&next=1&prev={prev}')
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         data = js['data']

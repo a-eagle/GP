@@ -129,16 +129,19 @@ class Server:
         if curTime >= '09:30' and curTime <= '16:00':
             self.downloadClsZT()
 
-    def loadHotTc(self):
+    def loadHotTc(self, daysNum = 10):
         try:
             if time.time() - self._lastLoadHotTcTime < 30:
                 return
-            days = ths_iwencai.getTradeDays()
+            st = datetime.datetime.now().strftime('%H:%M')
+            if st < '09:30' or st > '15:00':
+                return
+            days = ths_iwencai.getTradeDays(daysNum)
             if not days:
                 return
             maxDay = tck_orm.CLS_HotTc.select(pw.fn.max(tck_orm.CLS_HotTc.day)).scalar()
             if not maxDay:
-                maxDay = days[-10]
+                maxDay = days[- min(daysNum, len(days))]
             maxDay = maxDay.replace('-', '')
             for d in days:
                 if d >= maxDay:
@@ -180,7 +183,7 @@ def do_reason():
 
 if __name__ == '__main__':
     svr = Server()
-    svr.loadHotTc()
+    svr.loadHotTc(60)
     #downloadClsZT()
     #tryDownloadDegree()
     pass
