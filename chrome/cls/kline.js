@@ -402,7 +402,7 @@ class TimeLineView extends Listener {
             thiz.mouseMove(e.offsetX, e.offsetY, true);
         });
         canvas.addEventListener('mouseleave', function(e) {
-            //thiz.mouseLeave(true);
+            thiz.mouseLeave(true);
         });
         this.canvas = canvas;
         canvas.width = this.width  = width;
@@ -778,7 +778,7 @@ class TimeLineUIManager extends Listener {
         this.views.push(view);
         view.addListener('MouseMove', function(event) {thiz.onUserEvent(event);});
         //view.addListener('Click', function(event) {thiz.onUserEvent(event);});
-        //view.addListener('MouseLeave', function(event) {thiz.onUserEvent(event);});
+        view.addListener('MouseLeave', function(event) {thiz.onUserEvent(event);});
     }
 
     onUserEvent(event) {
@@ -789,7 +789,7 @@ class TimeLineUIManager extends Listener {
             if (event.source != cur) {
                 if (event.name == 'MouseMove') cur.mouseMove(event.x, event.y, false);
                 // else if (event.name == 'Click') cur.click(event.x, event.y, false);
-                //else if (event.name == 'MouseLeave') cur.mouseLeave(false);
+                else if (event.name == 'MouseLeave') cur.mouseLeave(false);
             }
             cur.notify(newEvent);
         }

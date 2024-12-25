@@ -18,6 +18,7 @@ class KPL_ZT(pw.Model):
         database = db_tck
         table_name = '开盘啦涨停'
 
+# 开盘啦市场情绪
 class KPL_SCQX(pw.Model):
     day = pw.CharField()
     zhqd = pw.IntegerField(column_name='综合强度')
@@ -26,6 +27,7 @@ class KPL_SCQX(pw.Model):
         database = db_tck
         table_name = '开盘啦市场情绪'
 
+# 同花顺涨停
 class THS_ZT(pw.Model):
     code = pw.CharField()
     name = pw.CharField(null = True)
@@ -42,6 +44,7 @@ class THS_ZT(pw.Model):
         database = db_tck
         table_name = '同花顺涨停'
 
+# 财联社涨停
 class CLS_ZT(pw.Model):
     day = pw.CharField() # YYYY-MM-DD
     code = pw.CharField()
@@ -54,6 +57,7 @@ class CLS_ZT(pw.Model):
         database = db_tck
         table_name = '财联社涨停'
 
+# 综合强度
 class CLS_SCQX(pw.Model):
     day = pw.CharField() # YYYY-MM-DD
     zhqd = pw.IntegerField(column_name='综合强度')
@@ -62,6 +66,7 @@ class CLS_SCQX(pw.Model):
         database = db_tck
         table_name = '财联社市场情绪'
 
+# 财联社热度题材
 class CLS_HotTc(pw.Model):
     day = pw.CharField() # YYYY-MM-DD
     name = pw.CharField()
@@ -72,16 +77,21 @@ class CLS_HotTc(pw.Model):
         database = db_tck
         table_name = '财联社热度题材'
 
-cls_ths_names = {
-    '旅游酒店': '旅游及酒店',
-    '高铁及轨交': '高铁,轨交设备',
-    '大金融': '多元金融,互联网金融',
-    '芯片产业链': '半导体,芯片',
-    '高速连接器': '高速连接'
-}
+# 财联社同花顺题材
+class CLS_THS_Tc(pw.Model):
+    clsName = pw.CharField()
+    thsName = pw.CharField() # 对应多个时用逗号分隔
 
-def clsTcName2ThsName(clsTcName):
-    return cls_ths_names.get(clsTcName, '')
+    class Meta:
+        database = db_tck
+        table_name = '财联社同花顺题材'
 
+def getClsThsNames():
+    rs = {}
+    for it in CLS_THS_Tc.select():
+        if it.clsName and it.thsName:
+            rs[it.clsName.strip()] = it.thsName.strip()
+    return rs
+        
 #db_tck.drop_tables([CLS_HotTc])
-db_tck.create_tables([THS_ZT, CLS_ZT, KPL_ZT, KPL_SCQX, CLS_SCQX, CLS_HotTc])
+db_tck.create_tables([THS_ZT, CLS_ZT, KPL_ZT, KPL_SCQX, CLS_SCQX, CLS_HotTc, CLS_THS_Tc])

@@ -1616,9 +1616,10 @@ class BkGnWindow(base_win.BaseWindow):
         fromDay = days[-1]
         rs = []
         qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.name, pw.fn.count()).where(tck_orm.CLS_HotTc.day >= fromDay, tck_orm.CLS_HotTc.up == True).group_by(tck_orm.CLS_HotTc.name).tuples()
+        clsThsNames = tck_orm.getClsThsNames()
         for it in qr:
             clsName, num = it
-            thsNames = tck_orm.clsTcName2ThsName(clsName)
+            thsNames = clsThsNames(clsName, '')
             rs.append((thsNames.strip(), num, clsName))
         self.clsHotTc = rs
 
