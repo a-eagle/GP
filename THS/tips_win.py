@@ -1563,7 +1563,7 @@ class BkGnWindow(base_win.BaseWindow):
                 if not evt.ok:
                     return
                 self.saveDefHotGn(evt.text)
-                self.buildBkgn()
+                self.buildBkgn(self.curCode)
                 self.invalidWindow()
             dlg.addNamedListener('InputEnd', onInputEnd)
             dlg.createWindow(win32gui.GetParent(self.hwnd), (prc[0], prc[1], 450, 200), title = '设置热点概念')

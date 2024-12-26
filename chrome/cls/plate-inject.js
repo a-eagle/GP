@@ -4,6 +4,7 @@ let thread = new Thread();
 let tlMgr = new TimeLineUIManager();
 const ADD_WIDTH = 300;
 var stockDatas = null;
+var stockDatasMap = {};
 var stocksTable = null;
 var stocksTrs = {};
 var lastSortHeader = null;
@@ -146,8 +147,16 @@ function buildNewUI() {
         return '<td style="color:#52C2A3;">' + val + '%</td>';
     }
 
+    function stdCode(code) {
+        let tag = code.substring(0, 2);
+        if (tag == 'sz' || tag == 'sh') {
+            return code.substring(2);
+        }
+        return null;
+    }
+
     let tab = $('<table id="my-stoks-table"> </table>');
-    let hds = $('<tr style="vertical-align: middle;"> <th width=50></th> <th width=100>股票</th> <th width=80>价格</th> <th width=80 class="s" a="change">涨幅</th> <th width=80 class="s" a="head_num">领涨次数</th> <th width=80 class="s" a="cmc" >流通市值</th> <th width=100 class="s" a="fundflow">资金流向</th>  <th width=300>简介</th> <th width=300 >分时图</th> </tr>');
+    let hds = $('<tr style="vertical-align: middle;"> <th width=50></th> <th width=90>股票</th> <th width=70>价格</th> <th width=70 class="s" a="change">涨幅</th>  <th width=70 class="s" a="zs">涨速</th> <th width=70 class="s" a="head_num">领涨次数</th> <th width=70 class="s" a="cmc" >流通市值</th> <th width=90 class="s" a="fundflow">资金流向</th>  <th width=300>简介</th> <th width=300 >分时图</th> </tr>');
     let tds = hds.find('th.s');
     for (let i = 0; i < tds.length; i++) {
         let td = tds.eq(i);
@@ -158,20 +167,37 @@ function buildNewUI() {
     tab.append(hds);
     for (let i = 0; i < stockDatas.length; i++) {
         let sd = stockDatas[i];
+        let scode = stdCode(sd.secu_code);
+        if (! scode)
+            continue;
         let tr = $('<tr> <td style="text-align:center;">' + (i + 1) + ' </td> ' + 
-                '<td> <a href="https://www.cls.cn/stock?code=' + sd.secu_code + '" target=_blank> <span style="color:#383838; font-weight:bold;" >' + sd.secu_name + 
-                '</span><br/> <span style="color:#666;font-size:12px;"> ' + sd.secu_code + '</span> </a> </td> ' +
-                price(sd) + zf(sd) + 
+                '<td> <a href="https://www.cls.cn/stock?code=' + sd.secu_code + '" target=_blank> <span style="color:#383838; font-weight:bold;" >' + 
+                sd.secu_name + '</span> </a> <br/> <span style="color:#666;font-size:12px;"> ' + scode + '</span></td> ' +
+                price(sd) + zf(sd) + '<td class="zs"> </td>' +
                 '<td>' + sd.head_num + ' </td> <td>' + parseInt(sd.cmc / 100000000)+ '亿 </td> <td>' +
                 parseInt(sd.fundflow / 10000) + '万 </td>  <td class="pl20" title="' + sd.assoc_desc + '" style="font-size:12px;">' + 
                 elipse(sd.assoc_desc) + ' </td>  <td class="fs"> </td>  </tr>');
         let view = createTimeLineView(sd.secu_code, 300, 60);
         tr.find('td.fs').append(view.canvas);
         tab.append(tr);
+        view.addListener('LoadDataEnd', onLoadFsDataEnd);
         stocksTrs[sd.secu_code] = tr;
     }
     stocksTable = tab;
     $('table.watch-table').replaceWith(stocksTable);
+}
+
+function onLoadFsDataEnd(evt) {
+    let view = evt.src;
+    let maxZs = view.getMaxZs();
+    if (! maxZs) {
+        return;
+    }
+    let zf = maxZs.zf;
+    let td = $(view.canvas).parent().parent().find('td.zs');
+    let sd = stockDatasMap[view.code];
+    sd.zs = zf;
+    td.text('' + zf.toFixed(1) + '%');
 }
 
 function sortNumberBy(name, asc) {
@@ -182,10 +208,13 @@ function sortNumberBy(name, asc) {
     for (k in stocksTrs) {
         stocksTrs[k].detach();
     }
+    let no = 1;
     for (let i = 0; i < stockDatas.length; i++) {
         let code = stockDatas[i].secu_code;
-        stocksTable.append(stocksTrs[code]);
-        stocksTrs[code].find('td:first').text(String(i + 1));
+        if (stocksTrs[code]) {
+            stocksTable.append(stocksTrs[code]);
+            stocksTrs[code].find('td:first').text(String(no ++));
+        }
     }
 }
 
@@ -231,7 +260,12 @@ function loadStoksData() {
     $.ajax({
         url: url, type: 'GET',
         success: function(resp) {
-            stockDatas = resp.data.stocks;
+            let sd = resp.data.stocks;
+            for (let i = 0; i < sd.length; i++) {
+                sd[i].zs = 0;
+                stockDatasMap[sd[i].secu_code] = sd[i];
+            }
+            stockDatas = sd;
         }
     });
 }

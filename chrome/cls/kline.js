@@ -392,8 +392,9 @@ class KLineView extends Listener {
         });
     }
 }
-    
+
 class TimeLineView extends Listener {
+    
     constructor(width, height) {
         super();
         this.data = null;
@@ -412,6 +413,10 @@ class TimeLineView extends Listener {
         this.ctx = canvas.getContext("2d");
         this.updateTime = 0; // load timeline data time mili-seconds
         this.code = null; // 股票代码
+
+        this.SPEED_PEROID = 10; //  时速周期 5 / 10 /15
+        this.MIN_ZHANG_SU = 5; // 最小涨速
+        this.zsResults = []; //涨速
     }
 
     setData(data) {
@@ -437,6 +442,60 @@ class TimeLineView extends Listener {
         data.high = high;
         data.close = ln[ln.length - 1].price;
         this.code = data.code;
+        this.fx();
+    }
+
+    fx() {
+        let data = this.data.line;
+        for (let i = 0; i < data.length - 1; i++) {
+            let m = data[i];
+            let mm = this._calcMaxPrice(i, Math.min(data.length, i + this.SPEED_PEROID));
+            let maxIdx = mm[0], maxPrice = mm[1];
+            if (maxIdx < 0)
+                continue;
+            let me = data[maxIdx];
+            let pre = data[i].price;
+            if (pre <= 0)
+                continue;
+            let zf = (maxPrice - pre) / pre * 100;
+            if (zf < this.MIN_ZHANG_SU)
+                continue;
+            if (this.zsResults.length > 0) {
+                let last = this.zsResults[this.zsResults.length - 1];
+                if (last['zf'] <= zf)
+                    this.zsResults.pop();  // remove last, replace it
+                else
+                    continue // skip
+            }
+            let curJg = {'fromMinute': m.time, 'endMinute': me.time, 'minuts': maxIdx - i + 1, 'fromIdx' : i, 'endIdx': maxIdx, 'zf': zf};
+            this.zsResults.push(curJg);
+        }
+    }
+
+    // 最大涨速 {fromMinute: , endMinute, minuts, fromIdx, endIdx, zf}
+    getMaxZs() {
+        let maxVal = null;
+        for (let i = 0; i < this.zsResults.length; i++) {
+            let it = this.zsResults[i];
+            if (!maxVal) 
+                maxVal = it;
+            else if (maxVal.zf < it.zf)
+                maxVal = it;
+        }
+        return maxVal;
+    }
+
+    _calcMaxPrice(fromIdx, endIdx) {
+        let maxIdx = -1;
+        let maxPrice = 0;
+        for (let i = fromIdx; i < endIdx; i++) {
+            let m = this.data.line[i];
+            if (m.price > maxPrice) {
+                maxPrice = m.price;
+                maxIdx = i;
+            }
+        }
+        return [maxIdx, maxPrice]
     }
 
     calcMinMax() {
@@ -494,6 +553,16 @@ class TimeLineView extends Listener {
         ctx.strokeStyle = this.getLineColor(tag);
         ctx.beginPath();
         ctx.setLineDash([]);
+
+        for (let i = 0; i < this.zsResults.length; i++) {
+            let zs = this.zsResults[i];
+            let x = zs.fromIdx * pointsDistance;
+            let ex = zs.endIdx * pointsDistance;
+            ctx.fillStyle = '#d0d0d0';
+            ctx.fillRect(x, 0, ex - x, this.height);
+        }
+        
+        ctx.fillStyle = 'rgb(255, 255, 255)';
         for (let i = 0, pts = 0; i < this.data.line.length; i++) {
             if (i % POINT_NN != 0) {
                 continue;
@@ -610,10 +679,11 @@ class TimeLineView extends Listener {
     // cb(code, TimeLineView)
     loadData(code, cb) {
         let thiz = this;
+        this.code = code;
         this.loadData_(code, function(rs) {
             thiz.setData(rs);
             thiz.draw();
-            thiz.notify({name: 'LoadDataEnd' });
+            thiz.notify({name: 'LoadDataEnd', src: thiz});
             if (cb) cb(code, this);
         });
     }
