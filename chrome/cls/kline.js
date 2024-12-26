@@ -293,10 +293,12 @@ class KLineView extends Listener {
     }
 
     mouseLeave(notify) {
+        /*
         this.draw();
         if (notify) {
             this.notify({name : 'MouseLeave', source : this});
         }
+        */
     }
 
     limitLoadDataLength(len) {
@@ -597,10 +599,12 @@ class TimeLineView extends Listener {
     }
 
     mouseLeave(notify) {
+        /*
         this.draw();
         if (notify) {
             this.notify({name : 'MouseLeave', source : this});
         }
+        */
     }
 
     // cb(code, TimeLineView)

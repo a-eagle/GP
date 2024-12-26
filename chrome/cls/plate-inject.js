@@ -202,6 +202,12 @@ function bindMouseOver() {
 }
 
 function initPlatePage() {
+    let span = $('.stock-detail span:first');
+    if (span.length == 0) {
+        setTimeout(initPlatePage, 1000);
+        return;
+    }
+
     let lh = window.location.href;
     let TAG = 'https://www.cls.cn/plate?code=';
     let code = lh.substring(TAG.length);
@@ -209,10 +215,8 @@ function initPlatePage() {
     let ui = $(view.canvas);
     ui.css('margin-left', '50px').css('background-color', '#f8f8f8');
     ui.insertAfter('.stock-detail > span:eq(1)');
-    let span = $('.stock-detail span:first');
     let txt = span.text();
     span.html('<a href="https://www.cls.cn/stock?code=' + code + '" target=_blank>' + txt + ' </a> ');
-
     extendWidth($('div.w-1200'), ADD_WIDTH);
     extendWidth($('div.content-main-box div.watch-content-left'), ADD_WIDTH);
 }

@@ -9,7 +9,7 @@ from Download import datafile
 from THS import hot_utils
 from Download import henxin, cls
 from Common import base_win, ext_win, dialog, richeditor
-from orm import tck_orm, ths_orm, tck_def_orm
+from orm import tck_orm, ths_orm, tck_def_orm, cls_orm
 
 #-----------------------------------------------------------
 class ThsSortQuery:
@@ -1500,9 +1500,9 @@ class BkGnWindow(base_win.BaseWindow):
         self.maxMode = True
         self.curCode = None
         self.hotGnObj = None
-        self.hotGns = []
+        self.defHotGns = []
         self.richRender = None
-        self.clsHotTc = []
+        self.clsHotGns = []
 
     def createWindow(self, parentWnd, rect = None, style = win32con.WS_POPUP, className='STATIC', title=''):
         sz =  self.MAX_SIZE if self.maxMode else self.MIN_SIZE
@@ -1580,7 +1580,7 @@ class BkGnWindow(base_win.BaseWindow):
         scode = f'{code :06d}' if type(code) == int else code
         self.curCode = scode
         # load code info
-        self.buildBkgn()
+        self.buildBkgn(scode)
         self.invalidWindow()
 
     def saveDefHotGn(self, txt):
@@ -1591,19 +1591,19 @@ class BkGnWindow(base_win.BaseWindow):
         from orm import tck_def_orm
         qr = tck_def_orm.MyHotGn.select()
         self.hotGnObj = None
-        self.hotGns = []
+        self.defHotGns = []
         for obj in qr:
             self.hotGnObj = obj
             if obj.info:
                 sx = obj.info.replace('\n', ' ').split(' ')
                 for s in sx:
-                    if s.strip(): self.hotGns.append(s.strip())
+                    if s.strip(): self.defHotGns.append(s.strip())
             break
         if not self.hotGnObj:
             self.hotGnObj = tck_def_orm.MyHotGn.create(info = '')
 
-    # return [(ths-name, num, cls-name), ...]
-    def loadClsHotTc(self):
+    # return [(cls-name, num), ...]
+    def loadClsHotGn(self):
         from orm import tck_orm
         qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.day.distinct()).order_by(tck_orm.CLS_HotTc.day.desc()).tuples()
         days = []
@@ -1616,64 +1616,92 @@ class BkGnWindow(base_win.BaseWindow):
         fromDay = days[-1]
         rs = []
         qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.name, pw.fn.count()).where(tck_orm.CLS_HotTc.day >= fromDay, tck_orm.CLS_HotTc.up == True).group_by(tck_orm.CLS_HotTc.name).tuples()
-        clsThsNames = tck_orm.getClsThsNames()
         for it in qr:
             clsName, num = it
-            thsNames = clsThsNames.get(clsName, '')
-            rs.append((thsNames.strip(), num, clsName))
-        self.clsHotTc = rs
+            rs.append((clsName.strip(), num))
+        self.clsHotGns = rs
 
-    def buildBkgn(self):
+    def buildBkgn(self, code):
         self.loadDefHotGn()
-        self.loadClsHotTc()
+        self.loadClsHotGn()
         self.richRender.specs.clear()
-        obj = ths_orm.THS_GNTC.get_or_none(code = self.curCode)
-        if not obj:
-            return
-        data = obj.__data__
+        obj = ths_orm.THS_GNTC.get_or_none(code = code) or ths_orm.THS_GNTC()
+        obj2 = cls_orm.CLS_GNTC.get_or_none(code = code) or cls_orm.CLS_GNTC()
+        hy1 = ''
+        if obj.hy_2_name: hy1 = obj.hy_2_name + ';'
+        if obj.hy_3_name: hy1 += obj.hy_3_name
+        hys = self.buildBkInfos(hy1, obj2.hy)
         self.richRender.addText('【', self.DEF_COLOR)
-        info1 = self.getTypeNameAndColor(data['hy_2_name'], True)
-        self.richRender.addText(info1[1], info1[2])
-        self.richRender.addText(' | ', self.DEF_COLOR)
-        info2 = self.getTypeNameAndColor(data['hy_3_name'], True)
-        self.richRender.addText(info2[1], info2[2])
+        for idx, h in enumerate(hys):
+            if idx != 0:
+                self.richRender.addText(' | ', self.DEF_COLOR)
+            self.richRender.addText(h[1], h[2])
         self.richRender.addText('】 ', self.DEF_COLOR)
-        gn = data['gn']
-        if not gn:
-            return
-        gns = gn.split(';')
-        defHots = []
-        clsHots = []
-        notHots = []
-        for g in gns:
-           info = self.getTypeNameAndColor(g, True)
-           if info[0] == 1: defHots.append(info)
-           elif info[0] == 2: clsHots.append(info)
-           else: notHots.append(info)
-        for h in defHots:
+        
+        lastGns = self.buildBkInfos(obj.gn, obj2.gn)
+        lastGns.sort(key = lambda d: d[0])
+        for h in lastGns:
             self.richRender.addText(h[1], h[2])
             self.richRender.addText(' | ', self.DEF_COLOR)
-        for h in clsHots:
-            self.richRender.addText(h[1], h[2])
-            self.richRender.addText(' | ', self.DEF_COLOR)
-        for h in notHots:
-            self.richRender.addText(h[1], h[2])
-            self.richRender.addText(' | ', self.DEF_COLOR)
-        for h in self.hotGns:
-            self.richRender.addText(h + ' ', 0x404040)
+        #for h in self.defHotGns:
+        #    self.richRender.addText(h + ' ', 0x404040)
 
-    def getTypeNameAndColor(self, bk, remove):
+    # return (no, gn-name, color, type)
+    def buildBkInfos(self, thsGn, clsGn):
+        thsGn = thsGn or ''
+        clsGn = clsGn or '' 
+        gns = [] # item of {gn: xx, type: xx, same:xx}
+        gnsMap = {} # gn: obj
+        for g in thsGn.split(';'):
+            g = g.strip()
+            if not g: 
+                continue
+            item = {'gn': g, 'type': 'THS'}
+            gns.append(item)
+            gnsMap[g] = item
+        for g in clsGn.split(';'):
+            g = g.strip()
+            if not g: 
+                continue
+            if g in gnsMap:
+                item = gnsMap[g]
+                item['type'] = 'THS+CLS'
+            else:
+                item = {'gn': g, 'type': 'CLS'}
+                gns.append(item)
+        lastGns = []
+        for item in gns:
+            if item['type'] == 'THS':
+                info = self.getTypeNameAndColor_THS(item['gn'], True)
+            elif item['type'] == 'CLS':
+                info = self.getTypeNameAndColor_CLS(item['gn'], True)
+                info = info[0], '#' + info[1], info[2]
+            else: # THS+CLS
+                info1 = self.getTypeNameAndColor_THS(item['gn'], True)
+                info2 = self.getTypeNameAndColor_CLS(item['gn'], True)
+                no = min(info1[0], info2[0])
+                color = info1[2] if no == info1[0] else info2[2]
+                if no != 1: no -= 1
+                info = (no, '*' + info2[1], color)
+            lastGns.append(info)
+        return lastGns
+
+    def getTypeNameAndColor_THS(self, bk, remove):
         idx = self.getDefHotIndex(bk)
         if idx >= 0:
-            if remove: self.hotGns.pop(idx)
+            if remove: self.defHotGns.pop(idx)
             return 1, bk, self.HOT_DEF_COLOR
+        return 1000, bk, self.DEF_COLOR
+    
+    def getTypeNameAndColor_CLS(self, bk, remove):
         idx = self.getClsHotIndex(bk)
         if idx >= 0:
-            thsName, num, clsName = self.clsHotTc[idx]
-            self.clsHotTc.pop(idx)
-            name = f'{bk}（{num} {clsName}）'
-            return 2, name, self.HOT_CLS_COLOR
-        return 3, bk, self.DEF_COLOR
+            clsName, num = self.clsHotGns[idx]
+            if remove:
+                self.clsHotGns.pop(idx)
+            name = f'{bk}（{num}）'
+            return 100 - num, name, self.HOT_CLS_COLOR
+        return 2000, bk, self.DEF_COLOR
 
     def getBkColor(self, bk):
         if self.getDefHotIndex(bk):
@@ -1683,20 +1711,16 @@ class BkGnWindow(base_win.BaseWindow):
         return self.DEF_COLOR
 
     def getDefHotIndex(self, bk):
-        for i, h in enumerate(self.hotGns):
-            if h in bk or bk in h:
+        for i, h in enumerate(self.defHotGns):
+            if h == bk: # h in bk or bk in h
                 return i
         return -1
-    
+
     def getClsHotIndex(self, bk):
-        for i, it in enumerate(self.clsHotTc):
-            thsName, num, clsName = it
-            ts = thsName or clsName
-            ts = ts.split(',')
-            for t in ts:
-                t = t.strip()
-                if t in bk or bk in t:
-                    return i
+        for i, it in enumerate(self.clsHotGns):
+            clsName, num = it
+            if bk == clsName:
+                return i
         return -1
     
     def removeDefHotGn(self, hotGns : list, gn):
@@ -1826,7 +1850,7 @@ if __name__ == '__main__':
     win = BkGnWindow()
     win.createWindow(None)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
-    win.changeCode('600171')
+    win.changeCode('688800')
     win32gui.PumpMessages()
 
     #import ths_win
