@@ -12,9 +12,17 @@ class Server:
         self._runInfo = {}
         self._lastLoadTime = 0
         self._lastLoadHotTcTime = 0
+        self._lastLoadZSTime = 0
+        self._lastLoadBkGnTime = 0
 
     def now(self):
         return datetime.datetime.now().strftime('%H:%M')
+    
+    def formatNowTime(self, hasDay):
+        ts = datetime.datetime.now()
+        if hasDay:
+            return ts.strftime('%Y-%m-%d %H:%M')
+        return ts.strftime('%H:%M')
 
     def saveCls_ZT_One(self, it):
         insertNum, updateNum = 0, 0
@@ -169,6 +177,76 @@ class Server:
                 continue
             tck_orm.CLS_HotTc.create(day = day, name = d['symbol_name'], up = d['float'] == 'up', ctime = ctime)
 
+    # 指数（板块概念）
+    def downloadZS(self):
+        try:
+            if time.time() - self._lastLoadZSTime < 90 * 60:
+                return
+            st = datetime.datetime.now().strftime('%H:%M')
+            if st < '15:00' or st > '16:00':
+                return
+            rs = cls.ClsUrl().loadAllZS()
+            ex = {}
+            from orm import cls_orm
+            qt = cls_orm.CLS_ZS.select()
+            u, i = 0, 0
+            for it in qt:
+                ex[it.code] = it
+            for it in rs:
+                if it['code'] in ex:
+                    zs = ex[it['code']]
+                    if zs.name != it['name']:
+                        zs.name = it['name']
+                        zs.save()
+                        u += 1
+                else:
+                    cls_orm.CLS_ZS.create(code = it['code'], name = it['name'], type_ = it['type_'])
+                    i += 1
+            self._lastLoadZSTime = time.time()
+            console.writeln_1(console.GREEN, f'[CLS-ZS] {self.formatNowTime(True)} insert={i} update={u}')
+        except Exception as e:
+            traceback.print_exc()
+
+    # 个股概念板块
+    def downloadBkGn(self):
+        try:
+            if time.time() - self._lastLoadBkGnTime < 90 * 60:
+                return
+            st = datetime.datetime.now().strftime('%H:%M')
+            if st < '15:00' or st > '16:00':
+                return
+            from orm import ths_orm, cls_orm
+            qr = ths_orm.THS_GNTC.select().dicts()
+            zs = {}
+            def diff(old, new, names):
+                flag = False
+                for n in names:
+                    if getattr(old, n, '') != getattr(new, n, ''):
+                        setattr(old, n, getattr(new, n, ''))
+                        flag = True
+                return flag
+            attrs = ('name', 'gn', 'gn_code', 'hy', 'hy_code')
+            u, i = 0, 0
+            for it in qr:
+                code = it['code']
+                name = it['name']
+                info = cls.ClsUrl().loadBkGnOfCode(code, zs)
+                if not info:
+                    continue
+                info.name = name
+                obj = cls_orm.CLS_GNTC.get_or_none(code = code)
+                if obj:
+                    if diff(obj, info, attrs):
+                        obj.save() # update
+                        u += 1
+                else:
+                    info.save() # create new
+                    i += 1
+            self._lastLoadBkGnTime = time.time()
+            console.writeln_1(console.CYAN, f'[CLS-HyGn] {self.formatNowTime(True)} update {u}, insert {i}')
+        except Exception as e:
+            traceback.print_exc()
+
 def do_reason():
     qr = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day >= '2024-07-26')
     for it in qr:
@@ -183,7 +261,7 @@ def do_reason():
 
 if __name__ == '__main__':
     svr = Server()
-    svr.loadHotTc(60)
+    svr.downloadBkGn()
     #downloadClsZT()
     #tryDownloadDegree()
     pass

@@ -330,7 +330,78 @@ class ClsUrl:
         except Exception as e:
             traceback.print_exc()
         return None
-        
+    
+    # 所有的板块、概念
+    # type_ = 'industry' | 'concept'
+    # page = 1....
+    def _loadZS_TN(self, type_):
+        params = {
+            'app' :'CailianpressWeb', 'os': 'web', 'page': '100','type': type_,
+            'rever': '1', 'sv': '8.4.6', 'way': 'change'
+        }
+        url = f'https://x-quote.cls.cn/web_quote/plate/plate_list?' + self.signParams(params)
+        resp = requests.get(url)
+        txt = resp.content.decode('utf-8')
+        js = json.loads(txt)
+        isAll = js['data']['is_all'] # 是否是全部数据
+        data = js['data']['plate_data']
+        rs = []
+        stype = 'HY' if type_ == 'industry' else 'GN'
+        for d in data:
+            rs.append({'code': d['secu_code'], 'name': d['secu_name'], 'type_': stype})
+        return rs
+    
+    # 所有的板块、概念
+    def loadAllZS(self):
+        rs = self._loadZS_TN('industry')
+        rs2 = self._loadZS_TN('concept')
+        rs.extend(rs2)
+        return rs
+
+    # zs set to {}
+    def loadBkGnOfCode(self, code, zs = {}):
+        try:
+            from orm import cls_orm
+            if type(code) == int:
+                code = f'{code :06d}'
+            if code[0 : 2] in ('sh', 'sz'):
+                code = code[2 : ]
+            if code[0] not in ('0', '3', '6'):
+                return None
+            if not zs:
+                qr = cls_orm.CLS_ZS.select().dicts()
+                for it in qr:
+                    zs[it['code']] = it
+            params = f'app=CailianpressWeb&os=web&secu_code={self._getTagCode(code)}&sv=8.4.6'
+            url = 'https://x-quote.cls.cn/web_quote/stock/assoc_plate?' + self.signParams(params)
+            resp = requests.get(url)
+            cnt = resp.content.decode('utf-8')
+            js = json.loads(cnt)
+            data = js['data']
+            rs = cls_orm.CLS_GNTC()
+            rs.code = code
+            for d in data:
+                c, n = d['secu_code'], d['secu_name']
+                if c not in zs:
+                    continue
+                type_ = zs[c]['type_']
+                if type_ == 'HY': 
+                    rs.hy_code += c + ';'
+                    rs.hy += n + ';'
+                else:
+                    rs.gn_code += c + ';'
+                    rs.gn += n + ';'
+            if rs.gn_code:
+                rs.gn_code = rs.gn_code[0 : -1]
+                rs.gn = rs.gn[0 : -1]
+            if rs.hy_code:
+                rs.hy_code = rs.hy_code[0 : -1]
+                rs.hy = rs.hy[0 : -1]
+            return rs
+        except Exception as e:
+            traceback.print_exc()
+        return None
+
 class ClsDataFile(datafile.DataFile):
     def __init__(self, code, dataType):
         #super().__init__(code, dataType, flag)
@@ -359,8 +430,8 @@ if __name__ == '__main__':
     #print(m)
     #signByStr('app=CailianpressWeb&fields=date,minute,last_px,business_balance,business_amount,open_px,preclose_px,av_px&os=web&secu_code=sz301488&sv=7.7.5')
     cu = ClsUrl()
-    ds = cu.loadHistory5FenShi('cls82545') #cls80133
-    print(ds)
+    ds = cu.loadBkGnOfCode('688256')
+    print(ds.__data__)
     #ClsUrl().loadDegree()
     pass
     #u = ClsUrl()

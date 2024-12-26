@@ -16,7 +16,6 @@ class KPL_ZT(pw.Model):
 
     class Meta:
         database = db_tck
-        table_name = '开盘啦涨停'
 
 # 开盘啦市场情绪
 class KPL_SCQX(pw.Model):
@@ -25,7 +24,6 @@ class KPL_SCQX(pw.Model):
 
     class Meta:
         database = db_tck
-        table_name = '开盘啦市场情绪'
 
 # 同花顺涨停
 class THS_ZT(pw.Model):
@@ -42,7 +40,6 @@ class THS_ZT(pw.Model):
 
     class Meta:
         database = db_tck
-        table_name = '同花顺涨停'
 
 # 财联社涨停
 class CLS_ZT(pw.Model):
@@ -55,7 +52,6 @@ class CLS_ZT(pw.Model):
 
     class Meta:
         database = db_tck
-        table_name = '财联社涨停'
 
 # 综合强度
 class CLS_SCQX(pw.Model):
@@ -64,7 +60,6 @@ class CLS_SCQX(pw.Model):
 
     class Meta:
         database = db_tck
-        table_name = '财联社市场情绪'
 
 # 财联社热度题材
 class CLS_HotTc(pw.Model):
@@ -75,7 +70,6 @@ class CLS_HotTc(pw.Model):
 
     class Meta:
         database = db_tck
-        table_name = '财联社热度题材'
 
 # 财联社同花顺题材
 class CLS_THS_Tc(pw.Model):
@@ -84,7 +78,6 @@ class CLS_THS_Tc(pw.Model):
 
     class Meta:
         database = db_tck
-        table_name = '财联社同花顺题材'
 
 def getClsThsNames():
     rs = {}

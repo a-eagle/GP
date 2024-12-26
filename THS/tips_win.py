@@ -1619,7 +1619,7 @@ class BkGnWindow(base_win.BaseWindow):
         clsThsNames = tck_orm.getClsThsNames()
         for it in qr:
             clsName, num = it
-            thsNames = clsThsNames(clsName, '')
+            thsNames = clsThsNames.get(clsName, '')
             rs.append((thsNames.strip(), num, clsName))
         self.clsHotTc = rs
 

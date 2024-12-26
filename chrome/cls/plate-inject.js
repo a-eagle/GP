@@ -113,6 +113,8 @@ function sortHead() {
 }
 
 function buildNewUI() {
+    if ($('.toggle-nav-active').text() != '股票池')
+        return;
     if (! stockDatas) {
         return;
     }
@@ -156,9 +158,11 @@ function buildNewUI() {
     tab.append(hds);
     for (let i = 0; i < stockDatas.length; i++) {
         let sd = stockDatas[i];
-        let tr = $('<tr> <td style="text-align:center;">' + (i + 1) + ' </td> <td> <span style="color:#383838; font-weight:bold;" >' + sd.secu_name +
-                '</span><br/> <span style="color:#666;font-size:12px;"> ' + sd.secu_code + '</span> </td> ' + price(sd) +
-                zf(sd) + ' <td>' + sd.head_num + ' </td> <td>' + parseInt(sd.cmc / 100000000)+ '亿 </td> <td>' +
+        let tr = $('<tr> <td style="text-align:center;">' + (i + 1) + ' </td> ' + 
+                '<td> <a href="https://www.cls.cn/stock?code=' + sd.secu_code + '" target=_blank> <span style="color:#383838; font-weight:bold;" >' + sd.secu_name + 
+                '</span><br/> <span style="color:#666;font-size:12px;"> ' + sd.secu_code + '</span> </a> </td> ' +
+                price(sd) + zf(sd) + 
+                '<td>' + sd.head_num + ' </td> <td>' + parseInt(sd.cmc / 100000000)+ '亿 </td> <td>' +
                 parseInt(sd.fundflow / 10000) + '万 </td>  <td class="pl20" title="' + sd.assoc_desc + '" style="font-size:12px;">' + 
                 elipse(sd.assoc_desc) + ' </td>  <td class="fs"> </td>  </tr>');
         let view = createTimeLineView(sd.secu_code, 300, 60);
@@ -192,11 +196,6 @@ function startBuildUI() {
     setInterval(buildNewUI, 1000);
 }
 
-function initTimelineUI() {
-    extendWidth($('div.w-1200'), ADD_WIDTH);
-    extendWidth($('div.content-main-box div.watch-content-left'), ADD_WIDTH);
-}
-
 function bindMouseOver() {
     let table = $('table.watch-table');
     
@@ -213,14 +212,9 @@ function initPlatePage() {
     let span = $('.stock-detail span:first');
     let txt = span.text();
     span.html('<a href="https://www.cls.cn/stock?code=' + code + '" target=_blank>' + txt + ' </a> ');
-}
 
-let url = window.location.href;
-if (url.indexOf('https://www.cls.cn/plate?code=') >= 0) {
-    $(function() {
-        initPlatePage();
-        initTimelineUI();
-    });
+    extendWidth($('div.w-1200'), ADD_WIDTH);
+    extendWidth($('div.content-main-box div.watch-content-left'), ADD_WIDTH);
 }
 
 function loadStoksData() {
@@ -253,5 +247,6 @@ function initStyle() {
 }
 
 initStyle();
-loadStoksData();
+initPlatePage();
 startBuildUI();
+loadStoksData();
