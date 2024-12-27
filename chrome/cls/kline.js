@@ -54,6 +54,8 @@ class KLineView extends Listener {
         this.klineRect = new Rect(10, 20, width - 20, height - ZB_HEIGHT * 2);
         this.rateRect = new Rect(this.klineRect.left, this.klineRect.bottom, this.klineRect.right, this.klineRect.bottom + ZB_HEIGHT);
         this.amountRect = new Rect(this.klineRect.left, this.rateRect.bottom, this.klineRect.right, this.rateRect.bottom + ZB_HEIGHT);
+        this.rateRender = new RateAmountRender(this, this.rateRect.width(), this.rateRect.height(), 'rate');
+        this.amountRender = new RateAmountRender(this, this.amountRect.width(), this.amountRect.height(), 'amount');
         
         let canvas = $('<canvas style="width: ' + width + 'px; height: ' + height + 'px; " />');
         this.canvas = canvas.get(0);
@@ -204,7 +206,8 @@ class KLineView extends Listener {
             return;
         }
         this.drawKLine();
-        this.drawRate();
+        this.rateRender.draw(this.rateRect.left, this.rateRect.top);
+        this.amountRender.draw(this.amountRect.left, this.amountRect.top);
     }
 
     drawKLine() {
@@ -287,10 +290,14 @@ class KLineView extends Listener {
         }
         this.ctx.stroke();
         this.ctx.closePath();
-    }
 
-    drawRate() {
-
+        // draw split line
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = '#202020';
+        this.ctx.fillStyle = '#202020';
+        this.ctx.rect(0, this.klineRect.bottom - 3, this.width, 3);
+        this.ctx.fill();
+        this.ctx.closePath();
     }
 
     getPosIdx(x) {
@@ -749,7 +756,6 @@ class AttrRender {
         this.klineView = klineView;
         this.width  = width;
         this.height = height;
-        this.ctx = klineView.ctx;
         this.maxGlobalVal = 0;
         this.attrName = attrName;
     }
@@ -760,65 +766,94 @@ class AttrRender {
             return null;
         for (let i = 0; i < this.klineView.line.length; i++) {
             let cur = this.klineView.line[i];
-            if (min == 0 || min > cur[attrName]) {
-                min = cur[attrName];
+            if (min == 0 || min > cur[this.attrName]) {
+                min = cur[this.attrName];
             }
-            if (max == 0 || max < cur[attrName]) {
-                max = cur[attrName];
+            if (max == 0 || max < cur[this.attrName]) {
+                max = cur[this.attrName];
             }
         }
-        return {maxVal : max, minVal : min};
-    }
-    
-    setGlobalMaxVal(max) {
-        this.maxGlobalVal = max;
+        return {maxVal : Math.max(max, this.maxGlobalVal), minVal : min};
     }
 
     draw(rx, ry) {
         let mm = this.getMinMaxVal();
-        let maxVal = Math.max(this.maxGlobalVal, mm.maxVal);
-        if (maxVal <= 0) {
+        if (mm.maxVal <= 0) {
             return;
         }
+        let ctx = this.klineView.ctx;
         let range = this.klineView.visibleRange;
-        for (let i = range[0]; i < range[1]; i++) {
+        for (let i = range[0], k = 0; i < range[1]; i++, k++) {
             let data = this.klineView.line[i];
             if (! data) {
                 continue;
             }
             //绘制方块
-            this.ctx.beginPath();
-            let y = (1 - data[this.attrName] / maxVal) * this.height;
-            let x = i * (this.KLINE_WIDTH + this.KLINE_SPACE) + this.KLINE_SPACE;
-            this.ctx.rect(rx + x + 0.5, ry + y + 0.5, this.KLINE_WIDTH, this.height);
+            ctx.beginPath();
+            let y = (1 - data[this.attrName] / mm.maxVal) * this.height;
+            let x = k * (this.klineView.KLINE_WIDTH + this.klineView.KLINE_SPACE) + this.klineView.KLINE_SPACE;
+            ctx.rect(rx + x + 0.5, ry + y + 0.5, this.klineView.KLINE_WIDTH, this.height - y);
             if (data.close >= data.open) {
-                this.ctx.fillStyle = 'rgb(255, 255, 255)';
-                this.ctx.lineWidth = 1;
-                this.ctx.strokeStyle = "rgb(253,50,50)";
-                this.ctx.fill();
-                this.ctx.stroke();
+                ctx.fillStyle = 'rgb(253,50,50)';
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = "rgb(253,50,50)";
+                ctx.fill();
+                ctx.stroke();
             } else {
-                this.ctx.fillStyle = "rgb(84,252,252)";
-                this.ctx.strokeStyle = "rgb(84,252,252)";
-                this.ctx.lineWidth = 0;
-                this.ctx.fill();
-                this.ctx.stroke();
+                ctx.fillStyle = "rgb(84,252,252)";
+                ctx.strokeStyle = "rgb(84,252,252)";
+                ctx.lineWidth = 0;
+                ctx.fill();
+                ctx.stroke();
             }
-            this.ctx.closePath();
+            ctx.closePath();
         }
     }
 }
 
-class RateRender extends AttrRender {
-    constructor(klineView, width, height) {
-        super(klineView, width, height, 'rate');
+class RateAmountRender extends AttrRender {
+    constructor(klineView, width, height, attrName) {
+        super(klineView, width, height, attrName);
+        self.maxGlobalVal = 5;
     }
 
     draw(rx, ry) {
         super.draw(rx, ry);
         let mm = this.getMinMaxVal();
-        if (! mm || mm.maxVal < 5) {
+        let RR = this.attrName == 'amount' ? 100000000 : 1;
+        if (! mm || mm.maxVal < 5 * RR) {
             return;
+        }
+        let ctx = this.klineView.ctx;
+        if (mm.maxVal >= 5 * RR) {
+            ctx.beginPath();
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "#2222ff";
+            let y = (1 - 5 / mm.maxVal) * this.height;
+            ctx.moveTo(rx,  ry + y);
+            ctx.lineTo(rx + this.width, ry + y);
+            ctx.stroke();
+            ctx.closePath();
+        }
+        if (mm.maxVal >= 10 * RR) {
+            ctx.beginPath();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#EE00EE";
+            let y = (1 - 10 / mm.maxVal) * this.height;
+            ctx.moveTo(rx,  ry + y);
+            ctx.lineTo(rx + this.width, ry + y);
+            ctx.stroke();
+            ctx.closePath();
+        }
+        if (mm.maxVal >= 20 * RR) {
+            ctx.beginPath();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#ffff00";
+            let y = (1 - 20 / mm.maxVal) * this.height;
+            ctx.moveTo(rx,  ry + y);
+            ctx.lineTo(rx + this.width, ry + y);
+            ctx.stroke();
+            ctx.closePath();
         }
     }
 }

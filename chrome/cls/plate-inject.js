@@ -202,7 +202,7 @@ function openKLineDialog(code) {
     } else {
         klineDialog.empty();
     }
-    let kline = new KLineView(1500, 600);
+    let kline = new KLineView(1500, 650);
     klineDialog.append(kline.canvas);
     kline.loadData(code, 'DAY');
     klineDialog.get(0).showModal();
