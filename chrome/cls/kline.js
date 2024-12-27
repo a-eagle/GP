@@ -1,6 +1,3 @@
-var KLINE_SPACE = 4; // K线之间的间距
-var KLINE_WIDTH = 10; // K线的宽度
-
 class Listener {
     constructor() {
         this.listeners = {};
@@ -26,14 +23,39 @@ class Listener {
     }
 }
 
+class Rect {
+    constructor(l, t, r, b) {
+        this.left = l;
+        this.top = t;
+        this.right = r;
+        this.bottom = b;
+    }
+    width() {return this.right - this.left;}
+    height() {return this.bottom - this.top;}
+    isPointIn(x, y) {
+        return x >= this.left && x < this.right && y >= this.top && y < this.bottom;
+    }
+}
+
 class KLineView extends Listener {
     constructor(width, height) {
         super();
-        this.hilightPosIdx = -1;
+        this.KLINE_SPACE = 3; // K线之间的间距
+        this.KLINE_WIDTH = 4; // K线的宽度
+        this.kMaxValue = 0;
+        this.kMinValue = 0;
+        this.mouseXY = null;
+
+        this.visibleRange = null;
         this.selectPosIdxArr = [];
-        this.dataArr = [];
+        this.line = [];
+        this.code = null;
+        let ZB_HEIGHT = 100;
+        this.klineRect = new Rect(10, 20, width - 20, height - ZB_HEIGHT * 2);
+        this.rateRect = new Rect(this.klineRect.left, this.klineRect.bottom, this.klineRect.right, this.klineRect.bottom + ZB_HEIGHT);
+        this.amountRect = new Rect(this.klineRect.left, this.rateRect.bottom, this.klineRect.right, this.rateRect.bottom + ZB_HEIGHT);
         
-        let canvas = $('<canvas style="width: ' + width + 'px; height: ' + height + 'px; border-right: solid 1px #ccc;" />');
+        let canvas = $('<canvas style="width: ' + width + 'px; height: ' + height + 'px; " />');
         this.canvas = canvas.get(0);
         this.canvas.width = this.width  = width;
         this.canvas.height =  this.height = height;
@@ -54,25 +76,24 @@ class KLineView extends Listener {
         });
     }
 
-    // [ {date, open, close, low, high, vol, money, rate}, ... ]
-    setData(baseInfo, dataArr) {
-        this.dataArr = dataArr;
-        this.baseInfo = baseInfo;
+    // [ {date, open, close, low, high, vol, amount, rate, zf}, ... ]
+    setData(data) {
+        this.line = data;
     }
 
-    calcMinMax() {
+    calcMinMaxPrice(fromIdx, endIdx) {
         //算最大值，最小值
         let kMaxValue = 0;
         let kMinValue = 9999999;
-        for (var i = 0; i < this.dataArr.length; i++) {
-            if (! this.dataArr[i]) {
+        for (let i = fromIdx; i < endIdx; i++) {
+            if (! this.line[i]) {
                 continue;
             }
-            var barVal = this.dataArr[i].high;
+            var barVal = this.line[i].high;
             if (barVal > kMaxValue) {
                 kMaxValue = barVal;
             }
-            var barVal2 = this.dataArr[i].low;
+            var barVal2 = this.line[i].low;
             if (barVal2 < kMinValue) {
                 kMinValue = barVal2;
             }
@@ -81,18 +102,15 @@ class KLineView extends Listener {
         this.kMinValue = kMinValue;
     }
 
-    priceToPoint(pos, price) {
-        let x = pos * (KLINE_WIDTH + KLINE_SPACE) + KLINE_SPACE;
-        let y = parseInt(this.height * ( 1 - (price - this.kMinValue) / (this.kMaxValue - this.kMinValue)));
+    priceToKLinePoint(pos, price) {
+        let x = pos * (this.KLINE_WIDTH + this.KLINE_SPACE) + this.KLINE_SPACE;
+        let y = parseInt(this.klineRect.height() * ( 1 - (price - this.kMinValue) / (this.kMaxValue - this.kMinValue)));
         // y = Math.max(y, 0);
-        return { 'x': x, 'y': y };
+        return { 'x': x + this.klineRect.left, 'y': y + this.klineRect.top };
     }
 
     getCode() {
-        if (this.baseInfo) {
-            return this.baseInfo.code;
-        }
-        return '';
+        return this.code;
     }
 
     isZhiSu() { // 是否是指数
@@ -100,12 +118,12 @@ class KLineView extends Listener {
     }
 
     getZDTag(posIdx) {
-        let cur = this.dataArr[posIdx];
-        if (posIdx < 0 || !this.dataArr || posIdx >= this.dataArr.length || !cur) {
+        let cur = this.line[posIdx];
+        if (posIdx < 0 || !this.line || posIdx >= this.line.length || !cur) {
             return 'E'; // empty k-line
         }
-        if (posIdx > 0 && this.dataArr[posIdx - 1]['close']) {
-            let ZRDP = this.dataArr[posIdx - 1].close;
+        if (posIdx > 0 && this.line[posIdx - 1].close) {
+            let ZRDP = this.line[posIdx - 1].close;
             let is20P = this.getCode().substring(0, 3) == '688' || this.getCode().substring(0, 2) == '30';
             if (cur.date < 20200824) {
                 is20P = false;
@@ -155,12 +173,49 @@ class KLineView extends Listener {
         return "rgb(84,252,252)";
     }
 
+    // big = true | false
+    zoom(big) {
+        if (big) {
+            this.KLINE_WIDTH = Math.min(this.KLINE_WIDTH + 2, 10);
+            //this.KLINE_SPACE = Math.min(this.KLINE_SPACE + 1, 4);
+        } else {
+            this.KLINE_WIDTH = Math.max(this.KLINE_WIDTH - 2, 2);
+            //this.KLINE_SPACE = Math.max(this.KLINE_SPACE - 1, 1);
+        }
+    }
+
+    getVisibleRange() {
+        if (! this.line) {
+            return null;
+        }
+        let num = parseInt(this.klineRect.width() / (this.KLINE_WIDTH + this.KLINE_SPACE));
+        let fromIdx = Math.max(0, this.line.length - num);
+        return [fromIdx, this.line.length];
+    }
+
     draw() {
-        this.calcMinMax();
         this.ctx.clearRect(0, 0, this.width, this.height);
-        let kBarsNum = this.dataArr.length;
-        for (let i = 0; i < kBarsNum; i++) {
-            let data = this.dataArr[i];
+        if (! this.line || this.line.length == 0) {
+            return;
+        }
+        let range = this.getVisibleRange();
+        this.visibleRange = range;
+        if (! range) {
+            return;
+        }
+        this.drawKLine();
+        this.drawRate();
+    }
+
+    drawKLine() {
+        let range = this.visibleRange;
+        this.calcMinMaxPrice(range[0], range[1]);
+        if (this.mouseXY) {
+            let mousePos = this.getPosIdx(this.mouseXY[0]);
+            this.drawMouse(mousePos);
+        }
+        for (let i = range[0], k = 0; i < range[1]; i++, k++) {
+            let data = this.line[i];
             if (! data) {
                 continue;
             }
@@ -171,20 +226,20 @@ class KLineView extends Listener {
             this.ctx.beginPath();
             this.ctx.strokeStyle = color;
             this.ctx.lineWidth = 1;
-            let pt1 = this.priceToPoint(i, data.low);
-            let pt2 = this.priceToPoint(i, data.high);
-            this.ctx.moveTo(pt1.x + parseInt(KLINE_WIDTH / 2) + 0.5, pt1.y);
-            this.ctx.lineTo(pt2.x + parseInt(KLINE_WIDTH / 2) + 0.5, pt2.y);
+            let pt1 = this.priceToKLinePoint(k, data.low);
+            let pt2 = this.priceToKLinePoint(k, data.high);
+            this.ctx.moveTo(pt1.x + parseInt(this.KLINE_WIDTH / 2) + 0.5, pt1.y);
+            this.ctx.lineTo(pt2.x + parseInt(this.KLINE_WIDTH / 2) + 0.5, pt2.y);
             this.ctx.stroke();
             this.ctx.closePath();
             
             //绘制方块
             this.ctx.beginPath();
-            pt1 = this.priceToPoint(i, data.open);
-            pt2 = this.priceToPoint(i, data.close);
-            this.ctx.rect(pt1.x + 0.5, Math.min(pt1.y, pt2.y) + 0.5, KLINE_WIDTH, Math.abs(pt1.y - pt2.y));
+            pt1 = this.priceToKLinePoint(k, data.open);
+            pt2 = this.priceToKLinePoint(k, data.close);
+            this.ctx.rect(pt1.x + 0.5, Math.min(pt1.y, pt2.y) + 0.5, this.KLINE_WIDTH, Math.abs(pt1.y - pt2.y));
             if (data.close >= data.open) {
-                this.ctx.fillStyle = 'rgb(255, 255, 255)';
+                this.ctx.fillStyle = 'rgb(0, 0, 0)';
                 this.ctx.lineWidth = 1;
                 this.ctx.strokeStyle = color;
                 this.ctx.fill();
@@ -197,25 +252,61 @@ class KLineView extends Listener {
             }
             this.ctx.closePath();
         }
-        this.drawSelectMouse();
-        this.drawMouse(this.hilightPosIdx);
+
+        // draw ma5 ma10
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = '#ffff00';
+        this.ctx.lineWidth = 1;
+        for (let i = range[0], k = 0, st = false; i < range[1]; i++, k++) {
+            let data = this.line[i];
+            if (! data.ma5) continue;
+            let pt1 = this.priceToKLinePoint(k, data.ma5);
+            if (! st) {
+                this.ctx.moveTo(pt1.x + parseInt(this.KLINE_WIDTH / 2) + 0.5, pt1.y);
+                st = true;
+            } else {
+                this.ctx.lineTo(pt1.x + parseInt(this.KLINE_WIDTH / 2) + 0.5, pt1.y);
+            }
+        }
+        this.ctx.stroke();
+        this.ctx.closePath();
+
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = '#EE00EE';
+        this.ctx.lineWidth = 2;
+        for (let i = range[0], k = 0, st = false; i < range[1]; i++, k++) {
+            let data = this.line[i];
+            if (! data.ma10) continue;
+            let pt1 = this.priceToKLinePoint(k, data.ma10);
+            if (! st) {
+                this.ctx.moveTo(pt1.x + parseInt(this.KLINE_WIDTH / 2) + 0.5, pt1.y);
+                st = true;
+            } else {
+                this.ctx.lineTo(pt1.x + parseInt(this.KLINE_WIDTH / 2) + 0.5, pt1.y);
+            }
+        }
+        this.ctx.stroke();
+        this.ctx.closePath();
+    }
+
+    drawRate() {
+
     }
 
     getPosIdx(x) {
-        let nx = x - KLINE_SPACE;
-        let posIdx = parseInt(nx / (KLINE_WIDTH + KLINE_SPACE));
-        
-        if (posIdx >= this.dataArr.length) {
-            posIdx = -1;
-        } else if (posIdx < 0) {
-            pos = -1;
+        if (x < this.klineRect.left || x >= this.klineRect.right || !this.visibleRange) {
+            return -1;
         }
-        return posIdx;
+        let nx = Math.max(x - this.klineRect.left - this.KLINE_SPACE, 0);
+        let posIdx = parseInt(nx / (this.KLINE_WIDTH + this.KLINE_SPACE));
+        if (posIdx + this.visibleRange[0] < this.visibleRange[1])
+            return posIdx;
+        return -1;
     }
 
     getPosIdxByDate(date) {
-        for (let i = 0; i < this.dataArr.length; i++) {
-            if (this.dataArr[i] && this.dataArr[i]['date'] == date) {
+        for (let i = 0; i < this.line.length; i++) {
+            if (this.line[i] && this.line[i].date == date) {
                 return i;
             }
         }
@@ -223,55 +314,31 @@ class KLineView extends Listener {
     }
 
     drawMouse(posIdx) {
-        if (posIdx < 0 || posIdx >= this.dataArr.length) {
+        if (posIdx < 0) {
             return;
         }
-        let nx = posIdx * (KLINE_WIDTH + KLINE_SPACE) + KLINE_SPACE + parseInt(KLINE_WIDTH / 2);
+        let nx = posIdx * (this.KLINE_WIDTH + this.KLINE_SPACE) + this.KLINE_SPACE;
+        nx += this.klineRect.left;
         this.ctx.beginPath();
-        if (posIdx == this.hilightPosIdx) {
-            this.ctx.strokeStyle = '#0088ff' // '#7FFF00';
-            this.ctx.setLineDash([3, 4]);
-        } else {
-            this.ctx.strokeStyle = 'black';
-            this.ctx.setLineDash([1, 4]);
-        }
-        this.ctx.lineWidth = 1;
-        this.ctx.moveTo(nx + 0.5, 0);
-        this.ctx.lineTo(nx + 0.5, this.height);
+        this.ctx.fillStyle = '#505050';
+        this.ctx.strokeStyle = '#505050';
+        this.ctx.lineWidth = 0;
+        this.ctx.rect(nx, 0, this.KLINE_WIDTH, this.height);
+        this.ctx.fill();
         this.ctx.stroke();
         this.ctx.closePath();
-        this.ctx.setLineDash([]);
-    }
-
-    setSelectMouse(posIdx) {
-        let i = this.selectPosIdxArr.indexOf(posIdx);
-        if (i < 0)
-            this.selectPosIdxArr.push(posIdx);
-        else
-            this.selectPosIdxArr.splice(i, 1);
-    }
-
-    drawSelectMouse() {
-        for (let i in this.selectPosIdxArr) {
-            let pos = this.selectPosIdxArr[i];
-            this.drawMouse(pos);
-        }
-    }
-
-    setHilightMouse(posIdx) {
-        this.hilightPosIdx = posIdx;
     }
 
     mouseMove(x, y, notify) {
-        let pos = this.getPosIdx(x);
+        this.mouseXY = [x, y];
         this.draw();
-        this.drawMouse(pos);
         if (notify) {
-            this.notify({name : 'MouseMove', pos : pos, x : x, y : y, source : this});
+            this.notify({name : 'MouseMove', x : x, y : y, source : this});
         }
     }
 
     click(x, y, notify) {
+        return;
         let pos = this.getPosIdx(x);
         if (pos < 0) {
             return;
@@ -284,6 +351,7 @@ class KLineView extends Listener {
     }
 
     rightClick(x, y, notify) {
+        return;
         let pos = this.getPosIdx(x);
         this.setHilightMouse(pos);
         this.draw();
@@ -302,7 +370,7 @@ class KLineView extends Listener {
     }
 
     limitLoadDataLength(len) {
-        let arr = this.dataArr;
+        let arr = this.line;
         if (arr.length > len) {
             arr.splice(0, arr.length - len);
         }
@@ -311,85 +379,44 @@ class KLineView extends Listener {
         }
     }
 
-    loadData(code, limitConfig) {
+    // zq = 'DAY' 'WEEK' 'MONTH'
+    loadData(code, zq) {
         let thiz = this;
-        this.loadData_(code, limitConfig, function(info, klineInfo) {
-            thiz.setData(info, klineInfo);
-            // infoDiv.append(info.code + '<br/>' + info.name);
-            thiz.loadTodayData_(code, limitConfig, function(view) {
-                thiz.draw();
-                thiz.notify({name : 'LoadDataEnd'});
-            });
+        code = code.trim();
+        if (code.length == 8) {
+            code = code.substring(2);
+        }
+        if (code.length != 6) {
+            return;
+        }
+        this.code = code;
+        new ClsUrl().loadKline(code, 800, zq, function(data) {
+            let rs = [];
+            //console.log(data);
+            for (let i = 0; i < data.length; i++) {
+                rs.push(thiz.toStdKLine(data[i]));
+            }
+            thiz.setData(rs);
+            thiz.draw();
+            thiz.notify({name : 'LoadDataEnd'});
         });
     }
 
-    // limitConfig = {beginDate: xx,   endDate : xxx}
-    loadData_(code, limitConfig, callback) {
-        let url = getKLineUrl(code);
-        $.ajax({
-            url: url, type: 'GET', dataType : 'text',
-            success: function(data) {
-                let idx = data.indexOf('(');
-                let eidx = data.indexOf(')');
-                data = data.substring(idx + 1, eidx); 
-                data = JSON.parse(data);
-                // console.log(data);
-                let info = {code : code, name : data.name, today : data.today};
-                let klineInfo = [];
-                let klineDataArr = data.data.split(/;/g);
-                for (let i = 0; i < klineDataArr.length; i++) {
-                    let kv = klineDataArr[i].split(',');
-                    // first is date
-                    let date = parseFloat(kv[0]);
-                    if (date < limitConfig.beginDate || date > limitConfig.endDate) {
-                        continue;
-                    }
-                    let keys = ['date', 'open', 'high', 'low', 'close', 'vol', 'money', 'rate']; // vol: 单位股, money:单位元
-                    let item = {};
-                    for (let j = 0; j < keys.length; ++j) {
-                        item[keys[j]] = parseFloat(kv[j]);
-                    }
-                    klineInfo.push(item);
-                }
-                // console.log(info, klineInfo);
-                if (callback) {
-                    callback(info, klineInfo);
-                }
-            }
-        });
-    }
-
-    // limitConfig = {beginDate: xx,   endDate : xxx}
-    loadTodayData_(code, limitConfig, callback) {
-        let url = getTodayKLineUrl(code);
-        let thiz = this;
-        $.ajax({
-            url: url, type: 'GET', dataType : 'text',
-            success: function(data) {
-                let idx = data.indexOf(':{');
-                let eidx = data.indexOf('}}');
-                data = data.substring(idx + 1, eidx + 1);
-                data = JSON.parse(data);
-                let keys = ['date', 'open', 'high', 'low', 'close', 'vol', 'money', 'rate'];
-                let idxKeys = ['1', '7', '8', '9', '11', '13', '19', '1968584'];
-                
-                let item = {};
-                for (let j = 0; j < keys.length; ++j) {
-                    item[keys[j]] = parseFloat(data[idxKeys[j]]);
-                }
-                if (item.date >= limitConfig.beginDate && item.date <= limitConfig.endDate) {
-                    let last = thiz.dataArr[thiz.dataArr.length - 1];
-                    if (last.date == item.date) {
-                        thiz.dataArr.splice(thiz.dataArr.length - 1, 1);
-                    }
-                    thiz.dataArr.push(item);
-                }
-                console.log(thiz);
-                if (callback) {
-                    callback(thiz);
-                }
-            }
-        });
+    toStdKLine(item) {
+        let obj = new Object();
+        obj.date = item.date;
+        obj.open = item.open_px;
+        obj.close = item.close_px;
+        obj.low = item.low_px;
+        obj.high = item.high_px;
+        obj.vol = parseInt(item.business_amount);
+        obj.amount = parseInt(item.business_balance);
+        obj.pre = item.preclose_px;
+        obj.zf = item.change * 100; // 涨幅 %
+        obj.rate = item.tr * 100; // %
+        obj.ma5 = item.ma5 || 0;
+        obj.ma10 = item.ma10 || 0;
+        return obj;
     }
 }
 
@@ -420,7 +447,7 @@ class TimeLineView extends Listener {
     }
 
     setData(data) {
-        // {code: xx, date:xx, pre: xx, line: [{time, price, money, avgPrice, vol}, ...] }
+        // {code: xx, date:xx, pre: xx, line: [{time, price, amount, avgPrice, vol}, ...] }
         this.data = data;
         if (!data || !data['line'] || !data.line.length) {
             return;
@@ -709,7 +736,7 @@ class TimeLineView extends Listener {
             let ds = {code: code, date: data5.line[idx].date, pre: pre, line: []};
             for (let i = idx; i < data5.line.length; i++) {
                 let ct = data5.line[i];
-                ds.line.push({time: ct.minute, price: ct.last_px, money: ct.business_balance, avgPrice: ct.av_px});
+                ds.line.push({time: ct.minute, price: ct.last_px, amount: ct.business_balance, avgPrice: ct.av_px});
             }
             thiz.updateTime = Date.now();
             callback(ds);
@@ -717,31 +744,27 @@ class TimeLineView extends Listener {
     }
 }
 
-class VolView extends Listener {
-    constructor(klineView, width, height) {
-        super();
+class AttrRender {
+    constructor(klineView, width, height, attrName) {
         this.klineView = klineView;
-        let canvas = $('<canvas style="float-x: left; width: ' + width + 'px; height: ' + height + 'px; border-right: solid 1px #ccc;" />');
-        this.canvas = canvas.get(0);
-        this.canvas.width = this.width  = width;
-        this.canvas.height =  this.height = height;
-        this.ctx = this.canvas.getContext("2d");
-
+        this.width  = width;
+        this.height = height;
+        this.ctx = klineView.ctx;
         this.maxGlobalVal = 0;
+        this.attrName = attrName;
     }
 
     getMinMaxVal() {
         let min = 0, max = 0;
-        for (let i = 0; i < this.klineView.dataArr.length; i++) {
-            let cur = this.klineView.dataArr[i];
-            if (! cur || !cur['date']) {
-                continue;
+        if (! this.klineView.line)
+            return null;
+        for (let i = 0; i < this.klineView.line.length; i++) {
+            let cur = this.klineView.line[i];
+            if (min == 0 || min > cur[attrName]) {
+                min = cur[attrName];
             }
-            if (min == 0 || min > cur.money) {
-                min = cur.money;
-            }
-            if (max == 0 || max < cur.money) {
-                max = cur.money;
+            if (max == 0 || max < cur[attrName]) {
+                max = cur[attrName];
             }
         }
         return {maxVal : max, minVal : min};
@@ -751,24 +774,23 @@ class VolView extends Listener {
         this.maxGlobalVal = max;
     }
 
-    draw() {
+    draw(rx, ry) {
         let mm = this.getMinMaxVal();
         let maxVal = Math.max(this.maxGlobalVal, mm.maxVal);
         if (maxVal <= 0) {
             return;
         }
-        this.ctx.clearRect(0, 0, this.width, this.height);
-        let kBarsNum = this.klineView.dataArr.length;
-        for (let i = 0; i < kBarsNum; i++) {
-            let data = this.klineView.dataArr[i];
+        let range = this.klineView.visibleRange;
+        for (let i = range[0]; i < range[1]; i++) {
+            let data = this.klineView.line[i];
             if (! data) {
                 continue;
             }
             //绘制方块
             this.ctx.beginPath();
-            let y = (1 - data.money / maxVal) * this.height;
-            let x = i * (KLINE_WIDTH + KLINE_SPACE) + KLINE_SPACE;
-            this.ctx.rect(x + 0.5, y + 0.5, KLINE_WIDTH, this.height);
+            let y = (1 - data[this.attrName] / maxVal) * this.height;
+            let x = i * (this.KLINE_WIDTH + this.KLINE_SPACE) + this.KLINE_SPACE;
+            this.ctx.rect(rx + x + 0.5, ry + y + 0.5, this.KLINE_WIDTH, this.height);
             if (data.close >= data.open) {
                 this.ctx.fillStyle = 'rgb(255, 255, 255)';
                 this.ctx.lineWidth = 1;
@@ -783,6 +805,20 @@ class VolView extends Listener {
                 this.ctx.stroke();
             }
             this.ctx.closePath();
+        }
+    }
+}
+
+class RateRender extends AttrRender {
+    constructor(klineView, width, height) {
+        super(klineView, width, height, 'rate');
+    }
+
+    draw(rx, ry) {
+        super.draw(rx, ry);
+        let mm = this.getMinMaxVal();
+        if (! mm || mm.maxVal < 5) {
+            return;
         }
     }
 }

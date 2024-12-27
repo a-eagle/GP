@@ -8,6 +8,7 @@ var stockDatasMap = {};
 var stocksTable = null;
 var stocksTrs = {};
 var lastSortHeader = null;
+var klineDialog = null;
 
 function updateTimelineUI(code, tr) {
     let view = timelines[code];
@@ -170,7 +171,7 @@ function buildNewUI() {
         let scode = stdCode(sd.secu_code);
         if (! scode)
             continue;
-        let tr = $('<tr> <td style="text-align:center;">' + (i + 1) + ' </td> ' + 
+        let tr = $('<tr code = "' + sd.secu_code + '"> <td style="text-align:center;">' + (i + 1) + ' </td> ' + 
                 '<td> <a href="https://www.cls.cn/stock?code=' + sd.secu_code + '" target=_blank> <span style="color:#383838; font-weight:bold;" >' + 
                 sd.secu_name + '</span> </a> <br/> <span style="color:#666;font-size:12px;"> ' + scode + '</span></td> ' +
                 price(sd) + zf(sd) + '<td class="zs"> </td>' +
@@ -181,10 +182,30 @@ function buildNewUI() {
         tr.find('td.fs').append(view.canvas);
         tab.append(tr);
         view.addListener('LoadDataEnd', onLoadFsDataEnd);
+        tr.dblclick(function() {openKLineDialog($(this).attr('code'))});
         stocksTrs[sd.secu_code] = tr;
     }
     stocksTable = tab;
     $('table.watch-table').replaceWith(stocksTable);
+}
+
+function openKLineDialog(code) {
+    if (! klineDialog) {
+        klineDialog = $('<dialog class="kline"> </dialog>');
+        $(document.body).append(klineDialog);
+        klineDialog.get(0).onclick = function(event) {
+            if (event.target.tagName.toLowerCase() == "dialog") this.close();
+        };
+        klineDialog.get(0).ondblclick = function(event) {
+            this.close();
+        };
+    } else {
+        klineDialog.empty();
+    }
+    let kline = new KLineView(1500, 600);
+    klineDialog.append(kline.canvas);
+    kline.loadData(code, 'DAY');
+    klineDialog.get(0).showModal();
 }
 
 function onLoadFsDataEnd(evt) {
@@ -279,6 +300,8 @@ function initStyle() {
                #my-stoks-table td, th { vertical-align: middle; height: 66px;} \n\
                #my-stoks-table .fs {padding: 3px 3px;} \n\
                #my-stoks-table .pl20 {padding-right:20px;} \n\
+               dialog.kline {border: solid 1px #a2a2a2; padding: 0; background-color: #000;} \n\
+               dialog.kline canvas {background-color: #000;} \n\
             ";
     style.appendChild(document.createTextNode(css));
     document.head.appendChild(style);

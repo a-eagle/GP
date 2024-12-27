@@ -204,7 +204,11 @@ class ClsUrl:
 
     # K线数据
     # limit : K线数量
-    def loadKline(self, code, limit = 1200):
+    # type_: 周期 'DAY' | 'WEEK' | 'MONTH'
+    def loadKline(self, code, limit = 1200, type_ = 'DAY'):
+        if type_ == 'DAY': type_ = 'fd1'
+        elif type_ == 'WEEK': type_ = 'fw'
+        elif type_ == 'MONTH': type_ = 'fm'
         params = {
             'secu_code': self._getTagCode(code),
             'app': 'CailianpressWeb',
@@ -212,7 +216,7 @@ class ClsUrl:
             'sv': '7.7.5',
             'offset': 0,
             'limit': limit,
-            'type': 'fd1'
+            'type': type_
         }
         url = f'https://x-quote.cls.cn/quote/stock/kline?' + self.signParams(params)
         resp = requests.get(url)

@@ -446,7 +446,12 @@ class ClsUrl {
         });
     }
 
-    loadKline(code, limit, callback) {
+
+    // type = 'DAY', 'WEEK', 'MONTH'
+    loadKline(code, limit, type, callback) {
+        if (type == 'DAY') type = 'fd1';
+        else if (type == 'WEEK') type = 'fw';
+        else if (type == 'MONTH') type = 'fm';
         let params = {
             'secu_code': this._getTagCode(code),
             'app': 'CailianpressWeb',
@@ -454,7 +459,7 @@ class ClsUrl {
             'sv': '7.7.5',
             'offset': 0,
             'limit': limit,
-            'type': 'fd1'
+            'type': type
         };
         let url = 'https://x-quote.cls.cn/quote/stock/kline?' + this.signParams(params);
         $.ajax({
