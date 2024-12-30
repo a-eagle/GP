@@ -50,12 +50,12 @@ class KLineView extends Listener {
         this.selectPosIdxArr = [];
         this.line = [];
         this.code = null;
-        let ZB_HEIGHT = 100;
-        this.klineRect = new Rect(10, 20, width - 20, height - ZB_HEIGHT * 2);
-        this.rateRect = new Rect(this.klineRect.left, this.klineRect.bottom, this.klineRect.right, this.klineRect.bottom + ZB_HEIGHT);
-        this.amountRect = new Rect(this.klineRect.left, this.rateRect.bottom, this.klineRect.right, this.rateRect.bottom + ZB_HEIGHT);
-        this.rateRender = new RateAmountRender(this, this.rateRect.width(), this.rateRect.height(), 'rate');
-        this.amountRender = new RateAmountRender(this, this.amountRect.width(), this.amountRect.height(), 'amount');
+        let ZB_HEIGHT = 80;
+        this.klineRect = new Rect(10, 20, width - 50, height - ZB_HEIGHT * 2);
+        this.rateRect = new Rect(this.klineRect.left, this.klineRect.bottom + 10, this.klineRect.right, this.klineRect.bottom + ZB_HEIGHT);
+        this.amountRect = new Rect(this.klineRect.left, this.rateRect.bottom + 10, this.klineRect.right, this.rateRect.bottom + ZB_HEIGHT);
+        this.rateRender = new RateRender(this, this.rateRect.width(), this.rateRect.height());
+        this.amountRender = new AmountRender(this, this.amountRect.width(), this.amountRect.height());
         
         let canvas = $('<canvas style="width: ' + width + 'px; height: ' + height + 'px; " />');
         this.canvas = canvas.get(0);
@@ -295,7 +295,7 @@ class KLineView extends Listener {
         this.ctx.beginPath();
         this.ctx.strokeStyle = '#202020';
         this.ctx.fillStyle = '#202020';
-        this.ctx.rect(0, this.klineRect.bottom - 3, this.width, 3);
+        this.ctx.rect(0, this.klineRect.bottom + 3, this.width, 3);
         this.ctx.fill();
         this.ctx.closePath();
     }
@@ -758,13 +758,15 @@ class AttrRender {
         this.height = height;
         this.maxGlobalVal = 0;
         this.attrName = attrName;
+        this.tipLines = null; // [{val: xx, color: xxx}]
     }
 
     getMinMaxVal() {
         let min = 0, max = 0;
-        if (! this.klineView.line)
+        if (! this.klineView.line || !this.klineView.visibleRange)
             return null;
-        for (let i = 0; i < this.klineView.line.length; i++) {
+        let range = this.klineView.visibleRange;
+        for (let i = range[0]; i < range[1]; i++) {
             let cur = this.klineView.line[i];
             if (min == 0 || min > cur[this.attrName]) {
                 min = cur[this.attrName];
@@ -808,53 +810,63 @@ class AttrRender {
             }
             ctx.closePath();
         }
+        this.drawTipLines(rx, ry);
+        ctx.beginPath();
+        ctx.font = '16px';
+        ctx.strokeStyle = "#A0A0A0";
+        ctx.fillText(this.getMaxTip(), rx + this.width, ry + 10);
+        ctx.closePath();
+    }
+
+    drawTipLines(rx, ry) {
+        if (! this.tipLines) {
+            return;
+        }
+        let mm = this.getMinMaxVal();
+        let ctx = this.klineView.ctx;
+        for (let i = 0; i < this.tipLines.length; i++) {
+            if (mm.maxVal >= this.tipLines[i].val) {
+                ctx.beginPath();
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = this.tipLines[i].color;
+                let y = (1 - this.tipLines[i].val / mm.maxVal) * this.height;
+                ctx.moveTo(rx,  ry + y);
+                ctx.lineTo(rx + this.width, ry + y);
+                ctx.stroke();
+                ctx.closePath();
+            }
+        }
+    }
+
+    getMaxTip() {
+        return '';
     }
 }
 
-class RateAmountRender extends AttrRender {
-    constructor(klineView, width, height, attrName) {
-        super(klineView, width, height, attrName);
-        self.maxGlobalVal = 5;
+class RateRender extends AttrRender {
+    constructor(klineView, width, height) {
+        super(klineView, width, height, 'rate');
+        this.maxGlobalVal = 5;
+        this.tipLines = [{val: 5, color:'#2222ff'}, {val: 10, color:'#ee00ee'}, {val: 20, color: '#ffff00'}];
     }
 
-    draw(rx, ry) {
-        super.draw(rx, ry);
+    getMaxTip() {
         let mm = this.getMinMaxVal();
-        let RR = this.attrName == 'amount' ? 100000000 : 1;
-        if (! mm || mm.maxVal < 5 * RR) {
-            return;
-        }
-        let ctx = this.klineView.ctx;
-        if (mm.maxVal >= 5 * RR) {
-            ctx.beginPath();
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = "#2222ff";
-            let y = (1 - 5 / mm.maxVal) * this.height;
-            ctx.moveTo(rx,  ry + y);
-            ctx.lineTo(rx + this.width, ry + y);
-            ctx.stroke();
-            ctx.closePath();
-        }
-        if (mm.maxVal >= 10 * RR) {
-            ctx.beginPath();
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = "#EE00EE";
-            let y = (1 - 10 / mm.maxVal) * this.height;
-            ctx.moveTo(rx,  ry + y);
-            ctx.lineTo(rx + this.width, ry + y);
-            ctx.stroke();
-            ctx.closePath();
-        }
-        if (mm.maxVal >= 20 * RR) {
-            ctx.beginPath();
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = "#ffff00";
-            let y = (1 - 20 / mm.maxVal) * this.height;
-            ctx.moveTo(rx,  ry + y);
-            ctx.lineTo(rx + this.width, ry + y);
-            ctx.stroke();
-            ctx.closePath();
-        }
+        return '' + parseInt(mm.maxVal) + '%';
+    }
+}
+
+class AmountRender extends AttrRender {
+    constructor(klineView, width, height) {
+        super(klineView, width, height, 'amount');
+        this.maxGlobalVal = 500000000;
+        let R = 100000000; //亿
+        this.tipLines = [{val: 5 * R, color:'#2222ff'}, {val: 10 * R, color:'#ee00ee'}, {val: 20 * R, color: '#ffff00'}];
+    }
+
+    getMaxTip() {
+        let mm = this.getMinMaxVal();
+        return '' + parseInt(mm.maxVal / 100000000) + '亿';
     }
 }
 

@@ -191,7 +191,7 @@ function buildNewUI() {
 
 function openKLineDialog(code) {
     if (! klineDialog) {
-        klineDialog = $('<dialog class="kline"> </dialog>');
+        klineDialog = $('<dialog class="kline">  </dialog>');
         $(document.body).append(klineDialog);
         klineDialog.get(0).onclick = function(event) {
             if (event.target.tagName.toLowerCase() == "dialog") this.close();
@@ -202,9 +202,29 @@ function openKLineDialog(code) {
     } else {
         klineDialog.empty();
     }
-    let kline = new KLineView(1500, 650);
-    klineDialog.append(kline.canvas);
-    kline.loadData(code, 'DAY');
+    let btns = $('<p style="height:30px;"> <button z="DAY">日线</button> <button z="WEEK">周线</button> <button z="MONTH">月线</button>');
+    klineDialog.append(btns);
+    btns.find('button').click(function() {
+        let n = $(this).attr('z');
+        let canvas = klineDialog.find('canvas');
+        for (let i = 0; i < canvas.length; i++) {
+            if (canvas.eq(i).attr('z') == n) {
+                canvas.eq(i).show();
+            } else {
+                canvas.eq(i).hide();
+            }
+        }
+    });
+
+    let ks = ['DAY', 'WEEK', 'MONTH'];
+    for (let i = 0; i < ks.length; i++) {
+        let kline = new KLineView(1500, 650);
+        kline.loadData(code, ks[i]);
+        if (i != 0)
+            $(kline.canvas).hide();
+        $(kline.canvas).attr('z', ks[i]);
+        klineDialog.append(kline.canvas);
+    }
     klineDialog.get(0).showModal();
 }
 
@@ -302,6 +322,7 @@ function initStyle() {
                #my-stoks-table .pl20 {padding-right:20px;} \n\
                dialog.kline {border: solid 1px #a2a2a2; padding: 0; background-color: #000;} \n\
                dialog.kline canvas {background-color: #000;} \n\
+               dialog::backdrop { background-color: #c0c0c0; } \n\
             ";
     style.appendChild(document.createTextNode(css));
     document.head.appendChild(style);
