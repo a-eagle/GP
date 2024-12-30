@@ -32,8 +32,11 @@ def createKLineWindow(parent, rect = None, style = None):
         y = dh - H
         rect = (x, y, W, H)
     if not style:
-        style = win32con.WS_VISIBLE | win32con.WS_POPUPWINDOW | win32con.WS_CAPTION
-    win.createWindow(parent, rect, style) # WS_OVERLAPPEDWINDOW
+        if parent:
+            style = win32con.WS_VISIBLE | win32con.WS_POPUPWINDOW | win32con.WS_CAPTION
+        else:
+            style = win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW
+    win.createWindow(parent, rect, style)
     win.klineWin.addListener(openKlineMinutes_Simple, win)
     return win
 

@@ -189,7 +189,15 @@ function buildNewUI() {
     $('table.watch-table').replaceWith(stocksTable);
 }
 
+// win32
 function openKLineDialog(code) {
+    if (code.substring(0, 2) == 'sz' || code.substring(0, 2) == 'sh') {
+        code = code.substring(2);
+    }
+    $.get('http://localhost:5665/openui/kline/' + code);
+}
+
+function openKLineDialog_chrome(code) {
     if (! klineDialog) {
         klineDialog = $('<dialog class="kline">  </dialog>');
         $(document.body).append(klineDialog);

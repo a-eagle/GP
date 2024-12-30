@@ -588,6 +588,7 @@ class TimelinePanKouWindow(base_win.BaseWindow):
 
     def load(self, code, day = None):
         pool = base_win.ThreadPool.instance()
+        pool.start()
         def lda():
             self.timelineWin.load(code, day)
         def ldb():
