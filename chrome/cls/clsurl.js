@@ -473,6 +473,29 @@ class ClsUrl {
             }
         });
     }
+
+    // day = 2024-12-31
+    loadAnchor(day, callback) {
+        let params = {
+            'cdate': day,
+            'app': 'CailianpressWeb',
+            'os': 'web',
+            'sv': '8.4.6',
+        };
+        let url = "https://www.cls.cn/v3/transaction/anchor?" + this.signParams(params);
+        $.ajax({
+            'type': 'GET', 'url': url, 'dataType': 'json',
+            success: function(resp) {
+                let data = resp;
+                if (callback)
+                    callback(data);
+            },
+            error: function(xhr, status, error) {
+                if (callback)
+                    callback({'data': [], 'errno': 1, 'error': error});
+            }
+        });
+    }
 };
 
 // new ClsUrl().loadHistory5FenShi('688787');

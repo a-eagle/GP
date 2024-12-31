@@ -24,12 +24,9 @@ temp.async = false;
 document.documentElement.appendChild(temp);
 
 window.addEventListener("message", function(evt) {
-	if (evt.data.cmd == 'GET_DOC_VIDEO_URLS') {
-		chrome.runtime.sendMessage({cmd: 'GET_DOC_VIDEO_URLS', data: evt.data.data});
-	} else if (evt.data.cmd == 'GET_WEEKLY_ZUOTI') {
-		chrome.runtime.sendMessage({cmd: 'GET_WEEKLY_ZUOTI', data: evt.data.data});
-	} else if (evt.data.cmd == 'GET_SPECIAL_ZUOTI') {
-		chrome.runtime.sendMessage({cmd: 'GET_SPECIAL_ZUOTI', data: evt.data.data});
+	if (evt.data && evt.data.cmd == 'GET_ANCHORS') {
+		chrome.runtime.sendMessage(evt.data, function(resp) {
+			window.postMessage({cmd: 'GET_ANCHORS_CB', data: resp});
+		});
 	}
-	
 }, false);

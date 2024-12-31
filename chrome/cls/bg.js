@@ -1,9 +1,12 @@
 proc_info = {
     clsZTWindowId: 0,
-    lastOpenZSPageTime : 0,
     savedDays : {}, // day : True
     savedDaysDegree : {}, // day : True
     timelines : {}, // {code: { loadTime: xxx, data: xxx }, .... }
+
+    anchors:{}, // day : []
+    lastLoadAnchorsTime : 0,
+    thread: new Thread(),
 };
 
 // YYYY-MM-DD
@@ -35,23 +38,13 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	let cmd = request['cmd'];
     let data = request['data'];
 
-    if (cmd == 'SAVED_ZT') {
-        if (sender && sender.tab && sender.tab.windowId == proc_info.clsZTWindowId) {
-            let today = formatDate(new Date());
-            proc_info.savedDays[today] = true;
-        }
-    } else if (cmd == 'LOAD_TIMELINE') {
-        let code = data;
-        loadTimeLine(code);
-    } else if (cmd == 'GET_TIMELINE') {
-        let code = data;
-        let rs = getTimeLine(code);
+    if (cmd == 'GET_ANCHORS') {
+        let rs = getAnchors(data.lastDay, data.traceDayNum);
         if (sendResponse) {
             sendResponse(rs);
         }
     }
 });
-
 
 function deepCopy(obj) {
     let _obj = Array.isArray(obj) ? [] : {};
@@ -61,31 +54,14 @@ function deepCopy(obj) {
     return _obj;
 }
 
-function checkWindowAlive() {
-    let bt = (Date.now() - proc_info.lastOpenZSPageTime) / 1000 >= 8;
-    if (! bt) {
-        return;
-    }
-    let wid = proc_info.clsZTWindowId;
-    proc_info.clsZTWindowId = 0; // reset window id
-    chrome.windows.remove(wid, function () {
-            // proc_info.clsZTWindowId = 0;
-        }
-    );
-}
-
 function run_loop() {
-    if (proc_info.clsZTWindowId) {
-        checkWindowAlive();
-        return;
-    }
     let ft = formatTime(new Date());
-    if (ft <= '15:30') {
+    if (ft <= '15:31') {
         return;
     }
-    let today = formatDate(new Date());
-    if (! proc_info.savedDays[today] && (Date.now() - proc_info.lastOpenZSPageTime >= 30 * 60 * 1000)) {
-        openZTPage();
+    if (Date.now() - proc_info.lastLoadAnchorsTime >= 5 * 60 * 1000) {
+        loadHistoryAnchor();
+        proc_info.lastLoadAnchorsTime = Date.now();
     }
 }
 
@@ -136,8 +112,57 @@ function getTimeLine(code) {
     return obj.data;
 }
 
+function loadAnchorTask(task, resolve) {
+    if (proc_info.anchors[task.day] && formatDate(new Date()) != task.day) {
+        resolve();
+        return;
+    }
+    new ClsUrl().loadAnchor(task.day, function(data) {
+        if (data.errno == 0)
+            proc_info.anchors[task.day] = data.data;
+        resolve();
+    });
+}
 
-// setInterval(run_loop, 1000 * 10); // 20 seconds
+// lastDay = yyyy-mm-dd | Date
+function getAnchors(lastDay, traceDayNum) {
+    if (lastDay instanceof  Date) {
+        lastDay = formatDate(lastDay);
+    }
+    let ks = [];
+    for (let k in proc_info.anchors) {
+        if (k <= lastDay)
+            ks.push(k);
+    }
+    ks.sort();
+    let rs = [];
+    for (let i = ks.length - 1, num = 0; i >= 0; i --) {
+        let a = proc_info.anchors[ks[i]];
+        if (! a || !a.length) {
+            continue;
+        }
+        if (num > traceDayNum)
+            break;
+        rs.push(a);
+        ++num;
+    }
+    return rs;
+}
+
+// 不含当日
+function loadHistoryAnchor() {
+    let dd = new Date();
+    for (let i = 0; i < 40; i++) {
+        dd = new Date(new Date().setDate(dd.getDate() - 1));
+        let tsk = new Task('LA', 100, loadAnchorTask);
+        tsk.day = formatDate(dd);
+        proc_info.thread.addTask(tsk);
+    }
+    proc_info.thread.start();
+}
+
+setInterval(run_loop, 1000 * 60);
+loadHistoryAnchor();
 
 // CORS
 function updateHeaders(hds, name, value) {

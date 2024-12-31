@@ -1,3 +1,5 @@
+var anchros = null;
+
 // HH:MM
 function formatTime(date) {
     let d = date;
@@ -13,22 +15,21 @@ function formatTime(date) {
 function _doHook(response) {
 	let data = response.response;
 	let len = response.headers['content-length'];
-	if (! len) {
-		return;
-	}
 	let url = response.config.url;
-	if (! url) {
-		return;
-	}
-	if (url.indexOf('https://x-quote.cls.cn/quote/index/up_down_analysis') >= 0) {
+	if (url.indexOf('/quote/index/up_down_analysis') >= 0) {
 		adjustZTInfo(response);
+	}
+	if (url.indexOf('/v3/transaction/anchor') >= 0) {
+		let idx = url.indexOf('cdate=');
+		let cday = url.substring(idx + 6, idx + 6 + 10);
+		adjustAnchors(response, cday);
 	}
 }
 
 function adjustZTInfo(response) {
 	let body = response.response;
 	let json = JSON.parse(body);
-	console.log('[Before]', json);
+	//console.log('[Before]', json);
 	let rs = [];
 	for (i in json.data) {
 		let item = json.data[i];
@@ -38,7 +39,7 @@ function adjustZTInfo(response) {
 	}
 	json.data = rs;
 	response.response = JSON.stringify(json);
-	console.log('[After]', json);
+	//console.log('[After]', json);
 	//window.postMessage({cmd: 'ZT-INFO', data: rs}, '*');
 	window['zt-info'] = rs;
 
@@ -49,6 +50,38 @@ function adjustZTInfo(response) {
 	} else {
 		$('#real-zt-div').html(text);
 	}
+}
+
+function adjustAnchors(response, cday) {
+	console.log('[adjustAnchors] cday=', cday);
+	if (! anchros) {
+		return;
+	}
+	let MAX_TRACE_DAYS = 5;
+	let body = response.response;
+	let json = JSON.parse(body);
+	console.log(anchros);
+	let anchrosCP = {};
+	for (let i = 0, num = 0; i < anchros.length && num < MAX_TRACE_DAYS; i++) {
+		if (anchros[i][0].c_time.substring(0, 10) >= cday)
+			continue;
+		++num;
+		for (let j = 0; j < anchros[i].length; j++) {
+			let an = anchros[i][j];
+			let key = an.symbol_code + '#' + an.float;
+			if (anchrosCP[key]) anchrosCP[key]++;
+			else anchrosCP[key] = 1;
+		}
+	}
+
+	for (let i = 0; i < json.data.length; i++) {
+		let key = json.data[i].symbol_code + '#' + json.data[i].float;
+		let num = anchrosCP[key] || 0;
+		num += 1;
+		json.data[i].symbol_name += '' + num + '';
+		anchrosCP[key] = num;
+	}
+	response.response = JSON.stringify(json);
 }
 
 function hook_proxy() {
@@ -64,30 +97,40 @@ function hook_proxy() {
 		
 		onResponse:function(response, handler) {
 			_doHook(response);
-			handler.next(response)
+			handler.next(response);
 		},
 	});
 }
 
 hook_proxy();
-console.log('in hook :', window.location.href);
 
+window.postMessage({cmd: 'GET_ANCHORS', data: {lastDay: new Date(), traceDaysNum: 30}}, '*');
+window.addEventListener("message", function(evt) {
+	if (evt.data && evt.data.cmd == 'GET_ANCHORS_CB') {
+		anchros = evt.data.data;
+		console.log(anchros);
+	}
+}, false);
+
+function wrapAnchor(name) {
+	if (! anchros) {
+		return name;
+	}
+	let num = anchros[name + '#up'];
+	if (! num) {
+		return name;
+	}
+	return name + num;
+}
 
 /*
 var _can2DProto = CanvasRenderingContext2D.prototype;
 var _old_can2d_ft = _can2DProto.fillText;
-let _txtAll = ''
-let doTtt = false;
+var ens = /^[-+.0-9%/:]+$/;
 _can2DProto.fillText = function(txt, x, y) {
+	//if (! ens.test(txt))
+	//	txt = wrapAnchor(txt);
 	_old_can2d_ft.call(this, txt, x, y);
-	let v = txt.replace(/[\r\n]/g, '');
-	// console.log(v);
-	_txtAll += v;
-	if (! doTtt) {
-		doTtt = true;
-		setTimeout(function() {
-			console.log(_txtAll);
-		}, 4000);
-	}
 }
+
 */
