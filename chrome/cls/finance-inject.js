@@ -1,4 +1,5 @@
 var anchros = null;
+var maxTradeDays = 5;
 
 // HH:MM
 function formatTime(date) {
@@ -45,7 +46,7 @@ function adjustZTInfo(response) {
 
 	let text = '涨停&nbsp;' + rs.length;
 	if ($('#real-zt-div').length == 0) {
-		let div = $('<div id="real-zt-div" style="padding-left:250px; font-size:20px; color: #ad1078;" > ' + text + '</div>');
+		let div = $('<div id="real-zt-div" style="float:left; font-size:20px; color: #ad1078; padding-left:20px;" > ' + text + '</div>');
 		$('.event-querydate-box').append(div);
 	} else {
 		$('#real-zt-div').html(text);
@@ -53,16 +54,15 @@ function adjustZTInfo(response) {
 }
 
 function adjustAnchors(response, cday) {
-	console.log('[adjustAnchors] cday=', cday);
+	//console.log('[adjustAnchors] cday=', cday);
 	if (! anchros) {
 		return;
 	}
-	let MAX_TRACE_DAYS = 5;
 	let body = response.response;
 	let json = JSON.parse(body);
-	console.log(anchros);
+	//console.log(anchros);
 	let anchrosCP = {};
-	for (let i = 0, num = 0; i < anchros.length && num < MAX_TRACE_DAYS; i++) {
+	for (let i = 0, num = 0; i < anchros.length && num < maxTradeDays; i++) {
 		if (anchros[i][0].c_time.substring(0, 10) >= cday)
 			continue;
 		++num;
@@ -122,6 +122,27 @@ function wrapAnchor(name) {
 	}
 	return name + num;
 }
+
+function initStyle() {
+	if ($('#real-zt-div').length == 0) {
+		setTimeout(initStyle, 500);
+		return;
+	}
+	let style = document.createElement('style');
+	let css = "#change-trade-days .sel {color: #ff00ff;  border: 1px solid #ff00ff;} \n\
+			";
+	style.appendChild(document.createTextNode(css));
+	document.head.appendChild(style);
+	let div = $('<div id="change-trade-days" style="padding-left:30px; font-size:15px; float:left; "> 交易日期：<button class="sel" val="5" >5日</button> <button val="10">10日</button> </div>');
+	$('.event-querydate-box').append(div);
+	div.find('button').click(function() {
+		div.find('button').removeClass('sel');
+		$(this).addClass('sel');
+		maxTradeDays = parseInt($(this).attr('val'));
+	});
+}
+
+setTimeout(initStyle, 500);
 
 /*
 var _can2DProto = CanvasRenderingContext2D.prototype;

@@ -9,6 +9,7 @@ var stocksTable = null;
 var stocksTrs = {};
 var lastSortHeader = null;
 var klineDialog = null;
+var selTr = null;
 
 function updateTimelineUI(code, tr) {
     let view = timelines[code];
@@ -183,6 +184,7 @@ function buildNewUI() {
         tab.append(tr);
         view.addListener('LoadDataEnd', onLoadFsDataEnd);
         tr.dblclick(function() {openKLineDialog($(this).attr('code'))});
+        tr.click(function() {if (selTr) selTr.removeClass('sel'); selTr = $(this); selTr.addClass('sel'); });
         stocksTrs[sd.secu_code] = tr;
     }
     stocksTable = tab;
@@ -323,11 +325,12 @@ function initStyle() {
     let style = document.createElement('style');
     let css = "#my-stoks-table {color: #383838; font-size: 14px; } \n\
                #my-stoks-table th {height: 40px; font-size:12px; color: #999; vertical-align: middle;font-weight: normal; text-align:left;} \n\
-               #my-stoks-table tr:hover {background-color: #ECEFF9;} \n\
                #my-stoks-table tr:nth-child(even) { background-color: #f9fafc;} \n \
+               #my-stoks-table tr:hover {background-color: #ECEFF9;} \n\
                #my-stoks-table td, th { vertical-align: middle; height: 66px;} \n\
                #my-stoks-table .fs {padding: 3px 3px;} \n\
                #my-stoks-table .pl20 {padding-right:20px;} \n\
+               #my-stoks-table .sel {background-color: #ECEFF9;}\n\
                dialog.kline {border: solid 1px #a2a2a2; padding: 0; background-color: #000;} \n\
                dialog.kline canvas {background-color: #000;} \n\
                dialog::backdrop { background-color: #c0c0c0; } \n\
