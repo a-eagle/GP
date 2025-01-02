@@ -1491,25 +1491,28 @@ class BkGnWindow(base_win.BaseWindow):
         self.DEF_COLOR = 0xa0a0a0
         self.HOT_DEF_COLOR = 0xff3399
         self.HOT_CLS_COLOR = 0x14698B
-
         self.css['bgColor'] = 0x050505
         self.css['borderColor'] = 0x22dddd
         self.css['enableBorder'] = True
         self.MAX_SIZE = (950, 70)
         self.MIN_SIZE = (60, 30)
         self.maxMode = True
+
         self.curCode = None
         self.hotGnObj = None
+        self.thsGntc = None
+        self.clsGntc = None
         self.defHotGns = []
-        self.richRender = None
+        self.richRender = ext_win.RichTextRender(17)
         self.clsHotGns = []
+        self.limitDaysNum = 5
+        self.lastDay = None
 
     def createWindow(self, parentWnd, rect = None, style = win32con.WS_POPUP, className='STATIC', title=''):
-        sz =  self.MAX_SIZE if self.maxMode else self.MIN_SIZE
-        rect = (0, 0, *sz)
+        if not rect:
+            sz =  self.MAX_SIZE if self.maxMode else self.MIN_SIZE
+            rect = (0, 0, *sz)
         super().createWindow(parentWnd, rect, style, className, title)
-        cs = self.getClientSize()
-        self.richRender = ext_win.RichTextRender((cs[1] - 2) // 4)
 
     def getWindowState(self):
         rc = win32gui.GetWindowRect(self.hwnd)
@@ -1526,23 +1529,58 @@ class BkGnWindow(base_win.BaseWindow):
         else:
             win32gui.SetWindowPos(self.hwnd, 0, x, y, *self.MIN_SIZE, win32con.SWP_NOZORDER)
 
+    def onClick(self, x, y):
+        sp = None
+        for it in self.richRender.specs:
+            rc = it.get('rect', None)
+            if not rc: break
+            if x >= rc[0] and x < rc[2] and y >= rc[1] and y < rc[3]:
+                sp = it
+                break
+        if not sp or not sp['args']:
+            return
+        gnNum, gn = sp['args']
+        if gnNum <= 0:
+            return
+
+        def renderItem(menu, hdc, rect, menuItem):
+            color = 0xdd33dd if self.lastDay == menuItem['day'] else 0x202020
+            self.drawer.drawText(hdc, menuItem['title'], rect, color, win32con.DT_LEFT | win32con.DT_VCENTER | win32con.DT_WORDBREAK)
+
+        qr = tck_orm.CLS_HotTc.select().where(tck_orm.CLS_HotTc.name == gn).order_by(tck_orm.CLS_HotTc.day.desc()).dicts()
+        model = []
+        model.append({'title' : gn})
+        for it in qr:
+            it['title'] = it['day']  + ' ' +  it['ctime'] + ' ' + ('' if it['up'] else '跌')
+            it['render'] = renderItem
+            model.append(it)
+        menu = base_win.PopupMenu.create(self.hwnd, model)
+        menu.VISIBLE_MAX_ITEM = 6
+        rc = win32gui.GetWindowRect(self.hwnd)
+        sx = x + rc[0] + 5
+        sy = y + rc[1]
+        menu.show(sx, sy)
+        
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_NCHITTEST:
             x, y = (lParam & 0xffff), (lParam >> 16) & 0xffff
             cx, cy = win32gui.ScreenToClient(self.hwnd, (x, y))
-            if cy <= self.TITLE_HEIGHT:
+            if cy <= self.TITLE_HEIGHT and cx <= 15:
                 return win32con.HTCAPTION
             return win32con.HTCLIENT
         if msg == win32con.WM_NCLBUTTONDBLCLK:
             self.maxMode = not self.maxMode
+            if win32gui.GetWindowLong(self.hwnd, win32con.GWL_STYLE) & win32con.WS_CHILD:
+                return True
             if self.maxMode:
                 win32gui.SetWindowPos(self.hwnd, 0, 0, 0, *self.MAX_SIZE, win32con.SWP_NOMOVE | win32con.SWP_NOZORDER) # win32con.HWND_TOP
             else:
                 win32gui.SetWindowPos(self.hwnd, 0, 0, 0, *self.MIN_SIZE, win32con.SWP_NOMOVE| win32con.SWP_NOZORDER)
             return True
-        elif msg == win32con.WM_RBUTTONUP:
-            #return True
-            pass
+        elif msg == win32con.WM_LBUTTONUP:
+            x, y = (lParam & 0xffff), (lParam >> 16) & 0xffff
+            self.onClick(x, y)
+            return True
         elif msg == win32con.WM_MBUTTONUP:
             self.showSettings()
             return True
@@ -1563,7 +1601,7 @@ class BkGnWindow(base_win.BaseWindow):
                 if not evt.ok:
                     return
                 self.saveDefHotGn(evt.text)
-                self.buildBkgn(self.curCode)
+                self._buildBkgn(self.curCode)
                 self.invalidWindow()
             dlg.addNamedListener('InputEnd', onInputEnd)
             dlg.createWindow(win32gui.GetParent(self.hwnd), (prc[0], prc[1], 450, 200), title = '设置热点概念')
@@ -1571,23 +1609,47 @@ class BkGnWindow(base_win.BaseWindow):
     
     def onDraw(self, hdc):
         W, H = self.getClientSize()
-        self.drawer.fillRect(hdc, (2, 2, W - 2, self.TITLE_HEIGHT), 0x0A0A0A)
-        self.richRender.draw(hdc, self.drawer, (3, 2, W - 3, H))
+        self.onDrawRect(hdc, (0, 0, W, H))
+    
+    def onDrawRect(self, hdc, rc):
+        self.drawer.fillRect(hdc, (rc[0] + 2, rc[1] + 2, rc[0] + 10, rc[1] + self.TITLE_HEIGHT), 0x0A550A)
+        self.richRender.draw(hdc, self.drawer, (rc[0] + 3, rc[1] + 2, rc[2] - 3, rc[3]))
+    
+    def setLimitDaysNum(self, daysNum):
+        self.limitDaysNum = daysNum
 
     def changeCode(self, code):
         if (self.curCode == code) or (not code):
             return
+        self.lastDay = None
         scode = f'{code :06d}' if type(code) == int else code
+        if scode[0 : 2] in ('sz', 'sh'):
+            scode = scode[2 : ]
         self.curCode = scode
         # load code info
-        self.buildBkgn(scode)
+        self._loadDefHotGn()
+        self._loadThsClsTcgn()
+        self._loadClsHotGn(None)
+        self._buildBkgn()
+        self.invalidWindow()
+
+    def changeLastDay(self, lastDay):
+        if type(lastDay) == int:
+            lastDay = str(lastDay)
+        if type(lastDay) == str and len(lastDay) == 8:
+            lastDay = lastDay[0 : 4] + '-' + lastDay[4 : 6] + '-' + lastDay[6 : 8]
+        if self.lastDay == lastDay:
+            return
+        self.lastDay = lastDay
+        self._loadClsHotGn(self.lastDay)
+        self._buildBkgn()
         self.invalidWindow()
 
     def saveDefHotGn(self, txt):
         self.hotGnObj.info = txt or ''
         self.hotGnObj.save()
 
-    def loadDefHotGn(self):
+    def _loadDefHotGn(self):
         from orm import tck_def_orm
         qr = tck_def_orm.MyHotGn.select()
         self.hotGnObj = None
@@ -1602,52 +1664,57 @@ class BkGnWindow(base_win.BaseWindow):
         if not self.hotGnObj:
             self.hotGnObj = tck_def_orm.MyHotGn.create(info = '')
 
+    # lastDay = None(newest day) | int | str
     # return [(cls-name, num), ...]
-    def loadClsHotGn(self):
-        from orm import tck_orm
+    def _loadClsHotGn(self, lastDay):
         qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.day.distinct()).order_by(tck_orm.CLS_HotTc.day.desc()).tuples()
         days = []
         for it in qr:
-            if len(days) > 5: # 仅显示近5天的热点概念
+            if (lastDay is None) or (it[0] <= lastDay):
+                days.append(it[0])
+            if len(days) >= self.limitDaysNum: # 仅显示近N天的热点概念
                 break
-            days.append(it[0])
         if not days:
             return
         fromDay = days[-1]
+        endDay = days[0]
         rs = []
-        qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.name, pw.fn.count()).where(tck_orm.CLS_HotTc.day >= fromDay, tck_orm.CLS_HotTc.up == True).group_by(tck_orm.CLS_HotTc.name).tuples()
+        qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.name, pw.fn.count()).where(tck_orm.CLS_HotTc.day >= fromDay, tck_orm.CLS_HotTc.day <= endDay, tck_orm.CLS_HotTc.up == True).group_by(tck_orm.CLS_HotTc.name).tuples()
         for it in qr:
             clsName, num = it
             rs.append((clsName.strip(), num))
         self.clsHotGns = rs
 
-    def buildBkgn(self, code):
-        self.loadDefHotGn()
-        self.loadClsHotGn()
+    def _loadThsClsTcgn(self):
+        self.thsGntc = ths_orm.THS_GNTC.get_or_none(code = self.curCode) or ths_orm.THS_GNTC()
+        self.clsGntc = cls_orm.CLS_GNTC.get_or_none(code = self.curCode) or cls_orm.CLS_GNTC()
+
+    def _buildBkgn(self):
         self.richRender.specs.clear()
-        obj = ths_orm.THS_GNTC.get_or_none(code = code) or ths_orm.THS_GNTC()
-        obj2 = cls_orm.CLS_GNTC.get_or_none(code = code) or cls_orm.CLS_GNTC()
+        defHotGns = self.defHotGns[ : ]
+        clsHotGns = self.clsHotGns[ : ]
         hy1 = ''
-        if obj.hy_2_name: hy1 = obj.hy_2_name + ';'
-        if obj.hy_3_name: hy1 += obj.hy_3_name
-        hys = self.buildBkInfos(hy1, obj2.hy)
+        if self.thsGntc.hy_2_name: hy1 = self.thsGntc.hy_2_name + ';'
+        if self.thsGntc.hy_3_name: hy1 += self.thsGntc.hy_3_name
+        hys = self._buildBkInfos(hy1, self.clsGntc.hy, defHotGns, clsHotGns)
         self.richRender.addText('【', self.DEF_COLOR)
         for idx, h in enumerate(hys):
             if idx != 0:
                 self.richRender.addText(' | ', self.DEF_COLOR)
-            self.richRender.addText(h[1], h[2])
+            self.richRender.addText(h[1], h[2], args = (h[3], h[4]))
         self.richRender.addText('】 ', self.DEF_COLOR)
         
-        lastGns = self.buildBkInfos(obj.gn, obj2.gn)
+        lastGns = self._buildBkInfos(self.thsGntc.gn, self.clsGntc.gn, defHotGns, clsHotGns)
         lastGns.sort(key = lambda d: d[0])
-        for h in lastGns:
-            self.richRender.addText(h[1], h[2])
-            self.richRender.addText(' | ', self.DEF_COLOR)
+        for i, h in enumerate(lastGns):
+            self.richRender.addText(h[1], h[2], args = (h[3], h[4]))
+            if i != len(lastGns) - 1:
+                self.richRender.addText(' | ', self.DEF_COLOR)
         #for h in self.defHotGns:
         #    self.richRender.addText(h + ' ', 0x404040)
 
-    # return (no, gn-name, color, type)
-    def buildBkInfos(self, thsGn, clsGn):
+    # return (no, gn-name, color, type, num, org-gn-name)
+    def _buildBkInfos(self, thsGn, clsGn, defHotGns, clsHotGns):
         thsGn = thsGn or ''
         clsGn = clsGn or '' 
         gns = [] # item of {gn: xx, type: xx, same:xx}
@@ -1672,52 +1739,45 @@ class BkGnWindow(base_win.BaseWindow):
         lastGns = []
         for item in gns:
             if item['type'] == 'THS':
-                info = self.getTypeNameAndColor_THS(item['gn'], True)
+                info = self._getTypeNameAndColor_THS(item['gn'], True, defHotGns)
             elif item['type'] == 'CLS':
-                info = self.getTypeNameAndColor_CLS(item['gn'], True)
-                info = info[0], '#' + info[1], info[2]
+                info = self._getTypeNameAndColor_CLS(item['gn'], True, clsHotGns)
+                info = info[0], '#' + info[1], info[2], info[3]
             else: # THS+CLS
-                info1 = self.getTypeNameAndColor_THS(item['gn'], True)
-                info2 = self.getTypeNameAndColor_CLS(item['gn'], True)
+                info1 = self._getTypeNameAndColor_THS(item['gn'], True, defHotGns)
+                info2 = self._getTypeNameAndColor_CLS(item['gn'], True, clsHotGns)
                 no = min(info1[0], info2[0])
                 color = info1[2] if no == info1[0] else info2[2]
-                if no != 1: no -= 1
-                info = (no, '*' + info2[1], color)
+                info = (no, '*' + info2[1], color, info2[3])
+            info = *info, item['gn']
             lastGns.append(info)
         return lastGns
 
-    def getTypeNameAndColor_THS(self, bk, remove):
-        idx = self.getDefHotIndex(bk)
+    def _getTypeNameAndColor_THS(self, bk, remove, defHotGns):
+        idx = self._getDefHotIndex(bk, defHotGns)
         if idx >= 0:
-            if remove: self.defHotGns.pop(idx)
-            return 1, bk, self.HOT_DEF_COLOR
-        return 1000, bk, self.DEF_COLOR
+            if remove: defHotGns.pop(idx)
+            return 20, bk, self.HOT_DEF_COLOR, 0
+        return 1000, bk, self.DEF_COLOR, 0
     
-    def getTypeNameAndColor_CLS(self, bk, remove):
-        idx = self.getClsHotIndex(bk)
+    def _getTypeNameAndColor_CLS(self, bk, remove, clsHotGns):
+        idx = self._getClsHotIndex(bk, clsHotGns)
         if idx >= 0:
-            clsName, num = self.clsHotGns[idx]
+            clsName, num = clsHotGns[idx]
             if remove:
-                self.clsHotGns.pop(idx)
+                clsHotGns.pop(idx)
             name = f'{bk}（{num}）'
-            return 100 - num, name, self.HOT_CLS_COLOR
-        return 2000, bk, self.DEF_COLOR
+            return 100 - num, name, self.HOT_CLS_COLOR, num
+        return 2000, bk, self.DEF_COLOR, 0
 
-    def getBkColor(self, bk):
-        if self.getDefHotIndex(bk):
-            return self.HOT_DEF_COLOR
-        if self.getClsHotIndex(bk) >= 0:
-            return self.HOT_CLS_COLOR
-        return self.DEF_COLOR
-
-    def getDefHotIndex(self, bk):
-        for i, h in enumerate(self.defHotGns):
+    def _getDefHotIndex(self, bk, defHotGns):
+        for i, h in enumerate(defHotGns):
             if h == bk: # h in bk or bk in h
                 return i
         return -1
 
-    def getClsHotIndex(self, bk):
-        for i, it in enumerate(self.clsHotGns):
+    def _getClsHotIndex(self, bk, clsHotGns):
+        for i, it in enumerate(clsHotGns):
             clsName, num = it
             if bk == clsName:
                 return i
@@ -1851,6 +1911,7 @@ if __name__ == '__main__':
     win.createWindow(None)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
     win.changeCode('688800')
+    win.changeLastDay(20250102)
     win32gui.PumpMessages()
 
     #import ths_win

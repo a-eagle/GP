@@ -1945,7 +1945,7 @@ class PopupMenu(NoActivePopupWindow):
         return -1
 
     def scroll(self, delta):
-        if not self.model:
+        if not self.model or len(self.model) <= self.VISIBLE_MAX_ITEM:
             return
         idx = self.startIdx - delta
         if delta < 0:
@@ -1954,7 +1954,7 @@ class PopupMenu(NoActivePopupWindow):
         else:
             idx = max(idx, 0)
         if self.startIdx == idx:
-                return
+            return
         self.startIdx = idx
         w, h = self.calcSize()
         self.resize(w, h)

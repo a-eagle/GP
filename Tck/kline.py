@@ -4,7 +4,7 @@ import win32gui, win32con
 import requests, peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import ths_orm, tdx_orm, tck_orm, tck_def_orm, lhb_orm, zs_orm
+from orm import ths_orm, tdx_orm, tck_orm, tck_def_orm, lhb_orm, zs_orm, cls_orm
 from Download import datafile
 from Download import henxin, cls
 from Common import base_win, ext_win, dialog
@@ -1700,9 +1700,114 @@ class ZhangSuIndicator(CustomIndicator):
         aw = math.ceil(zs / MAX_ITEM_ZF)
         w = aw * IW
         sx = (iw - w) // 2 + x
-        rc = (sx, 2, sx + w, self.height - 1)
+        y = int(self.height * 0.3)
+        rc = (sx, y, sx + w, self.height - 1)
         drawer : base_win.Drawer = self.klineWin.drawer
         drawer.fillRect(hdc, rc, 0x3C14DC)
+
+# 概念联动
+class GnLdIndicator(CustomIndicator):
+    def __init__(self, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 30
+        super().__init__(config)
+        if 'title' not in self.config:
+            self.config['title'] = '[联动]'
+        self.clsGntc = None
+        self.curGntc = ''
+        self.hotsData = None
+
+    def setData(self, data):
+        super().setData(data)
+        if not self.klineWin.model:
+            self.setCustomData(None)
+            return
+        code = self.klineWin.model.code
+        # load gntc
+        obj = cls_orm.CLS_GNTC.get_or_none(code = code)
+        self.clsGntc = []
+        isCurGntcExists = False
+        if obj and obj.hy:
+            for it in obj.hy.split(';'):
+                it = it.strip()
+                if it: self.clsGntc.append({'name': it, 'type': 'hy', 'title': f'【{it}】'})
+                if self.curGntc and self.curGntc == it:
+                    isCurGntcExists = True
+        if obj and obj.gn:
+            for it in obj.gn.split(';'):
+                it = it.strip()
+                if it: self.clsGntc.append({'name': it, 'type': 'gn', 'title': f'{it}'})
+                if self.curGntc and self.curGntc == it:
+                    isCurGntcExists = True
+        
+        curGntc = self.curGntc
+        if not isCurGntcExists:
+            curGntc = ''
+        self.changeGntc(curGntc, True)
+
+    def changeGntc(self, gntc, force = False):
+        if self.curGntc == gntc and not force:
+            return
+        self.curGntc = gntc or ''
+        self.config['title'] = f'[联动-{self.curGntc}]'
+
+        qr = tck_orm.CLS_HotTc.select().where(tck_orm.CLS_HotTc.name == self.curGntc).dicts()
+        maps = {}
+        for d in qr:
+            day = int(d['day'].replace('-', ''))
+            if day not in maps:
+                maps[day] = [d]
+            else:
+                maps[day].append(d)
+        rs = []
+        for d in (self.data or []):
+            fd = maps.get(d.day, None)
+            if not fd:
+                fd = {'day': d.day, 'items': None}
+            else:
+                fd = {'day': d.day, 'items': fd}
+            rs.append(fd)
+        self.setCustomData(rs)
+
+    def drawItem(self, idx, hdc, pens, hbrs, x):
+        iw = self.config['itemWidth']
+        cdata = self.customData[idx]
+        selIdx = self.klineWin.selIdx
+        selData = self.data[selIdx] if selIdx >= 0 and selIdx < len(self.data) else None
+        selDay = int(selData.day) if selData else 0
+        rc = (x + 1, 1, x + iw, self.height)
+        if selDay == int(cdata['__day']):
+            win32gui.FillRect(hdc, rc, hbrs['light_dark'])
+        if not cdata or not cdata.get('items', None):
+            return
+        
+        items = cdata['items']
+        IIW = 6
+        w = IIW * len(items)
+        sx = (iw - w) // 2 + x
+        drawer : base_win.Drawer = self.klineWin.drawer
+        y = int(self.height * 0.3)
+        for it in items:
+            rc = (sx, y, sx + IIW - 1, self.height - 1)
+            if it['up']:
+                drawer.fillRect(hdc, rc, 0x3C14DC)
+            else:
+                drawer.fillRect(hdc, rc, 0x3CDC14)
+            sx += IIW
+
+    def onContextMenu(self, x, y):
+        menu = base_win.PopupMenu.create(self.klineWin.hwnd, self.clsGntc)
+        menu.VISIBLE_MAX_ITEM = 10
+        menu.addNamedListener('Select', self.onSelectItem)
+        x, y = win32gui.GetCursorPos()
+        menu.show(x, y)
+        return True
+    
+    def onSelectItem(self, evt, args):
+        item = evt.item
+        self.changeGntc(item['name'])
+        self.klineWin.invalidWindow()
 
 class KLineSelTipWindow(base_win.BaseWindow):
     def __init__(self, klineWin) -> None:
@@ -2095,7 +2200,8 @@ class KLineWindow(base_win.BaseWindow):
         self.indicators.append(idt)
         self.klineIndicator = idt
         self.lineMgr = DrawLineManager(self)
-        self.hygnRender = None
+        from THS import tips_win
+        self.hygnWin = tips_win.BkGnWindow()
 
     def addIndicator(self, indicator : Indicator):
         indicator.init(self)
@@ -2161,7 +2267,6 @@ class KLineWindow(base_win.BaseWindow):
         return [idt.x, idt.y, idt.width, idt.height]
 
     def setModel(self, model : KLineModel_DateType):
-        self.hygnRender = None
         self.selIdx = -1
         self.dateType = 'day'
         self.model = model
@@ -2183,6 +2288,7 @@ class KLineWindow(base_win.BaseWindow):
         for idt in self.indicators:
             idt.setData(self.model.data)
         self.lineMgr.load(model.code)
+        self.hygnWin.changeCode(self.model.code)
 
     # dateType = 'day' 'week'  'month'
     def changeDateType(self, dateType):
@@ -2331,7 +2437,8 @@ class KLineWindow(base_win.BaseWindow):
         self.calcIndicatorsRect()
         if self.showSelTip:
             self.createTipWindow(self.hwnd)
-            
+        self.hygnWin.DEF_COLOR = 0x22cc22
+
     def createTipWindow(self, parentWnd, rect = None, style = win32con.WS_POPUP | win32con.WS_VISIBLE):
         selTipWin = KLineSelTipWindow(self)
         if rect == None:
@@ -2339,12 +2446,15 @@ class KLineWindow(base_win.BaseWindow):
             rect = (prc[0] + 10, prc[1] + 80, 80, 140)
         selTipWin.createWindow(self.hwnd, rect, style) # win32con.WS_CAPTION |
     
+    def onSize(self):
+        self.makeVisible(self.selIdx)
+
     # @return True: 已处理事件,  False:未处理事件
     def winProc(self, hwnd, msg, wParam, lParam):
         if self.lineMgr.winProc(hwnd, msg, wParam, lParam):
             return True
-        if msg == win32con.WM_SIZE:
-            self.makeVisible(self.selIdx)
+        if msg == win32con.WM_SIZE and wParam != win32con.SIZE_MINIMIZED:
+            self.onSize()
             return True
         if msg == win32con.WM_MOUSEMOVE:
             self.onMouseMove(lParam & 0xffff, (lParam >> 16) & 0xffff)
@@ -2385,6 +2495,7 @@ class KLineWindow(base_win.BaseWindow):
             self.selIdx = attrVal
             data = self.model.data[attrVal] if attrVal >= 0 else None
             self.notifyListener(self.Event('selIdx.changed', self, selIdx = attrVal, data = data))
+            self.hygnWin.changeLastDay(data.day)
             win32gui.InvalidateRect(self.hwnd, None, True)
     
     def acceptMouseMove(self, x, y, it : Indicator):
@@ -2510,34 +2621,17 @@ class KLineWindow(base_win.BaseWindow):
         win32gui.SetTextColor(hdc, 0xdddddd)
         win32gui.DrawText(hdc, day, len(day), rc, win32con.DT_CENTER)
 
-    def initHyGnRender(self):
-        if not self.model or not self.model.data:
-            return
-        code = self.model.code
-        day = self.model.data[self.selIdx].day
-        if self.hygnRender and self.hygnRender._code == code:
-            return
-        self.hygnRender = ext_win.RichTextRender(14)
-        self.hygnRender._code = code
-        from THS import tips_win
-        rr = tips_win.BkGnWindow()
-        rr.DEF_COLOR = 0x22cc22
-        rr.richRender = self.hygnRender
-        rr.changeCode(code)
-
     def drawCodeInfo(self, hdc, pens, hbrs):
         if not self.model:
             return
-        self.initHyGnRender()
         code = self.model.code
         name = self.model.name
         #gnhy = '【' + ' - '.join(getattr(self.model, "hy", [])) + '】' + '│'.join(getattr(self.model, "gn", []))
         rc = (0, 0, int(self.getClientSize()[0] * 0.7), 70)
-        self.hygnRender.draw(hdc, self.drawer, rc)
+        self.hygnWin.onDrawRect(hdc, rc)
         #font = self.drawer.getFont('宋体', 12)
         #self.drawer.use(hdc, font)
         #self.drawer.drawText(hdc, gnhy, rc, 0x00cc00, win32con.DT_LEFT | win32con.DT_EDITCONTROL | win32con.DT_WORDBREAK)
-        
         if self.showCodeName:
             sdc = win32gui.SaveDC(hdc)
             font = self.drawer.getFont('黑体', 16, 900)
@@ -3116,12 +3210,12 @@ if __name__ == '__main__':
     win.addIndicator(HotIndicator()) # {'height' : 50}
     win.addIndicator(ThsZT_Indicator()) # {'height' : 50}
     win.addIndicator(ClsZT_Indicator()) # {'height' : 50}
-    win.addIndicator(DdeIndicator()) # {'height' : 50}
     win.addIndicator(LhbIndicator())
     win.addIndicator(ZhangSuIndicator())
+    win.addIndicator(GnLdIndicator())
     
     rect = (0, 0, 1920, 850)
     win.createWindow(None, rect, win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW)
-    win.changeCode('002031') # cls82475 002085 603390 002085 002869  002055 000755
+    win.changeCode('300323') # 002031 603068
     #win.klineWin.setMarkDay(20240822)
     win32gui.PumpMessages()

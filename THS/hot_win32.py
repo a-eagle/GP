@@ -151,7 +151,7 @@ def subprocess_main():
     while True:
         if thsWindow.init():
             break
-        time.sleep(3)
+        time.sleep(1.5)
     thsShareMem.open()
     #hotWindow.createWindow(thsWindow.topHwnd)
     simpleWindow.createWindow(thsWindow.topHwnd)
