@@ -632,7 +632,11 @@ class TimeLineView extends Listener {
         let ZRDP = this.data.pre;
         let cur = this.data;
         let price = cur.close;
-        let is20P = this.data.code.substring(0, 3) == '688' || this.data.code.substring(0, 2) == '30';
+        let code = this.data.code;
+        if (code.substring(0, 2) == 'sh' || code.substring(0, 2) == 'sz') {
+            code = code.substring(2);
+        }
+        let is20P = code.substring(0, 3) == '688' || code.substring(0, 2) == '30';
         let ZT = is20P ? 20 : 10;
         let isZT = (parseInt(ZRDP  * (100 + ZT) + 0.5) <= parseInt(price * 100 + 0.5));
         if (isZT) {
