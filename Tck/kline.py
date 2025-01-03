@@ -491,7 +491,10 @@ class KLineIndicator(Indicator):
         self.drawBackground(hdc, pens, hbrs)
         for mk in self.markDays:
             self.drawMarkDay(mk, hdc, pens, hbrs)
-        self.drawHilight(hdc, pens, hbrs)
+        self.drawHilight(hdc, pens, hbrs, self.klineWin.selIdx)
+        if self.klineWin.mouseXY and self.klineWin.selIdxOnClick:
+            si = self.getIdxAtX(self.klineWin.mouseXY[0])
+            self.drawHilight(hdc, pens, hbrs, si)
         #sm = base_win.ThsShareMemory.instance()
         #if sm.readMarkDay() != 0:
         #    self.drawMarkDay(sm.readMarkDay(), hdc, pens, hbrs)
@@ -499,10 +502,9 @@ class KLineIndicator(Indicator):
         self.drawMA(hdc, 5)
         self.drawMA(hdc, 10)
 
-    def drawHilight(self, hdc, pens, hbrs):
-        if not self.klineWin.model:
+    def drawHilight(self, hdc, pens, hbrs, selIdx):
+        if not self.klineWin.model or not self.visibleRange:
             return
-        selIdx = self.klineWin.selIdx
         if selIdx < 0 or selIdx >= self.visibleRange[1] or selIdx < self.visibleRange[0]:
             return
         x = self.getCenterX(selIdx)
@@ -612,6 +614,12 @@ class KLineIndicator(Indicator):
                 continue
             win32gui.LineTo(hdc, self.getCenterX(i), self.getYAtValue(getattr(self.data[i], ma)))
         win32gui.DeleteObject(pen)
+    
+    def onMouseClick(self, x, y):
+        if self.klineWin.selIdxOnClick:
+            si = self.getIdxAtX(x)
+            self.klineWin.setSelIdx(si)
+        return True
     
 class AmountIndicator(Indicator):
     def __init__(self, config) -> None:
@@ -2239,6 +2247,8 @@ class KLineWindow(base_win.BaseWindow):
         self.klineSpace = 2 # K线之间的间距离
         self.selIdx = -1
         self.mouseXY = None
+        self.selIdxOnClick = False
+
         self.indicators = []
         idt = KLineIndicator({'height': -1, 'margins': (30, 20)})
         idt.init(self)
@@ -2375,6 +2385,7 @@ class KLineWindow(base_win.BaseWindow):
               #{'title': '周线', 'name': 'week', 'enable': 'week' != self.dateType}, 
               #{'title': '月线', 'name': 'month', 'enable': 'month' != self.dateType},
               #{'title': 'LINE'},
+              {'title': '点击时选中K线', 'name': 'sel-idx-on-click', 'checked': self.selIdxOnClick},
               {'title': '显示叠加指数', 'name': 'show-ref-zs', 'checked': ck},
               {'title': '叠加指数', 'name': 'add-ref-zs', 'sub-menu': self.getRefZsModel},
               {'title': '打开指数', 'name': 'open-ref-zs', 'sub-menu': self.getRefZsModel},
@@ -2395,7 +2406,9 @@ class KLineWindow(base_win.BaseWindow):
         x, y = win32gui.GetCursorPos()
         def onMM(evt, args):
             name = evt.item['name']
-            if name in ('day', 'week', 'month'):
+            if name == 'sel-idx-on-click':
+                self.selIdxOnClick = not self.selIdxOnClick
+            elif name in ('day', 'week', 'month'):
                 self.changeDateType(name)
             elif name == 'mark-day':
                 #base_win.ThsShareMemory.instance().writeMarkDay(selDay)
@@ -2573,10 +2586,11 @@ class KLineWindow(base_win.BaseWindow):
             if lmxy != self.mouseXY:
                 self.invalidWindow()
             return
-        if self.selIdx == si and self.mouseXY and y == self.mouseXY[1]:
-            return
         self.mouseXY = (x, y)
-        self.updateAttr('selIdx', si)
+        if not self.selIdxOnClick:
+            if self.selIdx == si and lmxy and y == lmxy[1]:
+                return
+            self.updateAttr('selIdx', si)
         if lmxy != self.mouseXY:
             self.invalidWindow()
 
@@ -3255,9 +3269,9 @@ if __name__ == '__main__':
     win.addIndicator(HotIndicator()) # {'height' : 50}
     win.addIndicator(ThsZT_Indicator()) # {'height' : 50}
     win.addIndicator(ClsZT_Indicator()) # {'height' : 50}
-    win.addIndicator(LhbIndicator())
-    win.addIndicator(ZhangSuIndicator())
     win.addIndicator(GnLdIndicator())
+    win.addIndicator(ZhangSuIndicator())
+    win.addIndicator(LhbIndicator())
     
     rect = (0, 0, 1920, 850)
     win.createWindow(None, rect, win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW)
