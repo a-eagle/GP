@@ -5,11 +5,12 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 NET_BASE_PATH = r'D:\GP_Net_Data'
 NET_LDAY_PATH = NET_BASE_PATH + '\\lday'
 NET_MINLINE_PATH = NET_BASE_PATH + '\\minline'
+NET_CLS_MINLINE_PATH = NET_BASE_PATH + '\\cls-minline'
+NET_THS_MINLINE_PATH = NET_BASE_PATH + '\\ths-minline'
 
-if not os.path.exists(NET_LDAY_PATH):
-    os.makedirs(NET_LDAY_PATH)
-if not os.path.exists(NET_MINLINE_PATH):
-    os.makedirs(NET_MINLINE_PATH)
+for d in (NET_LDAY_PATH, NET_MINLINE_PATH, NET_CLS_MINLINE_PATH, NET_THS_MINLINE_PATH):
+    if not os.path.exists(d):
+        os.makedirs(d)
 
 class ItemData:
     DS = ('day', 'open', 'high', 'low', 'close', 'amount', 'vol') # vol(股), lbs(连板数), zdt(涨跌停), tdb(天地板，地天板) zhangFu(涨幅)
@@ -187,10 +188,21 @@ class DataFile:
 
     def getPath(self):
         code = self.code
-        if self.dataType == DataFile.DT_DAY:
-            bp = os.path.join(NET_LDAY_PATH, f'{code}.day')
-        else:
-            bp = os.path.join(NET_MINLINE_PATH, f'{code}.lc1')
+        if code[0 : 3] == 'cls': # cls zs
+            if self.dataType == DataFile.DT_DAY:
+                bp = os.path.join(NET_LDAY_PATH, f'{code}.day')
+            else:
+                bp = os.path.join(NET_CLS_MINLINE_PATH, f'{code}.lc1')
+        elif code[0] == '8': # ths zs
+            if self.dataType == DataFile.DT_DAY:
+                bp = os.path.join(NET_LDAY_PATH, f'{code}.day')
+            else:
+                bp = os.path.join(NET_THS_MINLINE_PATH, f'{code}.lc1')
+        else: # GP
+            if self.dataType == DataFile.DT_DAY:
+                bp = os.path.join(NET_LDAY_PATH, f'{code}.day')
+            else:
+                bp = os.path.join(NET_MINLINE_PATH, f'{code}.lc1')
         return bp
 
     def _loadDataFile_All(self, path):
@@ -447,6 +459,22 @@ class DataFileLoader:
         rs.append('399006')
         self.codes = rs
         return self.codes
+    
+    def getClsCodes(self):
+        from orm import cls_orm
+        q = cls_orm.CLS_ZS.select(cls_orm.CLS_ZS.code).tuples()
+        rs = []
+        for t in q:
+            rs.append(t[0])
+        return rs
+    
+    def getThsCodes(self):
+        from orm import ths_orm
+        q = ths_orm.THS_ZS.select(ths_orm.THS_ZS.code).tuples()
+        rs = []
+        for t in q:
+            rs.append(t[0])
+        return rs
 
     def _adjustMinutesData(self, rs : list):
         MINUTES_IN_DAY = DataFile.MINUTES_IN_DAY
@@ -465,15 +493,19 @@ class DataFileLoader:
 
     def downloadAndMergeMililine(self, code):
         try:
-            from Download import cls
+            from Download import cls, henxin
             dst = DataFile(code, DataFile.DT_MINLINE)
             dst.loadData(DataFile.FLAG_NEWEST)
             if dst.data:
                 lastDay = dst.data[-1].day
                 if self.newestDay and self.newestDay <= lastDay:
                     return True
-            url = cls.ClsUrl()
-            datas = url.loadHistory5FenShi(code)
+            if len(code) == 6 and code[0] == '8': # ths zs
+                hx = henxin.HexinUrl()
+                datas = hx.loadUrlData( hx.getFenShiUrl(code))
+            else:
+                url = cls.ClsUrl()
+                datas = url.loadHistory5FenShi(code)
             if datas and ('line' in datas):
                 self.mergeMinlineFile(code, datas['line'])
         except Exception as e:
@@ -482,20 +514,20 @@ class DataFileLoader:
             return False
         return True
 
-    def downloadAndMergeAllMililine(self, internalTime):
+    def _downloadAndMergeAllMililine(self, codes, internalTime, tag):
         try:
             from Download import console
-            print(f'-----begin download militime--------')
             self.newestDay = self.getNetNewestDay()
             if not self.newestDay:
                 return
+            print(f'-----begin download militime-----{tag}---')
             st = datetime.datetime.now()
             st = st.strftime('%Y-%m-%d %H:%M')
             startTime = time.time()
             print(st)
             x, y = console.getCursorPos()
             success, fail = 0, 0
-            for c in self.getCodes():
+            for c in codes:
                 b = self.downloadAndMergeMililine(c)
                 if b: success += 1
                 else: fail += 1
@@ -507,11 +539,16 @@ class DataFileLoader:
                 m = diffTime % 3600 // 60
                 s = diffTime % 60
                 ut = f'{h}:{m :02d}:{s :02d}'
-                print(f'Loading: {success} / {len(self.getCodes())}, fail = {fail},  {ut}')
+                print(f'Loading: {success} / {len(codes)}, fail = {fail},  {ut}')
                 time.sleep(internalTime)
         except Exception as e:
             traceback.print_exc()
         print('-----end download--------\n')
+
+    def downloadAndMergeAllMililine(self, internalTime):
+        self._downloadAndMergeAllMililine(self.getCodes(), internalTime, '')
+        self._downloadAndMergeAllMililine(self.getClsCodes(), internalTime, 'Cls ZS')
+        self._downloadAndMergeAllMililine(self.getThsCodes(), internalTime, 'Ths ZS')
 
     def mergeDayFile(self, code, klineDatas):
         ph = os.path.join(NET_LDAY_PATH, f'{code}.day')
@@ -538,10 +575,9 @@ class DataFileLoader:
     def mergeMinlineFile(self, code, minlineDatas):
         if not minlineDatas:
             return
-        ph = os.path.join(NET_MINLINE_PATH,f'{code}.lc1')
         dst = DataFile(code, DataFile.DT_MINLINE)
         dst.loadData(DataFile.FLAG_NEWEST)
-        f = open(ph, 'ab')
+        f = open(dst.getPath(), 'ab')
         lastDay = 0
         if dst.data:
             lastDay = dst.data[-1].day
@@ -688,9 +724,10 @@ if __name__ == '__main__':
     print(df.days)
 
     ld = DataFileLoader()
+    ld._downloadAndMergeAllMililine(ld.getThsCodes(), 0.5, 'Ths ZS')
     #ld.downloadAndMergeAllMililine(0.5)
-    ld.downloadAndMergeMililine('300420')
+    #ld.downloadAndMergeMililine('300420')
     #ld.chunkMinlineFile('300420', 20240301, 20241206)
-    df = DataFile('300420', DataFile.DT_MINLINE)
-    df.loadData(DataFile.FLAG_ALL)
-    print(df.days)
+    #df = DataFile('300420', DataFile.DT_MINLINE)
+    #df.loadData(DataFile.FLAG_ALL)
+    #print(df.days)

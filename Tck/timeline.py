@@ -8,7 +8,7 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Download import datafile
 from Download import henxin, cls
 from Common import base_win, ext_win
-from orm import ths_orm
+from orm import ths_orm, cls_orm
 from Tck import fx
 
 def getTypeByCode(code):
@@ -21,6 +21,8 @@ def getTypeByCode(code):
     if code[0] in ('0', '3', '6'):
         return 'cls'
     if code[0 : 2] in ('sz', 'sh'):
+        return 'cls'
+    if code[0 : 3] == 'cls':
         return 'cls'
     return 'ths'
 
@@ -111,9 +113,15 @@ class SimpleTimelineModel:
         return False
 
     def loadLocal(self, code, day):
-        if len(code) == 8:
+        if code[0 : 2] in ('sz', 'sh'):
             code = code[2 : ]
-        if code[0] not in ('0', '3', '6'):
+        elif code[0 : 3] == 'cls':
+            pass
+        elif code[0 : 2] == '88' and len(code) == 6: # ths zs
+            pass
+        elif code[0] in ('0', '3', '6') and len(code) == 6:
+            pass
+        else:
             return
         if not self.dataFile or self.dataFile.code != code:
             self.dataFile = datafile.DataFile(code, datafile.DataFile.DT_MINLINE)
@@ -161,12 +169,21 @@ class SimpleTimelineModel:
             code = f'{code :06d}'
         if not code:
             return
+        if code[0 : 2] in ('sz', 'sh'):
+            code = code[2 : ]
         self.loadNet(code, day)
         self.loadLocal(code, day)
         self.merge()
-        #obj = ths_orm.THS_ZS_ZD.select(ths_orm.THS_ZS_ZD.name.distinct()).where(ths_orm.THS_ZS_ZD.code == code).scalar()
-        obj = ths_orm.THS_GNTC.select(ths_orm.THS_GNTC.name.distinct()).where(ths_orm.THS_GNTC.code == code).scalar()
-        self.name = obj
+        if type(day) == str:
+            self.day = int(day.replace('-', ''))
+        elif type(day) == int:
+            self.day = day
+        if code[0] in ('0', '3', '6'):
+            self.name = ths_orm.THS_GNTC.select(ths_orm.THS_GNTC.name.distinct()).where(ths_orm.THS_GNTC.code == code).scalar()
+        elif code[0 : 2] == '88':
+            self.name = ths_orm.THS_ZS.select(ths_orm.THS_ZS.name.distinct()).where(ths_orm.THS_ZS.code == code).scalar()
+        elif code[0 : 3] == 'cls':
+            self.name = cls_orm.CLS_ZS.select(cls_orm.CLS_ZS.name.distinct()).where(cls_orm.CLS_ZS.code == code).scalar()
 
     def getPriceRange(self):
         if not self.curData:
@@ -232,10 +249,11 @@ class SimpleTimelineWindow(base_win.BaseWindow):
         super().__init__()
         self.model = None
         self.mouseXY = None
-        self.paddings = (45, 10, 60, 30)
+        self.paddings = (45, 30, 60, 30)
         self.volHeight = 160
         self.volSpace = 20
         self.hilights = []
+        self.refZSModel = None
 
     def load(self, code, day = None):
         self.priceRange = None
@@ -245,6 +263,26 @@ class SimpleTimelineWindow(base_win.BaseWindow):
         title = f'{self.model.code}   {self.model.name}'
         win32gui.SetWindowText(self.hwnd, title)
         self.invalidWindow()
+
+    def addRefZS(self, zsCode):
+        if not self.model:
+            return
+        self.refZSModel = SimpleTimelineModel()
+        self.refZSModel.load(zsCode, self.model.day)
+
+    def _adjustRefZSPrice(self):
+        if not self.refZSModel or getattr(self.refZSModel, 'adjustPrice', False):
+            return
+        if not self.model or not self.model.curData:
+            return
+        if not self.refZSModel.pre or not self.model.pre:
+            return
+        self.refZSModel.adjustPrice = True
+        # Fix: 调整开盘价为0轴
+        self.refZSModel.pre = self.refZSModel.curData[0].price
+        yz = self.refZSModel.pre / self.model.pre
+        for d in self.refZSModel.curData:
+            d.price = d.price / yz
 
     def initHilights(self):
         self.hilights.clear()
@@ -467,6 +505,23 @@ class SimpleTimelineWindow(base_win.BaseWindow):
             else:
                 win32gui.LineTo(hdc, x, y)
 
+    def drawRefZSMinites(self, hdc):
+        if not self.refZSModel or not self.refZSModel.curData:
+            return
+        self._adjustRefZSPrice()
+        W, H = self.getClientSize()
+        self.drawer.use(hdc, self.drawer.getPen(0xff2222))
+        for i, md in enumerate(self.refZSModel.curData):
+            idx = self.minuteToIdx(md.time)
+            x = self.getXAtMinuteIdx(idx, W)
+            y = self.getYAtPrice(md.price, H)
+            if i == 0:
+                win32gui.MoveToEx(hdc, x, y)
+            else:
+                win32gui.LineTo(hdc, x, y)
+        info = f'{self.refZSModel.name}  {self.refZSModel.code}'
+        self.drawer.drawText(hdc, info, (self.paddings[0], 0, 250, self.paddings[1]), align = win32con.DT_LEFT | win32con.DT_SINGLELINE | win32con.DT_VCENTER)
+
     def _getVolLineColor(self, idx):
         now = self.model.curData[idx].price
         if idx == 0:
@@ -497,6 +552,72 @@ class SimpleTimelineWindow(base_win.BaseWindow):
         self.drawMouse(hdc)
         self.drawMinites(hdc)
         self.drawVol(hdc)
+        self.drawRefZSMinites(hdc)
+
+    def onContextMenu(self, x, y):
+        mm = [
+            {'title': '叠加指数 THS', 'name': 'add-ref-ths-zs', 'sub-menu': self.getRefThsZsModel},
+            {'title': '叠加指数 CLS', 'name': 'add-ref-cls-zs', 'sub-menu': self.getRefClsZsModel},
+        ]
+        menu = base_win.PopupMenu.create(self.hwnd, mm)
+        x, y = win32gui.GetCursorPos()
+        menu.addNamedListener('Select', self.onMenuItem)
+        menu.show(x, y)
+
+    def onMenuItem(self, evt, args):
+        name = evt.item['name']
+        if name == 'add-ref-ths-zs' or name == 'add-ref-cls-zs':
+            code = evt.item['code']
+            self.addRefZS(code)
+            self.invalidWindow()
+
+    def getRefThsZsModel(self, item):
+        model = []
+        if not self.model:
+            return model
+        code = self.model.code
+        if len(code) == 8:
+            code = code[2 : ]
+        obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
+        if not obj:
+            return model
+        if obj.hy_2_code: model.append({'title': obj.hy_2_name, 'code': obj.hy_2_code})
+        if obj.hy_3_code: model.append({'title': obj.hy_3_name, 'code': obj.hy_3_code})
+        model.append({'title': 'LINE'})
+        if not obj.gn_code:
+            return model
+        gn_codes = obj.gn_code.split(';')
+        gn_names = obj.gn.split(';')
+        for i in range(len(gn_codes)):
+            if gn_codes[i].strip():
+                model.append({'title': gn_names[i], 'code': gn_codes[i].strip()})
+        return model
+    
+    def getRefClsZsModel(self, item):
+        model = []
+        if not self.model:
+            return model
+        code = self.model.code
+        if len(code) == 8:
+            code = code[2 : ]
+        obj : cls_orm.CLS_GNTC = cls_orm.CLS_GNTC.get_or_none(cls_orm.CLS_GNTC.code == code)
+        if not obj:
+            return model
+        if obj.hy:
+            hys = obj.hy.split(';')
+            hycs = obj.hy_code.split(';')
+            for i in range(len(hys)):
+                if hycs[i].strip():
+                    model.append({'title': hys[i], 'code': hycs[i]})
+        model.append({'title': 'LINE'})
+        if not obj.gn_code:
+            return model
+        gn_codes = obj.gn_code.split(';')
+        gn_names = obj.gn.split(';')
+        for i in range(len(gn_codes)):
+            if gn_codes[i].strip():
+                model.append({'title': gn_names[i], 'code': gn_codes[i].strip()})
+        return model
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_MOUSEMOVE:
@@ -504,6 +625,10 @@ class SimpleTimelineWindow(base_win.BaseWindow):
             self.mouseXY = (x, y)
             if self.model:
                 win32gui.InvalidateRect(hwnd, None, True)
+            return True
+        if msg == win32con.WM_RBUTTONUP:
+            x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
+            self.onContextMenu(x, y)
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
 
@@ -595,12 +720,12 @@ class TimelinePanKouWindow(base_win.BaseWindow):
             self.pankouWin.load(code)
         pool.addTask('TLa', lda)
         pool.addTask('TLb', ldb)
-
+    
 if __name__ == '__main__':
     base_win.ThreadPool.instance().start()
     win = TimelinePanKouWindow()
     win.createWindow(None, (0, 0, 1000, 600), win32con.WS_OVERLAPPEDWINDOW)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
     #win.load('002085', None)
-    win.load('002239', 20241220) # cls82437 sh000001 ; 300390  600611
+    win.load('002239', 20250102) # cls82437 sh000001 ; 300390  600611
     win32gui.PumpMessages()

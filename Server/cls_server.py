@@ -14,6 +14,7 @@ class Server:
         self._lastLoadHotTcTime = 0
         self._lastLoadZSTime = 0
         self._lastLoadBkGnTime = 0
+        self._lastLoadZSZDTime = 0
 
     def now(self):
         return datetime.datetime.now().strftime('%H:%M')
@@ -204,6 +205,24 @@ class Server:
                     i += 1
             self._lastLoadZSTime = time.time()
             console.writeln_1(console.GREEN, f'[CLS-ZS] {self.formatNowTime(True)} insert={i} update={u}')
+        except Exception as e:
+            traceback.print_exc()
+
+    # 指数分时
+    def downloadZSTimeline(self):
+        try:
+            if time.time() - self._lastLoadZSZDTime <= 90 * 60:
+                return
+            st = datetime.datetime.now().strftime('%H:%M')
+            if st < '17:00' or st > '18:00':
+                return
+            from orm import cls_orm
+            qt = cls_orm.CLS_ZS.select()
+            u, i = 0, 0
+            for it in qt:
+                pass
+            self._lastLoadZSZDTime = time.time()
+            console.writeln_1(console.GREEN, f'[CLS-ZS-ZD] {self.formatNowTime(True)} insert={i} update={u}')
         except Exception as e:
             traceback.print_exc()
 

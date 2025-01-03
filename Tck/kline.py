@@ -1321,6 +1321,8 @@ class ClsZT_Indicator(CustomIndicator):
             return True
         itemWidth = self.config['itemWidth']
         idx = x // itemWidth + self.visibleRange[0]
+        if idx >= len(self.customData):
+            return True
         # click item idx
         itemData = self.customData[idx]
         if not itemData:
@@ -1798,7 +1800,7 @@ class GnLdIndicator(CustomIndicator):
 
     def onContextMenu(self, x, y):
         menu = base_win.PopupMenu.create(self.klineWin.hwnd, self.clsGntc)
-        menu.VISIBLE_MAX_ITEM = 10
+        menu.VISIBLE_MAX_ITEM = 8
         menu.addNamedListener('Select', self.onSelectItem)
         x, y = win32gui.GetCursorPos()
         menu.show(x, y)
@@ -1809,6 +1811,49 @@ class GnLdIndicator(CustomIndicator):
         self.changeGntc(item['name'])
         self.klineWin.invalidWindow()
 
+    def onMouseClick(self, x, y):
+        if self.changeSelIdx(x, y):
+            return True
+        if not self.visibleRange:
+            return True
+        itemWidth = self.config['itemWidth']
+        idx = x // itemWidth + self.visibleRange[0]
+        # click item idx
+        if idx >= len(self.customData):
+            return True
+        itemData = self.customData[idx]
+        if not itemData:
+            return True
+        items = itemData.get('items', None)
+        if not items:
+            return True
+        # draw tip
+        self.klineWin.invalidWindow()
+        win32gui.UpdateWindow(self.klineWin.hwnd)
+        hdc = win32gui.GetDC(self.klineWin.hwnd)
+        W, H = 100, 70
+        nidx =  x // itemWidth
+        drawer : base_win.Drawer = self.klineWin.drawer
+        if x >= self.width // 2:
+            sx = nidx * itemWidth - W
+        else:
+            sx = nidx * itemWidth + itemWidth
+        sx += self.x
+        sy = self.y - H
+        rc = [sx, sy, sx + W, sy + H]
+        drawer.fillRect(hdc, rc, 0x101010)
+        drawer.drawRect(hdc, rc, 0xa0f0a0)
+        win32gui.SetBkMode(hdc, win32con.TRANSPARENT)
+        drawer.use(hdc, drawer.getFont())
+        rc[0] += 5
+        rc[1] += 3
+        rc[2] -= 5
+        rc[3] -= 3
+        detail = '\n'.join((d['ctime'][0 : 5] + '  ' + ('+' if d['up'] else '-') for d in items))
+        drawer.drawText(hdc, detail, rc, color = 0xd0a0a0, align = win32con.DT_WORDBREAK)
+        win32gui.ReleaseDC(self.klineWin.hwnd, hdc)
+        return True
+    
 class KLineSelTipWindow(base_win.BaseWindow):
     def __init__(self, klineWin) -> None:
         super().__init__()
