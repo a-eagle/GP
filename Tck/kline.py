@@ -1793,7 +1793,7 @@ class GnLdIndicator(CustomIndicator):
         for it in items:
             rc = (sx, y, sx + IIW - 1, self.height - 1)
             if it['up']:
-                drawer.fillRect(hdc, rc, 0x3C14DC)
+                drawer.fillRect(hdc, rc, 0xee2b8c)
             else:
                 drawer.fillRect(hdc, rc, 0x3CDC14)
             sx += IIW
