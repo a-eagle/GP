@@ -331,6 +331,10 @@ class ThreadPool:
                 th = t
         th.addTask(taskId, func, *args)
 
+    def addTaskOnThread(self, threadIdx, taskId, func, *args):
+        if threadIdx >= 0 and threadIdx < len(self.threads):
+            self.threads[threadIdx].addTask(taskId, func, *args)
+
     def removeTask(self, taskId):
         for t in self.threads:
             t.removeTask(taskId)

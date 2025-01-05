@@ -8,7 +8,7 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Download import datafile
 from Download import henxin, cls
 from Common import base_win, ext_win
-from orm import ths_orm, cls_orm
+from orm import ths_orm, cls_orm, tck_orm
 from Tck import fx
 
 def getTypeByCode(code):
@@ -40,6 +40,7 @@ class SimpleTimelineModel:
         self.netData = []
         self.curData = []
         self.dataFile = None
+        self.clsHotTcList = None # only used for ZS ( CLS_HotTc )
 
     def _calcCodePre_Cls(self, idx, lines):
         if idx == 0:
@@ -184,6 +185,17 @@ class SimpleTimelineModel:
             self.name = ths_orm.THS_ZS.select(ths_orm.THS_ZS.name.distinct()).where(ths_orm.THS_ZS.code == code).scalar()
         elif code[0 : 3] == 'cls':
             self.name = cls_orm.CLS_ZS.select(cls_orm.CLS_ZS.name.distinct()).where(cls_orm.CLS_ZS.code == code).scalar()
+            self.loadClsHotTc()
+    
+    def loadClsHotTc(self):
+        day = str(self.day)
+        if len(day) == 8:
+            day = day[0 : 4] + '-' + day[4 : 6] + '-' + day[6 : 8]
+        rs = []
+        qr = tck_orm.CLS_HotTc.select().where(tck_orm.CLS_HotTc.name == self.name, tck_orm.CLS_HotTc.day == day)
+        for q in qr:
+            rs.append(q.__data__)
+        self.clsHotTcList = rs
 
     def getPriceRange(self):
         if not self.curData:
@@ -251,7 +263,7 @@ class SimpleTimelineWindow(base_win.BaseWindow):
         self.mouseXY = None
         self.paddings = (45, 30, 60, 30)
         self.volHeight = 160
-        self.volSpace = 20
+        self.volSpace = 35
         self.hilights = []
         self.refZSModel = None
 
@@ -269,7 +281,8 @@ class SimpleTimelineWindow(base_win.BaseWindow):
             return
         self.refZSModel = SimpleTimelineModel()
         self.refZSModel.load(zsCode, self.model.day)
-
+        self.invalidWindow()
+        
     def _adjustRefZSPrice(self):
         if not self.refZSModel or getattr(self.refZSModel, 'adjustPrice', False):
             return
@@ -468,7 +481,7 @@ class SimpleTimelineWindow(base_win.BaseWindow):
         rc = (max(0, x - 40), ey - self.volSpace + 1, min(W, x + 40), ey - 1)
         ts = f'{md.time // 100}:{md.time % 100 :02d}'
         self.drawer.fillRect(hdc, rc, self.css['bgColor'])
-        self.drawer.drawText(hdc, ts, rc, color = 0xf06050, align = win32con.DT_SINGLELINE | win32con.DT_CENTER | win32con.DT_VCENTER)
+        self.drawer.drawText(hdc, ts, rc, color = 0xf06050, align = win32con.DT_SINGLELINE | win32con.DT_CENTER | win32con.DT_BOTTOM)
         # horizontal line
         price = self.getPriceAtY(y, H)
         if not price:
@@ -520,7 +533,27 @@ class SimpleTimelineWindow(base_win.BaseWindow):
             else:
                 win32gui.LineTo(hdc, x, y)
         info = f'{self.refZSModel.name}  {self.refZSModel.code}'
-        self.drawer.drawText(hdc, info, (self.paddings[0], 0, 250, self.paddings[1]), align = win32con.DT_LEFT | win32con.DT_SINGLELINE | win32con.DT_VCENTER)
+        self.drawer.drawText(hdc, info, (self.paddings[0], 0, 250, self.paddings[1]), align = win32con.DT_LEFT )
+    
+    def drawRefZSClsHotTc(self, hdc):
+        if not self.refZSModel or not self.refZSModel.curData:
+            return
+        if not self.refZSModel.clsHotTcList:
+            return
+        W, H = self.getClientSize()
+        for it in self.refZSModel.clsHotTcList:
+            # TODO draw cls hot tc
+            itime = int(it['ctime'].replace(':', '')[0 : 4])
+            idx = self.minuteToIdx(itime)
+            x = self.getXAtMinuteIdx(idx, W)
+            color = 0x2233ff if it['up'] else 0x23ff33
+            self.drawer.use(hdc, self.drawer.getBrush(color))
+            self.drawer.use(hdc, self.drawer.getPen(color))
+            X_HLF, Y_HLF = 4, 6
+            ey = H - self.paddings[3] - self.volHeight
+            SY = ey - self.volSpace + 4
+            pts = [(x - X_HLF, SY + Y_HLF), (x + X_HLF, SY + Y_HLF), (x, SY)]
+            win32gui.Polygon(hdc, pts)
 
     def _getVolLineColor(self, idx):
         now = self.model.curData[idx].price
@@ -553,6 +586,7 @@ class SimpleTimelineWindow(base_win.BaseWindow):
         self.drawMinites(hdc)
         self.drawVol(hdc)
         self.drawRefZSMinites(hdc)
+        self.drawRefZSClsHotTc(hdc)
 
     def onContextMenu(self, x, y):
         mm = [
@@ -718,8 +752,14 @@ class TimelinePanKouWindow(base_win.BaseWindow):
             self.timelineWin.load(code, day)
         def ldb():
             self.pankouWin.load(code)
-        pool.addTask('TLa', lda)
+        pool.addTaskOnThread(1, 'TLa', lda)
         pool.addTask('TLb', ldb)
+
+    def loadRefZS(self, zsCode):
+        def lda():
+            self.timelineWin.addRefZS(zsCode)
+        pool = base_win.ThreadPool.instance()
+        pool.addTaskOnThread(1, 'TLa-r', lda)
     
 if __name__ == '__main__':
     base_win.ThreadPool.instance().start()
@@ -727,5 +767,6 @@ if __name__ == '__main__':
     win.createWindow(None, (0, 0, 1000, 600), win32con.WS_OVERLAPPEDWINDOW)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
     #win.load('002085', None)
-    win.load('002239', 20250102) # cls82437 sh000001 ; 300390  600611
+    win.load('300323', None) # cls82437 sh000001 ; 300390  600611
+    win.loadRefZS('cls82545')
     win32gui.PumpMessages()

@@ -3262,19 +3262,6 @@ if __name__ == '__main__':
     base_win.ThreadPool.instance().start()
     sm = base_win.ThsShareMemory.instance()
     sm.open()
-    win = KLineCodeWindow()
-    win.addIndicator('rate amount')
-    win.addIndicator(DayIndicator({'height': 20}))
-    win.addIndicator(ScqxIndicator())
-    win.addIndicator(HotIndicator()) # {'height' : 50}
-    win.addIndicator(ThsZT_Indicator()) # {'height' : 50}
-    win.addIndicator(ClsZT_Indicator()) # {'height' : 50}
-    win.addIndicator(GnLdIndicator())
-    win.addIndicator(ZhangSuIndicator())
-    win.addIndicator(LhbIndicator())
-    
-    rect = (0, 0, 1920, 850)
-    win.createWindow(None, rect, win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW)
-    win.changeCode('300323') # 002031 603068
-    #win.klineWin.setMarkDay(20240822)
+    import kline_utils
+    win = kline_utils.openInCurWindow_Code(None, {'code': '300323'})
     win32gui.PumpMessages()
