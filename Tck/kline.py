@@ -34,7 +34,28 @@ def getTypeByCode(code):
         return 'cls'
     if code[0 : 2] in ('sh', 'sz'):
         return 'cls'
+    if code[0 : 3] == 'cls':
+        return 'cls'
     return 'ths'
+
+def getNameByCode(code):
+    if not code:
+        return None
+    if type(code) == int:
+        code = f'{code :06d}'
+    if code[0 : 2] in ('sz', 'sh'):
+        code = code[2 : ]
+    if code[0] in ('0', '3', '6'):
+        from Tck import utils
+        obj = utils.get_THS_GNTC(code)
+        return obj['name'] if obj else ''
+    elif code[0 : 3] == 'cls':
+        obj = cls_orm.CLS_ZS.get_or_none(code = code)
+        return obj.name if obj else ''
+    elif code[0] == '8':
+        obj = ths_orm.THS_ZS.get_or_none(code = code)
+        return obj.name if obj else ''
+    return ''
 
 class KLineModel_DateType(datafile.DataFile):
     # typeName is 'ths' | 'cls'
@@ -56,6 +77,8 @@ class KLineModel_DateType(datafile.DataFile):
         else:
             model = KLineModel_Cls(self.code)
         model.loadDataFile()
+        if not model.name:
+            model.name = getNameByCode(self.code)
         self.__dict__.update(model.__dict__)
         self.dateTypeDatas['day'] = self.data
 
@@ -2387,8 +2410,9 @@ class KLineWindow(base_win.BaseWindow):
               #{'title': 'LINE'},
               {'title': '点击时选中K线', 'name': 'sel-idx-on-click', 'checked': self.selIdxOnClick},
               {'title': '显示叠加指数', 'name': 'show-ref-zs', 'checked': ck},
-              {'title': '叠加指数', 'name': 'add-ref-zs', 'sub-menu': self.getRefZsModel},
-              {'title': '打开指数', 'name': 'open-ref-zs', 'sub-menu': self.getRefZsModel},
+              {'title': '叠加指数 THS', 'name': 'add-ref-zs', 'sub-menu': self.getRefZsModel},
+              {'title': '打开指数 THS', 'name': 'open-ref-zs', 'sub-menu': self.getRefZsModel},
+              {'title': '叠加指数 CLS', 'name': 'add-ref-zs', 'sub-menu': self.getRefZsClsModel},
               {'title': 'LINE'},
               {'title': '标记日期', 'name': 'mark-day', 'enable': selDay > 0, 'day': selDay},
               {'title': '- 取消标记日期', 'name': 'cancel-mark-day', 'enable': selDay > 0, 'day': selDay},
@@ -2488,6 +2512,25 @@ class KLineWindow(base_win.BaseWindow):
         for i in range(len(gn_codes)):
             if gn_codes[i].strip():
                 model.append({'title': gn_names[i], 'code': gn_codes[i].strip()})
+        return model
+    
+    def getRefZsClsModel(self, item):
+        model = []
+        code = self.model.code
+        obj : cls_orm.CLS_GNTC = cls_orm.CLS_GNTC.get_or_none(cls_orm.CLS_GNTC.code == code)
+        if not obj:
+            return model
+        if obj.hy and obj.hy_code:
+            hys = zip(obj.hy.split(';'), obj.hy_code.split(';'))
+            for hy in hys:
+                if hy[0].strip() and hy[1].strip():
+                    model.append({'title': hy[0], 'code': hy[1].strip()})
+        model.append({'title': 'LINE'})
+        if obj.gn and obj.gn_code:
+            gns = zip(obj.gn.split(';'), obj.gn_code.split(';'))
+            for gn in gns:
+                if gn[0].strip() and gn[1].strip():
+                    model.append({'title': gn[0], 'code': gn[1].strip()})
         return model
 
     def createWindow(self, parentWnd, rect, style = win32con.WS_VISIBLE | win32con.WS_CHILD, className = 'STATIC', title = ''):
@@ -2866,13 +2909,18 @@ class CodeWindow(ext_win.CellRenderWindow):
         if '市盈率' in name and val < 0:
             cell['color'] =  0x00ff00
         return cell
-    
+
     def getBkCell(self, rowInfo, idx):
         cell = {'text': '', 'color': 0x808080, 'textAlign': self.V_CENTER, 'fontSize': 15}
-        if not self.data:
+        if not self.klineWin or not self.klineWin.klineIndicator.refZSDrawer.model:
             return cell
+        refModel = self.klineWin.klineIndicator.refZSDrawer.model
+        val = ''
         name = rowInfo['name']
-        val = self.data.get(name, None)
+        if name == 'refZSName':
+           val = refModel.name
+        elif name == 'refZSCode':
+            val = refModel.code
         cell['text'] = val
         if name == 'refZSName':
             cell['span'] = 2

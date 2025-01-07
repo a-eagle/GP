@@ -38,7 +38,7 @@ def createKLineWindow(parent, rect = None, style = None):
         else:
             style = win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW
     win.createWindow(parent, rect, style)
-    win.klineWin.addListener(openKlineMinutes_Simple, win)
+    win.klineWin.addNamedListener('DbClick', openKlineMinutes_Simple, win)
     return win
 
 def openInCurWindow_Code(parent : base_win.BaseWindow, data):
@@ -62,7 +62,7 @@ def openInCurWindow_ZS(parent : base_win.BaseWindow, data):
     win.createWindow(parent.hwnd, (0, y, W, H), win32con.WS_VISIBLE | win32con.WS_POPUPWINDOW | win32con.WS_CAPTION)
     win.changeCode(data['code'])
     win.klineWin.setMarkDay(data['day'])
-    win.klineWin.addListener(openKlineMinutes_Simple, win)
+    win.klineWin.addNamedListener('DbClick', openKlineMinutes_Simple, win)
     win.klineWin.makeVisible(-1)
     return win
 
@@ -86,20 +86,28 @@ def openKlineMinutes_DDLR(evt, parent : base_win.BaseWindow):
     win.updateCodeDay(evt.code, day)
 
 def openKlineMinutes_Simple(evt, parent : base_win.BaseWindow):
-    if evt.name != 'DbClick':
-        return None
     win = timeline.TimelinePanKouWindow()
-    rc = win32gui.GetWindowRect(parent.hwnd)
+    #rc = win32gui.GetWindowRect(parent.hwnd)
     #rc2 = (rc[0], rc[1], rc[2] - rc[0], rc[3] - rc[1])
     SW = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
     SH = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
     w, h = max(800, int(SW * 0.6)), 600
     x, y = (SW - w) // 2, (SH - h) // 2
     rc2 = (x, y, w, h)
-    win.createWindow(parent.hwnd, rc2, win32con.WS_POPUPWINDOW | win32con.WS_CAPTION)
+    hw = None
+    if isinstance(parent, base_win.BaseWindow):
+        hw = parent.hwnd
+    else:
+        hw = parent
+    win.createWindow(hw, rc2, win32con.WS_POPUPWINDOW | win32con.WS_CAPTION)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
     day = evt.data.day
     win.load(evt.code, day)
+    if isinstance(parent, kline.KLineCodeWindow):
+        p : kline.KLineCodeWindow = parent
+        zs = p.klineWin.klineIndicator.refZSDrawer.model
+        if zs:
+            win.loadRefZS(zs.code)
     return win
 
 def openInThsWindow(data):
