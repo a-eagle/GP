@@ -60,8 +60,8 @@ function run_loop() {
         return;
     }
     if (Date.now() - proc_info.lastLoadAnchorsTime >= 5 * 60 * 1000) {
-        loadHistoryAnchor();
         proc_info.lastLoadAnchorsTime = Date.now();
+        loadHistoryAnchor();
     }
 }
 
@@ -152,10 +152,10 @@ function getAnchors(lastDay, traceDayNum) {
 // 不含当日
 function loadHistoryAnchor() {
     let dd = new Date();
-    for (let i = 0; i < 40; i++) {
-        dd = new Date(new Date().setDate(dd.getDate() - 1));
+    for (let i = 0; i < 60; i++) {
+        let dd2 = new Date(new Date().setDate(dd.getDate() - 1 - i));
         let tsk = new Task('LA', 100, loadAnchorTask);
-        tsk.day = formatDate(dd);
+        tsk.day = formatDate(dd2);
         proc_info.thread.addTask(tsk);
     }
     proc_info.thread.start();

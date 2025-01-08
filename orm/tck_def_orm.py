@@ -83,5 +83,12 @@ class MyHotGn(pw.Model):
         database = db_tck_def
         table_name = '热点概念'
 
-db_tck_def.create_tables([TCK_CiTiao, DailyFuPan, Mark, DrawLine, MyObserve, MyNote, MyHotGn])
+class MySettings(pw.Model):
+    mainKey =  pw.CharField()
+    subKey =  pw.CharField(null = True)
+    val = pw.CharField(null = True)
+    class Meta:
+        database = db_tck_def
+
+db_tck_def.create_tables([TCK_CiTiao, DailyFuPan, Mark, DrawLine, MyObserve, MyNote, MyHotGn, MySettings])
 

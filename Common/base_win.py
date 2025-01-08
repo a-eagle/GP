@@ -1867,7 +1867,7 @@ class PopupMenu(NoActivePopupWindow):
     # model = [ {
     #       title: xx | LINE,
     #       enable: True(is default) | False,
-    #       checked:None(not checkable) | True | False
+    #       checked: None(not checkable) | True | False
     #       render: function(menu, hdc, rect, menu-item)
     #       sub-menu: function(menu-item) | a model(list object)
     #   }, ...

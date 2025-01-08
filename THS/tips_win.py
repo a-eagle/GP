@@ -1505,8 +1505,9 @@ class BkGnWindow(base_win.BaseWindow):
         self.defHotGns = []
         self.richRender = ext_win.RichTextRender(17)
         self.clsHotGns = []
-        self.limitDaysNum = 5
+        self.limitDaysNum = self._getLimitDaysNum()
         self.lastDay = None
+        self.hotDaysRange = None
 
     def createWindow(self, parentWnd, rect = None, style = win32con.WS_POPUP, className='STATIC', title=''):
         if not rect:
@@ -1545,6 +1546,8 @@ class BkGnWindow(base_win.BaseWindow):
 
         def renderItem(menu, hdc, rect, menuItem):
             color = 0xdd33dd if self.lastDay == menuItem['day'] else 0x202020
+            if self.hotDaysRange and menuItem['day'] >= self.hotDaysRange[0] and menuItem['day'] <= self.hotDaysRange[1]:
+                self.drawer.fillRect(hdc, rect, 0xd0d0d0)
             self.drawer.drawText(hdc, menuItem['title'], rect, color, win32con.DT_LEFT | win32con.DT_VCENTER | win32con.DT_WORDBREAK)
 
         qr = tck_orm.CLS_HotTc.select().where(tck_orm.CLS_HotTc.name == gn).order_by(tck_orm.CLS_HotTc.day.desc()).dicts()
@@ -1582,12 +1585,22 @@ class BkGnWindow(base_win.BaseWindow):
             self.onClick(x, y)
             return True
         elif msg == win32con.WM_MBUTTONUP:
-            self.showSettings()
+            self.onShowSettings()
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
+    
+    def _getLimitDaysNum(self):
+        obj, _ = tck_def_orm.MySettings.get_or_create(mainKey = 'HotTc_N_Days')
+        if not obj.val:
+            obj.val = '5'
+            obj.save()
+        return int(obj.val)
 
-    def showSettings(self):
-        model = [{'title': '设置热点概念', 'name': 'hot'}]
+    def onShowSettings(self):
+        model = [{'title': '设置热点概念', 'name': 'hot'},
+                 {'title': '设置热点概念-5日', 'name': 'HotTc_5', 'checked': self.limitDaysNum == 5},
+                 {'title': '设置热点概念-10日', 'name': 'HotTc_10', 'checked': self.limitDaysNum == 10}
+                ]
         menu = base_win.PopupMenu.create(self.hwnd, model)
         menu.addNamedListener('Select', self.onSettings)
         menu.show(*win32gui.GetCursorPos())
@@ -1601,11 +1614,20 @@ class BkGnWindow(base_win.BaseWindow):
                 if not evt.ok:
                     return
                 self.saveDefHotGn(evt.text)
-                self._buildBkgn(self.curCode)
+                self._buildBkgn()
                 self.invalidWindow()
             dlg.addNamedListener('InputEnd', onInputEnd)
             dlg.createWindow(win32gui.GetParent(self.hwnd), (prc[0], prc[1], 450, 200), title = '设置热点概念')
             dlg.showCenter()
+        elif 'HotTc_' in evt.item['name']:
+            ndays = int(evt.item['name'][len('HotTc_') : ])
+            if self.limitDaysNum == ndays:
+                return
+            self.limitDaysNum = ndays
+            obj, _ = tck_def_orm.MySettings.get_or_create(mainKey = 'HotTc_N_Days')
+            obj.val = str(self.limitDaysNum)
+            obj.save()
+            self.changeLimitDaysNum()
     
     def onDraw(self, hdc):
         W, H = self.getClientSize()
@@ -1645,6 +1667,11 @@ class BkGnWindow(base_win.BaseWindow):
         self._buildBkgn()
         self.invalidWindow()
 
+    def changeLimitDaysNum(self):
+        self._loadClsHotGn(self.lastDay)
+        self._buildBkgn()
+        self.invalidWindow()
+
     def saveDefHotGn(self, txt):
         self.hotGnObj.info = txt or ''
         self.hotGnObj.save()
@@ -1667,6 +1694,7 @@ class BkGnWindow(base_win.BaseWindow):
     # lastDay = None(newest day) | int | str
     # return [(cls-name, num), ...]
     def _loadClsHotGn(self, lastDay):
+        self.hotDaysRange = None
         qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.day.distinct()).order_by(tck_orm.CLS_HotTc.day.desc()).tuples()
         days = []
         for it in qr:
@@ -1678,6 +1706,7 @@ class BkGnWindow(base_win.BaseWindow):
             return
         fromDay = days[-1]
         endDay = days[0]
+        self.hotDaysRange = (fromDay, endDay)
         rs = []
         qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.name, pw.fn.count()).where(tck_orm.CLS_HotTc.day >= fromDay, tck_orm.CLS_HotTc.day <= endDay, tck_orm.CLS_HotTc.up == True).group_by(tck_orm.CLS_HotTc.name).tuples()
         for it in qr:
@@ -1697,7 +1726,7 @@ class BkGnWindow(base_win.BaseWindow):
         if self.thsGntc.hy_2_name: hy1 = self.thsGntc.hy_2_name + ';'
         if self.thsGntc.hy_3_name: hy1 += self.thsGntc.hy_3_name
         hys = self._buildBkInfos(hy1, self.clsGntc.hy, defHotGns, clsHotGns)
-        self.richRender.addText('【', self.DEF_COLOR)
+        self.richRender.addText(' 【', self.DEF_COLOR)
         for idx, h in enumerate(hys):
             if idx != 0:
                 self.richRender.addText(' | ', self.DEF_COLOR)
@@ -1911,7 +1940,7 @@ if __name__ == '__main__':
     win.createWindow(None)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
     win.changeCode('688800')
-    win.changeLastDay(20250102)
+    #win.changeLastDay(20250102)
     win32gui.PumpMessages()
 
     #import ths_win
