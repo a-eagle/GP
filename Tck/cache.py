@@ -157,6 +157,7 @@ class TimelineRender:
         self.priceRange = None
         self.maxPrice = None
         self.minPrice = None
+        self.speeds = None
 
     def calcPriceRange(self):
         minVal = 100000
@@ -176,6 +177,51 @@ class TimelineRender:
         if not data:
             return
         self.calcPriceRange()
+        self.speeds = self.calcMinutesSpeed(data.get('line', None))
+
+    def _calcMaxPrice(self, datas, fromIdx, endIdx):
+        maxIdx = -1
+        maxPrice = 0
+        day = datas[fromIdx].day
+        for i in range(fromIdx, endIdx):
+            m = datas[i]
+            if m.day != day:
+                break
+            if m.price > maxPrice:
+                maxPrice = m.price
+                maxIdx = i
+        return maxIdx, maxPrice
+    
+    def calcMinutesSpeed(self, datas):
+        if not datas:
+            return
+        ONE_DAY_LINES = 241
+        SPEED_PEROID = 10 # 时速周期 5 / 10 / 15
+        MIN_ZHANG_SU = 5 # 最小涨速
+        speedResults = []
+        fromIdx = 0
+        endMaxIdx = min(fromIdx + ONE_DAY_LINES, len(datas))
+        for i in range(fromIdx, endMaxIdx):
+            m = datas[i]
+            maxIdx, maxPrice = self._calcMaxPrice(datas, i, min(endMaxIdx, i + SPEED_PEROID))
+            if maxIdx < 0:
+                continue
+            me = datas[maxIdx]
+            pre = datas[i].price
+            zf = (maxPrice - pre) / pre * 100
+            if zf < MIN_ZHANG_SU:
+                continue
+            if speedResults:
+                last = speedResults[-1]
+                if last['day'] == m.day and i >= last['fromIdx'] and i <= last['endIdx']:
+                    if last['zf'] <= zf:
+                        speedResults.pop(-1) # remove last, replace it
+                    else:
+                        continue # skip
+            curJg = {'day': m.day, 'fromMinute': m.time, 'endMinute': me.time, 'minuts': maxIdx - i + 1,
+                     'fromIdx' : i, 'endIdx': maxIdx, 'zf': zf}
+            speedResults.append(curJg)
+        return speedResults
     
     def getYAtPrice(self, price, height):
         ph = self.priceRange[1] - self.priceRange[0]
@@ -242,6 +288,17 @@ class TimelineRender:
             color = GREEN
         return color
 
+    def onDrawSpeed(self, hdc, drawer : base_win.Drawer, rect):
+        if not self.speeds:
+            return
+        cwidth = rect[2] - rect[0] - self.paddings[0] - self.paddings[2]
+        dx = cwidth / 241
+        PADDINGS = 5
+        for sp in self.speeds:
+            sx = int(sp['fromIdx'] * dx + self.paddings[0]) + rect[0]
+            ex = int(sp['endIdx'] * dx + self.paddings[0]) + 1 + rect[0]
+            drawer.fillRect(hdc, (sx, rect[1] + PADDINGS, ex, rect[3] - PADDINGS), 0xB0B0B0)
+
     def onDraw(self, hdc, drawer : base_win.Drawer, rect):
         if not self.priceRange or self.priceRange[1] - self.priceRange[0] <= 0:
             return
@@ -250,7 +307,8 @@ class TimelineRender:
         da = self.data['line']
         if not da:
             return
-        dx = cwidth / 240
+        self.onDrawSpeed(hdc, drawer, rect)
+        dx = cwidth / 241
         drawer.use(hdc, drawer.getPen(self.getLineColor()))
         for i, d in enumerate(da):
             x = int(i * dx + self.paddings[0])
