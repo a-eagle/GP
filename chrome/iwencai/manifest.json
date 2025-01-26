@@ -1,0 +1,60 @@
+{
+    "manifest_version": 2,
+    "name": "GP-iwencai",
+    "version": "1.0",
+
+    "description": "GP-iwencai",
+
+	"permissions": [
+		"http://www.iwencai.com/*",
+		"https://www.iwencai.com/*",
+		"http://upass.iwencai.com/*",
+		"https://upass.iwencai.com/*",
+		"http://captcha.10jqka.com.cn/*",
+		"https://captcha.10jqka.com.cn/*",
+		"tabs",
+		"webRequest",
+		"webRequestBlocking",
+		"storage",
+		"nativeMessaging",
+		"declarativeNetRequest", "declarativeNetRequestFeedback"
+	],
+	
+	"background": {
+		"scripts": ["jquery-3.6.min.js", "bg.js"],
+		"persistent": true
+	},
+	
+    "content_scripts": [
+        {
+			"matches": ["http://www.iwencai.com/unifiedwap/result*", "https://www.iwencai.com/unifiedwap/result*"],
+            "run_at": "document_idle",
+            "js": ["jquery-3.6.min.js", "thread.js", "iwencai-hot-page.js", "iwencai-zs-page.js"],
+			"all_frames" : true
+		},
+		{
+			"matches": [
+				"http://upass.iwencai.com/login*", "https://upass.iwencai.com/login*"
+			],
+			"run_at": "document_idle",
+			"js": [
+				"jquery-3.6.min.js", "iwencai-hot-login-page.js"
+			],
+			"all_frames": true
+		},
+		{
+			"matches": [
+				"https://data.10jqka.com.cn/datacenterph/limitup/limtupInfo.html*", "http://data.10jqka.com.cn/datacenterph/limitup/limtupInfo.html*"
+			],
+			"run_at": "document_idle",
+			"js": [
+				"jquery-3.6.min.js", "zt.js"
+			],
+			"all_frames": true
+		}
+    ],
+
+	"web_accessible_resources": ["ajax-hook.js", "iwencai-hot-login-inject.js", "canvas2image.js", "iwencai-hot-page-inject.js",
+		"capatcha/a0.dib.bmp", "capatcha/b0.dib.bmp", "capatcha/c0.dib.bmp", "capatcha/d0.dib.bmp", "fupan/fupan.js", "fupan/kline.js"
+	]
+}
