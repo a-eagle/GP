@@ -1,6 +1,7 @@
 var anchros = null;
 var maxTradeDays = 10;
 var degrees = null;
+var curDay = null;
 
 // HH:MM
 function formatTime(date) {
@@ -57,6 +58,7 @@ function adjustZTInfo(response) {
 
 function adjustAnchors(response, cday) {
 	//console.log('[adjustAnchors] cday=', cday);
+	curDay = cday;
 	if (! anchros) {
 		return;
 	}
@@ -65,9 +67,18 @@ function adjustAnchors(response, cday) {
 	//console.log(anchros);
 	let anchrosCP = {};
 	let anchrosDays = [];
-	for (let i = 0, num = 0; i < anchros.length && num < maxTradeDays - 1; i++) {
+	let lastDay = anchros[0][0].c_time.substring(0, 10);
+	if (json.data.length > 0) {
+		if (cday > lastDay) {
+			anchros.unshift(json.data);
+		} else if (cday == lastDay) {
+			anchros[0] = json.data;
+		}
+	}
+
+	for (let i = 0, num = 0; i < anchros.length && num < maxTradeDays; i++) {
 		let day = anchros[i][0].c_time.substring(0, 10);
-		if (day >= cday)
+		if (day > cday)
 			continue;
 		anchrosDays.push(day);
 		++num;
@@ -86,15 +97,8 @@ function adjustAnchors(response, cday) {
 	for (let i = 0; i < json.data.length; i++) {
 		let an = json.data[i];
 		let key = an.symbol_code + '#' + an.float;
-		if (! anchrosCP[key]) {
-			anchrosCP[key] = {name: an.symbol_name, code: an.symbol_code, num: 0, tag: an.float, items: [an]};
-		} else {
-			anchrosCP[key].items.push(an);
-		}
 		let num = anchrosCP[key].num;
-		num += 1;
 		an.symbol_name += '' + num + '';
-		anchrosCP[key].num = num;
 	}
 	anchrosDays.push(cday);
 	window.anchrosCP = anchrosCP;
@@ -133,6 +137,28 @@ function sumGroup(anchrosCP) {
 	}
 	hots.append(table);
 	table.find('.arrow').click(openChart);
+}
+
+function getAnchrosByCode(code, maxDay, daysNum) {
+	if (!maxDay || !anchros) {
+		return null;
+	}
+	let rs = {up: [], down: [], days: [], allDays: []};
+	for (let i = 0, num = 0; i < anchros.length && num < daysNum; i++) {
+		let day = anchros[i][0].c_time.substring(0, 10);
+		rs.allDays.push(day);
+		if (day > maxDay)
+			continue;
+		++num;
+		rs.days.push(day);
+		for (let j = 0; j < anchros[i].length; j++) {
+			let an = anchros[i][j];
+			if (an.symbol_code == code) {
+				rs[an.float].push(an);
+			}
+		}
+	}
+	return rs;
 }
 
 function openPopup() {
@@ -179,20 +205,16 @@ function openChart() {
 	let thiz = $(this);
 	let code = thiz.attr('code');
 	console.log(code);
-	let up = window.anchrosCP[code + '#up'];
-	let down = window.anchrosCP[code + '#down'];
-	let arr = [];
-	for (let i = 0; up && i < up.items.length; i++) {
-		arr.push(up.items[i]);
+	let rs = getAnchrosByCode(code, curDay, 20);
+	if (! rs) {
+		return;
 	}
-	for (let i = 0; down && i < down.items.length; i++) {
-		arr.push(down.items[i]);
-	}
-	arr.sort(function(a, b) {return a.c_time.localeCompare(b.c_time)});
-	
+	let up = rs.up;
+	let down = rs.down;
+
 	function getDays() {
-		window.anchrosDays.sort();
-		return window.anchrosDays;
+		rs.days.sort();
+		return rs.days;
 	}
 	function simpleDays(days) {
 		let rs = [];
@@ -210,8 +232,6 @@ function openChart() {
 		if (! ud) {
 			return rs;
 		}
-		ud = ud.items;
-		
 		for (let i = 0; i < ds.length; i++) {
 			let num = 0;
 			for (let j = 0; j < ud.length; ++j) {
@@ -255,6 +275,9 @@ function openChart() {
 	let tdRc = thiz.parent().get(0).getBoundingClientRect();
 	ui.css({left: tdRc.left, top: tdRc.bottom});
 	ui.append(canvas);
+	canvas.width(ui.width());
+	canvas.height(ui.height());
+	canvas.attr('day', curDay);
 	new Chart(canvas.get(0), {type: 'line', data: cdata, options: {}});
 }
 
@@ -350,7 +373,7 @@ function initUI() {
 			 .popup-container .content {position:absolute; background-color: #fcfcfc; border: solid 1px #d0d0d0;} \n\
 			 .popup-container p {padding: 0 20px 0 10px; } \n\
 			 .popup-container p:hover {background-color: #f0f0f0; } \n\
-			 .popup-container .canvas-wrap {position:absolute; width: 400px; height: 200px; background-color: #fcfcfc; border: solid 1px #aaa;} \n\
+			 .popup-container .canvas-wrap {position:absolute; width: 800px; height: 250px; background-color: #fcfcfc; border: solid 1px #aaa;} \n\
 			 #hots .arrow {float:right; width:15px; text-align:center; border-left:1px solid #c0c0c0; background-color:#c0c0c0; width:15px; height:25px;} \n\
 			 .my-degree {height: 130px; border-bottom: solid 1px #222; margin-bottom: 10px;} \n\
 			 .my-degree > canvasx {height: 130px; width: 890px;} \n\
