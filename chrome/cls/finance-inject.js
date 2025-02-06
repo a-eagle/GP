@@ -301,19 +301,24 @@ function hook_proxy() {
 
 hook_proxy();
 
-window.postMessage({cmd: 'GET_ANCHORS', data: {lastDay: new Date(), traceDaysNum: 30}}, '*');
+
 window.addEventListener("message", function(evt) {
 	if (evt.data && evt.data.cmd == 'GET_ANCHORS_CB') {
 		anchros = evt.data.data;
 		//console.log(anchros);
 	} else if (evt.data && evt.data.cmd == 'GET_DEGREE_CB') {
 		let dg = evt.data.data;
+		degrees = dg;
 		updateDegree(dg);
 	}
 }, false);
 
 function updateDegree(d) {
 	let canvas = $('.my-degree > canvas').get(0);
+	if (! canvas) {
+		setTimeout(function() {updateDegree(d);}, 2000);
+		return;
+	}
 	let xl = [];
 	let xv = [];
 	let v50 = [];
@@ -339,8 +344,10 @@ function updateDegree(d) {
 		],
 	};
 	if (! window.chart) {
-		window.chart = new Chart(canvas, {type: 'line', data: cdata, options: {plugins: {legend: {display: false}}}});
 		let cc = $('.my-degree');
+		$(canvas).attr('width', cc.width());
+		$(canvas).attr('height', cc.height());
+		window.chart = new Chart(canvas, {type: 'line', data: cdata, options: {plugins: {legend: {display: false}}}});
 		window.chart.resize(cc.width(), cc.height());
 	} else {
 		window.chart.data = cdata;
@@ -376,11 +383,11 @@ function initUI() {
 			 .popup-container .canvas-wrap {position:absolute; width: 800px; height: 250px; background-color: #fcfcfc; border: solid 1px #aaa;} \n\
 			 #hots .arrow {float:right; width:15px; text-align:center; border-left:1px solid #c0c0c0; background-color:#c0c0c0; width:15px; height:25px;} \n\
 			 .my-degree {height: 130px; border-bottom: solid 1px #222; margin-bottom: 10px;} \n\
-			 .my-degree > canvasx {height: 130px; width: 890px;} \n\
+			 .my-degree > canvas {height: 100%; width: 100%;} \n\
 			";
 	style.appendChild(document.createTextNode(css));
 	document.head.appendChild(style);
-	let div = $('<div id="change-trade-days" style="padding-left:30px; font-size:15px; float:left; "> 交易日期：<button  val="5" >5日</button> <button class="sel" val="10">10日</button> </div>');
+	let div = $('<div id="change-trade-days" style="padding-left:30px; font-size:15px; float:left; "> 交易日期：<button class="sel" val="10" >10日</button> <button  val="20">20日</button> </div>');
 	$('.event-querydate-box').append(div);
 	div.find('button').click(function() {
 		div.find('button').removeClass('sel');
@@ -392,9 +399,10 @@ function initUI() {
 	popup.click(function() {$(this).css('display', 'none')});
 	popup.on('mousewheel', function(event) {event.preventDefault();});
 	$('.top-ad').remove();
-	let md = $('<div class="my-degree p-r b-c-222" > <canvas width="890" height="130"> </canvas> </div>');
+	let md = $('<div class="my-degree p-r b-c-222" > <canvas > </canvas> </div>');
 	md.insertAfter($('.watch-chart-box'));
-	loadDegree();
+	window.postMessage({cmd: 'GET_ANCHORS', data: {lastDay: new Date(), traceDaysNum: 30}}, '*');
+	setTimeout(loadDegree, 3000);
 }
 
 function loadDegree() {
