@@ -20,7 +20,14 @@ function _doHook(response) {
 	let len = response.headers['content-length'];
 	let url = response.config.url;
 	if (url.indexOf('/quote/index/up_down_analysis') >= 0) {
-		adjustZTInfo(response);
+		let idx = url.indexOf('type=');
+		let type = url.substring(idx + 5, url.indexOf('&', idx + 5));
+		if (type == 'up_pool') type = 'ZT';
+		else if (type == 'continuous_up_pool') type = 'LB';
+		else if (type == 'up_open_pool') type = 'ZB';
+		else if (type == 'down_pool') type = 'DT';
+		adjustZTInfo(response, type);
+		console.log(response, type);
 	}
 	if (url.indexOf('/v3/transaction/anchor') >= 0) {
 		let idx = url.indexOf('cdate=');
@@ -28,9 +35,10 @@ function _doHook(response) {
 		adjustAnchors(response, cday);
 		loadDegree();
 	}
+	//console.log(response);
 }
 
-function adjustZTInfo(response) {
+function adjustZTInfo(response, type) {
 	let body = response.response;
 	let json = JSON.parse(body);
 	//console.log('[Before]', json);
@@ -45,14 +53,15 @@ function adjustZTInfo(response) {
 	response.response = JSON.stringify(json);
 	//console.log('[After]', json);
 	//window.postMessage({cmd: 'ZT-INFO', data: rs}, '*');
-	window['zt-info'] = rs;
-
-	let text = '涨停&nbsp;' + rs.length;
-	if ($('#real-zt-div').length == 0) {
-		let div = $('<div id="real-zt-div" style="float:left; font-size:20px; color: #ad1078; padding-left:20px;" > ' + text + '</div>');
-		$('.event-querydate-box').append(div);
-	} else {
-		$('#real-zt-div').html(text);
+	window[type + '_Infos'] = rs;
+	if (type == 'ZT') {
+		let text = '涨停&nbsp;' + rs.length;
+		if ($('#real-zt-div').length == 0) {
+			let div = $('<div id="real-zt-div" style="float:left; font-size:20px; color: #ad1078; padding-left:20px;" > ' + text + '</div>');
+			$('.event-querydate-box').append(div);
+		} else {
+			$('#real-zt-div').html(text);
+		}
 	}
 }
 
@@ -411,11 +420,59 @@ function loadDegree() {
 	window.postMessage({cmd: 'GET_DEGREE', data: day}, '*');
 }
 
+function loadZTUI() {
+	let tag = $('.toggle-nav-box > .toggle-nav-active').text().trim();
+	let data = null;
+	if (tag == '涨停池') tag = 'ZT';
+	else if (tag == '连板池') tag = 'LB';
+	else if (tag == '炸板池') tag = 'ZB';
+	else if (tag == '跌停池') tag = 'DT';
+	data = window[tag + '_Infos'];
+	if (! data || !tag) {
+		return;
+	}
+	$('.list-more-button').remove();
+	let cnt = $('.toggle-nav-box').next();
+	if (cnt.attr('name') == tag) {
+		return;
+	}
+	let newCnt = $('<div class="" name="' + tag + '"> </div>');
+	if (! window[tag + '_StockTable']) {
+		let hd = null;
+		if (tag == 'ZT' || tag == 'LB') {
+			hd = [
+				{text: '股票/代码', 'name': 'code', width: 80},
+				{text: '涨跌幅', 'name': 'change', width: 70},
+				{text: '连板', 'name': 'limit_up_days', width: 50},
+				{text: '分时图', 'name': 'fs', width: 300},
+				{text: '动因', 'name': 'up_reason', width: 300},
+			];
+		} else {
+			hd = [
+				{text: '股票/代码', 'name': 'code', width: 80},
+				{text: '涨跌幅', 'name': 'change', width: 70},
+				{text: '分时图', 'name': 'fs', width: 300},
+			];
+		}
+		let st = window[tag + '_StockTable'] = new StockTable(hd);
+		st.setData(data);
+		st.buildUI();
+	}
+	let st = window[tag + '_StockTable'];
+	newCnt.append(st.table);
+	cnt.replaceWith(newCnt);
+}
+
 setTimeout(initUI, 500);
 
 setInterval(function() {
 	loadDegree();
 }, 60 * 1000);
+
+setInterval(function() {
+	loadZTUI();
+}, 1 * 1000);
+
 /*
 var _can2DProto = CanvasRenderingContext2D.prototype;
 var _old_can2d_ft = _can2DProto.fillText;

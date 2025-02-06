@@ -26,6 +26,24 @@ document.documentElement.appendChild(temp);
 
 temp = document.createElement('script');
 temp.setAttribute('type','text/javascript');
+temp.src = chrome.extension.getURL('clsurl.js');
+temp.async = false;
+document.documentElement.appendChild(temp);
+
+temp = document.createElement('script');
+temp.setAttribute('type','text/javascript');
+temp.src = chrome.extension.getURL('kline.js');
+temp.async = false;
+document.documentElement.appendChild(temp);
+
+temp = document.createElement('script');
+temp.setAttribute('type','text/javascript');
+temp.src = chrome.extension.getURL('table.js');
+temp.async = false;
+document.documentElement.appendChild(temp);
+
+temp = document.createElement('script');
+temp.setAttribute('type','text/javascript');
 temp.src = chrome.extension.getURL('finance-inject.js');
 temp.async = false;
 document.documentElement.appendChild(temp);

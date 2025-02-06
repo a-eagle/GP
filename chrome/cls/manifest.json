@@ -44,6 +44,6 @@
     ],
 
 	"web_accessible_resources": [
-		"jquery-3.6.min.js",  "ajax-hook.js", "mybase64.js", "finance-inject.js", "clsurl.js", "plate-inject.js", "kline.js", "thread.js", "chart.js"
+		"jquery-3.6.min.js",  "ajax-hook.js", "mybase64.js", "finance-inject.js", "clsurl.js", "plate-inject.js", "kline.js", "thread.js", "chart.js", "table.js"
 	]
 }
