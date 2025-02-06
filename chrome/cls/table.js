@@ -1,10 +1,12 @@
 class StockTable {
-    // headers = [ {text: xxx, width: xx, sortable: true, name: xx, }  ]
+    // headers = [ {text: 'xxx', name: 'xx', width: 60, sortable: true}, ...]
+    // fix headers : 'zs' 涨速, 'hots': 热度
     constructor(headers) {
         this.headers = headers;
         this.lastSortHeader = null;
         this.datas = null;
         this.datasMap = null;
+        this.hotsZH = null;
         this.table = null;
         this.trs = {};
     }
@@ -33,29 +35,7 @@ class StockTable {
         }
         this.datas = data;
         this.datasMap = mdata;
-    }
-
-    onSortHead(thiz, td) {
-        console.log('[onSortHead]', this);
-        let old = this.lastSortHeader;
-        //let td = $(this);
-        let v = td.attr('sv');
-        let tag = '';
-        if (!v || v == 'asc') {
-            v = 'desc';
-            tag = '&nbsp;&#8595;';
-        } else {
-            v = 'asc';
-            tag = '&nbsp;&#8593;';
-        }
-        td.attr('sv', v);
-        thiz.lastSortHeader = td;
-        if (old != thiz.lastSortHeader && old) {
-            old.html(old.attr('v') + '&#9830;');
-            old.attr('sv', '');
-        }
-        td.html(td.attr('text') + tag);
-        thiz.sortNumberBy(td.attr('a'), v == 'asc');
+        this.loadHotsZH();
     }
 
     buildHeadersUI() {
@@ -75,7 +55,7 @@ class StockTable {
             let td = tds.eq(i);
             td.append('&#9830;');
             td.click(function() {
-                thiz.onSortHead(thiz, $(this));
+                thiz.onSortHead($(this));
             });
         }
         return tr;
@@ -105,7 +85,10 @@ class StockTable {
                 let view = this.createTimeLineView(rowData.secu_code, 300, 60);
                 hd.append(view.canvas);
                 let thiz = this;
-                view.addListener('LoadDataEnd', function(evt) {thiz.onLoadFsDataEnd(evt)});
+                view.addListener('LoadDataEnd', function(evt) {thiz.onLoadFsDataEnd(evt);});
+            } else if (k == 'zs') {
+                let v = rowData['zs'] == undefined ? '' : rowData['zs'];
+                hd = $('<td class="zs" > ' + v + ' </td>');
             } else {
                 let d = rowData[k];
                 hd = $('<td> ' + (d == undefined ? '' : d) + ' </td>');
@@ -116,61 +99,82 @@ class StockTable {
     }
 
     buildUI() {
-        if (! this.datas) {
+        if (! this.datas || !this.headers) {
             return;
         }
-        /*if ($('.toggle-nav-active').text() != '股票池')
-            return;
-        if (this.table) {
-            if (! this.table.is(':visible')) {
-                $('table.watch-table').replaceWith(this.table);
-            }
-            return;
-        }
-        */
-    
         let tab = $('<table class="my-stoks-table" > </table>');
         let hds = this.buildHeadersUI(); // $('<tr style="vertical-align: middle;"> <th width=50></th> <th width=90>股票</th> <th width=70 class="s" a="sortHots">热度</th> <th width=70 class="s" a="change">涨幅</th>  <th width=70 class="s" a="zs">涨速</th> <th width=70 class="s" a="head_num">领涨次数</th> <th width=70 class="s" a="cmc" >流通市值</th> <th width=90 class="s" a="fundflow">资金流向</th>  <th width=300>简介</th> <th width=300 >分时图</th> </tr>');
         tab.append(hds);
+        let thiz = this;
         for (let i = 0; i < this.datas.length; i++) {
             let sd = this.datas[i];
             let tr = this.buildRowUI(i, sd);
             tab.append(tr);
-            tr.dblclick(function() {this.openKLineDialog($(this).attr('code'))});
+            tr.dblclick(function() {thiz.openKLineDialog($(this).attr('code'))});
             //tr.click(function() {if (selTr) selTr.removeClass('sel'); selTr = $(this); selTr.addClass('sel'); });
             this.trs[sd.secu_code] = tr;
         }
         this.table = tab;
-        //$('table.watch-table').replaceWith(this.table);
         return tab;
     }
 
     openKLineDialog(code) {
+        //console.log('[openKLineDialog]', code);
         if (code.substring(0, 2) == 'sz' || code.substring(0, 2) == 'sh') {
             code = code.substring(2);
         }
         $.get('http://localhost:5665/openui/kline/' + code);
     }
 
+    onSortHead(td) {
+        console.log('[onSortHead]', td);
+        let old = this.lastSortHeader;
+        //let td = $(this);
+        let v = td.attr('sv');
+        let tag = '';
+        if (!v || v == 'asc') {
+            v = 'desc';
+            tag = '&nbsp;&#8595;';
+        } else {
+            v = 'asc';
+            tag = '&nbsp;&#8593;';
+        }
+        td.attr('sv', v);
+        this.lastSortHeader = td;
+        if (old != this.lastSortHeader && old) {
+            old.html(old.attr('text') + '&#9830;');
+            old.attr('sv', '');
+        }
+        td.html(td.attr('text') + tag);
+        this.sortNumberBy(td.attr('name'), v == 'asc');
+    }
+
     onLoadFsDataEnd(evt) {
-        console.log('[onLoadFsDataEnd]', this.prototype);
         let view = evt.src;
         let maxZs = view.getMaxZs();
+        let sd = this.datasMap[view.code];
         if (! maxZs) {
+            sd.zs = 0;
             return;
         }
         let zf = maxZs.zf;
         let td = $(view.canvas).parent().parent().find('td.zs');
-        let sd = this.datasMap[view.code];
         sd.zs = zf;
         td.text('' + zf.toFixed(1) + '%');
     }
 
     sortNumberBy(name, asc) {
+        //console.log('[sortNumberBy]', name, asc);
         if (!this.datas || !this.table) {
             return;
         }
-        this.datas.sort(function(a, b) {let v = a[name] - b[name]; return asc ? v : -v;});
+        if (name == 'hots')
+            name = 'sortHots';
+        this.datas.sort(function(a, b) {
+            let an = a[name] == undefined ? 0 : a[name];
+            let bn = b[name] == undefined ? 0 : b[name];
+            let v = an - bn; return asc ? v : -v;
+        });
         for (let k in this.trs) {
             this.trs[k].detach();
         }
@@ -178,10 +182,43 @@ class StockTable {
         for (let i = 0; i < this.datas.length; i++) {
             let code = this.datas[i].secu_code;
             if (this.trs[code]) {
-                this.table.append(stocksTrs[code]);
+                this.table.append(this.trs[code]);
                 this.trs[code].find('td:first').text(String(no ++));
             }
         }
+    }
+
+    mergeHotsZH() {
+        if (!this.hotsZH || !this.datasMap || !this.headers)
+            return;
+        let hotIdx = -1;
+        for (let i = 0; i < this.headers.length; i++) {
+            if (this.headers[i].name == 'hots') {
+                hotIdx = i + 1; // first is row no
+            }
+        }
+        if (hotIdx < 0)
+            return;
+        for (let scode in this.datasMap) {
+            let it = this.datasMap[scode];
+            let hots = this.hotsZH[it.code] ? this.hotsZH[it.code].zhHotOrder : 0;
+            it.hots = hots;
+            it.sortHots = hots > 0 ? 1000 - hots : 0;
+            if (this.trs[scode]) {
+                this.trs[scode].find('td:nth-child(' + hotIdx + ')').text(hots);
+            }
+        }
+    }
+
+    loadHotsZH() {
+        let thiz = this;
+        $.ajax({
+            url: 'http://localhost:5665/get-hots', type: 'GET',
+            success: function(resp) {
+                thiz.hotsZH = resp;
+                thiz.mergeHotsZH();
+            }
+        });
     }
 
     buildUI_stdCode(code) {
@@ -216,4 +253,24 @@ class StockTable {
         return s;
     }
 
+    initStyle() {
+        if (window['StockTable_style']) {
+            return;
+        }
+        window['StockTable_style'] = true;
+        let style = document.createElement('style');
+        let css = ".my-stoks-table {color: #383838; font-size: 14px; } \n\
+                   .my-stoks-table th {height: 40px; font-size:12px; color: #999; vertical-align: middle;font-weight: normal; text-align:left;} \n\
+                   .my-stoks-table tr:nth-child(even) { background-color: #f9fafc;} \n \
+                   .my-stoks-table tr:hover {background-color: #ECEFF9;} \n\
+                   .my-stoks-table td, th { vertical-align: middle; height: 66px;} \n\
+                   .my-stoks-table .fs {padding: 3px 3px;} \n\
+                   .my-stoks-table .pl20 {padding-right:20px;} \n\
+                   .my-stoks-table .sel {background-color: #ECEFF9;}\n\
+                   .my-stoks-table .industry {background-color: #8C92A6; height: 26px; vertical-align: middle; color: #fff; }\n\
+                   .my-stoks-table .industry:before {content:'\\20'; width: 6px; height:16px; background-color: #8d1f1f; margin: 0 5px 0 10px; display: inline-block; vertical-align: middle;} \n\
+                ";
+        style.appendChild(document.createTextNode(css));
+        document.head.appendChild(style);
+    }
 }

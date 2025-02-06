@@ -27,7 +27,7 @@ function _doHook(response) {
 		else if (type == 'up_open_pool') type = 'ZB';
 		else if (type == 'down_pool') type = 'DT';
 		adjustZTInfo(response, type);
-		console.log(response, type);
+		//console.log(response, type);
 	}
 	if (url.indexOf('/v3/transaction/anchor') >= 0) {
 		let idx = url.indexOf('cdate=');
@@ -442,19 +442,22 @@ function loadZTUI() {
 		if (tag == 'ZT' || tag == 'LB') {
 			hd = [
 				{text: '股票/代码', 'name': 'code', width: 80},
-				{text: '涨跌幅', 'name': 'change', width: 70},
-				{text: '连板', 'name': 'limit_up_days', width: 50},
+				{text: '涨跌幅', 'name': 'change', width: 70, sortable: true},
+				{text: '连板', 'name': 'limit_up_days', width: 50, sortable: true},
+				{text: '涨速', 'name': 'zs', width: 50, sortable: true},
+				{text: '热度', 'name': 'hots', width: 50, sortable: true},
+				{text: '动因', 'name': 'up_reason', width: 250},
 				{text: '分时图', 'name': 'fs', width: 300},
-				{text: '动因', 'name': 'up_reason', width: 300},
 			];
 		} else {
 			hd = [
 				{text: '股票/代码', 'name': 'code', width: 80},
-				{text: '涨跌幅', 'name': 'change', width: 70},
+				{text: '涨跌幅', 'name': 'change', width: 70, sortable: true},
 				{text: '分时图', 'name': 'fs', width: 300},
 			];
 		}
 		let st = window[tag + '_StockTable'] = new StockTable(hd);
+		st.initStyle();
 		st.setData(data);
 		st.buildUI();
 	}
