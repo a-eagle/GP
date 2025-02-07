@@ -14,12 +14,14 @@ class StockTable {
         this.hotsZH = null;
         this.table = null;
         this.trs = {};
+        this.tlMgr = new TimeLineUIManager();
     }
 
     createTimeLineView(code, width, height) {
         width = width || 300;
         height = height || 60;
         let view = new TimeLineView(width, height);
+        this.tlMgr.add(view);
         view.loadData(code);
         return view;
     }
@@ -88,11 +90,12 @@ class StockTable {
             } else if (k == 'fs') {
                 hd = $('<td class="fs" > </td>');
                 let view = this.createTimeLineView(rowData.secu_code, 300, 60);
+                view.key = rowData.key;
                 hd.append(view.canvas);
                 let thiz = this;
                 view.addListener('LoadDataEnd', function(evt) {thiz.onLoadFsDataEnd(evt);});
             } else if (k == 'zs') {
-                let v = rowData['zs'] == undefined ? '' : rowData['zs'];
+                let v = !rowData['zs'] ? '' : rowData['zs'];
                 hd = $('<td class="zs" > ' + v + ' </td>');
             } else {
                 let d = rowData[k];
@@ -108,16 +111,17 @@ class StockTable {
             return;
         }
         let tab = $('<table class="my-stoks-table" > </table>');
-        let hds = this.buildHeadersUI(); // $('<tr style="vertical-align: middle;"> <th width=50></th> <th width=90>股票</th> <th width=70 class="s" a="sortHots">热度</th> <th width=70 class="s" a="change">涨幅</th>  <th width=70 class="s" a="zs">涨速</th> <th width=70 class="s" a="head_num">领涨次数</th> <th width=70 class="s" a="cmc" >流通市值</th> <th width=90 class="s" a="fundflow">资金流向</th>  <th width=300>简介</th> <th width=300 >分时图</th> </tr>');
+        let hds = this.buildHeadersUI(); //  <th width=300>简介</th> <th width=300 >分时图</th> </tr>');
         tab.append(hds);
         let thiz = this;
         for (let i = 0; i < this.datas.length; i++) {
             let sd = this.datas[i];
+            sd.key = sd.secu_code;
             let tr = this.buildRowUI(i, sd);
             tab.append(tr);
             tr.dblclick(function() {thiz.openKLineDialog($(this).attr('code'))});
             //tr.click(function() {if (selTr) selTr.removeClass('sel'); selTr = $(this); selTr.addClass('sel'); });
-            this.trs[sd.secu_code] = tr;
+            this.trs[sd.key] = tr;
         }
         this.table = tab;
         return tab;
@@ -132,7 +136,7 @@ class StockTable {
     }
 
     onSortHead(td) {
-        console.log('[onSortHead]', td);
+        //console.log('[onSortHead]', td);
         let old = this.lastSortHeader;
         //let td = $(this);
         let v = td.attr('sv');
@@ -157,7 +161,7 @@ class StockTable {
     onLoadFsDataEnd(evt) {
         let view = evt.src;
         let maxZs = view.getMaxZs();
-        let sd = this.datasMap[view.code];
+        let sd = this.datasMap[view.key];
         if (! maxZs) {
             sd.zs = 0;
             return;
@@ -204,13 +208,14 @@ class StockTable {
         }
         if (hotIdx < 0)
             return;
+        hotIdx += 1; // first is row no
         for (let scode in this.datasMap) {
             let it = this.datasMap[scode];
             let hots = this.hotsZH[it.code] ? this.hotsZH[it.code].zhHotOrder : 0;
             it.hots = hots;
             it.sortHots = hots > 0 ? 1000 - hots : 0;
-            if (this.trs[scode]) {
-                this.trs[scode].find('td:nth-child(' + hotIdx + ')').text(hots);
+            if (hots > 0 && this.trs[it.key]) {
+                this.trs[it.key].find('td:nth-child(' + hotIdx + ')').text(hots);
             }
         }
     }
@@ -278,4 +283,97 @@ class StockTable {
         style.appendChild(document.createTextNode(css));
         document.head.appendChild(style);
     }
+}
+
+class IndustryTable extends StockTable {
+    constructor(headers) {
+        super(headers);
+    }
+
+    setData(data) {
+        if (data == this.datas || !data) {
+            return;
+        }
+        let mdata = {};
+        for (let k = 0; k < data.length; k++) {
+            let items = data[k].stocks;
+            let industry = data[k].industry_name;
+            for (let i = items.length - 1; i >= 0; i--) {
+                let code = this.buildUI_stdCode(items[i].secu_code);
+                if (! code) {
+                    items.splice(i, 1);
+                } else {
+                    let key = items[i].secu_code + ':' + industry;
+                    items[i].code = code;
+                    items[i].key = key;
+                    mdata[key] = items[i];
+                }
+            }
+        }
+        this.datas = data;
+        this.datasMap = mdata;
+        this.loadHotsZH();
+    }
+
+    buildUI() {
+        if (! this.datas || !this.headers) {
+            return;
+        }
+        let tab = $('<table class="my-stoks-table" > </table>');
+        let hds = this.buildHeadersUI(); // $('<tr style="vertical-align: middle;"> <th width=50></th> <th width=90>股票</th> <th width=70 class="s" a="sortHots">热度</th> <th width=70 class="s" a="change">涨幅</th>  <th width=70 class="s" a="zs">涨速</th> <th width=70 class="s" a="head_num">领涨次数</th> <th width=70 class="s" a="cmc" >流通市值</th> <th width=90 class="s" a="fundflow">资金流向</th>  <th width=300>简介</th> <th width=300 >分时图</th> </tr>');
+        tab.append(hds);
+        let thiz = this;
+        for (let i = 0; i < this.datas.length; i++) {
+            let sd = this.datas[i];
+            let ftr = $('<tr> <td colspan="' + (this.headers.length + 1) + '" class="industry" > ' + sd.industry_name + '&nbsp;&nbsp;' + sd.stocks.length + ' </td> </tr>');
+            tab.append(ftr);
+            this.trs[sd.industry_name] = ftr;
+            
+            for (let j = 0; j < sd.stocks.length; j++) {
+                let sdx = sd.stocks[j];
+                sdx.key = sdx.secu_code + ':' + sd.industry_name;
+                let tr = this.buildRowUI(j, sdx);
+                tab.append(tr);
+                tr.dblclick(function() {thiz.openKLineDialog($(this).attr('code'))});
+                //tr.click(function() {if (selTr) selTr.removeClass('sel'); selTr = $(this); selTr.addClass('sel'); });
+                this.trs[sdx.key] = tr;
+            }
+        }
+        this.table = tab;
+        return tab;
+    }
+
+    sortNumberBy(name, asc) {
+        //console.log('[sortNumberBy]', name, asc);
+        if (!this.datas || !this.table) {
+            return;
+        }
+        if (name == 'hots')
+            name = 'sortHots';
+        for (let i = 0; i < this.datas.length; i++) {
+            this.datas[i].stocks.sort(function(a, b) {
+                let an = a[name] == undefined ? 0 : a[name];
+                let bn = b[name] == undefined ? 0 : b[name];
+                let v = an - bn; return asc ? v : -v;
+            });
+        }
+        for (let k in this.trs) {
+            this.trs[k].detach();
+        }
+        
+        for (let i = 0; i < this.datas.length; i++) {
+            let ids = this.datas[i];
+            this.table.append(this.trs[ids.industry_name]);
+            let no = 1;
+            for (let j = 0; j < ids.stocks.length; j++) {
+                let it = ids.stocks[j];
+                let tr = this.trs[it.key];
+                if (! tr)
+                    continue
+                this.table.append(tr);
+                tr.find('td:first').text(String(no ++));
+            }
+        }
+    }
+
 }

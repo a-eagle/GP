@@ -155,10 +155,10 @@ class Server:
         curTime = now.strftime('%H:%M')
         if (curTime >= '09:30' and curTime <= '11:30') or (curTime >= '13:00' and curTime <= '15:00'):
             if (now.minute % 10 <= 2) and (time.time() - self._lastLoadDegreeTime >= 3 * 60):
-                self._lastLoadDegreeTime = time.time()
                 curTime = curTime[0 : -1] + '0'
                 rs = self.tryDownloadDegree()
                 if rs:
+                    self._lastLoadDegreeTime = time.time()
                     d, degree = rs
                     self.saveDegreeTime(d, curTime, degree)
 
