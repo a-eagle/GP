@@ -15,6 +15,7 @@ class Server:
         self._lastLoadZSTime = 0
         self._lastLoadBkGnTime = 0
         self._lastLoadZSZDTime = 0
+        self._lastLoadDegreeTime = 0
 
     def now(self):
         return datetime.datetime.now().strftime('%H:%M')
@@ -125,7 +126,9 @@ class Server:
             print(' load degree: ', day, ' -> ', degree)
 
     def saveDegreeTime(self, day, time, degree):
-        tck_orm.CLS_SCQX_Time.create(day = day, time = time, zhqd = degree)
+        obj = tck_orm.CLS_SCQX_Time.get_or_none(day = day, time = time)
+        if not obj:
+            tck_orm.CLS_SCQX_Time.create(day = day, time = time, zhqd = degree)
     
     def loadOneTime(self):
         if time.time() - self._lastLoadTime < 5 * 60:
@@ -144,6 +147,20 @@ class Server:
                 self._runInfo[day] = True
         if curTime >= '09:30' and curTime <= '16:00':
             self.downloadClsZT()
+
+    def loadTimeDegree(self):
+        now = datetime.datetime.now()
+        if not self.acceptDay(now):
+            return
+        curTime = now.strftime('%H:%M')
+        if (curTime >= '09:30' and curTime <= '11:30') or (curTime >= '13:00' and curTime <= '15:00'):
+            if (now.minute % 10 <= 2) and (time.time() - self._lastLoadDegreeTime >= 3 * 60):
+                self._lastLoadDegreeTime = time.time()
+                curTime = curTime[0 : -1] + '0'
+                rs = self.tryDownloadDegree()
+                if rs:
+                    d, degree = rs
+                    self.saveDegreeTime(d, curTime, degree)
 
     def loadHotTc(self, daysNum = 10):
         try:
@@ -289,6 +306,7 @@ if __name__ == '__main__':
     svr = Server()
     #svr.downloadBkGn()
     #downloadClsZT()
-    svr.tryDownloadDegree()
+    obj = tck_orm.CLS_SCQX_Time.get_or_none(day = '2025-02-07', time = '10:50')
+    print(obj)
     pass
     #do_reason()

@@ -10,6 +10,7 @@ lhbServer = lhb_server.Server()
 
 def runner():
     while True:
+        clsServer.loadTimeDegree()
         thsServer.loadHotsOneTime()
         clsServer.loadHotTc()
         time.sleep(10)

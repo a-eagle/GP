@@ -1,3 +1,8 @@
+/**
+ *   st = new StockTable(headers);
+ *   st.initStyle(); 
+ *   st.buildUI();
+ */
 class StockTable {
     // headers = [ {text: 'xxx', name: 'xx', width: 60, sortable: true}, ...]
     // fix headers : 'zs' 涨速, 'hots': 热度
