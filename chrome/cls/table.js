@@ -4,7 +4,7 @@
  *   st.buildUI();
  */
 class StockTable {
-    // headers = [ {text: 'xxx', name: 'xx', width: 60, sortable: true}, ...]
+    // headers = [ {text: 'xxx', name: 'xx', width: 60, sortable: true, sortVal: function(rowData) }, ...]
     // fix headers : 'zs' 涨速, 'hots': 热度
     constructor(headers) {
         this.headers = headers;
@@ -15,6 +15,7 @@ class StockTable {
         this.table = null;
         this.trs = {};
         this.tlMgr = new TimeLineUIManager();
+        this.config = {elipseNum: 40};
     }
 
     createTimeLineView(code, width, height) {
@@ -155,7 +156,7 @@ class StockTable {
             old.attr('sv', '');
         }
         td.html(td.attr('text') + tag);
-        this.sortNumberBy(td.attr('name'), v == 'asc');
+        this.sortBy(td.attr('name'), v == 'asc');
     }
 
     onLoadFsDataEnd(evt) {
@@ -172,18 +173,49 @@ class StockTable {
         td.text('' + zf.toFixed(1) + '%');
     }
 
-    sortNumberBy(name, asc) {
+    getAttrType(list, name) {
+        for (let i = 0; i < list.length; i++) {
+            if (list[i][name] == undefined)
+                continue;
+            return typeof(list[i][name]);
+        }
+        return 'undefined';
+    }
+
+    compare(list, name, asc) {
+        let type = this.getAttrType(list, name);
+        let get_val = function(a) {return a[name];}
+        for (let i = 0; i < this.headers.length; i++) {
+            if (this.headers[i].name == name && this.headers[i].sortVal) {
+                get_val = this.headers[i].sortVal;
+                break;
+            }
+        }
+        if (type == "number") {
+            return function(a, b) {
+                let an = get_val(a) || 0;
+                let bn = get_val(b) || 0;
+                let v = an - bn; 
+                return asc ? v : -v;
+            };
+        }
+        if (type == "string") {
+            return function(a, b) {
+                let an = get_val(a) || '';
+                let bn = get_val(b) || '';
+                let v = an.localeCompare(bn); 
+                return asc ? v : -v;
+            };
+        }
+        return function(a, b) {return 0;};
+    }
+
+    sortBy(name, asc) {
         //console.log('[sortNumberBy]', name, asc);
         if (!this.datas || !this.table) {
             return;
         }
-        if (name == 'hots')
-            name = 'sortHots';
-        this.datas.sort(function(a, b) {
-            let an = a[name] == undefined ? 0 : a[name];
-            let bn = b[name] == undefined ? 0 : b[name];
-            let v = an - bn; return asc ? v : -v;
-        });
+        this.datas.sort(this.compare(this.datas, name, asc));
         for (let k in this.trs) {
             this.trs[k].detach();
         }
@@ -203,19 +235,24 @@ class StockTable {
         let hotIdx = -1;
         for (let i = 0; i < this.headers.length; i++) {
             if (this.headers[i].name == 'hots') {
-                hotIdx = i + 1; // first is row no
+                hotIdx = i;
             }
         }
         if (hotIdx < 0)
             return;
+        if (! this.headers[hotIdx].sortVal) {
+            this.headers[hotIdx].sortVal = function(rowData) {
+                return rowData.hots > 0 ? 1000 - rowData.hots : 0
+            }
+        }
         hotIdx += 1; // first is row no
         for (let scode in this.datasMap) {
             let it = this.datasMap[scode];
             let hots = this.hotsZH[it.code] ? this.hotsZH[it.code].zhHotOrder : 0;
             it.hots = hots;
-            it.sortHots = hots > 0 ? 1000 - hots : 0;
+            //it.sortHots = hots > 0 ? 1000 - hots : 0;
             if (hots > 0 && this.trs[it.key]) {
-                this.trs[it.key].find('td:nth-child(' + hotIdx + ')').text(hots);
+                this.trs[it.key].find('td:nth-child(' + (hotIdx + 1) + ')').text(hots);
             }
         }
     }
@@ -257,8 +294,12 @@ class StockTable {
     }
 
     buildUI_elipse(s) {
-        if (s && s.length > 40) {
-            s = s.substring(0, 40) + '...';
+        if (s && s.length > this.config.elipseNum) {
+            s = s.substring(0, this.config.elipseNum) + '...';
+        }
+        let idx = s.indexOf('|');
+        if (idx > 0 && idx < 20) {
+            s = '<span class="elipse" >' + s.substring(0, idx) + '</span> &nbsp;&nbsp;' + s.substring(idx + 1);
         }
         return s;
     }
@@ -277,6 +318,7 @@ class StockTable {
                    .my-stoks-table .fs {padding: 3px 3px;} \n\
                    .my-stoks-table .pl20 {padding-right:20px;} \n\
                    .my-stoks-table .sel {background-color: #ECEFF9;}\n\
+                   .my-stoks-table .elipse {color: #66B2FF; }\n\
                    .my-stoks-table .industry {background-color: #8C92A6; height: 26px; vertical-align: middle; color: #fff; }\n\
                    .my-stoks-table .industry:before {content:'\\20'; width: 6px; height:16px; background-color: #8d1f1f; margin: 0 5px 0 10px; display: inline-block; vertical-align: middle;} \n\
                 ";
@@ -320,7 +362,7 @@ class IndustryTable extends StockTable {
             return;
         }
         let tab = $('<table class="my-stoks-table" > </table>');
-        let hds = this.buildHeadersUI(); // $('<tr style="vertical-align: middle;"> <th width=50></th> <th width=90>股票</th> <th width=70 class="s" a="sortHots">热度</th> <th width=70 class="s" a="change">涨幅</th>  <th width=70 class="s" a="zs">涨速</th> <th width=70 class="s" a="head_num">领涨次数</th> <th width=70 class="s" a="cmc" >流通市值</th> <th width=90 class="s" a="fundflow">资金流向</th>  <th width=300>简介</th> <th width=300 >分时图</th> </tr>');
+        let hds = this.buildHeadersUI();
         tab.append(hds);
         let thiz = this;
         for (let i = 0; i < this.datas.length; i++) {
@@ -343,19 +385,13 @@ class IndustryTable extends StockTable {
         return tab;
     }
 
-    sortNumberBy(name, asc) {
+    sortBy(name, asc) {
         //console.log('[sortNumberBy]', name, asc);
         if (!this.datas || !this.table) {
             return;
         }
-        if (name == 'hots')
-            name = 'sortHots';
         for (let i = 0; i < this.datas.length; i++) {
-            this.datas[i].stocks.sort(function(a, b) {
-                let an = a[name] == undefined ? 0 : a[name];
-                let bn = b[name] == undefined ? 0 : b[name];
-                let v = an - bn; return asc ? v : -v;
-            });
+            this.datas[i].stocks.sort(this.compare(this.datas[i].stocks, name, asc));
         }
         for (let k in this.trs) {
             this.trs[k].detach();
@@ -375,5 +411,4 @@ class IndustryTable extends StockTable {
             }
         }
     }
-
 }

@@ -446,7 +446,7 @@ function loadZTUI() {
 				{text: '连板', 'name': 'limit_up_days', width: 50, sortable: true},
 				{text: '涨速', 'name': 'zs', width: 50, sortable: true},
 				{text: '热度', 'name': 'hots', width: 50, sortable: true},
-				{text: '动因', 'name': 'up_reason', width: 250},
+				{text: '动因', 'name': 'up_reason', width: 250, sortable: true},
 				{text: '分时图', 'name': 'fs', width: 300},
 			];
 		} else {
