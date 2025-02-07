@@ -10,15 +10,16 @@ from Tck import kline_utils, cache, mark_utils, utils
 
 # 思维导图
 class SwdtItem:
-    ATTRS = {'fontSize': int, 'color': int, 'bgColor': int, 'borderWidth': int, 'borderColor': int, 'text': str}
+    ATTRS = {'fontSize': int, 'color': int, 'bgColor': int, 'borderWidth': int, 'borderColor': int, 'text': str, 'visible': str}
 
-    def __init__(self, fontSize = 14, color = 0x0, bgColor = 0xffffff, borderWidth = 1, borderColor = 0, text = '') -> None:
+    def __init__(self, fontSize = 14, color = 0x0, bgColor = 0xffffff, borderWidth = 1, borderColor = 0, text = '', visible = 'true') -> None:
         self.text = text
         self.fontSize = fontSize
         self.color = color
         self.bgColor = bgColor
         self.borderWidth = borderWidth
         self.borderColor = borderColor
+        self.visible = visible
         self.children = None # an list of Item
 
 class SwdtModel:
@@ -94,8 +95,20 @@ class SwdtWindow(base_win.BaseWindow):
         self.model = SwdtModel()
         self.needRebuild = True
 
+    def _rdVisible(self, items : list, idx):
+        item = items[idx]
+        if item.visible == 'false':
+            items.pop(idx)
+            return
+        if not item.children:
+            return
+        for i in range(len(item.children) - 1, -1, -1):
+            self._rdVisible(item.children, i)
+
     def loads(self, strs):
         self.model.loads(strs)
+        for idx in range(len(self.model.data) - 1, -1, -1):
+            self._rdVisible(self.model.data, idx)
         self.needRebuild = True
         self.invalidWindow()
     
@@ -181,12 +194,12 @@ class SwdtWindow(base_win.BaseWindow):
 
 xml = """
 <items>
-    <item text="你毁吵中国不是工吵浊" color="000000"  bgColor="FFAA88" fontSize="20" >
+    <item text="你毁吵中国不是工吵浊" color="000000"  bgColor="FFAA88" fontSize="20" visible = "false">
         <item text="sub ----- 1&#xA;不错啊" > 
-            <item text="sub -======= 21" > </item>
+            <item text="sub -======= 21" visible = "false" > </item>
             <item text="sub -======= 22" > </item>
         </item>
-        <item text="sub ----- 2" > 
+        <item text="sub ----- 2" visible = "false"> 
             <item text="sub -======= 31" > </item>
             <item text="sub -======= 32" > </item>
         </item>
@@ -204,6 +217,6 @@ xml = """
 if __name__ == '__main__':
     win = SwdtWindow()
     win.createWindow(None, (100, 100, 800, 600), style = win32con.WS_OVERLAPPEDWINDOW | win32con.WS_VISIBLE)
-    win.model.loads(xml)
+    win.loads(xml)
     #testOptionsWindow()
     win32gui.PumpMessages()
