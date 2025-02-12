@@ -1,6 +1,6 @@
 import threading, sys
 import flask, flask_cors
-import win32con, win32gui
+import win32con, win32gui, peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Common import base_win
@@ -21,6 +21,7 @@ class Server:
         base_win.ThreadPool.instance().start()
         self.app.add_url_rule('/openui/<type_>/<code>', view_func = self.openUI)
         self.app.add_url_rule('/get-hots', view_func = self.getHots)
+        self.app.add_url_rule('/get-time-degree', view_func = self.getTimeDegree)
         self.app.run('localhost', 5665, use_reloader = False, debug = False)
 
     def openUI_Timeline(self, code, day):
@@ -63,7 +64,26 @@ class Server:
             fk = f'{k :06d}'
             m[fk] = rs[k]
         return m
+    
+    # day = YYYY-MM-DD
+    def getTimeDegree(self):
+        day = flask.request.args.get('day', None)
+        if not day:
+            from orm import tck_orm
+            qr = tck_orm.CLS_SCQX_Time.select(pw.fn.max(tck_orm.CLS_SCQX_Time.day)).tuples()
+            for q in qr:
+                day = q[0]
+                break
+        if len(day) == 8:
+            day = day[0 : 4] + '-' + day[4 : 6] + '-' + day[6 : 8]
+        qr = tck_orm.CLS_SCQX_Time.select().where(tck_orm.CLS_SCQX_Time.day == day).dicts()
+        rs = []
+        for q in qr:
+            q['degree'] = q['zhqd']
+            rs.append(q)
+        return rs
 
 if __name__ == '__main__':
     s = Server()
     s.runner()
+    #s.getTimeDegree()

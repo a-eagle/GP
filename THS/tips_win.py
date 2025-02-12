@@ -1546,8 +1546,10 @@ class BkGnWindow(base_win.BaseWindow):
         if not self.hotDaysRange:
             return
         tcView = self.HotTcView()
-        tcView.loadData(*self.hotDaysRange, gn)
-        tcView.createWindow(self.hwnd, (0, 0, 400, 200))
+        #tcView.loadData(*self.hotDaysRange, gn)
+        TRADE_DAYS_NUM = 20
+        tcView.loadData_2(self.hotDaysRange[1], TRADE_DAYS_NUM, gn)
+        tcView.createWindow(self.hwnd)
         tcView.show(*win32gui.GetCursorPos())
         tcView.msgLoop()
 
@@ -1558,6 +1560,25 @@ class BkGnWindow(base_win.BaseWindow):
             self.css['bgColor'] = 0xfcfcfc
             self.datas = None
         
+        def createWindow(self, parentWnd, rect = None, style = win32con.WS_POPUP, className='STATIC', title=''):
+            IW = 30
+            LL = 10
+            if self.datas:
+                LL = len(self.datas)
+            W = LL * IW
+            rect = (0, 0, W, 200)
+            super().createWindow(parentWnd, rect, style, className, title)
+
+        def loadData_2(self, endDay, daysNum, tcName):
+            tradeDays = []
+            qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.day.distinct()).where(tck_orm.CLS_HotTc.day <= endDay).order_by(tck_orm.CLS_HotTc.day.desc()).tuples()
+            for it in qr:
+                tradeDays.append(it[0])
+                if len(tradeDays) >= daysNum:
+                    break
+            fromDay = tradeDays[-1]
+            self.loadData(fromDay, endDay, tcName)
+
         def loadData(self, fromDay, endDay, tcName):
             tradeDays = []
             qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.day.distinct()).where(tck_orm.CLS_HotTc.day >= fromDay, tck_orm.CLS_HotTc.day <= endDay).order_by(tck_orm.CLS_HotTc.day.asc()).tuples()
@@ -1581,7 +1602,7 @@ class BkGnWindow(base_win.BaseWindow):
                     td['sumUpNum'] += datas[i - 1]['sumUpNum']
                     td['sumDownNum'] += datas[i - 1]['sumDownNum']
             self.datas = datas
-
+        
         def onDraw(self, hdc):
             if not self.datas:
                 return
@@ -1601,14 +1622,16 @@ class BkGnWindow(base_win.BaseWindow):
                 ey = H - BOTTOM_Y + 5
                 self.drawer.drawLine(hdc, sx, TOP_Y, sx, ey, LINE_COLOR)
                 day = self.datas[i]['day'][5 : ]
-                self.drawer.drawText(hdc, day, (sx - 30, ey + 5, sx + 30, ey + 20), TXT_COLOR)
+                if (i == 0) or (i == len(self.datas) - 1) or (i == len(self.datas) // 2):
+                    self.drawer.drawText(hdc, day, (sx - 30, ey + 5, sx + 30, ey + 20), TXT_COLOR)
             # horizontal line
             for i in range(STEP_NUM + 1):
                 sy = int(H - BOTTOM_Y - STEP_Y * i)
                 self.drawer.drawLine(hdc, LEFT_X - 5, sy, W - RIGHT_X, sy, LINE_COLOR)
                 val = str(i * STEP_VAL)
                 rc = (0, sy - 10, LEFT_X - 10, sy + 10)
-                self.drawer.drawText(hdc, val, rc, TXT_COLOR, win32con.DT_RIGHT | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+                if STEP_NUM < 10 or i % 2 == 0:
+                    self.drawer.drawText(hdc, val, rc, TXT_COLOR, win32con.DT_RIGHT | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
             
             RED, GREEN, GRAY = 0x3333ff, 0x33ff33, 0xCACACA
             # draw up datas
