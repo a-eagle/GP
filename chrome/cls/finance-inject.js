@@ -417,7 +417,14 @@ function initUI() {
 function loadDegree() {
 	let day = $('.event-querydate-selected').text().trim();
 	day = day.replaceAll('/', '-');
-	window.postMessage({cmd: 'GET_DEGREE', data: day}, '*');
+	//window.postMessage({cmd: 'GET_DEGREE', data: day}, '*');
+	$.ajax({
+		url: 'http://localhost:5665/get-time-degree?day=' + day,
+		success: function(resp) {
+			degrees = resp;
+			updateDegree(resp);
+		}
+	});
 }
 
 function loadZTUI() {

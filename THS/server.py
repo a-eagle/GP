@@ -67,9 +67,10 @@ class Server:
     
     # day = YYYY-MM-DD
     def getTimeDegree(self):
+        from orm import tck_orm
         day = flask.request.args.get('day', None)
+        print(day)
         if not day:
-            from orm import tck_orm
             qr = tck_orm.CLS_SCQX_Time.select(pw.fn.max(tck_orm.CLS_SCQX_Time.day)).tuples()
             for q in qr:
                 day = q[0]
