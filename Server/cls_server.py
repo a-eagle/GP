@@ -147,6 +147,9 @@ class Server:
                 self._runInfo[day] = True
         if curTime >= '09:30' and curTime <= '16:00':
             self.downloadClsZT()
+            
+        self.downloadZS()
+        self.downloadBkGn()
 
     def loadTimeDegree(self):
         now = datetime.datetime.now()
@@ -258,6 +261,7 @@ class Server:
             st = datetime.datetime.now().strftime('%H:%M')
             if st < '15:00' or st > '16:00':
                 return
+            console.writeln_1(console.CYAN, f'[CLS-HyGn] {self.formatNowTime(True)} begin...')
             from orm import ths_orm, cls_orm
             qr = ths_orm.THS_GNTC.select().dicts()
             zs = {}
@@ -304,9 +308,10 @@ def do_reason():
 
 if __name__ == '__main__':
     svr = Server()
-    #svr.downloadBkGn()
+    svr.downloadZS()
+    svr.downloadBkGn()
     #downloadClsZT()
-    obj = tck_orm.CLS_SCQX_Time.get_or_none(day = '2025-02-07', time = '10:50')
+    obj = tck_orm.CLS_SCQX_Time.get_or_none(day = '2025-02-07')
     print(obj)
     pass
     #do_reason()
