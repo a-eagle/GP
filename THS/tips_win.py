@@ -1565,7 +1565,7 @@ class BkGnWindow(base_win.BaseWindow):
             LL = 10
             if self.datas:
                 LL = len(self.datas)
-            W = LL * IW
+            W = max(LL * IW, 200)
             rect = (0, 0, W, 200)
             super().createWindow(parentWnd, rect, style, className, title)
 
@@ -1604,7 +1604,7 @@ class BkGnWindow(base_win.BaseWindow):
             self.datas = datas
         
         def onDraw(self, hdc):
-            if not self.datas:
+            if not self.datas or len(self.datas) == 1:
                 return
             MAX_NUM = max(self.datas[-1]['sumUpNum'], self.datas[-1]['sumDownNum'])
             STEP_VAL = 2 if MAX_NUM > 8 else 1
@@ -1811,6 +1811,8 @@ class BkGnWindow(base_win.BaseWindow):
             if len(days) >= self.limitDaysNum: # 仅显示近N天的热点概念
                 break
         if not days:
+            self.hotDaysRange = None
+            self.clsHotGns = []
             return
         fromDay = days[-1]
         endDay = days[0]

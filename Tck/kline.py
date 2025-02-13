@@ -3318,5 +3318,5 @@ if __name__ == '__main__':
     sm = base_win.ThsShareMemory.instance()
     sm.open()
     import kline_utils
-    win = kline_utils.openInCurWindow_Code(None, {'code': '300323'})
+    win = kline_utils.openInCurWindow_Code(None, {'code': '600476'})
     win32gui.PumpMessages()
