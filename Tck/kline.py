@@ -2638,12 +2638,17 @@ class KLineWindow(base_win.BaseWindow):
             self.invalidWindow()
 
     def onMouseClick(self, x, y):
+        hygnRect = getattr(self.hygnWin, 'rect', None)
+        if hygnRect and x >= hygnRect[0] and x < hygnRect[2] and y >= hygnRect[1] and y < hygnRect[3]:
+            self.hygnWin.hwnd = self.hwnd
+            self.hygnWin.onClick(x, y)
+            return
+        
         for it in self.indicators:
             isInRect = x >= it.x and y >= it.y and x < it.x + it.width and y < it.y + it.height
             if isInRect:
                 it.onMouseClick(x - it.x, y - it.y)
                 break
-        pass
 
     def setSelIdx(self, idx):
         if not self.indicators:
@@ -2730,6 +2735,8 @@ class KLineWindow(base_win.BaseWindow):
         name = self.model.name
         #gnhy = '【' + ' - '.join(getattr(self.model, "hy", [])) + '】' + '│'.join(getattr(self.model, "gn", []))
         rc = (0, 0, int(self.getClientSize()[0] * 0.7), 70)
+        self.hygnWin.rect = rc
+        self.hygnWin.hwnd = self.hwnd
         self.hygnWin.onDrawRect(hdc, rc)
         #font = self.drawer.getFont('宋体', 12)
         #self.drawer.use(hdc, font)

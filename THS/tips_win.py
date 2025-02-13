@@ -1615,15 +1615,21 @@ class BkGnWindow(base_win.BaseWindow):
             STEP_Y = (H - TOP_Y - BOTTOM_Y) / STEP_NUM
             STEP_X = (W - LEFT_X - RIGHT_X) / (len(self.datas) - 1)
 
-            LINE_COLOR, TXT_COLOR = 0xE2E2E2, 0x777777
+            LINE_COLOR, TXT_COLOR, TXT_COLOR_HILIGHT  = 0xE2E2E2, 0x777777, 0xFF007F
             # vertical line
+            preMonth = None
             for i in range(len(self.datas)):
                 sx = int(LEFT_X + i * STEP_X)
                 ey = H - BOTTOM_Y + 5
                 self.drawer.drawLine(hdc, sx, TOP_Y, sx, ey, LINE_COLOR)
                 day = self.datas[i]['day'][5 : ]
-                if (i == 0) or (i == len(self.datas) - 1) or (i == len(self.datas) // 2):
-                    self.drawer.drawText(hdc, day, (sx - 30, ey + 5, sx + 30, ey + 20), TXT_COLOR)
+                month = day[0 : 2]
+                c = TXT_COLOR_HILIGHT
+                if preMonth == month:
+                    day = day[3 : 5]
+                    c = TXT_COLOR
+                preMonth = month
+                self.drawer.drawText(hdc, day.replace('-', '/'), (sx - 30, ey + 5, sx + 30, ey + 20), c)
             # horizontal line
             for i in range(STEP_NUM + 1):
                 sy = int(H - BOTTOM_Y - STEP_Y * i)
