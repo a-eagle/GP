@@ -22,6 +22,7 @@ class Server:
         self.app.add_url_rule('/openui/<type_>/<code>', view_func = self.openUI)
         self.app.add_url_rule('/get-hots', view_func = self.getHots)
         self.app.add_url_rule('/get-time-degree', view_func = self.getTimeDegree)
+        self.app.add_url_rule('/query-by-sql/<dbName>', view_func = self.queryBySql)
         self.app.run('localhost', 5665, use_reloader = False, debug = False)
 
     def openUI_Timeline(self, code, day):
@@ -83,8 +84,35 @@ class Server:
             q['degree'] = q['zhqd']
             rs.append(q)
         return rs
+    
+    def queryBySql(self, dbName):
+        from orm import cls_orm, lhb_orm, tck_def_orm, tck_orm, ths_orm, zs_orm
+        dbs = {'cls_gntc': cls_orm.db_gntc, 
+               'lhb': lhb_orm.db_lhb,
+               'tck_def': tck_def_orm.db_tck_def, 
+               'tck': tck_orm.db_tck, 
+               'ths_gntc': ths_orm.db_gntc, 'hot': ths_orm.db_hot, 'hot_zh': ths_orm.db_hot_zh, 'ths_zs': ths_orm.db_thszs,
+               'zs': zs_orm.zsdb}
+        if dbName not in dbs:
+            return {'code': 1, 'msg': f'Not find dbName: "{dbName}"'}
+        sql = flask.request.args.get('sql', None)
+        if not sql:
+            return {'code': 1, 'msg': f'No sql'}
+        db : pw.SqliteDatabase = dbs[dbName]
+        c = db.cursor()
+        c.execute(sql)
+        ds = c.description
+        rs = c.fetchall()
+        ex = []
+        for r in rs:
+            item = {}
+            for i, k in enumerate(r):
+                item[ds[i][0]] = k
+            ex.append(item)
+        return ex
 
 if __name__ == '__main__':
     s = Server()
-    s.runner()
+    #s.runner()
+    s.queryBySql('hot_zh', 'select *  from 个股热度综合排名 where 日期 >= 20250415')
     #s.getTimeDegree()

@@ -1,7 +1,8 @@
 var anchros = null;
 var maxTradeDays = 10;
-var degrees = null;
+var degrees = null, degrees_n = null;
 var curDay = null;
+var sh000001 = null, sz399001 = null;
 
 // HH:MM
 function formatTime(date) {
@@ -13,6 +14,15 @@ function formatTime(date) {
     v += ':';
     v += m > 9 ? m : '0' + m;
     return v;
+}
+
+function formatDay(date) {
+	let y = date.getFullYear();
+	let m = date.getMonth() + 1;
+	let d = date.getDate();
+	if (m < 10) m = '0' + m;
+	if (d < 10) d = '0' + d;
+	return y + '-' + m + '-' + d;
 }
 
 function _doHook(response) {
@@ -34,6 +44,7 @@ function _doHook(response) {
 		let cday = url.substring(idx + 6, idx + 6 + 10);
 		adjustAnchors(response, cday);
 		loadDegree();
+		loadDegreeOfDays();
 	}
 	//console.log(response);
 }
@@ -364,6 +375,64 @@ function updateDegree(d) {
 	}
 }
 
+function updateDegreeOfDays() {
+	let table = $('.my-degree > table');
+	if (table.length == 0 || !degrees_n) {
+		setTimeout(function() {updateDegreeOfDays();}, 2000);
+		return;
+	}
+	table.empty();
+	let datas = [];
+	for (let i = 0; i < degrees_n.length; i++) {
+		let day = degrees_n[i].day;
+		degrees_n[i].amount = '';
+		if (sh000001 && sz399001) {
+			let am = sh000001[day].amount + sz399001[day].amount;
+			degrees_n[i].amount = am.toFixed(2);
+		}
+		datas.push(degrees_n[i]);
+	}
+	/*
+	if (degrees && degrees.length > 0) {
+		let last = degrees[degrees.length - 1];
+		if (last.day != degrees_n[degrees_n.length - 1].day) {
+			last.sday = last.day.substring(5);
+			datas.push(last);
+		}
+	}
+	*/
+	let cols = ['sday', 'degree', 'amount'];
+	let colsDesc = ['', '热度', '成交额'];
+	for (let c = 0; c < cols.length; c++) {
+		let tr = $('<tr> </tr>');
+		tr.append($('<th>' + colsDesc[c] + '</th>'));
+		for (let i = 0; i < datas.length; i++) {
+			let v = datas[i][cols[c]];
+			let clazz = '';
+			let title = '';
+			if (cols[c] == 'degree') {
+				clazz = c == 0 ? '' : (v >= 50 ? 'red' : 'green');
+			} else if (cols[c] == 'amount') {
+				title = v + '万亿';
+			}
+			let tag = c == 0 ? 'th' : 'td';
+			tr.append($('<' + tag + ' class="' + clazz  + '" title=" ' + title + '" colidx="' + i + '">' + v + '</' + tag + '>'));
+		}
+		table.append(tr);
+	}
+	function inFunction() {
+		let idx = $(this).attr('colidx');
+		let table = $('.my-degree > table');
+		table.find('td[colidx=' + idx + ']').addClass('selcol');
+	}
+	function outFunction() {
+		let idx = $(this).attr('colidx');
+		let table = $('.my-degree > table');
+		table.find('td[colidx=' + idx + ']').removeClass('selcol');
+	}
+	table.find('td, th').hover(inFunction, outFunction);
+}
+
 function wrapAnchor(name) {
 	if (! anchros) {
 		return name;
@@ -393,6 +462,12 @@ function initUI() {
 			 #hots .arrow {float:right; width:15px; text-align:center; border-left:1px solid #c0c0c0; background-color:#c0c0c0; width:15px; height:25px;} \n\
 			 .my-degree {height: 130px; border-bottom: solid 1px #222; margin-bottom: 10px;} \n\
 			 .my-degree > canvas {height: 100%; width: 100%;} \n\
+			 .my-degree > table {border-collapse: collapse; border: 1px solid #ddd; width:100%; text-align: center; cursor:hander; } \n\
+			 .my-degree > table th {border: 1px solid #ddd; background-color: #ECECEC; height: 30px; font-weight: normal; color: #6A6B70;} \n\
+			 .my-degree > table td {border: 1px solid #ddd; } \n\
+			 .my-degree .red {color: #990000;} \n\
+			 .my-degree .green {color: #009900;} \n\
+			 .my-degree .selcol {background-color: #EEE9E9;} \n\
 			";
 	style.appendChild(document.createTextNode(css));
 	document.head.appendChild(style);
@@ -410,6 +485,8 @@ function initUI() {
 	$('.top-ad').remove();
 	let md = $('<div class="my-degree p-r b-c-222" > <canvas > </canvas> </div>');
 	md.insertAfter($('.watch-chart-box'));
+	md = $('<div class="my-degree p-r b-c-222" > <table> </table> </div>');
+	md.insertAfter($('.watch-chart-box'));
 	window.postMessage({cmd: 'GET_ANCHORS', data: {lastDay: new Date(), traceDaysNum: 30}}, '*');
 	setTimeout(loadDegree, 3000);
 }
@@ -423,6 +500,48 @@ function loadDegree() {
 		success: function(resp) {
 			degrees = resp;
 			updateDegree(resp);
+		}
+	});
+}
+
+// 两市成交额
+function loadAmount() {
+	function cb(data) {
+		let rs = {};
+		for (let i = 0; i < data.length; i++) {
+			let day = String(data[i].date);
+			day = day.substring(0, 4) + '-' + day.substring(4, 6) + '-' + day.substring(6);
+			data[i].amount = data[i].business_balance / 1000000000000; // 万亿
+			rs[day] = data[i];
+		}
+		return rs;
+	}
+	let cu = new ClsUrl();
+	cu.loadKline('sh000001', 200, 'DAY', function(data) {
+		sh000001 = cb(data);
+	});
+	cu.loadKline('sz399001', 200, 'DAY', function(data) {
+		sz399001 = cb(data);; // business_balance
+	});
+}
+
+function loadDegreeOfDays() {
+	let sday = $('.event-querydate-selected').text().trim();
+	sday = sday.replaceAll('/', '-');
+	//window.postMessage({cmd: 'GET_DEGREE', data: day}, '*');
+	let date = new Date(sday);
+	//let dx = date.setDate(date.getDate() - 45);
+	let dx = date.setMonth(date.getMonth() - 1);
+	date = new Date(dx);
+	let fday = formatDay(date);
+	let sql = "select day, 综合强度 as degree, substr(day, 6) as sday from CLS_SCQX where day >= '" + fday + "' and day <= '" + sday + "'";
+	$.ajax({
+		url: 'http://localhost:5665/query-by-sql/tck',
+		data: {'sql': sql},
+		success: function(resp) {
+			degrees_n = resp;
+			//console.log(degrees_n);
+			updateDegreeOfDays();
 		}
 	});
 }
@@ -483,6 +602,7 @@ setInterval(function() {
 	loadZTUI();
 }, 1 * 1000);
 
+loadAmount();
 /*
 var _can2DProto = CanvasRenderingContext2D.prototype;
 var _old_can2d_ft = _can2DProto.fillText;

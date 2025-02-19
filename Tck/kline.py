@@ -1810,8 +1810,8 @@ class GnLdIndicator(CustomIndicator):
         selData = self.data[selIdx] if selIdx >= 0 and selIdx < len(self.data) else None
         selDay = int(selData.day) if selData else 0
         rc = (x + 1, 1, x + iw, self.height)
-        if selDay == int(cdata['__day']):
-            win32gui.FillRect(hdc, rc, hbrs['light_dark'])
+        #if selDay == int(cdata['__day']):
+        win32gui.FillRect(hdc, rc, hbrs['mask']) # light_dark
         if not cdata or not cdata.get('items', None):
             return
         
@@ -2781,6 +2781,7 @@ class KLineWindow(base_win.BaseWindow):
             hbrs['0xff00ff'] = win32gui.CreateSolidBrush(0xff00ff)
             hbrs['light_dark'] = win32gui.CreateSolidBrush(0x202020)
             hbrs['hilight'] = win32gui.CreateSolidBrush(0x202030)
+            hbrs['mask'] = win32gui.CreateSolidBrush(0x101010)
         
         w, h = self.getClientSize()
         for i, idt in enumerate(self.indicators):

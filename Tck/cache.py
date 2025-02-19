@@ -350,7 +350,11 @@ def renderTimeline(win : base_win.TableWindow, hdc, row, col, colName, value, ro
     hd = win.headers[col]
     day = hd.get('LOCAL-FS-DAY', None)
     if callable(day):
-        day = day()
+        argCount = day.__code__.co_argcount
+        if argCount == 0:
+            day = day()
+        elif argCount == 1:
+            day = day(rowData)
     if day:
         if type(day) == str:
             day = int(day.replace('-', ''))
