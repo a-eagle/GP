@@ -1,6 +1,7 @@
 import win32gui, win32con , win32api, win32ui # pip install pywin32
 import threading, time, datetime, sys, os, copy, pyautogui
 import os, sys, requests, re
+import peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import ths_orm, tck_orm
@@ -13,23 +14,24 @@ class XGC_Window(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
         rows = (30, '1fr')
-        self.cols = (60, 120, 400, 120, 60, 60, '1fr')
-        self.layout = base_win.GridLayout(rows, self.cols, (5, 10))
+        self.layout = base_win.GridLayout(rows, ('1fr', ), (5, 10))
         self.tableWin = ext_win.EditTableWindow()
         self.tableWin.css['selBgColor'] = 0xEAD6D6
         self.editorWin = base_win.ComboBox()
         self.editorWin.placeHolder = ' or条件: |分隔; and条件: 空格分隔'
         self.editorWin.editable = True
-        self.checkBox = base_win.CheckBox({'title': '在同花顺中打开'})
+        self.openInThsWin = base_win.CheckBox({'title': '在同花顺中打开'})
         self.datePicker = base_win.DatePicker()
         self.qcCheckBox = base_win.CheckBox({'title': '去重'})
+        self.hotTcNamesWin = base_win.ComboBox()
 
         self.ztListData = None
         self.searchData = None
         self.searchText = ''
         self.inputTips = []
+        self.clsHotGns = {} # {day: [], ...}
 
-    def createWindow(self, parentWnd, rect, style=win32con.WS_VISIBLE | win32con.WS_CHILD, className='STATIC', title=''):
+    def createWindow(self, parentWnd, rect, style=win32con.WS_VISIBLE | win32con.WS_CHILD, className='STATIC', title='涨停+热点概念（选股）'):
         super().createWindow(parentWnd, rect, style, className, title)
         def formateMoney(colName, val, rowData):
             return f'{int(val)}'
@@ -65,35 +67,43 @@ class XGC_Window(base_win.BaseWindow):
                    {'title': '', 'width': 15, 'name':'xx-no-1'},
                    {'title': '财联社', 'width': 200, 'name': 'cls_ztReason', 'sortable':True , 'fontSize' : 12,  'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER},
                    {'title': '', 'width': 15, 'name':'xx-no-1'},
+                   {'title': '关联财联社热点', 'width': 250, 'name': 'hotTcName', 'sortable':True , 'fontSize' : 12,  'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER},
                    {'title': '分时图', 'width': 250, 'name': 'FS', 'render': cache.renderTimeline, 'LOCAL-FS-DAY': getLocalFsDay},
                    #{'title': '详情', 'width': 0, 'name': '_detail_', 'stretch': 1 , 'fontSize' : 12, 'textAlign': win32con.DT_LEFT | win32con.DT_WORDBREAK | win32con.DT_VCENTER},
                    ]
-        self.checkBox.createWindow(self.hwnd, (0, 0, 1, 1))
-        self.editorWin.createWindow(self.hwnd, (0, 0, 1, 1))
+        
+        flowLayout = base_win.FlowLayout(20)
+        self.openInThsWin.createWindow(self.hwnd, (0, 0, 160, 30))
+        self.editorWin.createWindow(self.hwnd, (0, 0, 300, 30))
         self.tableWin.createWindow(self.hwnd, (0, 0, 1, 1))
         self.tableWin.rowHeight = 50
         self.tableWin.headers = headers
-        self.datePicker.createWindow(self.hwnd, (0, 0, 1, 1))
+        self.datePicker.createWindow(self.hwnd, (0, 0, 120, 30))
         def onPickDay(evt, args):
+            self.loadClsHotGnBySelDays()
             self.loadAllData()
             self.onQuery()
         self.datePicker.addNamedListener('Select', onPickDay)
-        lb = base_win.Label('开始日期')
-        lb.createWindow(self.hwnd, (0, 0, 1, 1))
-        self.layout.setContent(0, 0, lb)
-        self.layout.setContent(0, 1, self.datePicker)
-        self.layout.setContent(0, 2, self.editorWin)
-        self.layout.setContent(0, 3, self.checkBox)
+        #lb = base_win.Label('日期')
+        #lb.createWindow(self.hwnd, (0, 0, 40, 30))
         btn = base_win.Button({'title': '刷新'})
-        btn.createWindow(self.hwnd, (0, 0, 1, 1))
+        btn.createWindow(self.hwnd, (0, 0, 50, 30))
         btn.addNamedListener('Click', self.onRefresh)
-        self.qcCheckBox.createWindow(self.hwnd, (0, 0, 1, 1))
+        self.qcCheckBox.createWindow(self.hwnd, (0, 0, 60, 30))
         def onCheck(evt, args):
             self.onQuery()
         self.qcCheckBox.addNamedListener('Checked', onCheck)
-        self.layout.setContent(0, 4, self.qcCheckBox)
-        self.layout.setContent(0, 5, btn)
-
+        self.hotTcNamesWin.createWindow(self.hwnd, (0, 0, 150, 30))
+        self.hotTcNamesWin.addNamedListener('Select', self.onSelectHotTc)
+        
+        #flowLayout.addContent(lb)
+        flowLayout.addContent(self.datePicker, {'margins': (100, 0, 0, 0)})
+        flowLayout.addContent(self.hotTcNamesWin)
+        flowLayout.addContent(self.editorWin)
+        flowLayout.addContent(btn)
+        flowLayout.addContent(self.qcCheckBox)
+        flowLayout.addContent(self.openInThsWin)
+        self.layout.setContent(0, 0, flowLayout, {'horExpand': -1})
         self.layout.setContent(1, 0, self.tableWin, {'horExpand': -1})
         def onPressEnter(evt, args):
             q = self.editorWin.getText().strip()
@@ -129,10 +139,51 @@ class XGC_Window(base_win.BaseWindow):
         self.tableWin.setData(None)
         self.tableWin.invalidWindow()
         self.doSearch(queryText)
+        self.searchData = self.filterHotTc(self.searchData)
         self.tableWin.setData(self.searchData)
         if self.searchData:
             mark_utils.mergeMarks(self.searchData, 'xgc', False)
         self.tableWin.invalidWindow()
+
+    def filterHotTc(self, datas):
+        if not datas:
+            return datas
+        rs = []
+        ht = self.hotTcNamesWin.getSelectItem()
+        ffCode = None
+        if ht and ht.get('code', None):
+            ffCode = ht['code']
+        from Tck import utils
+        for d in datas:
+            day = d['day']
+            #d['hotTcCode'] = ''
+            d['hotTcName'] = ''
+            d['hotTcMaxNum'] = 0
+            hots = []
+            gns = self.clsHotGns.get(day)
+            if not gns:
+                continue
+            obj = utils.cls_gntc_s.get(d['code'])
+            if not obj:
+                continue
+            for gn in gns:
+                code, name, num = gn
+                if code in (obj['hy_code'] or '') or code in (obj['gn_code'] or ''):
+                    d['hotTcMaxNum'] = max(d['hotTcMaxNum'], num)
+                    hots.append(gn)
+            if d['hotTcMaxNum'] < 2:
+                continue
+            fd = False
+            for i, gn in enumerate(hots):
+                #d['hotTcCode'] += gn[0] + ';'
+                d['hotTcName'] += f"{gn[1]}{gn[2]}"
+                if i != len(hots) - 1:
+                    d['hotTcName'] += ' | '
+                if not ffCode or gn[0] == ffCode:
+                    fd = True
+            if fd:
+                rs.append(d)
+        return rs
 
     def onContextMenu(self, evt, args):
         row = self.tableWin.selRow
@@ -153,7 +204,7 @@ class XGC_Window(base_win.BaseWindow):
         data = evt.data
         if not data:
             return
-        if self.checkBox.isChecked():
+        if self.openInThsWin.isChecked():
             kline_utils.openInThsWindow(data)
         else:
             win = kline_utils.openInCurWindow(self, data)
@@ -165,8 +216,8 @@ class XGC_Window(base_win.BaseWindow):
         if not selDay:
             return
         selDayStr = f'{selDay // 10000}-{selDay // 100 % 100 :02d}-{selDay % 100 :02d}'
-        qr = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day >= selDayStr).dicts()
-        qr2 = tck_orm.THS_ZT.select().where(tck_orm.THS_ZT.day >= selDayStr).dicts()
+        qr = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day == selDayStr).dicts()
+        qr2 = tck_orm.THS_ZT.select().where(tck_orm.THS_ZT.day == selDayStr).dicts()
         ztList, ztMap = [], {}
         for q in qr:
             q['cls_ztReason'] = q['ztReason']
@@ -183,7 +234,7 @@ class XGC_Window(base_win.BaseWindow):
                 ztList.append(q)
                 ztMap[key] = q
 
-        qr = ths_orm.THS_HotZH.select().where(ths_orm.THS_HotZH.day >= selDay).dicts()
+        qr = ths_orm.THS_HotZH.select().where(ths_orm.THS_HotZH.day == selDay).dicts()
         lastHotsDay = None
         for d in qr:
             day = d['day']
@@ -243,7 +294,7 @@ class XGC_Window(base_win.BaseWindow):
             for q in qrs:
                 fd = False
                 for k in data:
-                    if ('_id' in k or k == '_detail_'):
+                    if ('_id' in k or k == 'detail'):
                         continue
                     if isinstance(data[k], str) and (q in data[k].upper()):
                         fd = True
@@ -271,9 +322,50 @@ class XGC_Window(base_win.BaseWindow):
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
     
+    def loadClsHotGnBySelDays(self):
+        selDay = self.datePicker.getSelDay()
+        if not selDay:
+            return
+        qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.day.distinct()).where(tck_orm.CLS_HotTc.day == selDay).tuples()
+        for it in qr:
+            day = it[0]
+            self.loadClsHotGn(day)
+        hotTc = self.clsHotGns.get(selDay)
+        model = [{'title': '<All>', 'code': '', 'hot-name': '', 'num': 0}]
+        if hotTc:
+            for h in hotTc:
+                code, name, num = h
+                model.append({'title': f'{num: 3d}  {name}', 'code': code, 'hot-name': name, 'num': num})
+        self.hotTcNamesWin.setPopupTip(model)
+
+    def onSelectHotTc(self, evt, args):
+        self.onQuery()
+
+    def loadClsHotGn(self, lastDay, limitDaysNum = 10):
+        qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.day.distinct()).order_by(tck_orm.CLS_HotTc.day.desc()).tuples()
+        days = []
+        for it in qr:
+            if (lastDay is None) or (it[0] <= lastDay):
+                days.append(it[0])
+            if len(days) >= limitDaysNum: # 仅显示近N天的热点概念
+                break
+        if not days:
+            self.clsHotGns[lastDay] = None
+            return
+        fromDay = days[-1]
+        endDay = days[0]
+        rs = []
+        qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.code, tck_orm.CLS_HotTc.name, pw.fn.count()).where(tck_orm.CLS_HotTc.day >= fromDay, tck_orm.CLS_HotTc.day <= endDay, tck_orm.CLS_HotTc.up == True).group_by(tck_orm.CLS_HotTc.name).tuples()
+        for it in qr:
+            clsCode, clsName, num = it
+            rs.append((clsCode, clsName.strip(), num))
+        rs.sort(key = lambda k : k[2], reverse = True)
+        self.clsHotGns[lastDay] = rs
+
 if __name__ == '__main__':
     base_win.ThreadPool.instance().start()
     win = XGC_Window()
     win.createWindow(None, (0, 100, 1500, 700), win32con.WS_OVERLAPPEDWINDOW | win32con.WS_VISIBLE)
     win.layout.resize(0, 0, *win.getClientSize())
+    win32gui.ShowWindow(win.hwnd, win32con.SW_MAXIMIZE)
     win32gui.PumpMessages()

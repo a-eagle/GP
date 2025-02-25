@@ -285,8 +285,8 @@ class MarkMain(base_win.BaseWindow):
 if __name__ == '__main__':
     tsm = base_win.ThsShareMemory(True)
     tsm.open()
-    zsOcr = ths_ocr.ThsZhangShuOcrUtils()
-    zsOcr.start()
+    #zsOcr = ths_ocr.ThsZhangShuOcrUtils()
+    #zsOcr.start()
     # listen ths fu ping
     #p = Process(target = listen_ThsFuPing_Process, daemon = False)
     #p.start()

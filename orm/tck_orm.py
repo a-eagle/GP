@@ -73,6 +73,7 @@ class CLS_SCQX_Time(pw.Model):
 # 财联社热度题材
 class CLS_HotTc(pw.Model):
     day = pw.CharField() # YYYY-MM-DD
+    code = pw.CharField(null = True, default = "")
     name = pw.CharField()
     up = pw.BooleanField() # 是否是上涨, 还是下跌
     ctime = pw.CharField()

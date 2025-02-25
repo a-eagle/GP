@@ -387,7 +387,11 @@ def getTradeDays(prev = 60):
     try:
         today = datetime.date.today()
         today = today.strftime('%Y%m%d')
-        resp = requests.get(f'https://data.10jqka.com.cn/dataapi/limit_up/trade_day?date={today}&stock=stock&next=1&prev={prev}')
+        url = f'http://data.10jqka.com.cn/dataapi/limit_up/trade_day?date={today}&stock=stock&next=1&prev={prev}'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.3'
+        }
+        resp = requests.get(url, headers = headers)
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         data = js['data']
@@ -400,4 +404,5 @@ def getTradeDays(prev = 60):
     return None
 
 if __name__ == '__main__':
+    getTradeDays()
     pass

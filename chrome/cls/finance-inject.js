@@ -143,7 +143,7 @@ function sumGroup(anchrosCP) {
 	}
 	let table = $("<table> </table>");
 	let tr = null;
-	let ROW_NUM = 3, COL_NUM = 6;
+	let ROW_NUM = 4, COL_NUM = 6;
 	let NUM = ROW_NUM * COL_NUM;
 	for (let i = 0; i < NUM && i < arr.length; i++) {
 		let item = arr[i];
@@ -471,13 +471,13 @@ function initUI() {
 			";
 	style.appendChild(document.createTextNode(css));
 	document.head.appendChild(style);
-	let div = $('<div id="change-trade-days" style="padding-left:30px; font-size:15px; float:left; "> 交易日期：<button class="sel" val="10" >10日</button> <button  val="20">20日</button> </div>');
-	$('.event-querydate-box').append(div);
-	div.find('button').click(function() {
-		div.find('button').removeClass('sel');
-		$(this).addClass('sel');
-		maxTradeDays = parseInt($(this).attr('val'));
-	});
+	//let div = $('<div id="change-trade-days" style="padding-left:30px; font-size:15px; float:left; "> 交易日期：<button class="sel" val="10" >10日</button> <button  val="20">20日</button> </div>');
+	//$('.event-querydate-box').append(div);
+	//div.find('button').click(function() {
+	//	div.find('button').removeClass('sel');
+	//	$(this).addClass('sel');
+	//	maxTradeDays = parseInt($(this).attr('val'));
+	//});
 	let popup = $('<div class="popup-container"> </div>');
 	$(document.body).append(popup);
 	popup.click(function() {$(this).css('display', 'none')});

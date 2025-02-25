@@ -289,6 +289,8 @@ class ClsUrl:
             elif isinstance(day, str):
                 if len(day) == 8:
                     cday = f'{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}'
+                else:
+                    cday = day
             elif isinstance(day, int):
                 cday = f'{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}'
             if today > cday:
@@ -434,9 +436,8 @@ if __name__ == '__main__':
     #print(m)
     #signByStr('app=CailianpressWeb&fields=date,minute,last_px,business_balance,business_amount,open_px,preclose_px,av_px&os=web&secu_code=sz301488&sv=7.7.5')
     cu = ClsUrl()
-    ds = cu.loadBkGnOfCode('688041')
-    print(ds.__data__)
+    #ds = cu.loadBkGnOfCode('688041')
+    #print(ds.__data__)
     #ClsUrl().loadDegree()
     pass
-    #u = ClsUrl()
-    #u.loadHotTC(20241104)
+    cu.loadHotTC(20241104)

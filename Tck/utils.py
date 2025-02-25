@@ -3,14 +3,18 @@ import threading, time, datetime, sys, os, copy
 import os, sys, requests
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import ths_orm
+from orm import ths_orm, cls_orm
 
-_ths_gntc_s = {}
+ths_gntc_s = {}
+cls_gntc_s = {}
 
 def _init():
     q = ths_orm.THS_GNTC.select().dicts()
     for it in q:
-        _ths_gntc_s[it['code']] = it
+        ths_gntc_s[it['code']] = it
+    q = cls_orm.CLS_GNTC.select().dicts()
+    for it in q:
+        cls_gntc_s[it['code']] = it
 
 _init()
 
@@ -18,10 +22,10 @@ _init()
 def get_THS_GNTC(code):
     if type(code) == int:
         code = f'{code :06d}'
-    return _ths_gntc_s.get(code, None)
+    return ths_gntc_s.get(code, None)
 
 def getAllGNTC():
-    return _ths_gntc_s
+    return ths_gntc_s
 
 # day = int | str | date | datetime | float [ time.time() ]
 def formatDate(day, hasSplit = True):

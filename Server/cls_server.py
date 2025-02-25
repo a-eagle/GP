@@ -196,14 +196,18 @@ class Server:
         qr = tck_orm.CLS_HotTc.select().where(tck_orm.CLS_HotTc.day == cday)
         for it in qr:
             key = it.name + ' ' + it.ctime
-            exists[key] = True
+            exists[key] = it
         for d in ds:
             cts = d['c_time'].split(' ')
             day, ctime = cts
             key = f'{d["symbol_name"]} {ctime}'
-            if exists.get(key, False):
-                continue
-            tck_orm.CLS_HotTc.create(day = day, name = d['symbol_name'], up = d['float'] == 'up', ctime = ctime)
+            ex = exists.get(key, None)
+            if ex:
+                if not ex.code:
+                    ex.code = d['symbol_code']
+                    ex.save()
+            else:
+                tck_orm.CLS_HotTc.create(day = day, code = d['symbol_code'], name = d['symbol_name'], up = d['float'] == 'up', ctime = ctime)
 
     # 指数（板块概念）
     def downloadZS(self):
@@ -308,10 +312,11 @@ def do_reason():
 
 if __name__ == '__main__':
     svr = Server()
-    svr.downloadZS()
-    svr.downloadBkGn()
+    #svr.downloadZS()
+    #svr.downloadBkGn()
     #downloadClsZT()
-    obj = tck_orm.CLS_SCQX_Time.get_or_none(day = '2025-02-07')
-    print(obj)
+    days = ths_iwencai.getTradeDays(100)
+    for day in days:
+        svr._loadHotTcOfDay(day)
     pass
     #do_reason()
