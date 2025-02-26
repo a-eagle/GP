@@ -13,7 +13,8 @@ class MemCache:
         'cls-pankou-vol': 60,
         'cls-basic': 10 * 60 * 60,
         'cls-scqx': 3 * 60,
-        'cls-hot-tc': 30
+        'cls-hot-tc': 30,
+        '30-minuts': 30 * 60,
     }
     def __init__(self) -> None:
         self.datas = {} # key = code + kind, value = CacheItem

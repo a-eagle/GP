@@ -1,12 +1,11 @@
-from win32.lib.win32con import WS_CHILD, WS_VISIBLE
 import win32gui, win32con , win32api, win32ui # pip install pywin32
 import threading, time, datetime, sys, os, copy, traceback
-import os, sys, requests
+import os, sys, requests, json
 import win32gui, win32con
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Download import datafile
-from Download import henxin, cls
+from Download import henxin, cls, ths_iwencai
 from Common import base_win, ext_win
 from orm import ths_orm, cls_orm, tck_orm
 from Tck import fx
@@ -728,9 +727,22 @@ class PanKouWindow(ext_win.CellRenderWindow):
     def createWindow(self, parentWnd, rect, style= win32con.WS_VISIBLE | win32con.WS_CHILD, className='STATIC', title=''):
         super().createWindow(parentWnd, rect, style, className, title)
 
-    def load(self, code):
-        url = cls.ClsUrl()
-        self.data = url.loadPanKou5(code)
+    def load(self, code, day):
+        tds = ths_iwencai.getTradeDays_Cache()
+        if not tds:
+            return
+        if type(day) == str:
+            day = day.replace('-', '')
+        elif type(day) == int:
+            day = str(day)
+        if not day or day == tds[-1]:
+            url = cls.ClsUrl()
+            self.data = url.loadPanKou5(code)
+        else:
+            day = f'{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}'
+            obj = tck_orm.ZT_PanKou.get_or_none(day = day, code = code)
+            if obj:
+                self.data = json.loads(obj.info)
         self.invalidWindow()
 
 class TimelinePanKouWindow(base_win.BaseWindow):
@@ -757,7 +769,7 @@ class TimelinePanKouWindow(base_win.BaseWindow):
         def lda():
             self.timelineWin.load(code, day)
         def ldb():
-            self.pankouWin.load(code)
+            self.pankouWin.load(code, day)
         pool.addTaskOnThread(1, 'TLa', lda)
         pool.addTask('TLb', ldb)
 

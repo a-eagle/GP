@@ -53,6 +53,15 @@ class CLS_ZT(pw.Model):
     class Meta:
         database = db_tck
 
+# 涨停盘口(收盘)
+class ZT_PanKou(pw.Model):
+    day = pw.CharField() # YYYY-MM-DD
+    code = pw.CharField()
+    info = pw.CharField()
+
+    class Meta:
+        database = db_tck
+
 # 综合强度
 class CLS_SCQX(pw.Model):
     day = pw.CharField() # YYYY-MM-DD
@@ -97,4 +106,4 @@ def getClsThsNames():
     return rs
         
 #db_tck.drop_tables([CLS_SCQX_Time])
-db_tck.create_tables([THS_ZT, CLS_ZT, KPL_ZT, KPL_SCQX, CLS_SCQX, CLS_HotTc, CLS_THS_Tc, CLS_SCQX_Time])
+db_tck.create_tables([THS_ZT, CLS_ZT, KPL_ZT, KPL_SCQX, CLS_SCQX, CLS_HotTc, CLS_THS_Tc, CLS_SCQX_Time, ZT_PanKou])

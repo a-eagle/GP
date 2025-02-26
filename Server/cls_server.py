@@ -16,6 +16,7 @@ class Server:
         self._lastLoadBkGnTime = 0
         self._lastLoadZSZDTime = 0
         self._lastLoadDegreeTime = 0
+        self._lastLoadZT_PanKou = 0
 
     def now(self):
         return datetime.datetime.now().strftime('%H:%M')
@@ -150,6 +151,7 @@ class Server:
             
         self.downloadZS()
         self.downloadBkGn()
+        self.downloadZT_PanKou()
 
     def loadTimeDegree(self):
         now = datetime.datetime.now()
@@ -298,6 +300,30 @@ class Server:
         except Exception as e:
             traceback.print_exc()
 
+    def downloadZT_PanKou(self):
+        if time.time() - self._lastLoadZT_PanKou < 60 * 60 * 2:
+            return
+        st = datetime.datetime.now().strftime('%H:%M')
+        if st < '15:30' or st > '17:00':
+            return
+        try:
+            rs = self.__downloadClsZT()
+            full = True
+            for r in rs:
+                obj = tck_orm.ZT_PanKou.get_or_none(day = r['day'], code = r['code'])
+                if obj:
+                    continue
+                pk = cls.ClsUrl().loadPanKou5(r['code'])
+                if not pk:
+                    full = False
+                    continue
+                tck_orm.ZT_PanKou.create(code = r['code'], day = r['day'], info = pk)
+            if full:
+                self._lastLoadZT_PanKou = time.time()
+                console.writeln_1(console.CYAN, f'[ZT-PanKou] {self.formatNowTime(True)} ')
+        except Exception as e:
+            traceback.print_exc()
+
 def do_reason():
     qr = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day >= '2024-07-26')
     for it in qr:
@@ -315,8 +341,9 @@ if __name__ == '__main__':
     #svr.downloadZS()
     #svr.downloadBkGn()
     #downloadClsZT()
-    days = ths_iwencai.getTradeDays(100)
-    for day in days:
-        svr._loadHotTcOfDay(day)
+    #days = ths_iwencai.getTradeDays(100)
+    #for day in days:
+    #    svr._loadHotTcOfDay(day)
+    svr.downloadZT_PanKou()
     pass
     #do_reason()

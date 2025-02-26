@@ -403,6 +403,17 @@ def getTradeDays(prev = 60):
         traceback.print_exc()
     return None
 
+def getTradeDays_Cache(prev = 60):
+    CODE = f'TradeDays-{prev}'
+    KIND = '30-minuts'
+    if not memcache.cache.needUpdate(CODE, KIND):
+        ca = memcache.cache.getCache(CODE, KIND)
+        return ca
+    rs = getTradeDays(prev)
+    if rs:
+        memcache.cache.saveCache(CODE, rs, KIND)
+    return rs
+
 if __name__ == '__main__':
     getTradeDays()
     pass

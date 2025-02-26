@@ -1944,15 +1944,16 @@ class ToolBarWindow(base_win.BaseWindow):
         self.DEF_SIZE = (280, 25)
         self.MOVE_BOX_WIDTH = 20
         self.ITEM_WIDTH = 40
-        from Tck import top_zt_net, top_bk, top_lhb, top_zt_lianban, top_real_zs, top_hots
+        from Tck import top_zt_net, top_bk, top_lhb, top_zt_lianban, top_real_zs, top_hots, top_xgc
         self.model = [
             {'title': '记', 'name': 'Record', 'class': RecordWindow, 'win': None, 'win-title': '笔记'},
-            {'title': '板块', 'name': 'BK', 'class': top_bk.Bk_Window, 'win': None, 'win-title': '板块概念'},
-            {'title': '涨停', 'name': 'ZT', 'class': top_zt_net.ZT_Window, 'win': None, 'win-title': '涨停'},
-            {'title': '天梯', 'name': 'BK', 'class': top_zt_lianban.ZT_Window, 'win': None, 'win-title': '连板天梯'},
+            #{'title': '板块', 'name': 'BK', 'class': top_bk.Bk_Window, 'win': None, 'win-title': '板块概念'},
+            #{'title': '涨停', 'name': 'ZT', 'class': top_zt_net.ZT_Window, 'win': None, 'win-title': '涨停'},
+            #{'title': '天梯', 'name': 'BK', 'class': top_zt_lianban.ZT_Window, 'win': None, 'win-title': '连板天梯'},
             #{'title': '龙','name': 'LHB', 'class': top_lhb.LHB_Window, 'win': None, 'win-title': '龙虎榜'},
-            {'title': '速', 'name': 'SU', 'class': top_real_zs.ZS_Window, 'win': None, 'win-title': '涨速联动'},
+            #{'title': '速', 'name': 'SU', 'class': top_real_zs.ZS_Window, 'win': None, 'win-title': '涨速联动'},
             {'title': '热', 'name': 'SU', 'class': top_hots.Hots_Window, 'win': None, 'win-title': '热度'},
+            {'title': '选', 'name': 'XG', 'class': top_xgc.XGC_Window, 'win': None, 'win-title': '选股'},
         ]
 
     def setVisible(self, visible : bool):
@@ -2045,18 +2046,17 @@ def test():
     pass
 
 if __name__ == '__main__':
-    #win = RecordWindow() # richeditor.RichEditor()
-    win = BkGnWindow()
-    win.createWindow(None)
-    win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
-    win.changeCode('688800')
+    #win = BkGnWindow()
+    #win.createWindow(None)
+    #win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
+    #win.changeCode('688800')
     #win.changeLastDay(20250102)
-    win32gui.PumpMessages()
-
-    #import ths_win
-    #thsWin = ths_win.ThsWindow()
-    #thsWin.init()
-    #rwin = ToolBarWindow()
-    #rwin.createWindow(thsWin.topHwnd)
-    #win32gui.ShowWindow(rwin.hwnd, win32con.SW_SHOW)
     #win32gui.PumpMessages()
+
+    import ths_win
+    thsWin = ths_win.ThsWindow()
+    thsWin.init()
+    rwin = ToolBarWindow()
+    rwin.createWindow(thsWin.topHwnd)
+    win32gui.ShowWindow(rwin.hwnd, win32con.SW_SHOW)
+    win32gui.PumpMessages()
