@@ -171,7 +171,7 @@ class XGC_Window(base_win.BaseWindow):
                 if code in (obj['hy_code'] or '') or code in (obj['gn_code'] or ''):
                     d['hotTcMaxNum'] = max(d['hotTcMaxNum'], num)
                     hots.append(gn)
-            if d['hotTcMaxNum'] < 2:
+            if d['hotTcMaxNum'] == 0:
                 continue
             fd = False
             for i, gn in enumerate(hots):
@@ -331,7 +331,7 @@ class XGC_Window(base_win.BaseWindow):
             day = it[0]
             self.loadClsHotGn(day)
         hotTc = self.clsHotGns.get(selDay)
-        model = [{'title': '<All>', 'code': '', 'hot-name': '', 'num': 0}]
+        model = [{'title': '  <All>', 'code': '', 'hot-name': '', 'num': 0}]
         if hotTc:
             for h in hotTc:
                 code, name, num = h

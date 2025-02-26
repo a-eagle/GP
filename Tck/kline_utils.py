@@ -17,6 +17,7 @@ def createKLineWindow(parent, rect = None, style = None):
     #win.addIndicator(kline.DdlrIndicator({}, False))
     #win.addIndicator(kline.DdlrPmIndicator())
     win.addIndicator(kline.ScqxIndicator()) # {'itemWidth': 40}
+    win.addIndicator(kline.LsAmountIndicator()) # {'itemWidth': 40}
     win.addIndicator(kline.HotIndicator()) # {'itemWidth': 40}
     win.addIndicator(kline.ThsZT_Indicator())
     win.addIndicator(kline.ClsZT_Indicator())

@@ -1174,6 +1174,44 @@ class HotIndicator(CustomIndicator):
         if data['zhHotOrder']:
             win32gui.DrawText(hdc, str(data['zhHotOrder']), -1, rc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
+class LsAmountIndicator(CustomIndicator):
+    def __init__(self, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 30
+        super().__init__(config)
+        self.config['title'] = '[两市成交额]'
+
+    def setData(self, data):
+        super().setData(data)
+        maps = {}
+        url = cls.ClsUrl()
+        ds = url.loadKline('sh000001')
+        for d in ds:
+            maps[d.day] = d.amount / 1000000000000 # 万亿
+        ds = url.loadKline('sz399001')
+        for d in ds:
+            maps[d.day] += d.amount / 1000000000000 # 万亿
+        rs = []
+        for d in data:
+            amount = maps.get(d.day, 0)
+            fd = {'day': d.day, 'amount': amount}
+            rs.append(fd)
+        self.setCustomData(rs)
+
+    def drawItem(self, idx, hdc, pens, hbrs, x):
+        WW = self.config['itemWidth']
+        data = self.customData[idx]
+        selIdx = self.klineWin.selIdx
+        selData = self.data[selIdx] if selIdx >= 0 and selIdx < len(self.data) else None
+        selDay = int(selData.day) if selData else 0
+        rc = (x + 1, 1, x + WW, self.height)
+        if selDay == int(data['__day']):
+            win32gui.FillRect(hdc, rc, hbrs['light_dark'])
+        if data['amount']:
+            win32gui.DrawText(hdc, f"{data['amount'] :.02f}", -1, rc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+
+
 class DayIndicator(CustomIndicator):
     def __init__(self, config = None) -> None:
         config = config or {}

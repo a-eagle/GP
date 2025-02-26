@@ -193,8 +193,11 @@ class ThsWindow(base_win.BaseWindow):
         win32gui.ShowWindow(self.topHwnd, win32con.SW_MAXIMIZE)
 
     def findCodeOfCurPage(self):
-        if self.isInKlineWindow() or self.isInFenShiWindow() or self.isInMyHomeWindow():
-            return self.findCode_Level2()
+        #if self.isInKlineWindow() or self.isInFenShiWindow() or self.isInMyHomeWindow():
+        #    return self.findCode_Level2()
+        code = self.findCode_Level2()
+        if code:
+            return code
         if self.isInLHBWindow():
             return self.getCodeInLhbWindow()
         return ''
