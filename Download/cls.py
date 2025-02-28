@@ -408,6 +408,29 @@ class ClsUrl:
             traceback.print_exc()
         return None
 
+    # 最新交易日的涨跌票的数量分布
+    def getZDFenBu():
+        #from Download import ths_iwencai
+        #days = ths_iwencai.getTradeDays_Cache()
+        #if not days:
+        #    return None
+        #lastDay = days[-1]
+        #lastDay = f"{lastDay[0 : 4]}-{lastDay[4 : 6]}-{lastDay[6 : 8]}"
+        resp = requests.get('https://x-quote.cls.cn/quote/index/home?app=CailianpressWeb&os=web&sv=8.4.6&sign=9f8797a1f4de66c2370f7a03990d2737')
+        txt = resp.content.decode('utf-8')
+        js = json.loads(txt)
+        v = js['data']['up_down_dis']
+        if not v['status']:
+            return None
+        # modify real zt, dt num
+        
+        rs = {
+            'zt': v['up_num'], 'dt': v['down_num'], 'up': v['rise_num'], 'down': v['fall_num'], 'zero': v['flat_num'],
+            'up_2': v['up_2'], 'up_4': v['up_4'], 'up_6': v['up_6'], 'up_8': v['up_8'], 'up_10': v['up_10'],
+            'down_2': v['down_2'], 'down_4': v['down_4'], 'down_6': v['down_6'], 'down_8': v['down_8'], 'down_10': v['down_10']
+        }
+        return rs
+
 class ClsDataFile(datafile.DataFile):
     def __init__(self, code, dataType):
         #super().__init__(code, dataType, flag)

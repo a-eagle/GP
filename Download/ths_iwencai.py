@@ -414,6 +414,6 @@ def getTradeDays_Cache(prev = 60):
         memcache.cache.saveCache(CODE, rs, KIND)
     return rs
 
+
 if __name__ == '__main__':
-    getTradeDays()
     pass

@@ -66,6 +66,7 @@ class ZT_PanKou(pw.Model):
 class CLS_SCQX(pw.Model):
     day = pw.CharField() # YYYY-MM-DD
     zhqd = pw.IntegerField(column_name='综合强度')
+    fb = pw.CharField(null = True) # 涨跌分布
 
     class Meta:
         database = db_tck

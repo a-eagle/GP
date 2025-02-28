@@ -483,12 +483,26 @@ function initUI() {
 	popup.click(function() {$(this).css('display', 'none')});
 	popup.on('mousewheel', function(event) {event.preventDefault();});
 	$('.top-ad').remove();
+	//let md1 = $('<div class="my-degree p-r b-c-222" >  </div>');
+	//md1.insertAfter($('.watch-chart-box'));
 	let md = $('<div class="my-degree p-r b-c-222" > <canvas > </canvas> </div>');
 	md.insertAfter($('.watch-chart-box'));
-	md = $('<div class="my-degree p-r b-c-222" > <table> </table> </div>');
+	md = $('<div class="my-degree p-r b-c-222" id="zdnum" > <table> </table> </div>');
 	md.insertAfter($('.watch-chart-box'));
 	window.postMessage({cmd: 'GET_ANCHORS', data: {lastDay: new Date(), traceDaysNum: 30}}, '*');
 	setTimeout(loadDegree, 3000);
+	loadZDNumUI();
+}
+
+function loadZDNumUI() {
+	$.ajax({
+	 	url: 'https://x-quote.cls.cn/quote/index/home?app=CailianpressWeb&os=web&sv=8.4.6&sign=9f8797a1f4de66c2370f7a03990d2737',
+	 	success: function(resp) {
+	 		console.log(resp);
+	 		$('.zdnum')
+	 	}
+	});
+	
 }
 
 function loadDegree() {

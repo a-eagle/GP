@@ -100,13 +100,13 @@ class Server:
             return False
         return True
 
-    def tryDownloadDegree(self):
+    def downloadDegree(self):
         try:
             now = datetime.datetime.now()
             today = now.strftime('%Y-%m-%d')
             obj = tck_orm.CLS_SCQX.get_or_none(day = today)
             if obj:
-                return
+                return True
             url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
             resp = requests.get(url)
             txt = resp.content.decode('utf-8')
@@ -114,17 +114,17 @@ class Server:
             day = js['data']['date']
             degree = js['data']['market_degree']
             degree = int(float(degree) * 100)
-            return day, degree
+            fb = cls.ClsUrl().getZDFenBu()
+            obj = tck_orm.CLS_SCQX.get_or_none(day = day)
+            if not obj:
+                fb = json.dumps(fb)
+                tck_orm.CLS_SCQX.create(day = day, zhqd = degree, fb = fb)
+                console.write_1(console.CYAN, '[cls-server] ')
+                print(' load degree: ', day, ' -> ', degree)
+            return True
         except Exception as e:
             traceback.print_exc()
-            return None
-        
-    def saveDegree(self, day, degree):
-        obj = tck_orm.CLS_SCQX.get_or_none(day = day)
-        if not obj:
-            tck_orm.CLS_SCQX.create(day = day, zhqd = degree)
-            console.write_1(console.CYAN, '[cls-server] ')
-            print(' load degree: ', day, ' -> ', degree)
+        return False
 
     def saveDegreeTime(self, day, time, degree):
         obj = tck_orm.CLS_SCQX_Time.get_or_none(day = day, time = time)
@@ -140,12 +140,9 @@ class Server:
             return
         curTime = now.strftime('%H:%M')
         day = now.strftime('%Y-%m-%d')
-        if curTime > '15:00' and (day not in self._runInfo):
-            rs = self.tryDownloadDegree()
-            if rs:
-                d, degree = rs
-                self.saveDegree(d, degree)
-                self._runInfo[day] = True
+        if curTime > '15:00' and (not self._runInfo.get(day, False)):
+            rs = self.downloadDegree()
+            self._runInfo[day] = rs
         if curTime >= '09:30' and curTime <= '16:00':
             self.downloadClsZT()
             
@@ -161,7 +158,7 @@ class Server:
         if (curTime >= '09:30' and curTime <= '11:30') or (curTime >= '13:00' and curTime <= '15:00'):
             if (now.minute % 10 <= 2) and (time.time() - self._lastLoadDegreeTime >= 3 * 60):
                 curTime = curTime[0 : -1] + '0'
-                rs = self.tryDownloadDegree()
+                rs = self.downloadDegree()
                 if rs:
                     self._lastLoadDegreeTime = time.time()
                     d, degree = rs
