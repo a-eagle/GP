@@ -409,7 +409,7 @@ class ClsUrl:
         return None
 
     # 最新交易日的涨跌票的数量分布
-    def getZDFenBu():
+    def getZDFenBu(self):
         #from Download import ths_iwencai
         #days = ths_iwencai.getTradeDays_Cache()
         #if not days:

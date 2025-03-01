@@ -65,15 +65,18 @@ function adjustZTInfo(response, type) {
 	//console.log('[After]', json);
 	//window.postMessage({cmd: 'ZT-INFO', data: rs}, '*');
 	window[type + '_Infos'] = rs;
+	/*
 	if (type == 'ZT') {
 		let text = '涨停&nbsp;' + rs.length;
 		if ($('#real-zt-div').length == 0) {
+			$('.event-querydate-box > div:eq(1)').hide();
 			let div = $('<div id="real-zt-div" style="float:left; font-size:20px; color: #ad1078; padding-left:20px;" > ' + text + '</div>');
 			$('.event-querydate-box').append(div);
 		} else {
 			$('#real-zt-div').html(text);
 		}
 	}
+	*/
 }
 
 function adjustAnchors(response, cday) {
@@ -334,11 +337,12 @@ window.addEventListener("message", function(evt) {
 }, false);
 
 function updateDegree(d) {
-	let canvas = $('.my-degree > canvas').get(0);
-	if (! canvas) {
+	let canvas = $('#hots_canvas');
+	if (canvas.length == 0) {
 		setTimeout(function() {updateDegree(d);}, 2000);
 		return;
 	}
+	canvas = canvas.get(0);
 	let xl = [];
 	let xv = [];
 	let v50 = [];
@@ -363,20 +367,20 @@ function updateDegree(d) {
 			//{label: '50', data: v50, fill: false, borderColor: '#505050'},
 		],
 	};
-	if (! window.chart) {
-		let cc = $('.my-degree');
+	if (! window.hotChart) {
+		let cc = $('.my-info-item');
 		$(canvas).attr('width', cc.width());
 		$(canvas).attr('height', cc.height());
-		window.chart = new Chart(canvas, {type: 'line', data: cdata, options: {plugins: {legend: {display: false}}}});
-		window.chart.resize(cc.width(), cc.height());
+		window.hotChart = new Chart(canvas, {type: 'line', data: cdata, options: {plugins: {legend: {display: false}}}});
+		window.hotChart.resize(cc.width(), cc.height());
 	} else {
-		window.chart.data = cdata;
-		window.chart.update();
+		window.hotChart.data = cdata;
+		window.hotChart.update();
 	}
 }
 
 function updateDegreeOfDays() {
-	let table = $('.my-degree > table');
+	let table = $('#hots_table');
 	if (table.length == 0 || !degrees_n) {
 		setTimeout(function() {updateDegreeOfDays();}, 2000);
 		return;
@@ -412,6 +416,11 @@ function updateDegreeOfDays() {
 			let title = '';
 			if (cols[c] == 'degree') {
 				clazz = c == 0 ? '' : (v >= 50 ? 'red' : 'green');
+				let fb = datas[i]['fb'];
+				if (fb) {
+					fb = JSON.parse(fb);
+					title = "涨停:  " + fb.zt + "\t上涨:  "+fb.up+"  \t涨幅>8%:  "+(fb.up_8 + fb.up_10)+" \n跌停:  "+fb.dt+"\t下跌:  "+fb.down+"  \t跌幅>8%:  " + (fb.down_8 + fb.down_10);
+				}
 			} else if (cols[c] == 'amount') {
 				title = v + '万亿';
 			}
@@ -422,12 +431,12 @@ function updateDegreeOfDays() {
 	}
 	function inFunction() {
 		let idx = $(this).attr('colidx');
-		let table = $('.my-degree > table');
+		let table = $('.my-info-item > table');
 		table.find('td[colidx=' + idx + ']').addClass('selcol');
 	}
 	function outFunction() {
 		let idx = $(this).attr('colidx');
-		let table = $('.my-degree > table');
+		let table = $('.my-info-item > table');
 		table.find('td[colidx=' + idx + ']').removeClass('selcol');
 	}
 	table.find('td, th').hover(inFunction, outFunction);
@@ -445,7 +454,7 @@ function wrapAnchor(name) {
 }
 
 function initUI() {
-	if ($('#real-zt-div').length == 0) {
+	if (! window['ZT_Infos']) {
 		setTimeout(initUI, 500);
 		return;
 	}
@@ -460,14 +469,14 @@ function initUI() {
 			 .popup-container p:hover {background-color: #f0f0f0; } \n\
 			 .popup-container .canvas-wrap {position:absolute; width: 800px; height: 250px; background-color: #fcfcfc; border: solid 1px #aaa;} \n\
 			 #hots .arrow {float:right; width:15px; text-align:center; border-left:1px solid #c0c0c0; background-color:#c0c0c0; width:15px; height:25px;} \n\
-			 .my-degree {height: 130px; border-bottom: solid 1px #222; margin-bottom: 10px;} \n\
-			 .my-degree > canvas {height: 100%; width: 100%;} \n\
-			 .my-degree > table {border-collapse: collapse; border: 1px solid #ddd; width:100%; text-align: center; cursor:hander; } \n\
-			 .my-degree > table th {border: 1px solid #ddd; background-color: #ECECEC; height: 30px; font-weight: normal; color: #6A6B70;} \n\
-			 .my-degree > table td {border: 1px solid #ddd; } \n\
-			 .my-degree .red {color: #990000;} \n\
-			 .my-degree .green {color: #009900;} \n\
-			 .my-degree .selcol {background-color: #EEE9E9;} \n\
+			 .my-info-item {height: 130px; border-bottom: solid 1px #222; margin-bottom: 10px;} \n\
+			 .my-info-item > canvas {height: 100%; width: 100%;} \n\
+			 .my-info-item > table {border-collapse: collapse; border: 1px solid #ddd; width:100%; text-align: center; cursor:hander; } \n\
+			 .my-info-item > table th {border: 1px solid #ddd; background-color: #ECECEC; height: 30px; font-weight: normal; color: #6A6B70;} \n\
+			 .my-info-item > table td {border: 1px solid #ddd; } \n\
+			 .my-info-item .red {color: #990000;} \n\
+			 .my-info-item .green {color: #009900;} \n\
+			 .my-info-item .selcol {background-color: #EEE9E9;} \n\
 			";
 	style.appendChild(document.createTextNode(css));
 	document.head.appendChild(style);
@@ -483,12 +492,13 @@ function initUI() {
 	popup.click(function() {$(this).css('display', 'none')});
 	popup.on('mousewheel', function(event) {event.preventDefault();});
 	$('.top-ad').remove();
-	//let md1 = $('<div class="my-degree p-r b-c-222" >  </div>');
-	//md1.insertAfter($('.watch-chart-box'));
-	let md = $('<div class="my-degree p-r b-c-222" > <canvas > </canvas> </div>');
-	md.insertAfter($('.watch-chart-box'));
-	md = $('<div class="my-degree p-r b-c-222" id="zdnum" > <table> </table> </div>');
-	md.insertAfter($('.watch-chart-box'));
+	let group = $('<div> </div>');
+	let md1 = $('<div class="my-info-item p-r b-c-222" > <table id="hots_table"> </table> </div>');
+	let md2 = $('<div class="my-info-item p-r b-c-222" > <canvas id="hots_canvas"> </canvas> </div>');
+	let md3 = $('<div class="my-info-item p-r b-c-222" style="height: 70px;"  > <table id="zdfb_table"> </table>  </div>');
+	group.append(md1).append(md2).append(md3);
+	group.insertAfter($('.watch-chart-box'));
+
 	window.postMessage({cmd: 'GET_ANCHORS', data: {lastDay: new Date(), traceDaysNum: 30}}, '*');
 	setTimeout(loadDegree, 3000);
 	loadZDNumUI();
@@ -498,11 +508,19 @@ function loadZDNumUI() {
 	$.ajax({
 	 	url: 'https://x-quote.cls.cn/quote/index/home?app=CailianpressWeb&os=web&sv=8.4.6&sign=9f8797a1f4de66c2370f7a03990d2737',
 	 	success: function(resp) {
-	 		console.log(resp);
-	 		$('.zdnum')
+			if (resp.code != 200 || !resp.data.up_down_dis.status)
+				return;
+			let udd = resp.data.up_down_dis;
+			let tab = $('#zdfb_table');
+			tab.empty();
+			let tr = $("<tr class='red'> <th> 上涨数 </th> <td>" + udd.rise_num + " </td>  <th> 涨停 </th> <td> " + udd.up_num + " </td> " +
+						"<th> 涨幅>8% </th> <td> " + (udd.up_8 + udd.up_10) + " </td> </tr>");
+			let tr2 = $("<tr class='green'> <th> 下跌数 </th> <td>" + udd.fall_num + " </td>  <th> 跌停 </th> <td> " + udd.down_num + "</td>" + 
+						"<th> 跌幅>%8 </th> <td> " + (udd.down_8 + udd.down_10) + "</td> </tr>");
+			tab.append(tr).append(tr2);
 	 	}
 	});
-	
+	setTimeout(loadZDNumUI, 60 * 1000);
 }
 
 function loadDegree() {
@@ -548,7 +566,7 @@ function loadDegreeOfDays() {
 	let dx = date.setMonth(date.getMonth() - 1);
 	date = new Date(dx);
 	let fday = formatDay(date);
-	let sql = "select day, 综合强度 as degree, substr(day, 6) as sday from CLS_SCQX where day >= '" + fday + "' and day <= '" + sday + "'";
+	let sql = "select day, 综合强度 as degree, substr(day, 6) as sday, fb from CLS_SCQX where day >= '" + fday + "' and day <= '" + sday + "'";
 	$.ajax({
 		url: 'http://localhost:5665/query-by-sql/tck',
 		data: {'sql': sql},

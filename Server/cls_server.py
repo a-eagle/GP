@@ -101,6 +101,16 @@ class Server:
         return True
 
     def downloadDegree(self):
+        url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
+        resp = requests.get(url)
+        txt = resp.content.decode('utf-8')
+        js = json.loads(txt)
+        day = js['data']['date']
+        degree = js['data']['market_degree']
+        degree = int(float(degree) * 100)
+        return day, degree
+
+    def downloadScqx(self):
         try:
             now = datetime.datetime.now()
             today = now.strftime('%Y-%m-%d')
@@ -141,7 +151,7 @@ class Server:
         curTime = now.strftime('%H:%M')
         day = now.strftime('%Y-%m-%d')
         if curTime > '15:00' and (not self._runInfo.get(day, False)):
-            rs = self.downloadDegree()
+            rs = self.downloadScqx()
             self._runInfo[day] = rs
         if curTime >= '09:30' and curTime <= '16:00':
             self.downloadClsZT()
@@ -341,6 +351,6 @@ if __name__ == '__main__':
     #days = ths_iwencai.getTradeDays(100)
     #for day in days:
     #    svr._loadHotTcOfDay(day)
-    svr.downloadZT_PanKou()
+    svr.downloadScqx()
     pass
     #do_reason()
