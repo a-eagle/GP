@@ -495,32 +495,37 @@ function initUI() {
 	let group = $('<div> </div>');
 	let md1 = $('<div class="my-info-item p-r b-c-222" > <table id="hots_table"> </table> </div>');
 	let md2 = $('<div class="my-info-item p-r b-c-222" > <canvas id="hots_canvas"> </canvas> </div>');
-	let md3 = $('<div class="my-info-item p-r b-c-222" style="height: 70px;"  > <table id="zdfb_table"> </table>  </div>');
+	let md3 = $('<div class="my-info-item p-r b-c-222" style="height: 70px;"  > <table id="zdfb_table">'+
+				"<tr class='red'> <th> 日期 </th> <th> 上涨数 </th> <td> </td>  <th> 涨停 </th> <td> </td> <th> 涨幅>8% </th> <td> </td> </tr>" +
+				"<tr class='green'> <th v='day'> </th>  <th> 下跌数 </th> <td> </td>  <th> 跌停 </th> <td> </td> <th> 跌幅>8% </th> <td> </td> </tr>" +
+				' </table>  </div>');
 	group.append(md1).append(md2).append(md3);
 	group.insertAfter($('.watch-chart-box'));
 
 	window.postMessage({cmd: 'GET_ANCHORS', data: {lastDay: new Date(), traceDaysNum: 30}}, '*');
 	setTimeout(loadDegree, 3000);
-	loadZDNumUI();
+	loadZdFbUI();
 }
 
-function loadZDNumUI() {
+// 涨跌分布
+function loadZdFbUI() {
 	$.ajax({
 	 	url: 'https://x-quote.cls.cn/quote/index/home?app=CailianpressWeb&os=web&sv=8.4.6&sign=9f8797a1f4de66c2370f7a03990d2737',
 	 	success: function(resp) {
 			if (resp.code != 200 || !resp.data.up_down_dis.status)
 				return;
 			let udd = resp.data.up_down_dis;
-			let tab = $('#zdfb_table');
-			tab.empty();
-			let tr = $("<tr class='red'> <th> 上涨数 </th> <td>" + udd.rise_num + " </td>  <th> 涨停 </th> <td> " + udd.up_num + " </td> " +
-						"<th> 涨幅>8% </th> <td> " + (udd.up_8 + udd.up_10) + " </td> </tr>");
-			let tr2 = $("<tr class='green'> <th> 下跌数 </th> <td>" + udd.fall_num + " </td>  <th> 跌停 </th> <td> " + udd.down_num + "</td>" + 
-						"<th> 跌幅>%8 </th> <td> " + (udd.down_8 + udd.down_10) + "</td> </tr>");
-			tab.append(tr).append(tr2);
+			let tds = $('#zdfb_table td');
+			let dayTh = $('#zdfb_table *[v=day]');
+			tds.eq(0).text(udd.rise_num);
+			tds.eq(1).text(udd.up_num);
+			tds.eq(2).text(udd.up_8 + udd.up_10);
+			tds.eq(3).text(udd.fall_num);
+			tds.eq(4).text(udd.down_num);
+			tds.eq(5).text(udd.down_8 + udd.down_10);
 	 	}
 	});
-	setTimeout(loadZDNumUI, 60 * 1000);
+	setTimeout(loadZdFbUI, 60 * 1000);
 }
 
 function loadDegree() {
