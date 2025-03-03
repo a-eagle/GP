@@ -1,8 +1,10 @@
-var anchros = null;
-var maxTradeDays = 10;
-var degrees = null, degrees_n = null;
-var curDay = null;
-var sh000001 = null, sz399001 = null;
+var pageInfo = {
+	anchros: null, 
+	maxTradeDays: 10,
+	timeDegrees: null, degrees_n: null,
+	curDay: null,
+	sh000001: null, sz399001: null,
+}
 
 // HH:MM
 function formatTime(date) {
@@ -43,7 +45,7 @@ function _doHook(response) {
 		let idx = url.indexOf('cdate=');
 		let cday = url.substring(idx + 6, idx + 6 + 10);
 		adjustAnchors(response, cday);
-		loadDegree();
+		loadTimeDegree();
 		loadDegreeOfDays();
 	}
 	//console.log(response);
@@ -81,32 +83,32 @@ function adjustZTInfo(response, type) {
 
 function adjustAnchors(response, cday) {
 	//console.log('[adjustAnchors] cday=', cday);
-	curDay = cday;
-	if (! anchros) {
+	pageInfo.curDay = cday;
+	if (! pageInfo.anchros) {
 		return;
 	}
 	let body = response.response;
 	let json = JSON.parse(body);
-	//console.log(anchros);
+	//console.log(pageInfo.anchros);
 	let anchrosCP = {};
 	let anchrosDays = [];
-	let lastDay = anchros[0][0].c_time.substring(0, 10);
+	let lastDay = pageInfo.anchros[0][0].c_time.substring(0, 10);
 	if (json.data.length > 0) {
 		if (cday > lastDay) {
-			anchros.unshift(json.data);
+			pageInfo.anchros.unshift(json.data);
 		} else if (cday == lastDay) {
-			anchros[0] = json.data;
+			pageInfo.anchros[0] = json.data;
 		}
 	}
 
-	for (let i = 0, num = 0; i < anchros.length && num < maxTradeDays; i++) {
-		let day = anchros[i][0].c_time.substring(0, 10);
+	for (let i = 0, num = 0; i < pageInfo.anchros.length && num < pageInfo.maxTradeDays; i++) {
+		let day = pageInfo.anchros[i][0].c_time.substring(0, 10);
 		if (day > cday)
 			continue;
 		anchrosDays.push(day);
 		++num;
-		for (let j = 0; j < anchros[i].length; j++) {
-			let an = anchros[i][j];
+		for (let j = 0; j < pageInfo.anchros[i].length; j++) {
+			let an = pageInfo.anchros[i][j];
 			let key = an.symbol_code + '#' + an.float;
 			if (anchrosCP[key]) {
 				anchrosCP[key].items.push(an);
@@ -163,19 +165,19 @@ function sumGroup(anchrosCP) {
 }
 
 function getAnchrosByCode(code, maxDay, daysNum) {
-	if (!maxDay || !anchros) {
+	if (!maxDay || !pageInfo.anchros) {
 		return null;
 	}
 	let rs = {up: [], down: [], days: [], allDays: []};
-	for (let i = 0, num = 0; i < anchros.length && num < daysNum; i++) {
-		let day = anchros[i][0].c_time.substring(0, 10);
+	for (let i = 0, num = 0; i < pageInfo.anchros.length && num < daysNum; i++) {
+		let day = pageInfo.anchros[i][0].c_time.substring(0, 10);
 		rs.allDays.push(day);
 		if (day > maxDay)
 			continue;
 		++num;
 		rs.days.push(day);
-		for (let j = 0; j < anchros[i].length; j++) {
-			let an = anchros[i][j];
+		for (let j = 0; j < pageInfo.anchros[i].length; j++) {
+			let an = pageInfo.anchros[i][j];
 			if (an.symbol_code == code) {
 				rs[an.float].push(an);
 			}
@@ -228,7 +230,7 @@ function openChart() {
 	let thiz = $(this);
 	let code = thiz.attr('code');
 	console.log(code);
-	let rs = getAnchrosByCode(code, curDay, 20);
+	let rs = getAnchrosByCode(code, pageInfo.curDay, 20);
 	if (! rs) {
 		return;
 	}
@@ -300,7 +302,7 @@ function openChart() {
 	ui.append(canvas);
 	canvas.width(ui.width());
 	canvas.height(ui.height());
-	canvas.attr('day', curDay);
+	canvas.attr('day', pageInfo.curDay);
 	new Chart(canvas.get(0), {type: 'line', data: cdata, options: {}});
 }
 
@@ -327,11 +329,11 @@ hook_proxy();
 
 window.addEventListener("message", function(evt) {
 	if (evt.data && evt.data.cmd == 'GET_ANCHORS_CB') {
-		anchros = evt.data.data;
-		//console.log(anchros);
+		pageInfo.anchros = evt.data.data;
+		//console.log(pageInfo.anchros);
 	} else if (evt.data && evt.data.cmd == 'GET_DEGREE_CB') {
 		let dg = evt.data.data;
-		degrees = dg;
+		pageInfo.timeDegrees = dg;
 		updateDegree(dg);
 	}
 }, false);
@@ -381,30 +383,22 @@ function updateDegree(d) {
 
 function updateDegreeOfDays() {
 	let table = $('#hots_table');
-	if (table.length == 0 || !degrees_n) {
+	if (table.length == 0 || !pageInfo.degrees_n) {
 		setTimeout(function() {updateDegreeOfDays();}, 2000);
 		return;
 	}
 	table.empty();
 	let datas = [];
-	for (let i = 0; i < degrees_n.length; i++) {
-		let day = degrees_n[i].day;
-		degrees_n[i].amount = '';
-		if (sh000001 && sz399001) {
-			let am = sh000001[day].amount + sz399001[day].amount;
-			degrees_n[i].amount = am.toFixed(2);
+	for (let i = 0; i < pageInfo.degrees_n.length; i++) {
+		let day = pageInfo.degrees_n[i].day;
+		pageInfo.degrees_n[i].amount = '';
+		if (pageInfo.sh000001 && pageInfo.sz399001) {
+			let am = pageInfo.sh000001[day].amount + pageInfo.sz399001[day].amount;
+			pageInfo.degrees_n[i].amount = am.toFixed(2);
 		}
-		datas.push(degrees_n[i]);
+		datas.push(pageInfo.degrees_n[i]);
 	}
-	/*
-	if (degrees && degrees.length > 0) {
-		let last = degrees[degrees.length - 1];
-		if (last.day != degrees_n[degrees_n.length - 1].day) {
-			last.sday = last.day.substring(5);
-			datas.push(last);
-		}
-	}
-	*/
+	
 	let cols = ['sday', 'degree', 'amount'];
 	let colsDesc = ['', '热度', '成交额'];
 	for (let c = 0; c < cols.length; c++) {
@@ -443,10 +437,10 @@ function updateDegreeOfDays() {
 }
 
 function wrapAnchor(name) {
-	if (! anchros) {
+	if (! pageInfo.anchros) {
 		return name;
 	}
-	let num = anchros[name + '#up'];
+	let num = pageInfo.anchros[name + '#up'];
 	if (! num) {
 		return name;
 	}
@@ -454,7 +448,7 @@ function wrapAnchor(name) {
 }
 
 function initUI() {
-	if (! window['ZT_Infos']) {
+	if (! window['ZT_Infos'] || !pageInfo.degrees_n || !pageInfo.sh000001 || !pageInfo.sz399001) {
 		setTimeout(initUI, 500);
 		return;
 	}
@@ -485,7 +479,7 @@ function initUI() {
 	//div.find('button').click(function() {
 	//	div.find('button').removeClass('sel');
 	//	$(this).addClass('sel');
-	//	maxTradeDays = parseInt($(this).attr('val'));
+	//	pageInfo.maxTradeDays = parseInt($(this).attr('val'));
 	//});
 	let popup = $('<div class="popup-container"> </div>');
 	$(document.body).append(popup);
@@ -503,7 +497,7 @@ function initUI() {
 	group.insertAfter($('.watch-chart-box'));
 
 	window.postMessage({cmd: 'GET_ANCHORS', data: {lastDay: new Date(), traceDaysNum: 30}}, '*');
-	setTimeout(loadDegree, 3000);
+	setTimeout(loadTimeDegree, 3000);
 	loadZdFbUI();
 }
 
@@ -517,6 +511,8 @@ function loadZdFbUI() {
 			let udd = resp.data.up_down_dis;
 			let tds = $('#zdfb_table td');
 			let dayTh = $('#zdfb_table *[v=day]');
+			let days = pageInfo.sh000001.days;
+			dayTh.text(days[days.length - 1]);
 			tds.eq(0).text(udd.rise_num);
 			tds.eq(1).text(udd.up_num);
 			tds.eq(2).text(udd.up_8 + udd.up_10);
@@ -528,14 +524,14 @@ function loadZdFbUI() {
 	setTimeout(loadZdFbUI, 60 * 1000);
 }
 
-function loadDegree() {
+function loadTimeDegree() {
 	let day = $('.event-querydate-selected').text().trim();
 	day = day.replaceAll('/', '-');
 	//window.postMessage({cmd: 'GET_DEGREE', data: day}, '*');
 	$.ajax({
 		url: 'http://localhost:5665/get-time-degree?day=' + day,
 		success: function(resp) {
-			degrees = resp;
+			pageInfo.timeDegrees = resp;
 			updateDegree(resp);
 		}
 	});
@@ -544,21 +540,23 @@ function loadDegree() {
 // 两市成交额
 function loadAmount() {
 	function cb(data) {
-		let rs = {};
+		let rs = {'days': []};
 		for (let i = 0; i < data.length; i++) {
 			let day = String(data[i].date);
 			day = day.substring(0, 4) + '-' + day.substring(4, 6) + '-' + day.substring(6);
 			data[i].amount = data[i].business_balance / 1000000000000; // 万亿
 			rs[day] = data[i];
+			rs['days'].push(day);
 		}
+		rs['days'].sort();
 		return rs;
 	}
 	let cu = new ClsUrl();
 	cu.loadKline('sh000001', 200, 'DAY', function(data) {
-		sh000001 = cb(data);
+		pageInfo.sh000001 = cb(data);
 	});
 	cu.loadKline('sz399001', 200, 'DAY', function(data) {
-		sz399001 = cb(data);; // business_balance
+		pageInfo.sz399001 = cb(data);; // business_balance
 	});
 }
 
@@ -576,8 +574,7 @@ function loadDegreeOfDays() {
 		url: 'http://localhost:5665/query-by-sql/tck',
 		data: {'sql': sql},
 		success: function(resp) {
-			degrees_n = resp;
-			//console.log(degrees_n);
+			pageInfo.degrees_n = resp;
 			updateDegreeOfDays();
 		}
 	});
@@ -632,7 +629,7 @@ function loadZTUI() {
 setTimeout(initUI, 500);
 
 setInterval(function() {
-	loadDegree();
+	loadTimeDegree();
 }, 60 * 1000);
 
 setInterval(function() {

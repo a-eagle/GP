@@ -23,6 +23,7 @@ class Server:
         self.app.add_url_rule('/get-hots', view_func = self.getHots)
         self.app.add_url_rule('/get-time-degree', view_func = self.getTimeDegree)
         self.app.add_url_rule('/query-by-sql/<dbName>', view_func = self.queryBySql)
+        self.app.add_url_rule('/get-trade-days', view_func = self.getTradeDays)
         self.app.run('localhost', 5665, use_reloader = False, debug = False)
 
     def openUI_Timeline(self, code, day):
@@ -110,9 +111,18 @@ class Server:
                 item[ds[i][0]] = k
             ex.append(item)
         return ex
+    
+    def getTradeDays(self):
+        from Download import ths_iwencai
+        days = ths_iwencai.getTradeDays_Cache(180)
+        rs = []
+        for d in days:
+            rs.append(f"{d[0 : 4]}-{d[4 : 6]}-{d[6 : 8]}")
+        return rs
 
 if __name__ == '__main__':
     s = Server()
     #s.runner()
-    s.queryBySql('hot_zh', 'select *  from 个股热度综合排名 where 日期 >= 20250415')
+    #s.queryBySql('hot_zh', 'select *  from 个股热度综合排名 where 日期 >= 20250415')
     #s.getTimeDegree()
+    s.getTradeDays()
