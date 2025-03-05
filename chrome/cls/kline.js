@@ -990,3 +990,273 @@ class VolUIManager extends Listener {
         }
     }
 }
+
+class AnchrosView extends Listener {
+    constructor(canvas) {
+        super();
+        let p = $(canvas).parent();
+        this.width = canvas.width = p.width();
+        this.height = canvas.height = p.height();
+        this.canvas = canvas;
+        this.ctx = canvas.getContext("2d");
+        this.anchors = null;
+        this.sh000001 = null;
+        this.anchorsUI = null; // list of {rect: Rect, data: xx, }
+        self.day = null;
+
+        $(canvas).width(this.width);
+        $(canvas).height(this.height);
+        let thiz = this;
+        canvas.addEventListener('click', function(e) {
+            thiz.onClick(e.offsetX, e.offsetY);
+        });
+        this.PADDING_LEFT = 100;
+        this.maxPrice = 0;
+        this.minPrice = 0;
+    }
+
+    // day = YYYY-MM-DD
+    loadData(day, callback) {
+        let thiz = this;
+        function cbx(rs) {
+            thiz.anchors = rs.anchors;
+            thiz.sh000001 = rs.sh000001;
+            thiz.draw();
+            if (callback)
+                callback(thiz);
+        }
+        self.day = day;
+        this._loadData(day, cbx);
+    }
+
+    reloadData(callback) {
+        if (! this.day) {
+            return;
+        }
+        this.loadData(this.day, callback);
+    }
+
+    _loadData(day, cb) {
+        let cbNum = 0;
+        let rs = {};
+        function mcb() {
+            cbNum ++;
+            if (cbNum == 2) {
+                cb(rs);
+            }
+        }
+        new ClsUrl().loadAnchor(day, function(resp) {
+            rs.anchors = resp.data;
+            mcb();
+        })
+        new ClsUrl().loadFenShi('sh000001', function(data) {
+            rs.sh000001 = data;
+            mcb();
+        });
+    }
+
+    calcMinMax() {
+        //算最大值，最小值
+        let maxPrice = 0;
+        let minPrice = 0;
+        for (var i = 0; i < this.sh000001.line.length; i++) {
+            let item = this.sh000001.line[i]
+            if (! item) {
+                continue;
+            }
+            var price = item.last_px;
+            if (i == 0) {
+                maxPrice = minPrice = item.preclose_px; // 昨日收盘价
+            }
+            if (price > maxPrice) {
+                maxPrice = price;
+            }
+            if (price < minPrice) {
+                minPrice = price;
+            }
+        }
+        this.maxPrice = maxPrice;
+        this.minPrice = minPrice;
+    }
+
+    onClick(x, y) {
+
+    }
+
+    draw() {
+        this.drawBackground();
+        this.drawFenShi();
+        this.drawAnchors();
+    }
+
+    drawAnchors() {
+        this.anchorsUI = [];
+        if (! this.anchors) {
+            return;
+        }
+        this.ctx.beginPath();
+        let pointsCount = 241; // 画的点数
+        let pointsDistance = (this.width - this.PADDING_LEFT) / (pointsCount - 1); // 点之间的距离
+        let lastIdx = -100, lastYNum = 0, lastY = 0;
+        let PADDING_Y = 20;
+        let H = this.height - PADDING_Y;
+        let zeroY = self.height / 2;
+        for (let i = 0; i < this.anchors.length; i++) {
+            let an = this.anchors[i];
+            let hour = parseInt(an.c_time.substring(11, 13));
+            let minute = parseInt(an.c_time.substring(14, 16));
+            let idx = this.minuteToIdx(hour * 100 + minute);
+            let x = 0;
+            if (idx < 0) {
+                x = this.PADDING_LEFT + this.PADDING_LEFT / 7 * idx;
+            } else {
+                x = this.PADDING_LEFT + pointsDistance * idx;
+            }
+            if (lastIdx != idx && idx >= 0) {
+                lastIdx = idx;
+                lastYNum = 0;
+                lastY = -100;
+            }
+            lastYNum ++;
+            let y = 0;
+            let py = -1;
+            if (idx >= 0) {
+                if (!this.zMaxPrice || !this.zMinPrice || idx >= this.sh000001.line.length) {
+                    continue;
+                }
+                let item = this.sh000001.line[idx];
+                py = H - (item.last_px - this.zMinPrice) * H / (this.zMaxPrice - this.zMinPrice) + PADDING_Y;
+                if (lastYNum == 1) {
+                    lastY = py >= zeroY ? py - 50 : py + 50;
+                } else {
+                    lastY += py >= zeroY ? -50 : 50;
+                }
+                if (lastY < 0) {
+                    lastY = this.height - PADDING_Y - 50;
+                } else if (lastY >= this.height) {
+                    lastY = PADDING_Y;
+                }
+                y = lastY;
+            } else {
+                y = PADDING_Y + lastYNum * 50;
+            }
+            if (an.float == 'up') {
+                this.ctx.fillStyle = '#FFD8D8';
+                this.ctx.strokeStyle = 'red';
+            } else {
+                this.ctx.fillStyle = '#A0F1DC';
+                this.ctx.strokeStyle = 'green';
+            }
+            this.ctx.font = 'bold 18px 宋体';
+            let tw = this.ctx.measureText(an.symbol_name).width;
+            let bw = tw + 10;
+            let r = {rect: new Rect(x, y, x + bw, y + 30), data: an};
+            this.anchorsUI.push(r);
+            this.ctx.fillRect(x, y, bw, 30);
+            if (py >= 0) {
+                this.ctx.moveTo(x, py);
+                this.ctx.lineTo(x, y);
+            }
+            this.ctx.fillStyle = 'black';
+            this.ctx.fillText(an.symbol_name, x + 5, y + 20);
+        }
+        this.ctx.stroke();
+        this.ctx.closePath();
+    }
+
+    minuteToIdx(ms) {
+        if (ms <= 930) {
+            return ms - 930
+        }
+        let hour = parseInt(ms / 100);
+        let minute = ms % 100;
+        let ds = 0;
+        if (hour <= 11) {
+            ds = 60 * (hour - 9) + minute - 30
+            return ds
+        }
+        ds = 120
+        ds += minute + (hour - 13) * 60
+        return ds
+    }
+
+    drawFenShi() {
+        if (! this.sh000001 || this.sh000001.line.length == 0) {
+            return;
+        }
+        this.zMaxPrice = this.zMinPrice = 0;
+        this.calcMinMax();
+        if (this.maxPrice == this.minPrice) {
+            return;
+        }
+        let pre = this.sh000001.line[0].preclose_px;
+        let zf1 = Math.abs(this.maxPrice - pre) / pre;
+        let zf2 = Math.abs(this.minPrice - pre) / pre;
+        let zf = zf1 > zf2 ? zf1 : zf2;
+        let zMaxPrice = (1 + zf) * pre;
+        let zMinPrice = (1 - zf) * pre;
+        this.zMaxPrice = zMaxPrice;
+        this.zMinPrice = zMinPrice;
+        
+        let pointsCount = 241; // 画的点数
+        let pointsDistance = (this.width - this.PADDING_LEFT) / (pointsCount - 1); // 点之间的距离
+        let PADDING_Y = 20;
+        let H = this.height - PADDING_Y;
+        
+        this.ctx.fillStyle = 'rgb(255, 255, 255)';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeStyle = 'black';
+        this.ctx.beginPath();
+        this.ctx.setLineDash([]);
+        for (let i = 0; i < this.sh000001.line.length; i++) {
+            let item = this.sh000001.line[i];
+            let x = i * pointsDistance + this.PADDING_LEFT;
+            let y = H - (item.last_px - zMinPrice) * H / (zMaxPrice - zMinPrice) + PADDING_Y;
+            if (i == 0) {
+                this.ctx.moveTo(x, y);
+            } else {
+                this.ctx.lineTo(x, y);
+            }
+        }
+        this.ctx.stroke();
+        this.ctx.closePath();
+        // 画最高、最低价
+        
+        zf *= 100;
+        zf = zf.toFixed(2) + '%'
+        this.ctx.beginPath();
+        this.ctx.fillStyle = 'red';
+        let ww = this.ctx.measureText(zf).width;
+        this.ctx.fillText(zf, this.width - ww, 10);
+        this.ctx.closePath();
+        this.ctx.beginPath();
+        this.ctx.fillStyle = 'green';
+        zf = '-' + zf;
+        let ww2 = this.ctx.measureText(zf).width;
+        this.ctx.fillText(zf, this.width - ww2, this.height - 10);
+        this.ctx.closePath();
+    }
+
+    drawBackground() {
+        this.ctx.clearRect(0, 0, this.width, this.height);
+        // draw background lines
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = '#ccc';
+        //this.ctx.setLineDash([4, 2]);
+        this.ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+            let y = parseInt(i * (this.height / 2));
+            this.ctx.moveTo(0, y);
+            this.ctx.lineTo(this.width, y);
+        }
+
+        for (let i = 0; i < 5; i++) {
+            let x = parseInt(i * ((this.width - this.PADDING_LEFT) / 4)) + this.PADDING_LEFT;
+            this.ctx.moveTo(x, 0);
+            this.ctx.lineTo(x, this.height);
+        }
+        this.ctx.stroke();
+        this.ctx.closePath();
+        //this.ctx.setLineDash([]);
+    }
+}

@@ -74,9 +74,15 @@ def iwencai_load_page_n(page : int, moreUrl):
                 'Accept-Encoding': 'gzip, deflate',
                 'Pragma': 'no-cache',
                 'Cache-control': 'no-cache',
+                'content-type': "application/x-www-form-urlencoded",
                 'Origin': 'http://www.iwencai.com',
                 }
-    resp = requests.get(url, headers = headers)
+    body = ''
+    if '?' in url:
+        iq = url.index('?')
+        body = url[iq + 1 : ]
+        url = url[0 : iq]
+    resp = requests.post(url, headers = headers, data = body)
     txt = resp.text
     js = json.loads(txt)
     data = js['answer']['components'][0]['data']
@@ -100,6 +106,7 @@ def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite'):
             rs.extend(datas)
             time.sleep(1)
     except Exception as e:
+        print('Exception: ', question)
         traceback.print_exc()
     return rs
 
@@ -132,7 +139,7 @@ def download_hygn():
     inserts = []
     GP_CODE = ('0', '3', '6')
     for idx, line in enumerate(rs):
-        code, name, hy, gn = line['code'], line['股票简称'], line['所属同花顺行业'], line['所属概念']
+        code, name, hy, gn = line['code'], line['股票简称'], line.get('所属同花顺行业'), line.get('所属概念', '')
         if code[0] not in GP_CODE:
             continue
         zsz, ltsz = 0, 0
@@ -149,10 +156,17 @@ def download_hygn():
                 obj.zsz = zsz
                 obj.ltsz = ltsz
                 obj.save()
-            if obj.hy != hy or obj.gn != gn or obj.name != name:
+            ch = False
+            if obj.hy != hy and hy:
                 obj.hy = hy
-                obj.name = name
+                ch = True
+            if obj.gn != gn and gn:
                 obj.gn = gn
+                ch = True
+            if obj.name != name and name:
+                obj.name = name
+                ch = True
+            if ch == True:
                 modify_hygn(obj, zsInfos)
                 updates.append(obj)
         else:
@@ -416,4 +430,5 @@ def getTradeDays_Cache(prev = 60):
 
 
 if __name__ == '__main__':
+    getTradeDays_Cache()
     pass

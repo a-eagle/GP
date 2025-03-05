@@ -25,7 +25,7 @@
     "content_scripts": [
 		{
 			"matches": ["https://www.cls.cn/finance"],
-            "run_at": "document_start",
+            "run_at": "document_idle",
             "js": ["finance-cnt.js"],
 			"all_frames" : true
 		},

@@ -496,6 +496,29 @@ class ClsUrl {
             }
         });
     }
+
+    // 当日分时
+    loadFenShi(code, callback) {
+        let url = 'https://x-quote.cls.cn/quote/stock/tline?';
+        let scode = this._getTagCode(code);
+        let params = 'app=CailianpressWeb&fields=date,minute,last_px,business_balance,business_amount,open_px,preclose_px,av_px&os=web&secu_code=' + scode + '&sv=7.7.5';
+        url += this.signParams(params);
+        $.ajax({
+            'type': 'GET', 'url': url, 'dataType': 'json',
+            success: function(resp) {
+                let d = resp['data'];
+                let day = String(d.date[0]);
+                day = day.substring(0, 4) + '-' + day.substring(4, 6) + '-' + day.substring(6, 8);
+                let data = {code : code, line: d.line, day: day};
+                if (callback) callback(data);
+            },
+            error: function(xhr, status, error) {
+                //if (callback)
+                //    callback({'data': [], 'errno': 1, 'error': error});
+                console.log('Error:', xhr, status, error);
+            }
+        });
+    }
 };
 
 // new ClsUrl().loadHistory5FenShi('688787');

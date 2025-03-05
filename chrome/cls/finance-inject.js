@@ -1,9 +1,14 @@
 var pageInfo = {
-	anchros: null, 
-	maxTradeDays: 10,
-	timeDegrees: null, degrees_n: null,
+	anchros: null,
+	anchrosView: null,
+	maxTradeDaysOfAnchors: 10,
+	degrees_fs: {}, //分时degree {day: val, ...}
+	degrees_n: null, //日期degree
 	curDay: null,
 	sh000001: null, sz399001: null,
+	tradeDays: null, // ['YYYY-MM-DD', ...]
+	lastTradeDay: null,
+	zdfb: {}, // {day: val, ...} 涨跌分布
 }
 
 // HH:MM
@@ -28,6 +33,8 @@ function formatDay(date) {
 }
 
 function _doHook(response) {
+	console.log(response)
+
 	let data = response.response;
 	let len = response.headers['content-length'];
 	let url = response.config.url;
@@ -45,8 +52,9 @@ function _doHook(response) {
 		let idx = url.indexOf('cdate=');
 		let cday = url.substring(idx + 6, idx + 6 + 10);
 		adjustAnchors(response, cday);
-		loadTimeDegree();
-		loadDegreeOfDays();
+		//loadTimeDegree();
+		loadDegrees_n();
+		console.log('/v3/transaction/anchor');
 	}
 	//console.log(response);
 }
@@ -101,7 +109,7 @@ function adjustAnchors(response, cday) {
 		}
 	}
 
-	for (let i = 0, num = 0; i < pageInfo.anchros.length && num < pageInfo.maxTradeDays; i++) {
+	for (let i = 0, num = 0; i < pageInfo.anchros.length && num < pageInfo.maxTradeDaysOfAnchors; i++) {
 		let day = pageInfo.anchros[i][0].c_time.substring(0, 10);
 		if (day > cday)
 			continue;
@@ -148,7 +156,7 @@ function sumGroup(anchrosCP) {
 	}
 	let table = $("<table> </table>");
 	let tr = null;
-	let ROW_NUM = 4, COL_NUM = 6;
+	let ROW_NUM = 4, COL_NUM = 7;
 	let NUM = ROW_NUM * COL_NUM;
 	for (let i = 0; i < NUM && i < arr.length; i++) {
 		let item = arr[i];
@@ -324,19 +332,7 @@ function hook_proxy() {
 	});
 }
 
-hook_proxy();
-
-
-window.addEventListener("message", function(evt) {
-	if (evt.data && evt.data.cmd == 'GET_ANCHORS_CB') {
-		pageInfo.anchros = evt.data.data;
-		//console.log(pageInfo.anchros);
-	} else if (evt.data && evt.data.cmd == 'GET_DEGREE_CB') {
-		let dg = evt.data.data;
-		pageInfo.timeDegrees = dg;
-		updateDegree(dg);
-	}
-}, false);
+//hook_proxy();
 
 function updateDegree(d) {
 	let canvas = $('#hots_canvas');
@@ -381,10 +377,10 @@ function updateDegree(d) {
 	}
 }
 
-function updateDegreeOfDays() {
+function updateDegree_n_UI() {
 	let table = $('#hots_table');
 	if (table.length == 0 || !pageInfo.degrees_n) {
-		setTimeout(function() {updateDegreeOfDays();}, 2000);
+		setTimeout(function() {updateDegree_n_UI();}, 2000);
 		return;
 	}
 	table.empty();
@@ -404,11 +400,19 @@ function updateDegreeOfDays() {
 	for (let c = 0; c < cols.length; c++) {
 		let tr = $('<tr> </tr>');
 		tr.append($('<th>' + colsDesc[c] + '</th>'));
+		let lastMonth = '';
 		for (let i = 0; i < datas.length; i++) {
 			let v = datas[i][cols[c]];
 			let clazz = '';
 			let title = '';
-			if (cols[c] == 'degree') {
+			if (cols[c] == 'sday') {
+				let m = v.substring(0, 2);
+				if (m != lastMonth) {
+					lastMonth = m;
+				} else {
+					v = v.substring(2);
+				}
+			} else if (cols[c] == 'degree') {
 				clazz = c == 0 ? '' : (v >= 50 ? 'red' : 'green');
 				let fb = datas[i]['fb'];
 				if (fb) {
@@ -419,7 +423,9 @@ function updateDegreeOfDays() {
 				title = v + '万亿';
 			}
 			let tag = c == 0 ? 'th' : 'td';
-			tr.append($('<' + tag + ' class="' + clazz  + '" title=" ' + title + '" colidx="' + i + '">' + v + '</' + tag + '>'));
+			let td = $('<' + tag + ' class="' + clazz  + '" title=" ' + title + '" colidx="' + i + '">' + v + '</' + tag + '>');
+			td.data('val', datas[i]);
+			tr.append(td);
 		}
 		table.append(tr);
 	}
@@ -433,7 +439,24 @@ function updateDegreeOfDays() {
 		let table = $('.my-info-item > table');
 		table.find('td[colidx=' + idx + ']').removeClass('selcol');
 	}
+	function onClick() {
+		let data = $(this).data('val');
+		let tds = $('#zdfb_table td');
+		let dayTh = $('#zdfb_table *[v=day]');
+		dayTh.text(data.day);
+		let udd = {up:'', down:'', up_8: '', up_10: '', zt:'', dt:'', down_8:'', down_10:''};
+		if (data.fb)
+			udd = JSON.parse(data.fb);
+		tds.eq(0).text(udd.up);
+		tds.eq(1).text(udd.zt);
+		tds.eq(2).text(udd.up_8 + udd.up_10);
+		tds.eq(3).text(udd.down);
+		tds.eq(4).text(udd.dt);
+		tds.eq(5).text(udd.down_8 + udd.down_10);
+		loadDegree_fs(data.day);
+	}
 	table.find('td, th').hover(inFunction, outFunction);
+	table.find('td').click(onClick);
 }
 
 function wrapAnchor(name) {
@@ -448,8 +471,8 @@ function wrapAnchor(name) {
 }
 
 function initUI() {
-	if (! window['ZT_Infos'] || !pageInfo.degrees_n || !pageInfo.sh000001 || !pageInfo.sz399001) {
-		setTimeout(initUI, 500);
+	if (!pageInfo.degrees_n || !pageInfo.sh000001 || !pageInfo.sz399001 || !pageInfo.tradeDays || $('.watch-content-left > div').length < 7) {
+		setTimeout(initUI, 1000);
 		return;
 	}
 	let style = document.createElement('style');
@@ -463,24 +486,20 @@ function initUI() {
 			 .popup-container p:hover {background-color: #f0f0f0; } \n\
 			 .popup-container .canvas-wrap {position:absolute; width: 800px; height: 250px; background-color: #fcfcfc; border: solid 1px #aaa;} \n\
 			 #hots .arrow {float:right; width:15px; text-align:center; border-left:1px solid #c0c0c0; background-color:#c0c0c0; width:15px; height:25px;} \n\
-			 .my-info-item {height: 130px; border-bottom: solid 1px #222; margin-bottom: 10px;} \n\
-			 .my-info-item > canvas {height: 100%; width: 100%;} \n\
-			 .my-info-item > table {border-collapse: collapse; border: 1px solid #ddd; width:100%; text-align: center; cursor:hander; } \n\
+			 .my-info-item {border-bottom: solid 1px #222; padding-bottom: 10px; padding-top: 5px;} \n\
+			 #hots_canvas {height: 130px; width: 100%;} \n\
+			 .my-info-item > table { border-collapse: collapse; border: 1px solid #ddd; width:100%; text-align: center; cursor:hander; } \n\
 			 .my-info-item > table th {border: 1px solid #ddd; background-color: #ECECEC; height: 30px; font-weight: normal; color: #6A6B70;} \n\
-			 .my-info-item > table td {border: 1px solid #ddd; } \n\
+			 .my-info-item > table td {border: 1px solid #ddd;} \n\
 			 .my-info-item .red {color: #990000;} \n\
 			 .my-info-item .green {color: #009900;} \n\
 			 .my-info-item .selcol {background-color: #EEE9E9;} \n\
+			 #zdfb_table td {width:120px;} \n\
+			 .w-1200 {width: 1400px;} \n\
+			 .watch-content-left {width: 1090px;} \n\
 			";
 	style.appendChild(document.createTextNode(css));
 	document.head.appendChild(style);
-	//let div = $('<div id="change-trade-days" style="padding-left:30px; font-size:15px; float:left; "> 交易日期：<button class="sel" val="10" >10日</button> <button  val="20">20日</button> </div>');
-	//$('.event-querydate-box').append(div);
-	//div.find('button').click(function() {
-	//	div.find('button').removeClass('sel');
-	//	$(this).addClass('sel');
-	//	pageInfo.maxTradeDays = parseInt($(this).attr('val'));
-	//});
 	let popup = $('<div class="popup-container"> </div>');
 	$(document.body).append(popup);
 	popup.click(function() {$(this).css('display', 'none')});
@@ -493,52 +512,58 @@ function initUI() {
 				"<tr class='red'> <th> 日期 </th> <th> 上涨数 </th> <td> </td>  <th> 涨停 </th> <td> </td> <th> 涨幅>8% </th> <td> </td> </tr>" +
 				"<tr class='green'> <th v='day'> </th>  <th> 下跌数 </th> <td> </td>  <th> 跌停 </th> <td> </td> <th> 跌幅>8% </th> <td> </td> </tr>" +
 				' </table>  </div>');
-	group.append(md1).append(md2).append(md3);
+	let md4 = $('<div class="my-info-item p-r b-c-222" style="height: 400px;"> <canvas id="fs_canvas" > </canvas> </div>');
+	group.append(md1).append(md2).append(md3).append(md4);
+	$('.watch-content-left > div:gt(1)').hide();
 	group.insertAfter($('.watch-chart-box'));
-
-	window.postMessage({cmd: 'GET_ANCHORS', data: {lastDay: new Date(), traceDaysNum: 30}}, '*');
-	setTimeout(loadTimeDegree, 3000);
-	loadZdFbUI();
+	pageInfo.anchrosView = new AnchrosView($('#fs_canvas').get(0));
+	pageInfo.anchrosView.loadData(pageInfo.lastTradeDay);
 }
 
 // 涨跌分布
-function loadZdFbUI() {
+function loadNewestZdfb() {
 	$.ajax({
 	 	url: 'https://x-quote.cls.cn/quote/index/home?app=CailianpressWeb&os=web&sv=8.4.6&sign=9f8797a1f4de66c2370f7a03990d2737',
 	 	success: function(resp) {
 			if (resp.code != 200 || !resp.data.up_down_dis.status)
 				return;
 			let udd = resp.data.up_down_dis;
-			let tds = $('#zdfb_table td');
-			let dayTh = $('#zdfb_table *[v=day]');
-			let days = pageInfo.sh000001.days;
-			dayTh.text(days[days.length - 1]);
-			tds.eq(0).text(udd.rise_num);
-			tds.eq(1).text(udd.up_num);
-			tds.eq(2).text(udd.up_8 + udd.up_10);
-			tds.eq(3).text(udd.fall_num);
-			tds.eq(4).text(udd.down_num);
-			tds.eq(5).text(udd.down_8 + udd.down_10);
+			let lastDay = pageInfo.lastTradeDay;
+			udd.up = udd.rise_num;
+			udd.down = udd.fall_num;
+			udd.zt = udd.up_num;
+			udd.dt = udd.down_num;
+			pageInfo.zdfb[lastDay] = udd;
 	 	}
 	});
-	setTimeout(loadZdFbUI, 60 * 1000);
 }
 
-function loadTimeDegree() {
-	let day = $('.event-querydate-selected').text().trim();
-	day = day.replaceAll('/', '-');
-	//window.postMessage({cmd: 'GET_DEGREE', data: day}, '*');
+// day = YYYY-MM-DD
+function loadDegree_fs(day) {
 	$.ajax({
 		url: 'http://localhost:5665/get-time-degree?day=' + day,
 		success: function(resp) {
-			pageInfo.timeDegrees = resp;
+			pageInfo.degrees_fs[day] = resp;
 			updateDegree(resp);
 		}
 	});
 }
 
-// 两市成交额
-function loadAmount() {
+// load trade days
+function loadTradeDays(async) {
+	if (async == undefined)
+		async = true;
+	$.ajax({url: 'http://localhost:5665/get-trade-days', async: async, success: function(data) {
+		pageInfo.lastTradeDay = data[data.length - 1];
+		if (! pageInfo.curDay) {
+			pageInfo.curDay = pageInfo.lastTradeDay;
+		}
+		pageInfo.tradeDays = data;
+	}});
+}
+
+function initRequest() {
+	// 两市成交额
 	function cb(data) {
 		let rs = {'days': []};
 		for (let i = 0; i < data.length; i++) {
@@ -558,24 +583,37 @@ function loadAmount() {
 	cu.loadKline('sz399001', 200, 'DAY', function(data) {
 		pageInfo.sz399001 = cb(data);; // business_balance
 	});
+	loadTradeDays(false);
+	loadDegree_fs(pageInfo.lastTradeDay);
+	loadNewestZdfb();
+	loadDegrees_n();
+	setInterval(loadTradeDays, 1000 * 60 * 30); // 30 minutes
+	setInterval(function() {
+		loadDegree_fs(pageInfo.lastTradeDay);
+		loadNewestZdfb();
+	}, 60 * 1000);
+	window.addEventListener("message", function(evt) {
+		if (evt.data && evt.data.cmd == 'GET_ANCHORS_CB') {
+			pageInfo.anchros = evt.data.data;
+		}
+	}, false);
+	window.postMessage({cmd: 'GET_ANCHORS', data: {lastDay: new Date(), traceDaysNum: 60}}, '*');
 }
 
-function loadDegreeOfDays() {
-	let sday = $('.event-querydate-selected').text().trim();
-	sday = sday.replaceAll('/', '-');
-	//window.postMessage({cmd: 'GET_DEGREE', data: day}, '*');
-	let date = new Date(sday);
+function loadDegrees_n() {
+	let day = pageInfo.lastTradeDay;
+	let date = new Date(day);
 	//let dx = date.setDate(date.getDate() - 45);
 	let dx = date.setMonth(date.getMonth() - 1);
 	date = new Date(dx);
 	let fday = formatDay(date);
-	let sql = "select day, 综合强度 as degree, substr(day, 6) as sday, fb from CLS_SCQX where day >= '" + fday + "' and day <= '" + sday + "'";
+	let sql = "select day, 综合强度 as degree, substr(day, 6) as sday, fb from CLS_SCQX where day >= '" + fday + "' and day <= '" + day + "'";
 	$.ajax({
 		url: 'http://localhost:5665/query-by-sql/tck',
 		data: {'sql': sql},
 		success: function(resp) {
 			pageInfo.degrees_n = resp;
-			updateDegreeOfDays();
+			updateDegree_n_UI();
 		}
 	});
 }
@@ -626,25 +664,5 @@ function loadZTUI() {
 	cnt.replaceWith(newCnt);
 }
 
-setTimeout(initUI, 500);
-
-setInterval(function() {
-	loadTimeDegree();
-}, 60 * 1000);
-
-setInterval(function() {
-	loadZTUI();
-}, 1 * 1000);
-
-loadAmount();
-/*
-var _can2DProto = CanvasRenderingContext2D.prototype;
-var _old_can2d_ft = _can2DProto.fillText;
-var ens = /^[-+.0-9%/:]+$/;
-_can2DProto.fillText = function(txt, x, y) {
-	//if (! ens.test(txt))
-	//	txt = wrapAnchor(txt);
-	_old_can2d_ft.call(this, txt, x, y);
-}
-
-*/
+initRequest();
+setTimeout(initUI, 3000);
