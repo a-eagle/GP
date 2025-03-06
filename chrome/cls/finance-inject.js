@@ -2,7 +2,6 @@ var pageInfo = {
 	anchros: null,
 	anchrosView: null,
 	newestAnchros: {}, // {day: ... }
-	maxTradeDaysOfAnchors: 10,
 	degrees_fs: {}, //分时degree {day: val, ...}
 	degrees_n: null, //日期degree
 	curDay: null,
@@ -89,27 +88,23 @@ function adjustZTInfo(response, type) {
 	*/
 }
 
-function adjustAnchors(response, cday) {
+function adjustAnchors(json, cday) {
 	//console.log('[adjustAnchors] cday=', cday);
-	pageInfo.curDay = cday;
 	if (! pageInfo.anchros) {
 		return;
 	}
-	let body = response.response;
-	let json = JSON.parse(body);
-	//console.log(pageInfo.anchros);
 	let anchrosCP = {};
 	let anchrosDays = [];
 	let lastDay = pageInfo.anchros[0][0].c_time.substring(0, 10);
-	if (json.data.length > 0) {
+	if (json.length > 0) {
 		if (cday > lastDay) {
-			pageInfo.anchros.unshift(json.data);
+			pageInfo.anchros.unshift(json);
 		} else if (cday == lastDay) {
-			pageInfo.anchros[0] = json.data;
+			pageInfo.anchros[0] = json;
 		}
 	}
 
-	for (let i = 0, num = 0; i < pageInfo.anchros.length && num < pageInfo.maxTradeDaysOfAnchors; i++) {
+	for (let i = 0, num = 0; i < pageInfo.anchros.length && num < 10; i++) { // 10 days
 		let day = pageInfo.anchros[i][0].c_time.substring(0, 10);
 		if (day > cday)
 			continue;
@@ -127,8 +122,8 @@ function adjustAnchors(response, cday) {
 		}
 	}
 
-	for (let i = 0; i < json.data.length; i++) {
-		let an = json.data[i];
+	for (let i = 0; i < json.length; i++) {
+		let an = json[i];
 		let key = an.symbol_code + '#' + an.float;
 		let num = anchrosCP[key].num;
 		an.symbol_name += '' + num + '';
@@ -136,7 +131,6 @@ function adjustAnchors(response, cday) {
 	anchrosDays.push(cday);
 	window.anchrosCP = anchrosCP;
 	window.anchrosDays = anchrosDays;
-	response.response = JSON.stringify(json);
 	sumGroup(anchrosCP);
 }
 
@@ -146,14 +140,8 @@ function sumGroup(anchrosCP) {
 		arr.push(anchrosCP[k]);
 	}
 	arr.sort(function(a, b) {return b.num - a.num});
-	let hots = null;
-	if ($('#hots').length == 0) {
-		hots = $('<div id="hots" class="p-r m-b-20  b-c-222 b-t-2"></div>');
-		hots.insertAfter($('.event-chart-box').parent());
-	} else {
-		hots = $('#hots');
-		hots.empty();
-	}
+	let hots = $('#hots');
+	hots.empty();
 	let table = $("<table> </table>");
 	let tr = null;
 	let ROW_NUM = 4, COL_NUM = 7;
@@ -237,7 +225,7 @@ function openPopup() {
 function openChart() {
 	let thiz = $(this);
 	let code = thiz.attr('code');
-	console.log(code);
+	// console.log(code);
 	let rs = getAnchrosByCode(code, pageInfo.curDay, 20);
 	if (! rs) {
 		return;
@@ -445,34 +433,54 @@ function updateDegree_n_UI() {
 	function outFunction() {
 		let idx = $(this).attr('colidx');
 		let table = $('.my-info-item > table');
-		table.find('td[colidx=' + idx + ']').removeClass('selcol');
+		let curSel = table.find('th[sel=true]');
+		if (curSel.attr('colidx') != idx) {
+			table.find('td[colidx=' + idx + ']').removeClass('selcol');
+		}
 	}
 	function onClick() {
-		let data = $(this).data('val');
-		let tds = $('#zdfb_table td');
-		let dayTh = $('#zdfb_table *[v=day]');
-		dayTh.text(data.day);
-		let udd = {up:'', down:'', up_8: '', up_10: '', zt:'', dt:'', down_8:'', down_10:''};
-		if (data.day != pageInfo.lastTradeDay) {
-			if (data.fb) {
-				udd = JSON.parse(data.fb);
-			}
-		} else {
-			let x = pageInfo.newestZdfb[pageInfo.lastTradeDay];
-			if (x) udd = x;
+		let colidx = $(this).attr('colidx');
+		let table = $('.my-info-item > table');
+		let oldSel = table.find('th[sel=true]');
+		let oldSelIdx = oldSel.attr('colidx');
+		let newSel = table.find('th[colidx=' + colidx + ']');
+		if (oldSelIdx != colidx) {
+			oldSel.removeAttr('sel');
+			newSel.attr('sel', 'true');
+			table.find('td[colidx=' + oldSelIdx + ']').removeClass('selcol');
 		}
-		
-		tds.eq(0).text(udd.up);
-		tds.eq(1).text(udd.zt);
-		tds.eq(2).text(udd.up_8 + udd.up_10);
-		tds.eq(3).text(udd.down);
-		tds.eq(4).text(udd.dt);
-		tds.eq(5).text(udd.down_8 + udd.down_10);
+		let data = $(this).data('val');
+		updateZdfb_UI(data);
+		pageInfo.curDay = data.day;
 		loadDegree_fs(data.day);
-		pageInfo.anchrosView.loadData(data.day);
+		pageInfo.anchrosView.loadData(data.day, function(av) {
+			adjustAnchors(av, data.day);
+		});
 	}
 	table.find('td, th').hover(inFunction, outFunction);
 	table.find('td').click(onClick);
+}
+
+function updateZdfb_UI(data) {
+	let tds = $('#zdfb_table td');
+	let dayTh = $('#zdfb_table *[v=day]');
+	dayTh.text(data.day);
+	let udd = {up:'', down:'', up_8: '', up_10: '', zt:'', dt:'', down_8:'', down_10:''};
+	if (data.day != pageInfo.lastTradeDay) {
+		if (data.fb) {
+			udd = JSON.parse(data.fb);
+		}
+	} else {
+		let x = pageInfo.newestZdfb[pageInfo.lastTradeDay];
+		if (x) udd = x;
+	}
+	
+	tds.eq(0).text(udd.up);
+	tds.eq(1).text(udd.zt);
+	tds.eq(2).text(udd.up_8 + udd.up_10);
+	tds.eq(3).text(udd.down);
+	tds.eq(4).text(udd.dt);
+	tds.eq(5).text(udd.down_8 + udd.down_10);
 }
 
 function wrapAnchor(name) {
@@ -484,6 +492,11 @@ function wrapAnchor(name) {
 		return name;
 	}
 	return name + num;
+}
+
+function updateZT_TabUI(name) {
+	console.log(name);
+	
 }
 
 function initUI() {
@@ -503,7 +516,7 @@ function initUI() {
 			 .popup-container p:hover {background-color: #f0f0f0; } \n\
 			 .popup-container .canvas-wrap {position:absolute; width: 800px; height: 250px; background-color: #fcfcfc; border: solid 1px #aaa;} \n\
 			 #hots .arrow {float:right; width:15px; text-align:center; border-left:1px solid #c0c0c0; background-color:#c0c0c0; width:15px; height:25px;} \n\
-			 .my-info-item {border-bottom: solid 1px #222; padding-bottom: 10px; padding-top: 5px;} \n\
+			 .my-info-item {border-bottom: solid 1px #222; padding-bottom: 10px; padding-top: 5px; width: 100%; } \n\
 			 #hots_canvas {height: 130px; width: 100%;} \n\
 			 .my-info-item > table { border-collapse: collapse; border: 1px solid #ddd; width:100%; text-align: center; cursor:hander; } \n\
 			 .my-info-item > table th {border: 1px solid #ddd; background-color: #ECECEC; height: 30px; font-weight: normal; color: #6A6B70;} \n\
@@ -522,7 +535,7 @@ function initUI() {
 	popup.click(function() {$(this).css('display', 'none')});
 	popup.on('mousewheel', function(event) {event.preventDefault();});
 	$('.top-ad').remove();
-	let group = $('<div> </div>');
+	let group = $('<div id="my-group"> </div>');
 	let md1 = $('<div class="my-info-item p-r b-c-222" > <table id="hots_table"> </table> </div>');
 	let md2 = $('<div class="my-info-item p-r b-c-222" > <canvas id="hots_canvas"> </canvas> </div>');
 	let md3 = $('<div class="my-info-item p-r b-c-222" style="height: 70px;"  > <table id="zdfb_table">'+
@@ -530,11 +543,21 @@ function initUI() {
 				"<tr class='green'> <th v='day'> </th>  <th> 下跌数 </th> <td> </td>  <th> 跌停 </th> <td> </td> <th> 跌幅>8% </th> <td> </td> </tr>" +
 				' </table>  </div>');
 	let md4 = $('<div class="my-info-item p-r b-c-222" style="height: 400px;"> <canvas id="fs_canvas" > </canvas> </div>');
-	group.append(md1).append(md2).append(md3).append(md4);
+	let md5 = $('<div id="hots" class="my-info-item p-r m-b-20  b-c-222"></div>');
+	let md6 = $('<div id="my-tab-nav" class="clearfix w-100p f-s-14 c-747474 toggle-nav-box finance-toggle-nav">' +
+				'<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div>' + '</div>');
+	group.append(md1).append(md2).append(md3).append(md4).append(md5).append(md6);
 	$('.watch-content-left > div:gt(1)').hide();
 	group.insertAfter($('.watch-chart-box'));
 	pageInfo.anchrosView = new AnchrosView($('#fs_canvas').get(0));
 	pageInfo.anchrosView.loadData(pageInfo.lastTradeDay);
+	$('#my-tab-nav > div').click(function() {
+		if (! $(this).hasClass('toggle-nav-active')) {
+			$('#my-tab-nav > .toggle-nav-active').removeClass('toggle-nav-active');
+			$(this).addClass('toggle-nav-active');
+		}
+		updateZT_Tab($(this).text().trim());
+	});
 }
 
 function loadNewestAnchors() {
@@ -543,10 +566,11 @@ function loadNewestAnchors() {
 		return;
 	}
 	let td = pageInfo.lastTradeDay;
-	new ClsUrl().loadAnchor(td, function(data) {
-        if (data.errno == 0)
-            pageInfo.newestAnchros[td] = data.data;
-    });
+	if (td == pageInfo.curDay) {
+		pageInfo.anchrosView.loadData(td, function(av) {
+			adjustAnchors(av, td);
+		});
+	}
 }
 
 // 涨跌分布
@@ -563,6 +587,9 @@ function loadNewestZdfb() {
 			udd.zt = udd.up_num;
 			udd.dt = udd.down_num;
 			pageInfo.newestZdfb[lastDay] = udd;
+			if (pageInfo.curDay && pageInfo.curDay == pageInfo.lastTradeDay) {
+				updateZdfb_UI({day: pageInfo.curDay});
+			}
 	 	}
 	});
 }
@@ -618,16 +645,19 @@ function initRequest() {
 	loadDegrees_n();
 	setInterval(loadTradeDays, 1000 * 60 * 30); // 30 minutes
 	setInterval(function() {
-		loadDegree_fs(pageInfo.lastTradeDay);
-		loadNewestZdfb();
-	}, 60 * 1000);
+		let ts = formatTime(new Date());
+		if (pageInfo.lastTradeDay == pageInfo.curDay && ts >= '09:25' && ts < '15:05') {
+			loadDegree_fs(pageInfo.lastTradeDay);
+			loadNewestZdfb();
+			loadNewestAnchors();
+		}
+	}, 30 * 1000);
 	window.addEventListener("message", function(evt) {
 		if (evt.data && evt.data.cmd == 'GET_ANCHORS_CB') {
 			pageInfo.anchros = evt.data.data;
 		}
 	}, false);
 	window.postMessage({cmd: 'GET_ANCHORS', data: {lastDay: new Date(), traceDaysNum: 60}}, '*');
-	setInterval(loadNewestAnchors, 30 * 1000);
 }
 
 function loadDegrees_n() {

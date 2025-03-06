@@ -1056,9 +1056,9 @@ class AnchrosView extends Listener {
         function cbx(rs) {
             thiz.anchors = rs.anchors;
             thiz.sh000001 = rs.sh000001;
-            thiz.draw();
             if (callback)
-                callback(thiz);
+                callback(thiz.anchors);
+            thiz.draw();
         }
         self.day = day;
         this._loadData(day, cbx);
