@@ -1,6 +1,7 @@
 var pageInfo = {
 	anchros: null,
 	anchrosView: null,
+	newestAnchros: {}, // {day: ... }
 	maxTradeDaysOfAnchors: 10,
 	degrees_fs: {}, //分时degree {day: val, ...}
 	degrees_n: null, //日期degree
@@ -8,7 +9,7 @@ var pageInfo = {
 	sh000001: null, sz399001: null,
 	tradeDays: null, // ['YYYY-MM-DD', ...]
 	lastTradeDay: null,
-	zdfb: {}, // {day: val, ...} 涨跌分布
+	newestZdfb: {}, // {day: val, ...} 最新涨跌分布
 }
 
 // HH:MM
@@ -33,8 +34,6 @@ function formatDay(date) {
 }
 
 function _doHook(response) {
-	console.log(response)
-
 	let data = response.response;
 	let len = response.headers['content-length'];
 	let url = response.config.url;
@@ -49,6 +48,7 @@ function _doHook(response) {
 		//console.log(response, type);
 	}
 	if (url.indexOf('/v3/transaction/anchor') >= 0) {
+		console.log(response);
 		let idx = url.indexOf('cdate=');
 		let cday = url.substring(idx + 6, idx + 6 + 10);
 		adjustAnchors(response, cday);
@@ -334,10 +334,10 @@ function hook_proxy() {
 
 //hook_proxy();
 
-function updateDegree(d) {
+function updateDegree_fs_UI(d) {
 	let canvas = $('#hots_canvas');
 	if (canvas.length == 0) {
-		setTimeout(function() {updateDegree(d);}, 2000);
+		setTimeout(function() {updateDegree_fs_UI(d);}, 2000);
 		return;
 	}
 	canvas = canvas.get(0);
@@ -379,7 +379,7 @@ function updateDegree(d) {
 
 function updateDegree_n_UI() {
 	let table = $('#hots_table');
-	if (table.length == 0 || !pageInfo.degrees_n) {
+	if (table.length == 0 || !pageInfo.degrees_n || !pageInfo.lastTradeDay) {
 		setTimeout(function() {updateDegree_n_UI();}, 2000);
 		return;
 	}
@@ -393,6 +393,13 @@ function updateDegree_n_UI() {
 			pageInfo.degrees_n[i].amount = am.toFixed(2);
 		}
 		datas.push(pageInfo.degrees_n[i]);
+	}
+
+	let last = datas[datas.length - 1];
+	if (last.day != pageInfo.lastTradeDay) {
+		let dd = pageInfo.lastTradeDay;
+		let it= {day: dd, degree: '', fb: null, sday: dd.substring(5), amount: ''};
+		datas.push(it);
 	}
 	
 	let cols = ['sday', 'degree', 'amount'];
@@ -416,7 +423,8 @@ function updateDegree_n_UI() {
 				clazz = c == 0 ? '' : (v >= 50 ? 'red' : 'green');
 				let fb = datas[i]['fb'];
 				if (fb) {
-					fb = JSON.parse(fb);
+					if (typeof(fb) == 'string')
+						fb = JSON.parse(fb);
 					title = "涨停:  " + fb.zt + "\t上涨:  "+fb.up+"  \t涨幅>8%:  "+(fb.up_8 + fb.up_10)+" \n跌停:  "+fb.dt+"\t下跌:  "+fb.down+"  \t跌幅>8%:  " + (fb.down_8 + fb.down_10);
 				}
 			} else if (cols[c] == 'amount') {
@@ -445,8 +453,15 @@ function updateDegree_n_UI() {
 		let dayTh = $('#zdfb_table *[v=day]');
 		dayTh.text(data.day);
 		let udd = {up:'', down:'', up_8: '', up_10: '', zt:'', dt:'', down_8:'', down_10:''};
-		if (data.fb)
-			udd = JSON.parse(data.fb);
+		if (data.day != pageInfo.lastTradeDay) {
+			if (data.fb) {
+				udd = JSON.parse(data.fb);
+			}
+		} else {
+			let x = pageInfo.newestZdfb[pageInfo.lastTradeDay];
+			if (x) udd = x;
+		}
+		
 		tds.eq(0).text(udd.up);
 		tds.eq(1).text(udd.zt);
 		tds.eq(2).text(udd.up_8 + udd.up_10);
@@ -454,6 +469,7 @@ function updateDegree_n_UI() {
 		tds.eq(4).text(udd.dt);
 		tds.eq(5).text(udd.down_8 + udd.down_10);
 		loadDegree_fs(data.day);
+		pageInfo.anchrosView.loadData(data.day);
 	}
 	table.find('td, th').hover(inFunction, outFunction);
 	table.find('td').click(onClick);
@@ -471,7 +487,7 @@ function wrapAnchor(name) {
 }
 
 function initUI() {
-	if (!pageInfo.degrees_n || !pageInfo.sh000001 || !pageInfo.sz399001 || !pageInfo.tradeDays || $('.watch-content-left > div').length < 7) {
+	if (!pageInfo.anchros || !pageInfo.degrees_n || !pageInfo.sh000001 || !pageInfo.sz399001 || !pageInfo.tradeDays || $('.watch-content-left > div').length < 7) {
 		setTimeout(initUI, 1000);
 		return;
 	}
@@ -520,6 +536,18 @@ function initUI() {
 	pageInfo.anchrosView.loadData(pageInfo.lastTradeDay);
 }
 
+function loadNewestAnchors() {
+	if (! pageInfo.lastTradeDay) {
+		setTimeout(loadNewestAnchors, 1000);
+		return;
+	}
+	let td = pageInfo.lastTradeDay;
+	new ClsUrl().loadAnchor(td, function(data) {
+        if (data.errno == 0)
+            pageInfo.newestAnchros[td] = data.data;
+    });
+}
+
 // 涨跌分布
 function loadNewestZdfb() {
 	$.ajax({
@@ -533,7 +561,7 @@ function loadNewestZdfb() {
 			udd.down = udd.fall_num;
 			udd.zt = udd.up_num;
 			udd.dt = udd.down_num;
-			pageInfo.zdfb[lastDay] = udd;
+			pageInfo.newestZdfb[lastDay] = udd;
 	 	}
 	});
 }
@@ -544,7 +572,7 @@ function loadDegree_fs(day) {
 		url: 'http://localhost:5665/get-time-degree?day=' + day,
 		success: function(resp) {
 			pageInfo.degrees_fs[day] = resp;
-			updateDegree(resp);
+			updateDegree_fs_UI(resp);
 		}
 	});
 }
@@ -598,6 +626,7 @@ function initRequest() {
 		}
 	}, false);
 	window.postMessage({cmd: 'GET_ANCHORS', data: {lastDay: new Date(), traceDaysNum: 60}}, '*');
+	setInterval(loadNewestAnchors, 30 * 1000);
 }
 
 function loadDegrees_n() {

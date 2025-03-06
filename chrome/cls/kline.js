@@ -35,6 +35,25 @@ class Rect {
     isPointIn(x, y) {
         return x >= this.left && x < this.right && y >= this.top && y < this.bottom;
     }
+    move(dx, dy) {
+        let w = this.width();
+        let h = this.height();
+        this.left += dx;
+        this.top += dy;
+        this.right = this.left + w;
+        this.bottom = this.top + h;
+    }
+
+    intersection(rect) {
+        let l = Math.max(rect.left, this.left);
+        let t = Math.max(rect.top, this.top);
+        let r = Math.min(rect.right, this.right);
+        let b = Math.min(rect.bottom, this.bottom);
+        if (l >= r || t >= b) {
+            return 0;
+        }
+        return (r - l) * (b - t);
+    }
 }
 
 class KLineView extends Listener {
@@ -1002,6 +1021,7 @@ class AnchrosView extends Listener {
         this.anchors = null;
         this.sh000001 = null;
         this.anchorsUI = null; // list of {rect: Rect, data: xx, }
+        this.selAnchor = null;
         self.day = null;
 
         $(canvas).width(this.width);
@@ -1009,6 +1029,9 @@ class AnchrosView extends Listener {
         let thiz = this;
         canvas.addEventListener('click', function(e) {
             thiz.onClick(e.offsetX, e.offsetY);
+        });
+        canvas.addEventListener('dblclick', function(e) {
+            thiz.onDbClick(e.offsetX, e.offsetY);
         });
         this.PADDING_LEFT = 100;
         this.maxPrice = 0;
@@ -1079,8 +1102,32 @@ class AnchrosView extends Listener {
         this.minPrice = minPrice;
     }
 
-    onClick(x, y) {
+    findAnchor(x, y) {
+        if (! this.anchorsUI)
+            return null;
+        for (let i = 0; i < this.anchorsUI.length; i++) {
+            let an = this.anchorsUI[i];
+            if (an.isPointIn(x, y)) {
+                return an;
+            }
+        }
+        return null;
+    }
 
+    onClick(x, y) {
+        let an = this.findAnchor(x, y);
+        if (! an) return;
+        if (this.selAnchor == an) {
+            return;
+        }
+        this.selAnchor = an;
+        this.drawSelAnchor();
+    }
+
+    onDbClick(x, y) {
+        let an = this.findAnchor(x, y);
+        if (! an) return;
+        window.open('https://www.cls.cn/plate?code=' + an.data.symbol_code, '_blank');
     }
 
     draw() {
@@ -1089,79 +1136,131 @@ class AnchrosView extends Listener {
         this.drawAnchors();
     }
 
+    drawSelAnchor() {
+        if (! this.selAnchor)
+            return;
+        this.ctx.beginPath();
+        let an = this.selAnchor.data;
+        let rect = this.selAnchor;
+        if (an.float == 'up') {
+            this.ctx.fillStyle = '#FFD8D8';
+            this.ctx.strokeStyle = 'red';
+        } else {
+            this.ctx.fillStyle = '#A0F1DC';
+            this.ctx.strokeStyle = 'green';
+        }
+        this.ctx.font = 'bold 18px 宋体';
+        this.ctx.fillRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
+        this.ctx.fillStyle = 'black';
+        this.ctx.fillText(an.symbol_name, rect.left + 5, rect.top + 20);
+        this.ctx.stroke();
+        this.ctx.closePath();
+    }
+
+    getAnchorRectAtIdx(idx, w, h, time) {
+        let pointsCount = 241; // 画的点数
+        let pointsDistance = (this.width - this.PADDING_LEFT) / (pointsCount - 1); // 点之间的距离
+        let PADDING_Y = 20;
+        let H = this.height - PADDING_Y;
+        let midx = this.minuteToIdx(time);
+        if (midx < 0) {
+            let t = PADDING_Y + midx * 40;
+            return new Rect(5, t, w + 5, t + h);
+        } 
+        if (!this.zMaxPrice || !this.zMinPrice || idx >= this.sh000001.line.length) {
+            return null;
+        }
+        let x = this.PADDING_LEFT + pointsDistance * midx;
+        let item = this.sh000001.line[midx];
+        let priceY = H - (item.last_px - this.zMinPrice) * H / (this.zMaxPrice - this.zMinPrice) + PADDING_Y;
+        let y = priceY + 50;
+        let rect = new Rect(x, y, x + w, y + h);
+        rect.priceY = priceY;
+        let rm = []; // trys
+        // search down
+        while (true) {
+            if (rect.bottom > this.height) {
+                break;
+            }
+            let m = this.getIntersection(rect);
+            rm.push({m: m, y: rect.y});
+            if (m == 0) {
+                return rect;
+            }
+            rect.move(0, 10);
+        }
+        rect.y = priceY - 50;
+        while (true) {
+            if (rect.top < 0) {
+                break;
+            }
+            let m = this.getIntersection(rect);
+            rm.push({m: m, y: rect.y});
+            if (m == 0) {
+                return rect;
+            }
+            rect.move(0, -10);
+        }
+        rm.sort(function(a, b) {return a.m - b.m;});
+        rect.top = rm[0].y;
+        rect.bottom = rect.top + h;
+        return rect;
+    }
+
+    getIntersection(rect) {
+        let a = 0;
+        for (let i = 0; i < this.anchorsUI.length; i++) {
+            let an = this.anchorsUI[i];
+            let v = an.intersection(rect);
+            a += v;
+        }
+        return a;
+    }
+
     drawAnchors() {
         this.anchorsUI = [];
         if (! this.anchors) {
             return;
         }
-        this.ctx.beginPath();
-        let pointsCount = 241; // 画的点数
-        let pointsDistance = (this.width - this.PADDING_LEFT) / (pointsCount - 1); // 点之间的距离
-        let lastIdx = -100, lastYNum = 0, lastY = 0;
-        let PADDING_Y = 20;
-        let H = this.height - PADDING_Y;
-        let zeroY = self.height / 2;
+        let IH = 30;
+        
         for (let i = 0; i < this.anchors.length; i++) {
+            this.ctx.beginPath();
             let an = this.anchors[i];
             let hour = parseInt(an.c_time.substring(11, 13));
             let minute = parseInt(an.c_time.substring(14, 16));
-            let idx = this.minuteToIdx(hour * 100 + minute);
-            let x = 0;
-            if (idx < 0) {
-                x = this.PADDING_LEFT + this.PADDING_LEFT / 7 * idx;
-            } else {
-                x = this.PADDING_LEFT + pointsDistance * idx;
-            }
-            if (lastIdx != idx && idx >= 0) {
-                lastIdx = idx;
-                lastYNum = 0;
-                lastY = -100;
-            }
-            lastYNum ++;
-            let y = 0;
-            let py = -1;
-            if (idx >= 0) {
-                if (!this.zMaxPrice || !this.zMinPrice || idx >= this.sh000001.line.length) {
-                    continue;
-                }
-                let item = this.sh000001.line[idx];
-                py = H - (item.last_px - this.zMinPrice) * H / (this.zMaxPrice - this.zMinPrice) + PADDING_Y;
-                if (lastYNum == 1) {
-                    lastY = py >= zeroY ? py - 50 : py + 50;
-                } else {
-                    lastY += py >= zeroY ? -50 : 50;
-                }
-                if (lastY < 0) {
-                    lastY = this.height - PADDING_Y - 50;
-                } else if (lastY >= this.height) {
-                    lastY = PADDING_Y;
-                }
-                y = lastY;
-            } else {
-                y = PADDING_Y + lastYNum * 50;
-            }
+            let time = hour * 100 + minute;
             if (an.float == 'up') {
                 this.ctx.fillStyle = '#FFD8D8';
-                this.ctx.strokeStyle = 'red';
+                this.ctx.strokeStyle = '#ff0000';
             } else {
                 this.ctx.fillStyle = '#A0F1DC';
-                this.ctx.strokeStyle = 'green';
+                this.ctx.strokeStyle = '#00ff00';
             }
             this.ctx.font = 'bold 18px 宋体';
             let tw = this.ctx.measureText(an.symbol_name).width;
             let bw = tw + 10;
-            let r = {rect: new Rect(x, y, x + bw, y + 30), data: an};
-            this.anchorsUI.push(r);
-            this.ctx.fillRect(x, y, bw, 30);
-            if (py >= 0) {
-                this.ctx.moveTo(x, py);
-                this.ctx.lineTo(x, y);
+            let rc = this.getAnchorRectAtIdx(i, bw, IH, time);
+            if (! rc) {
+                console.log('Ignore draw', an);
+                continue;
+            }
+            rc.left = parseInt(rc.left);
+            rc.top = parseInt(rc.top);
+            rc.right = parseInt(rc.right);
+            rc.bottom = parseInt(rc.bottom);
+            rc.data = an;
+            this.anchorsUI.push(rc);
+            this.ctx.fillRect(rc.left, rc.top, rc.width(), rc.height());
+            if (rc.priceY) {
+                this.ctx.moveTo(rc.left, rc.priceY);
+                this.ctx.lineTo(rc.left, (rc.priceY <= rc.top ? rc.top : rc.bottom));
+                this.ctx.stroke();
             }
             this.ctx.fillStyle = 'black';
-            this.ctx.fillText(an.symbol_name, x + 5, y + 20);
+            this.ctx.fillText(an.symbol_name, rc.left + 5, rc.top + 20);
+            this.ctx.closePath();
         }
-        this.ctx.stroke();
-        this.ctx.closePath();
     }
 
     minuteToIdx(ms) {
