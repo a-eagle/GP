@@ -497,19 +497,28 @@ class ClsUrl {
         });
     }
 
-    // 当日分时
-    loadFenShi(code, callback) {
-        let url = 'https://x-quote.cls.cn/quote/stock/tline?';
+    // 当日分时 day = null | '' (最新分时)
+    //         day = YYYYMMDD | YYYY-MM-DD
+    loadFenShi(code, day, callback) {
+        let url = 'https://x-quote.cls.cn/quote/index/tline?';
         let scode = this._getTagCode(code);
-        let params = 'app=CailianpressWeb&fields=date,minute,last_px,business_balance,business_amount,open_px,preclose_px,av_px&os=web&secu_code=' + scode + '&sv=7.7.5';
+        let sday = ''
+        if (day) {
+            day = String(day).replaceAll('-', '');
+            sday = "&date=" + day;
+        }
+        let params = 'app=CailianpressWeb' + sday + '&os=web&secu_code=' + scode + '&sv=8.4.6';
         url += this.signParams(params);
         $.ajax({
             'type': 'GET', 'url': url, 'dataType': 'json',
             success: function(resp) {
                 let d = resp['data'];
-                let day = String(d.date[0]);
-                day = day.substring(0, 4) + '-' + day.substring(4, 6) + '-' + day.substring(6, 8);
-                let data = {code : code, line: d.line, day: day};
+                let xday = day;
+                if (d && d.length) {
+                    xday = String(d[0].date);
+                }
+                xday = xday.substring(0, 4) + '-' + xday.substring(4, 6) + '-' + xday.substring(6, 8);
+                let data = {code : code, line: d, day: xday};
                 if (callback) callback(data);
             },
             error: function(xhr, status, error) {

@@ -65,7 +65,8 @@ class ClsUrl:
             return sparams + '&sign=' + sign
         return None # error params
 
-    # 当日分时
+    # day = None : 当日分时
+    # day = int | YYYYMMDD | YYYY-MM-DD
     def loadFenShi(self, code):
         url = 'https://x-quote.cls.cn/quote/stock/tline?'
         scode = self._getTagCode(code)
@@ -79,6 +80,31 @@ class ClsUrl:
         if data and 'line' in data:
             data['line'] = self._toStds(data['line'], False)
         return data
+    
+    def loadFenShi2(self, code, day = None):
+        url = 'https://x-quote.cls.cn/quote/index/tline?'
+        if not day:
+            sday = ''
+        elif type(day) == int:
+            sday = f"&date={day}"
+        elif type(day) == str:
+            sday = day.replace('-', '')
+            day = int(sday)
+            sday = f"&date={day}"
+        params = f'app=CailianpressWeb{sday}&os=web&sv=8.4.6'
+        url += self.signParams(params)
+        resp = requests.get(url)
+        txt = resp.content.decode('utf-8')
+        js = json.loads(txt)
+        data = js['data']
+        rs = {'code': code, 'date': []}
+        rs['line'] = self._toStds(data, False)
+        if rs['line']: 
+            rs['date'].append(rs['line'][0].day)
+        elif day:
+            rs['date'].append(day)
+        return rs
+        
     
     def getVal(self, data, name, _type, default):
         if name not in data:
@@ -155,7 +181,7 @@ class ClsUrl:
 
     def _toStds(self, datas, kline):
         if not datas:
-            return None
+            return datas
         rs = []
         for d in datas:
             if kline:
@@ -463,4 +489,6 @@ if __name__ == '__main__':
     #print(ds.__data__)
     #ClsUrl().loadDegree()
     pass
-    cu.loadHotTC(20241104)
+    #cu.loadHotTC(20241104)
+    cu.loadFenShi('sh000001')
+    cu.loadFenShi2('002583', 20250225)

@@ -37,6 +37,7 @@ function _doHook(response) {
 	let data = response.response;
 	let len = response.headers['content-length'];
 	let url = response.config.url;
+		console.log(response);
 	if (url.indexOf('/quote/index/up_down_analysis') >= 0) {
 		let idx = url.indexOf('type=');
 		let type = url.substring(idx + 5, url.indexOf('&', idx + 5));
@@ -48,7 +49,6 @@ function _doHook(response) {
 		//console.log(response, type);
 	}
 	if (url.indexOf('/v3/transaction/anchor') >= 0) {
-		console.log(response);
 		let idx = url.indexOf('cdate=');
 		let cday = url.substring(idx + 6, idx + 6 + 10);
 		adjustAnchors(response, cday);
@@ -487,7 +487,8 @@ function wrapAnchor(name) {
 }
 
 function initUI() {
-	if (!pageInfo.anchros || !pageInfo.degrees_n || !pageInfo.sh000001 || !pageInfo.sz399001 || !pageInfo.tradeDays || $('.watch-content-left > div').length < 7) {
+	if (!pageInfo.anchros || !pageInfo.degrees_n || !pageInfo.sh000001 || !pageInfo.sz399001 || 
+			!pageInfo.tradeDays || $('.watch-content-left > div').length < 6) {
 		setTimeout(initUI, 1000);
 		return;
 	}

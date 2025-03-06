@@ -43,6 +43,18 @@ class Rect {
         this.right = this.left + w;
         this.bottom = this.top + h;
     }
+    moveTo(x, y) {
+        let w = this.width();
+        let h = this.height();
+        if (typeof(x) == 'number') {
+            this.left = x;
+            this.right = x + w;
+        }
+        if (typeof(y) == 'number') {
+            this.top = y;
+            this.bottom = y + h;
+        }
+    }
 
     intersection(rect) {
         let l = Math.max(rect.left, this.left);
@@ -1033,7 +1045,7 @@ class AnchrosView extends Listener {
         canvas.addEventListener('dblclick', function(e) {
             thiz.onDbClick(e.offsetX, e.offsetY);
         });
-        this.PADDING_LEFT = 100;
+        this.PADDING_X = 100;
         this.maxPrice = 0;
         this.minPrice = 0;
     }
@@ -1072,7 +1084,7 @@ class AnchrosView extends Listener {
             rs.anchors = resp.data;
             mcb();
         })
-        new ClsUrl().loadFenShi('sh000001', function(data) {
+        new ClsUrl().loadFenShi('sh000001', day, function(data) {
             rs.sh000001 = data;
             mcb();
         });
@@ -1159,18 +1171,18 @@ class AnchrosView extends Listener {
 
     getAnchorRectAtIdx(idx, w, h, time) {
         let pointsCount = 241; // 画的点数
-        let pointsDistance = (this.width - this.PADDING_LEFT) / (pointsCount - 1); // 点之间的距离
+        let pointsDistance = (this.width - this.PADDING_X * 2) / (pointsCount - 1); // 点之间的距离
         let PADDING_Y = 20;
         let H = this.height - PADDING_Y;
         let midx = this.minuteToIdx(time);
         if (midx < 0) {
-            let t = PADDING_Y + midx * 40;
+            let t = PADDING_Y + (time - 925) * 40;
             return new Rect(5, t, w + 5, t + h);
         } 
         if (!this.zMaxPrice || !this.zMinPrice || idx >= this.sh000001.line.length) {
             return null;
         }
-        let x = this.PADDING_LEFT + pointsDistance * midx;
+        let x = this.PADDING_X + pointsDistance * midx;
         let item = this.sh000001.line[midx];
         let priceY = H - (item.last_px - this.zMinPrice) * H / (this.zMaxPrice - this.zMinPrice) + PADDING_Y;
         let y = priceY + 50;
@@ -1183,27 +1195,26 @@ class AnchrosView extends Listener {
                 break;
             }
             let m = this.getIntersection(rect);
-            rm.push({m: m, y: rect.y});
+            rm.push({m: m, y: rect.top});
             if (m == 0) {
                 return rect;
             }
             rect.move(0, 10);
         }
-        rect.y = priceY - 50;
+        rect.moveTo(null, priceY - 80);
         while (true) {
             if (rect.top < 0) {
                 break;
             }
             let m = this.getIntersection(rect);
-            rm.push({m: m, y: rect.y});
+            rm.push({m: m, y: rect.top});
             if (m == 0) {
                 return rect;
             }
             rect.move(0, -10);
         }
         rm.sort(function(a, b) {return a.m - b.m;});
-        rect.top = rm[0].y;
-        rect.bottom = rect.top + h;
+        rect.moveTo(null, rm[0].y);
         return rect;
     }
 
@@ -1298,7 +1309,7 @@ class AnchrosView extends Listener {
         this.zMinPrice = zMinPrice;
         
         let pointsCount = 241; // 画的点数
-        let pointsDistance = (this.width - this.PADDING_LEFT) / (pointsCount - 1); // 点之间的距离
+        let pointsDistance = (this.width - this.PADDING_X * 2) / (pointsCount - 1); // 点之间的距离
         let PADDING_Y = 20;
         let H = this.height - PADDING_Y;
         
@@ -1309,7 +1320,7 @@ class AnchrosView extends Listener {
         this.ctx.setLineDash([]);
         for (let i = 0; i < this.sh000001.line.length; i++) {
             let item = this.sh000001.line[i];
-            let x = i * pointsDistance + this.PADDING_LEFT;
+            let x = i * pointsDistance + this.PADDING_X;
             let y = H - (item.last_px - zMinPrice) * H / (zMaxPrice - zMinPrice) + PADDING_Y;
             if (i == 0) {
                 this.ctx.moveTo(x, y);
@@ -1320,7 +1331,7 @@ class AnchrosView extends Listener {
         this.ctx.stroke();
         this.ctx.closePath();
         // 画最高、最低价
-        
+        this.ctx.font = 'normal 12px Arial';
         zf *= 100;
         zf = zf.toFixed(2) + '%'
         this.ctx.beginPath();
@@ -1350,7 +1361,7 @@ class AnchrosView extends Listener {
         }
 
         for (let i = 0; i < 5; i++) {
-            let x = parseInt(i * ((this.width - this.PADDING_LEFT) / 4)) + this.PADDING_LEFT;
+            let x = parseInt(i * ((this.width - this.PADDING_X * 2) / 4)) + this.PADDING_X;
             this.ctx.moveTo(x, 0);
             this.ctx.lineTo(x, this.height);
         }
