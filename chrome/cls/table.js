@@ -12,10 +12,26 @@ class StockTable {
         this.datas = null;
         this.datasMap = null;
         this.hotsZH = null;
+        this.day = null;
+
         this.table = null;
+        this.headersUI = null;
         this.trs = {};
         this.tlMgr = new TimeLineUIManager();
         this.config = {elipseNum: 40};
+        this.init()
+    }
+
+    setDay(day) {
+        this.day = day;
+    }
+
+    init() {
+        let tab = $('<table class="my-stoks-table" > </table>');
+        this.table = tab;
+        if (this.headers) {
+            this.buildHeadersUI(); //  <th width=300>简介</th> <th width=300 >分时图</th> </tr>');
+        }
     }
 
     createTimeLineView(code, width, height) {
@@ -27,6 +43,7 @@ class StockTable {
         return view;
     }
 
+    // should call setDay before setData
     setData(data) {
         if (data == this.datas || !data) {
             return;
@@ -41,13 +58,19 @@ class StockTable {
                 mdata[data[i].secu_code] = data[i];
             }
         }
+        this.lastSortHeader = null;
+        this.trs = {};
+        this.tlMgr = new TimeLineUIManager();
         this.datas = data;
         this.datasMap = mdata;
         this.loadHotsZH();
     }
 
     buildHeadersUI() {
-        let tr = $('<tr style="vertical-align: middle;"> </tr>');
+        if (this.headersUI || !this.headers) {
+            return;
+        }
+        let tr = $('<tr style="vertical-align: middle; "> </tr>');
         tr.append($('<th width=50> </th>')); // row no column
         for (let i = 0; i < this.headers.length; i++) {
             let cur = this.headers[i];
@@ -66,7 +89,8 @@ class StockTable {
                 thiz.onSortHead($(this));
             });
         }
-        return tr;
+        this.headersUI = tr;
+        this.table.append(tr);
     }
 
     buildRowUI(idx, rowData) {
@@ -75,7 +99,10 @@ class StockTable {
         for (let i = 0; i < this.headers.length; i++) {
             let hd = '';
             let k = this.headers[i].name;
-            if (k == 'code') {
+            let formater = this.headers[i].formater;
+            if (formater) {
+                hd = $('<td> ' + formater(rowData) + '</td>');
+            }else if (k == 'code') {
                 hd = $('<td> <a href="https://www.cls.cn/stock?code=' + rowData.secu_code + '" target=_blank> <span style="color:#383838; font-weight:bold;" >' + 
                 rowData.secu_name + '</span> </a> <br/> <span style="color:#666;font-size:12px;"> ' + rowData.code + '</span></td> ');
             } else if (k == 'hots') {
@@ -108,24 +135,19 @@ class StockTable {
     }
 
     buildUI() {
-        if (! this.datas || !this.headers) {
+        if (! this.datas) {
             return;
         }
-        let tab = $('<table class="my-stoks-table" > </table>');
-        let hds = this.buildHeadersUI(); //  <th width=300>简介</th> <th width=300 >分时图</th> </tr>');
-        tab.append(hds);
         let thiz = this;
         for (let i = 0; i < this.datas.length; i++) {
             let sd = this.datas[i];
             sd.key = sd.secu_code;
             let tr = this.buildRowUI(i, sd);
-            tab.append(tr);
+            this.table.append(tr);
             tr.dblclick(function() {thiz.openKLineDialog($(this).attr('code'))});
             //tr.click(function() {if (selTr) selTr.removeClass('sel'); selTr = $(this); selTr.addClass('sel'); });
             this.trs[sd.key] = tr;
         }
-        this.table = tab;
-        return tab;
     }
 
     openKLineDialog(code) {

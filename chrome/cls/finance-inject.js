@@ -9,6 +9,7 @@ var pageInfo = {
 	tradeDays: null, // ['YYYY-MM-DD', ...]
 	lastTradeDay: null,
 	newestZdfb: {}, // {day: val, ...} 最新涨跌分布
+	upDownData: {}, //涨停、跌停 {day: val, ...}
 }
 
 // HH:MM
@@ -456,6 +457,7 @@ function updateDegree_n_UI() {
 		pageInfo.anchrosView.loadData(data.day, function(av) {
 			adjustAnchors(av, data.day);
 		});
+		loadUpDown('涨停池');
 	}
 	table.find('td, th').hover(inFunction, outFunction);
 	table.find('td').click(onClick);
@@ -492,11 +494,6 @@ function wrapAnchor(name) {
 		return name;
 	}
 	return name + num;
-}
-
-function updateZT_TabUI(name) {
-	console.log(name);
-	
 }
 
 function initUI() {
@@ -546,7 +543,8 @@ function initUI() {
 	let md5 = $('<div id="hots" class="my-info-item p-r m-b-20  b-c-222"></div>');
 	let md6 = $('<div id="my-tab-nav" class="clearfix w-100p f-s-14 c-747474 toggle-nav-box finance-toggle-nav">' +
 				'<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div>' + '</div>');
-	group.append(md1).append(md2).append(md3).append(md4).append(md5).append(md6);
+	let md7 = $('<div id = "up-down" class="my-info-item p-r b-c-222" style="">  </div>');
+	group.append(md1).append(md2).append(md3).append(md4).append(md5).append(md6).append(md7);
 	$('.watch-content-left > div:gt(1)').hide();
 	group.insertAfter($('.watch-chart-box'));
 	pageInfo.anchrosView = new AnchrosView($('#fs_canvas').get(0));
@@ -556,7 +554,7 @@ function initUI() {
 			$('#my-tab-nav > .toggle-nav-active').removeClass('toggle-nav-active');
 			$(this).addClass('toggle-nav-active');
 		}
-		updateZT_Tab($(this).text().trim());
+		loadUpDown($(this).text().trim());
 	});
 }
 
@@ -678,50 +676,69 @@ function loadDegrees_n() {
 	});
 }
 
-function loadZTUI() {
-	let tag = $('.toggle-nav-box > .toggle-nav-active').text().trim();
-	let data = null;
-	if (tag == '涨停池') tag = 'ZT';
-	else if (tag == '连板池') tag = 'LB';
-	else if (tag == '炸板池') tag = 'ZB';
-	else if (tag == '跌停池') tag = 'DT';
-	data = window[tag + '_Infos'];
-	if (! data || !tag) {
+function loadUpDown(name) {
+	if (pageInfo.curDay == pageInfo.lastTradeDay) {
+		let ks = {'涨停池': 'up_pool', '连板池': 'continuous_up_pool', '炸板池': 'up_open_pool', '跌停池': 'down_pool'};
+		let url = 'https://x-quote.cls.cn/quote/index/up_down_analysis?'
+		let params = 'app=CailianpressWeb&os=web&rever=1&sv=8.4.6&type=' + ks[name] + '&way=last_px';
+		params = new ClsUrl().signParams(params);
+		url += params;
+		$.ajax({
+			url: url, 
+			success: function(resp) {
+				for (let i = resp.data.length - 1; i >= 0; i--) {
+					if (resp.data[i].is_st) resp.data.splice(i, 1);
+				}
+				updateUpDownUI(name, resp.data);
+			}
+		});
+	} else {
+		let sql = 'select * from cls_updown where day = "' + pageInfo.curDay + '" ';
+		if (name == '涨停池') sql += ' and limit_up_days > 0';
+		else if (name == '连板池') sql += ' and limit_up_days > 1';
+		else if (name == '炸板池') sql += ' and limit_up_days = 0 and change > -0.8';
+		$.ajax({
+			url : 'http://localhost:5665/query-by-sql/tck',
+			data: {'sql': sql},
+			success: function(resp) {
+				updateUpDownUI(name, resp);
+			}
+		});
+	}
+}
+
+function updateUpDownUI(name) {
+	let data = pageInfo.upDownData[pageInfo.curDay + name];
+	if (! data) {
+		$('#up-down').empty();
 		return;
 	}
-	$('.list-more-button').remove();
-	let cnt = $('.toggle-nav-box').next();
-	if (cnt.attr('name') == tag) {
-		return;
+	let hd = null;
+	let style = 'text-align:center;'
+	if (name == '涨停池' || name == '连板池') {
+		hd = [
+			{text: '股票/代码', 'name': 'code', width: 80, style},
+			{text: '涨跌幅', 'name': 'change', width: 70, sortable: true, style},
+			{text: '连板', 'name': 'limit_up_days', width: 50, sortable: true, style, formater: function(rowData) {return String(rowData.limit_up_days) + '板' }},
+			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style},
+			{text: '热度', 'name': 'hots', width: 50, sortable: true, style},
+			{text: '动因', 'name': 'up_reason', width: 250, sortable: true, style},
+			{text: '分时图', 'name': 'fs', width: 300},
+		];
+	} else {
+		hd = [
+			{text: '股票/代码', 'name': 'code', width: 80, style},
+			{text: '涨跌幅', 'name': 'change', width: 70, sortable: true, style},
+			{text: '分时图', 'name': 'fs', width: 300},
+		];
 	}
-	let newCnt = $('<div class="" name="' + tag + '"> </div>');
-	if (! window[tag + '_StockTable']) {
-		let hd = null;
-		if (tag == 'ZT' || tag == 'LB') {
-			hd = [
-				{text: '股票/代码', 'name': 'code', width: 80},
-				{text: '涨跌幅', 'name': 'change', width: 70, sortable: true},
-				{text: '连板', 'name': 'limit_up_days', width: 50, sortable: true},
-				{text: '涨速', 'name': 'zs', width: 50, sortable: true},
-				{text: '热度', 'name': 'hots', width: 50, sortable: true},
-				{text: '动因', 'name': 'up_reason', width: 250, sortable: true},
-				{text: '分时图', 'name': 'fs', width: 300},
-			];
-		} else {
-			hd = [
-				{text: '股票/代码', 'name': 'code', width: 80},
-				{text: '涨跌幅', 'name': 'change', width: 70, sortable: true},
-				{text: '分时图', 'name': 'fs', width: 300},
-			];
-		}
-		let st = window[tag + '_StockTable'] = new StockTable(hd);
-		st.initStyle();
-		st.setData(data);
-		st.buildUI();
-	}
-	let st = window[tag + '_StockTable'];
-	newCnt.append(st.table);
-	cnt.replaceWith(newCnt);
+	let st = new StockTable(hd);
+	st.initStyle();
+	st.setDay(pageInfo.curDay);
+	st.setData(data);
+	st.buildUI();
+	$('#up-down').empty();
+	$('#up-down').append(st.table);
 }
 
 initRequest();

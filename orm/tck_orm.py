@@ -53,6 +53,21 @@ class CLS_ZT(pw.Model):
     class Meta:
         database = db_tck
 
+# 财联社涨停、跌停、连板、炸板
+class CLS_UpDown(pw.Model):
+    secu_code = pw.CharField()
+    secu_name = pw.CharField(null = True)
+    day = pw.CharField() # YYYY-MM-DD
+    time = pw.CharField() # HH:mm:SS
+    change = pw.FloatField(null=True) # 涨跌幅
+    last_px = pw.FloatField(null=True) # 收盘价
+    up_reason = pw.CharField(null = True)
+    limit_up_days = pw.IntegerField(default = 0) # 连板数
+    is_down = pw.IntegerField(default = 0) # 是否是跌停
+
+    class Meta:
+        database = db_tck        
+
 # 涨停盘口(收盘)
 class ZT_PanKou(pw.Model):
     day = pw.CharField() # YYYY-MM-DD
@@ -107,4 +122,4 @@ def getClsThsNames():
     return rs
         
 #db_tck.drop_tables([CLS_SCQX_Time])
-db_tck.create_tables([THS_ZT, CLS_ZT, KPL_ZT, KPL_SCQX, CLS_SCQX, CLS_HotTc, CLS_THS_Tc, CLS_SCQX_Time, ZT_PanKou])
+db_tck.create_tables([THS_ZT, CLS_ZT, KPL_ZT, KPL_SCQX, CLS_SCQX, CLS_HotTc, CLS_THS_Tc, CLS_SCQX_Time, ZT_PanKou, CLS_UpDown])

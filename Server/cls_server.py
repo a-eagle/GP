@@ -155,7 +155,10 @@ class Server:
             self._runInfo[day] = rs
         if curTime >= '09:30' and curTime <= '16:00':
             self.downloadClsZT()
-            
+        if curTime >= '16:00' and (not self._runInfo.get(f'updown-{day}', False)):
+            ok = self.downloadUpDown()
+            self._runInfo[f'updown-{day}'] = ok
+
         self.downloadZS()
         self.downloadBkGn()
         self.downloadZT_PanKou()
@@ -331,6 +334,38 @@ class Server:
         except Exception as e:
             traceback.print_exc()
 
+    # 涨跌停、炸板
+    def downloadUpDown(self):
+        urls = ['https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=8.4.6&type=up_pool&way=last_px&sign=a6ab28604a6dbe891cdbd7764799eda1',
+                'https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=8.4.6&type=up_open_pool&way=last_px&sign=c178185f9b06e3d9e885ba54a47d68ec',
+                'https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=8.4.6&type=down_pool&way=last_px&sign=95d3a7c20bb0313a0bb3445d9faf2d27']
+        ok = True
+        for url in urls:
+            try:
+                resp = requests.get(url)
+                js = json.loads(resp.text)
+                if js['code'] != 200:
+                    ok = False
+                    continue
+                for d in js['data']:
+                    if d['is_st']: 
+                        continue
+                    d['day'] = d['time'][0 : 10]
+                    d['time'] = d['time'][11 : ]
+                    ex = tck_orm.CLS_UpDown.get_or_none(secu_code = d['secu_code'], day = d['day'])
+                    if not ex:
+                        obj = tck_orm.CLS_UpDown(**d)
+                        if 'type=down_pool' in url:
+                            obj.is_down = 1
+                        obj.save()
+                    else:
+                        pass
+            except Exception as e:
+                print('[downloadUpDown] ', url)
+                traceback.print_exc()
+        console.writeln_1(console.CYAN, f'[Cls-UpDown] {self.formatNowTime(True)} ', ('Success' if ok else 'Fail'))
+        return ok
+
 def do_reason():
     qr = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day >= '2024-07-26')
     for it in qr:
@@ -351,6 +386,6 @@ if __name__ == '__main__':
     #days = ths_iwencai.getTradeDays(100)
     #for day in days:
     #    svr._loadHotTcOfDay(day)
-    svr.downloadScqx()
+    svr.downloadUpDown()
     pass
     #do_reason()

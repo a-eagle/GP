@@ -91,7 +91,7 @@ class Server:
         dbs = {'cls_gntc': cls_orm.db_gntc, 
                'lhb': lhb_orm.db_lhb,
                'tck_def': tck_def_orm.db_tck_def, 
-               'tck': tck_orm.db_tck, 
+               'tck': tck_orm.db_tck,
                'ths_gntc': ths_orm.db_gntc, 'hot': ths_orm.db_hot, 'hot_zh': ths_orm.db_hot_zh, 'ths_zs': ths_orm.db_thszs,
                'zs': zs_orm.zsdb}
         if dbName not in dbs:
