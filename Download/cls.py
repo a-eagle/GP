@@ -64,9 +64,7 @@ class ClsUrl:
             sign = signByStr(sparams)
             return sparams + '&sign=' + sign
         return None # error params
-
-    # day = None : 当日分时
-    # day = int | YYYYMMDD | YYYY-MM-DD
+    
     def loadFenShi(self, code):
         url = 'https://x-quote.cls.cn/quote/stock/tline?'
         scode = self._getTagCode(code)
@@ -81,7 +79,9 @@ class ClsUrl:
             data['line'] = self._toStds(data['line'], False)
         return data
     
-    def loadFenShi2(self, code, day = None):
+    # day = None : 当日分时 只能用于指数
+    # day = int | YYYYMMDD | YYYY-MM-DD
+    def loadIndexFenShi(self, code, day = None):
         url = 'https://x-quote.cls.cn/quote/index/tline?'
         if not day:
             sday = ''
@@ -105,7 +105,6 @@ class ClsUrl:
             rs['date'].append(day)
         return rs
         
-    
     def getVal(self, data, name, _type, default):
         if name not in data:
             return default
@@ -490,5 +489,4 @@ if __name__ == '__main__':
     #ClsUrl().loadDegree()
     pass
     #cu.loadHotTC(20241104)
-    cu.loadFenShi('sh000001')
-    cu.loadFenShi2('002583', 20250225)
+    cu.loadFenShi('603678')

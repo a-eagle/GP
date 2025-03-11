@@ -647,7 +647,7 @@ function updateUpDownUI(name, data) {
 			{text: '股票/代码', 'name': 'code', width: 80, style},
 			{text: '涨跌幅', 'name': 'change', width: 70, sortable: true, style},
 			{text: '连板', 'name': 'limit_up_days', width: 50, sortable: true, style, formater: lbFormater},
-			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style},
+			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style, defined: true},
 			{text: '热度', 'name': 'hots', width: 50, sortable: true, style},
 			{text: '动因', 'name': 'up_reason', width: 250, sortable: true, style},
 			{text: '分时图', 'name': 'fs', width: 300},
@@ -656,7 +656,7 @@ function updateUpDownUI(name, data) {
 		hd = [
 			{text: '股票/代码', 'name': 'code', width: 80, style},
 			{text: '涨跌幅', 'name': 'change', width: 70, sortable: true, style},
-			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style},
+			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style, defined: true},
 			{text: '热度', 'name': 'hots', width: 50, sortable: true, style},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
@@ -664,8 +664,8 @@ function updateUpDownUI(name, data) {
 		hd = [
 			{text: '股票/代码', 'name': 'code', width: 80, style},
 			{text: '行业', 'name': 'ths_hy', width: 200, sortable: true, style},
-			{text: '涨跌幅', 'name': 'change', width: 70, sortable: true, style},
-			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style},
+			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, style, defined: true},
+			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style, defined: true},
 			{text: '热度', 'name': 'hots', width: 50, sortable: true, style},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];

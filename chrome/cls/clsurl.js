@@ -446,7 +446,6 @@ class ClsUrl {
         });
     }
 
-
     // type = 'DAY', 'WEEK', 'MONTH'
     loadKline(code, limit, type, callback) {
         if (type == 'DAY') type = 'fd1';
@@ -497,9 +496,9 @@ class ClsUrl {
         });
     }
 
-    // 当日分时 day = null | '' (最新分时)
+    // 当日指数分时 day = null | '' (最新分时)
     //         day = YYYYMMDD | YYYY-MM-DD
-    loadFenShi(code, day, callback) {
+    loadIndexFenShi(code, day, callback) {
         let url = 'https://x-quote.cls.cn/quote/index/tline?';
         let scode = this._getTagCode(code);
         let sday = ''
@@ -519,6 +518,29 @@ class ClsUrl {
                 }
                 xday = xday.substring(0, 4) + '-' + xday.substring(4, 6) + '-' + xday.substring(6, 8);
                 let data = {code : code, line: d, day: xday};
+                if (callback) callback(data);
+            },
+            error: function(xhr, status, error) {
+                //if (callback)
+                //    callback({'data': [], 'errno': 1, 'error': error});
+                console.log('Error:', xhr, status, error);
+            }
+        });
+    }
+
+    loadFenShi(code, callback) {
+        let url = 'https://x-quote.cls.cn/quote/stock/tline?';
+        let scode = this._getTagCode(code);
+        let params = 'app=CailianpressWeb&fields=date,minute,last_px,business_balance,business_amount,open_px,preclose_px,av_px&os=web&secu_code=' + scode + '&sv=8.4.6';
+        url += this.signParams(params);
+        $.ajax({
+            'type': 'GET', 'url': url, 'dataType': 'json',
+            success: function(resp) {
+                console.log(resp);
+                let d = resp['data'];
+                let xday = String(d.date[0]);
+                xday = xday.substring(0, 4) + '-' + xday.substring(4, 6) + '-' + xday.substring(6, 8);
+                let data = {code : code, line: d.line, day: xday};
                 if (callback) callback(data);
             },
             error: function(xhr, status, error) {

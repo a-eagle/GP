@@ -478,6 +478,7 @@ class TimeLineView extends Listener {
         this.ctx = canvas.getContext("2d");
         this.updateTime = 0; // load timeline data time mili-seconds
         this.code = null; // 股票代码
+        this.zf = null; //涨幅
 
         this.SPEED_PEROID = 10; //  时速周期 5 / 10 /15
         this.MIN_ZHANG_SU = 5; // 最小涨速
@@ -487,9 +488,12 @@ class TimeLineView extends Listener {
     setData(data) {
         // {code: xx, date:xx, pre: xx, line: [{time, price, amount, avgPrice, vol}, ...] }
         this.data = data;
+        this.zf = null;
         if (!data || !data['line'] || !data.line.length) {
             return;
         }
+        let last = data.line[data.line.length - 1];
+        this.zf = (last.price - this.data.pre) * 100 / this.data.pre;
         // calc low, high price
         let low = 0, high = 0;
         let ln = data.line;
@@ -1084,7 +1088,7 @@ class AnchrosView extends Listener {
             rs.anchors = resp.data;
             mcb();
         })
-        new ClsUrl().loadFenShi('sh000001', day, function(data) {
+        new ClsUrl().loadIndexFenShi('sh000001', day, function(data) {
             rs.sh000001 = data;
             mcb();
         });

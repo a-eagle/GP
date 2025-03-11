@@ -7,7 +7,7 @@ class StockTable {
     // headers = [ {text: 'xxx', name: 'xx', width: 60, sortable: true,
     //              sortVal?: function(rowData), defined? : true, 
     //              formater?: function(rowIdx, rowData, header, tdObj) }, ...]
-    // fix headers : 'zs' 涨速, 'hots': 热度
+    // fix headers : 'zs' 涨速, 'hots': 热度  zf: 涨幅
     constructor(headers) {
         this.headers = headers;
         this.lastSortHeader = null;
@@ -155,8 +155,11 @@ class StockTable {
             let k = this.headers[i].name;
             let header = this.headers[i];
 
-            if (k == 'hots') {
+
+            if (k == 'hots' || k == 'zs' || k == 'zf') {
                 header.defined = true;
+            }
+            if (k == 'hots') {
                 if (! header.sortVal) {
                     header.sortVal = function(rowData) {
                         return rowData.hots && rowData.hots > 0 ? 1000 - rowData.hots : 0
@@ -216,9 +219,12 @@ class StockTable {
                     tdObj.append(view.canvas);
                     view.addListener('LoadDataEnd', function(evt) {thiz.onLoadFsDataEnd(evt);});
                 }
-            } else if (k == 'zs') {
+            } else if (k == 'zs' || k == 'zf') {
                 header.formater = function(rowIdx, rowData, head, tdObj) {
-                    let val = !rowData['zs'] ? '' : rowData['zs'];
+                    let val = '';
+                    if (typeof(rowData[k]) == 'number' && rowData[k]) {
+                        val = rowData[k].toFixed(1) + '%';
+                    }
                     tdObj.addClass('zs');
                     tdObj.text(val);
                 }
@@ -298,14 +304,8 @@ class StockTable {
         let view = evt.src;
         let maxZs = view.getMaxZs();
         let sd = this.datasMap[view.key];
-        if (! maxZs) {
-            sd.zs = 0;
-            return;
-        }
-        let zf = maxZs.zf;
-        let td = $(view.canvas).parent().parent().find('td.zs');
-        sd.zs = zf;
-        td.text('' + zf.toFixed(1) + '%');
+        sd.zf = view.zf;
+        sd.zs = maxZs ? maxZs.zf : 0;
     }
 
     getAttrType(list, name) {
