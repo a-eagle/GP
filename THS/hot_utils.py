@@ -163,6 +163,7 @@ def loadFromFile():
 
 
 if __name__ == '__main__':
+    rs = DynamicHotZH.ins.getNewestHotZH()
     #getLastTradeDay()
     #calcAllHotZHAndSave()
     #loadFromFile()

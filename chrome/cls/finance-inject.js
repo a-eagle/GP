@@ -617,20 +617,17 @@ function loadUpDown(name) {
 }
 
 function loadTopHots(name) {
-	let day = pageInfo.curDay.replaceAll('-', '');
-	let sql = 'select * from 个股热度综合排名 where 日期 = ' + day + ' ';
+	let day = pageInfo.curDay;
 	$.ajax({
-		url : 'http://localhost:5665/query-by-sql/hot_zh',
-		data: {'sql': sql},
+		url: 'http://localhost:5665/get-hots?full=true&day=' + day, type: 'GET',
 		success: function(resp) {
-			for (let i = 0; i < resp.length; i++) {
-				let cc = String(resp[i].code);
-				for (let j = cc.length; j < 6; j++) {
-					cc = '0' + cc;
-				}
-				resp[i].code = cc;
+			let rs = [];
+			for (let k in resp) {
+				resp[k].secu_name = resp[k].name;
+				rs.push(resp[k]);
 			}
-			updateUpDownUI(name, resp);
+			rs.sort(function(a, b) {return a.zhHotOrder - b.zhHotOrder})
+			updateUpDownUI(name, rs);
 		}
 	});
 }
@@ -666,10 +663,12 @@ function updateUpDownUI(name, data) {
 	} else if (name == '热度榜') {
 		hd = [
 			{text: '股票/代码', 'name': 'code', width: 80, style},
+			{text: '行业', 'name': 'ths_hy', width: 200, sortable: true, style},
+			{text: '涨跌幅', 'name': 'change', width: 70, sortable: true, style},
+			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style},
 			{text: '热度', 'name': 'hots', width: 50, sortable: true, style},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
-		console.log(data);
 	}
 	let st = new StockTable(hd);
 	window.st = st;
