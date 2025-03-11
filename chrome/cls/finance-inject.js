@@ -642,11 +642,14 @@ function updateUpDownUI(name, data) {
 	}
 	let hd = null;
 	let style = 'text-align:center;'
+	function lbFormater(idx, rowData, header, tdObj) {
+		tdObj.text(String(rowData.limit_up_days) + '板');
+	}
 	if (name == '涨停池' || name == '连板池') {
 		hd = [
 			{text: '股票/代码', 'name': 'code', width: 80, style},
 			{text: '涨跌幅', 'name': 'change', width: 70, sortable: true, style},
-			{text: '连板', 'name': 'limit_up_days', width: 50, sortable: true, style, formater: function(rowData) {return String(rowData.limit_up_days) + '板' }},
+			{text: '连板', 'name': 'limit_up_days', width: 50, sortable: true, style, formater: lbFormater},
 			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style},
 			{text: '热度', 'name': 'hots', width: 50, sortable: true, style},
 			{text: '动因', 'name': 'up_reason', width: 250, sortable: true, style},
@@ -669,6 +672,7 @@ function updateUpDownUI(name, data) {
 		console.log(data);
 	}
 	let st = new StockTable(hd);
+	window.st = st;
 	st.initStyle();
 	st.setDay(pageInfo.curDay);
 	st.setData(data);

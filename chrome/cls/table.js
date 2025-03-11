@@ -4,7 +4,9 @@
  *   st.buildUI();
  */
 class StockTable {
-    // headers = [ {text: 'xxx', name: 'xx', width: 60, sortable: true, sortVal: function(rowData), defined? : true, formater?: function(rowIdx, rowData) }, ...]
+    // headers = [ {text: 'xxx', name: 'xx', width: 60, sortable: true,
+    //              sortVal?: function(rowData), defined? : true, 
+    //              formater?: function(rowIdx, rowData, header, tdObj) }, ...]
     // fix headers : 'zs' 涨速, 'hots': 热度
     constructor(headers) {
         this.headers = headers;
@@ -30,8 +32,8 @@ class StockTable {
         let tab = $('<table class="my-stoks-table" > </table>');
         this.table = tab;
         if (this.headers) {
-            this.buildHeadersUI(); //  <th width=300>简介</th> <th width=300 >分时图</th> </tr>');
             this.initHeadersDefault();
+            this.buildHeadersUI();
         }
     }
 
@@ -44,32 +46,43 @@ class StockTable {
         return view;
     }
 
-    _updateAttrUI(obj, attr, val) {
-
+    _updateAttrUI(rowData, header, val) {
+        let key = rowData.secu_code;
+        if (! this.trs[key])
+            return;
+        let td = this.trs[key].find('td:nth-child(' + (header.__colIdx__ + 1) + ')');
+        td.empty();
+        header.formater(rowData.__rowIdx__, rowData, header, td);
     }
 
     _defineAttr(obj, attr, val) {
+        let thiz = this;
         Object.defineProperty(obj, attr.name, {
             get: function() {return val;},
-            set: function(newVal) {if (val == newVal) return; val = newVal; this._updateAttrView(obj, attr, newVal);}
+            set: function(newVal) {
+                if (val == newVal)
+                    return;
+                val = newVal;
+                thiz._updateAttrUI(obj, attr, newVal);
+            }
         });
     }
 
     _defineProterties() {
         if (! this.headers || !this.datas)
             return;
-        let attrs = [];
+        let hds = [];
         for (let i = 0; i < this.headers.length; i++) {
             if (this.headers[i].defined)
-                attrs.push(this.headers[i]);
+                hds.push(this.headers[i]);
         }
-        if (! attrs.length)
+        if (! hds.length)
             return;
         for (let i = 0; i < this.datas.length; i++) {
             let cur = this.datas[i];
-            for (let j = 0; j < attrs.length; j++) {
+            for (let j = 0; j < hds.length; j++) {
                 if (! cur) continue;
-                this._defineAttr(cur, attrs[j], cur[attrs[j].name]);
+                this._defineAttr(cur, hds[j], cur[hds[j].name]);
             }
         }
     }
@@ -82,15 +95,21 @@ class StockTable {
         let mdata = {};
         for (let i = data.length - 1; i >= 0; i--) {
             let code = data[i].code;
+            if (!data[i].secu_code && code) {
+                data[i].secu_code = code[0] == '6' ? 'sh' + code : 'sz' + code;
+            }
             if (data[i].secu_code) {
                 code = this.buildUI_stdCode(data[i].secu_code);
             }
-            if (! code) {
+            if (!code || (code[0] != '0' && code[0] != '3' && code[0] != '6')) {
                 data.splice(i, 1);
             } else {
                 data[i].code = code;
                 mdata[data[i].secu_code] = data[i];
             }
+        }
+        for (let i = 0; i < data.length; i++) {
+            data[i].__rowIdx__ = i;
         }
         this.lastSortHeader = null;
         this.trs = {};
@@ -106,13 +125,13 @@ class StockTable {
             return;
         }
         let tr = $('<tr style="vertical-align: middle; "> </tr>');
-        tr.append($('<th width=50> </th>')); // row no column
         for (let i = 0; i < this.headers.length; i++) {
             let cur = this.headers[i];
-            cur['#colIdx#'] = i;
+            cur['__colIdx__'] = i;
             let hd = $('<th> ' + cur.text + ' </th>');
             for (let k in cur) {
-                hd.attr(k, cur[k]);
+                if (typeof(cur[k]) != 'function')
+                    hd.attr(k, cur[k]);
             }
             tr.append(hd);
         }
@@ -130,11 +149,14 @@ class StockTable {
     }
 
     initHeadersDefault() {
+        let thiz = this;
+        this.headers.splice(0, 0, {name: '__rowIdx__', text: '', width:50 })
         for (let i = 0; i < this.headers.length; i++) {
             let k = this.headers[i].name;
             let header = this.headers[i];
 
             if (k == 'hots') {
+                header.defined = true;
                 if (! header.sortVal) {
                     header.sortVal = function(rowData) {
                         return rowData.hots && rowData.hots > 0 ? 1000 - rowData.hots : 0
@@ -143,65 +165,67 @@ class StockTable {
             }
             let formater = header.formater;
             if (formater) {
-                return;
+                continue;
             }
-            if (k == 'code') {
-                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+            if (k == '__rowIdx__') {
+                header.formater = function(rowIdx, rowData, head, tdObj) {
+                    tdObj.text(rowData.__rowIdx__ + 1);
+                }
+            } else if (k == 'code') {
+                header.formater = function(rowIdx, rowData, head, tdObj) {
                     tdObj.append($('<span> <a href="https://www.cls.cn/stock?code=' + rowData.secu_code + '" target=_blank> <span style="color:#383838; font-weight:bold;" >' + 
                     rowData.secu_name + '</span> </a> <br/> <span style="color:#666;font-size:12px;"> ' + rowData.code + '</span></span> '));
                 }
-                
             } else if (k == 'hots') {
-                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                header.formater = function(rowIdx, rowData, head, tdObj) {
                     let val = rowData.hots ? rowData.hots : '';
-                    tdObj.append($(val));
+                    tdObj.text(val);
                 }
             } else if (k == 'change') {
-                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                header.formater = function(rowIdx, rowData, head, tdObj) {
                     let val = rowData.change || 0;
                     val = (val * 100).toFixed(2) + '%';
-                    if (row.change >= 0)
+                    if (rowData.change >= 0)
                         tdObj.css('color', '#de0422');
                     else
                         tdObj.css('color', '#52C2A3');
-                    tdObj.append($(val));
+                    tdObj.text(val);
                 }
             } else if (k == 'cmc') {
-                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                header.formater = function(rowIdx, rowData, head, tdObj) {
                     let val = parseInt(rowData.cmc / 100000000) + '亿';
-                    tdObj.append($(val));
+                    tdObj.text(val);
                 }
             } else if (k == 'fundflow') {
-                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                header.formater = function(rowIdx, rowData, head, tdObj) {
                     let val = parseInt(rowData.fundflow / 10000) + '万';
-                    tdObj.append($(val));
+                    tdObj.text(val);
                 }
             } else if (k == 'assoc_desc' || k == 'up_reason') {
-                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                header.formater = function(rowIdx, rowData, head, tdObj) {
                     tdObj.addClass('pl20');
-                    tdObj.attr('title', rowData[name]);
+                    tdObj.attr('title', rowData[head.name]);
                     tdObj.css('font-size', '12px');
-                    tdObj.append($(this.buildUI_elipse(rowData[name])));
+                    tdObj.html(thiz.buildUI_elipse(rowData[head.name]));
                 }
             } else if (k == 'fs') {
-                let thiz = this;
-                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                header.formater = function(rowIdx, rowData, head, tdObj) {
                     tdObj.addClass('fs');
-                    let view = this.createTimeLineView(rowData.secu_code, 300, 60);
+                    let view = thiz.createTimeLineView(rowData.secu_code, 300, 60);
                     view.key = rowData.key;
                     tdObj.append(view.canvas);
                     view.addListener('LoadDataEnd', function(evt) {thiz.onLoadFsDataEnd(evt);});
                 }
             } else if (k == 'zs') {
-                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                header.formater = function(rowIdx, rowData, head, tdObj) {
                     let val = !rowData['zs'] ? '' : rowData['zs'];
                     tdObj.addClass('zs');
-                    tdObj.append($(val));
+                    tdObj.text(val);
                 }
             } else {
-                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
-                    let val = rowData[name];
-                    tdObj.append($(val == undefined ? '' : val));
+                header.formater = function(rowIdx, rowData, head, tdObj) {
+                    let val = rowData[head.name];
+                    tdObj.text(val == undefined ? '' : val);
                 }
             }
         }
@@ -209,15 +233,11 @@ class StockTable {
 
     buildRowUI(idx, rowData) {
         let tr = $('<tr style="vertical-align: middle;" code="' + rowData.secu_code + '"> </tr>');
-        tr.append($('<td style="text-align:center;">' + (idx + 1) + ' </td> '));
         for (let i = 0; i < this.headers.length; i++) {
-            let hd = '';
-            let k = this.headers[i].name;
-            let formater = this.headers[i].formater;
-            if (formater) {
-                hd = $('<td> ' + formater(rowData) + '</td>');
-            }
-            tr.append(hd);
+            let ff = this.headers[i].formater;
+            let td = $('<td> </td>');
+            tr.append(td);
+            ff(idx, rowData, this.headers[i], td);
         }
         return tr;
     }
@@ -229,6 +249,7 @@ class StockTable {
         let thiz = this;
         for (let i = 0; i < this.datas.length; i++) {
             let sd = this.datas[i];
+            sd.__rowIdx__ = i;
             sd.key = sd.secu_code;
             let tr = this.buildRowUI(i, sd);
             this.table.append(tr);
@@ -333,12 +354,11 @@ class StockTable {
         for (let k in this.trs) {
             this.trs[k].detach();
         }
-        let no = 1;
         for (let i = 0; i < this.datas.length; i++) {
-            let code = this.datas[i].secu_code;
-            if (this.trs[code]) {
-                this.table.append(this.trs[code]);
-                this.trs[code].find('td:first').text(String(no ++));
+            let it = this.datas[i];
+            it.__rowIdx__ = i;
+            if (this.trs[it.key]) {
+                this.table.append(this.trs[it.key]);
             }
         }
     }
@@ -346,28 +366,10 @@ class StockTable {
     mergeHotsZH() {
         if (!this.hotsZH || !this.datasMap || !this.headers)
             return;
-        let hotIdx = -1;
-        for (let i = 0; i < this.headers.length; i++) {
-            if (this.headers[i].name == 'hots') {
-                hotIdx = i;
-            }
-        }
-        if (hotIdx < 0)
-            return;
-        if (! this.headers[hotIdx].sortVal) {
-            this.headers[hotIdx].sortVal = function(rowData) {
-                return rowData.hots > 0 ? 1000 - rowData.hots : 0
-            }
-        }
-        hotIdx += 1; // first is row no
         for (let scode in this.datasMap) {
             let it = this.datasMap[scode];
             let hots = this.hotsZH[it.code] ? this.hotsZH[it.code].zhHotOrder : 0;
             it.hots = hots;
-            //it.sortHots = hots > 0 ? 1000 - hots : 0;
-            if (hots > 0 && this.trs[it.key]) {
-                this.trs[it.key].find('td:nth-child(' + (hotIdx + 1) + ')').text(hots);
-            }
         }
     }
 
@@ -386,7 +388,10 @@ class StockTable {
     buildUI_stdCode(code) {
         let tag = code.substring(0, 2);
         if (tag == 'sz' || tag == 'sh') {
-            return code.substring(2);
+            code = code.substring(2);
+            if (code[0] == '0' || code[0] == '6' || code[0] == '3')
+                return code;
+            return null;
         }
         tag = code.substring(0, 3);
         if (tag == 'cls') {
