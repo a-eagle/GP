@@ -184,7 +184,7 @@ class Server:
             st = datetime.datetime.now().strftime('%H:%M')
             if st < '09:30' or st > '15:00':
                 return
-            days = ths_iwencai.getTradeDays(daysNum)
+            days = ths_iwencai.getTradeDays_Cache(daysNum)
             if not days:
                 return
             maxDay = tck_orm.CLS_HotTc.select(pw.fn.max(tck_orm.CLS_HotTc.day)).scalar()

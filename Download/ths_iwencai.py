@@ -430,5 +430,5 @@ def getTradeDays_Cache(prev = 60):
 
 
 if __name__ == '__main__':
-    getTradeDays_Cache()
+    getTradeDays()
     pass

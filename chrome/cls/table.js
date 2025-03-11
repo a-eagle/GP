@@ -4,7 +4,7 @@
  *   st.buildUI();
  */
 class StockTable {
-    // headers = [ {text: 'xxx', name: 'xx', width: 60, sortable: true, sortVal: function(rowData) }, ...]
+    // headers = [ {text: 'xxx', name: 'xx', width: 60, sortable: true, sortVal: function(rowData), defined? : true, formater?: function(rowIdx, rowData) }, ...]
     // fix headers : 'zs' 涨速, 'hots': 热度
     constructor(headers) {
         this.headers = headers;
@@ -31,6 +31,7 @@ class StockTable {
         this.table = tab;
         if (this.headers) {
             this.buildHeadersUI(); //  <th width=300>简介</th> <th width=300 >分时图</th> </tr>');
+            this.initHeadersDefault();
         }
     }
 
@@ -43,6 +44,36 @@ class StockTable {
         return view;
     }
 
+    _updateAttrUI(obj, attr, val) {
+
+    }
+
+    _defineAttr(obj, attr, val) {
+        Object.defineProperty(obj, attr.name, {
+            get: function() {return val;},
+            set: function(newVal) {if (val == newVal) return; val = newVal; this._updateAttrView(obj, attr, newVal);}
+        });
+    }
+
+    _defineProterties() {
+        if (! this.headers || !this.datas)
+            return;
+        let attrs = [];
+        for (let i = 0; i < this.headers.length; i++) {
+            if (this.headers[i].defined)
+                attrs.push(this.headers[i]);
+        }
+        if (! attrs.length)
+            return;
+        for (let i = 0; i < this.datas.length; i++) {
+            let cur = this.datas[i];
+            for (let j = 0; j < attrs.length; j++) {
+                if (! cur) continue;
+                this._defineAttr(cur, attrs[j], cur[attrs[j].name]);
+            }
+        }
+    }
+
     // should call setDay before setData
     setData(data) {
         if (data == this.datas || !data) {
@@ -50,7 +81,10 @@ class StockTable {
         }
         let mdata = {};
         for (let i = data.length - 1; i >= 0; i--) {
-            let code = this.buildUI_stdCode(data[i].secu_code);
+            let code = data[i].code;
+            if (data[i].secu_code) {
+                code = this.buildUI_stdCode(data[i].secu_code);
+            }
             if (! code) {
                 data.splice(i, 1);
             } else {
@@ -63,6 +97,7 @@ class StockTable {
         this.tlMgr = new TimeLineUIManager();
         this.datas = data;
         this.datasMap = mdata;
+        this._defineProterties()
         this.loadHotsZH();
     }
 
@@ -74,6 +109,7 @@ class StockTable {
         tr.append($('<th width=50> </th>')); // row no column
         for (let i = 0; i < this.headers.length; i++) {
             let cur = this.headers[i];
+            cur['#colIdx#'] = i;
             let hd = $('<th> ' + cur.text + ' </th>');
             for (let k in cur) {
                 hd.attr(k, cur[k]);
@@ -93,6 +129,84 @@ class StockTable {
         this.table.append(tr);
     }
 
+    initHeadersDefault() {
+        for (let i = 0; i < this.headers.length; i++) {
+            let k = this.headers[i].name;
+            let header = this.headers[i];
+
+            if (k == 'hots') {
+                if (! header.sortVal) {
+                    header.sortVal = function(rowData) {
+                        return rowData.hots && rowData.hots > 0 ? 1000 - rowData.hots : 0
+                    }
+                }
+            }
+            let formater = header.formater;
+            if (formater) {
+                return;
+            }
+            if (k == 'code') {
+                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                    tdObj.append($('<span> <a href="https://www.cls.cn/stock?code=' + rowData.secu_code + '" target=_blank> <span style="color:#383838; font-weight:bold;" >' + 
+                    rowData.secu_name + '</span> </a> <br/> <span style="color:#666;font-size:12px;"> ' + rowData.code + '</span></span> '));
+                }
+                
+            } else if (k == 'hots') {
+                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                    let val = rowData.hots ? rowData.hots : '';
+                    tdObj.append($(val));
+                }
+            } else if (k == 'change') {
+                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                    let val = rowData.change || 0;
+                    val = (val * 100).toFixed(2) + '%';
+                    if (row.change >= 0)
+                        tdObj.css('color', '#de0422');
+                    else
+                        tdObj.css('color', '#52C2A3');
+                    tdObj.append($(val));
+                }
+            } else if (k == 'cmc') {
+                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                    let val = parseInt(rowData.cmc / 100000000) + '亿';
+                    tdObj.append($(val));
+                }
+            } else if (k == 'fundflow') {
+                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                    let val = parseInt(rowData.fundflow / 10000) + '万';
+                    tdObj.append($(val));
+                }
+            } else if (k == 'assoc_desc' || k == 'up_reason') {
+                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                    tdObj.addClass('pl20');
+                    tdObj.attr('title', rowData[name]);
+                    tdObj.css('font-size', '12px');
+                    tdObj.append($(this.buildUI_elipse(rowData[name])));
+                }
+            } else if (k == 'fs') {
+                let thiz = this;
+                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                    tdObj.addClass('fs');
+                    let view = this.createTimeLineView(rowData.secu_code, 300, 60);
+                    view.key = rowData.key;
+                    tdObj.append(view.canvas);
+                    view.addListener('LoadDataEnd', function(evt) {thiz.onLoadFsDataEnd(evt);});
+                }
+            } else if (k == 'zs') {
+                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                    let val = !rowData['zs'] ? '' : rowData['zs'];
+                    tdObj.addClass('zs');
+                    tdObj.append($(val));
+                }
+            } else {
+                header.formater = header.formater || function(rowIdx, rowData, name, tdObj) {
+                    let val = rowData[name];
+                    tdObj.append($(val == undefined ? '' : val));
+                }
+            }
+        }
+    }
+
     buildRowUI(idx, rowData) {
         let tr = $('<tr style="vertical-align: middle;" code="' + rowData.secu_code + '"> </tr>');
         tr.append($('<td style="text-align:center;">' + (idx + 1) + ' </td> '));
@@ -102,32 +216,6 @@ class StockTable {
             let formater = this.headers[i].formater;
             if (formater) {
                 hd = $('<td> ' + formater(rowData) + '</td>');
-            }else if (k == 'code') {
-                hd = $('<td> <a href="https://www.cls.cn/stock?code=' + rowData.secu_code + '" target=_blank> <span style="color:#383838; font-weight:bold;" >' + 
-                rowData.secu_name + '</span> </a> <br/> <span style="color:#666;font-size:12px;"> ' + rowData.code + '</span></td> ');
-            } else if (k == 'hots') {
-                hd = $(this.buildUI_hotsZH(rowData));
-            } else if (k == 'change') {
-                hd = $(this.buildUI_zf(rowData));
-            } else if (k == 'cmc') {
-                hd = $('<td>' + parseInt(rowData.cmc / 100000000) + '亿 </td>');
-            } else if (k == 'fundflow') {
-                hd = $('<td>' + parseInt(rowData.fundflow / 10000) + '万 </td>');
-            } else if (k == 'assoc_desc' || k == 'up_reason') {
-                hd = $('<td class="pl20" title="' + rowData[k] + '" style="font-size:12px;">' + this.buildUI_elipse(rowData[k]) + '</td>');
-            } else if (k == 'fs') {
-                hd = $('<td class="fs" > </td>');
-                let view = this.createTimeLineView(rowData.secu_code, 300, 60);
-                view.key = rowData.key;
-                hd.append(view.canvas);
-                let thiz = this;
-                view.addListener('LoadDataEnd', function(evt) {thiz.onLoadFsDataEnd(evt);});
-            } else if (k == 'zs') {
-                let v = !rowData['zs'] ? '' : rowData['zs'];
-                hd = $('<td class="zs" > ' + v + ' </td>');
-            } else {
-                let d = rowData[k];
-                hd = $('<td> ' + (d == undefined ? '' : d) + ' </td>');
             }
             tr.append(hd);
         }
@@ -155,7 +243,11 @@ class StockTable {
         if (code.substring(0, 2) == 'sz' || code.substring(0, 2) == 'sh') {
             code = code.substring(2);
         }
-        $.get('http://localhost:5665/openui/kline/' + code);
+        let params = '';
+        if (this.day) {
+            params = '?day=' + this.day;
+        }
+        $.get('http://localhost:5665/openui/kline/' + code + params);
     }
 
     onSortHead(td) {
@@ -281,8 +373,9 @@ class StockTable {
 
     loadHotsZH() {
         let thiz = this;
+        let day = this.day || ''
         $.ajax({
-            url: 'http://localhost:5665/get-hots', type: 'GET',
+            url: 'http://localhost:5665/get-hots?day=' + day, type: 'GET',
             success: function(resp) {
                 thiz.hotsZH = resp;
                 thiz.mergeHotsZH();

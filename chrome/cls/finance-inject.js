@@ -33,62 +33,6 @@ function formatDay(date) {
 	return y + '-' + m + '-' + d;
 }
 
-function _doHook(response) {
-	let data = response.response;
-	let len = response.headers['content-length'];
-	let url = response.config.url;
-		console.log(response);
-	if (url.indexOf('/quote/index/up_down_analysis') >= 0) {
-		let idx = url.indexOf('type=');
-		let type = url.substring(idx + 5, url.indexOf('&', idx + 5));
-		if (type == 'up_pool') type = 'ZT';
-		else if (type == 'continuous_up_pool') type = 'LB';
-		else if (type == 'up_open_pool') type = 'ZB';
-		else if (type == 'down_pool') type = 'DT';
-		adjustZTInfo(response, type);
-		//console.log(response, type);
-	}
-	if (url.indexOf('/v3/transaction/anchor') >= 0) {
-		let idx = url.indexOf('cdate=');
-		let cday = url.substring(idx + 6, idx + 6 + 10);
-		adjustAnchors(response, cday);
-		//loadTimeDegree();
-		loadDegrees_n();
-		console.log('/v3/transaction/anchor');
-	}
-	//console.log(response);
-}
-
-function adjustZTInfo(response, type) {
-	let body = response.response;
-	let json = JSON.parse(body);
-	//console.log('[Before]', json);
-	let rs = [];
-	for (i in json.data) {
-		let item = json.data[i];
-		if (item.is_st != 0)
-			continue
-		rs.push(item);
-	}
-	json.data = rs;
-	response.response = JSON.stringify(json);
-	//console.log('[After]', json);
-	//window.postMessage({cmd: 'ZT-INFO', data: rs}, '*');
-	window[type + '_Infos'] = rs;
-	/*
-	if (type == 'ZT') {
-		let text = '涨停&nbsp;' + rs.length;
-		if ($('#real-zt-div').length == 0) {
-			$('.event-querydate-box > div:eq(1)').hide();
-			let div = $('<div id="real-zt-div" style="float:left; font-size:20px; color: #ad1078; padding-left:20px;" > ' + text + '</div>');
-			$('.event-querydate-box').append(div);
-		} else {
-			$('#real-zt-div').html(text);
-		}
-	}
-	*/
-}
-
 function adjustAnchors(json, cday) {
 	//console.log('[adjustAnchors] cday=', cday);
 	if (! pageInfo.anchros) {
@@ -150,6 +94,8 @@ function sumGroup(anchrosCP) {
 	for (let i = 0; i < NUM && i < arr.length; i++) {
 		let item = arr[i];
 		if (i % COL_NUM == 0) {
+			if (item.num <= 2)
+				break;
 			tr = $('<tr> </tr>');
 			table.append(tr);
 		}
@@ -181,46 +127,6 @@ function getAnchrosByCode(code, maxDay, daysNum) {
 		}
 	}
 	return rs;
-}
-
-function openPopup() {
-	let thiz = $(this);
-	let code = thiz.attr('code');
-	console.log(code);
-	let up = window.anchrosCP[code + '#up'];
-	let down = window.anchrosCP[code + '#down'];
-	let arr = [];
-	for (let i = 0; up && i < up.items.length; i++) {
-		arr.push(up.items[i]);
-	}
-	for (let i = 0; down && i < down.items.length; i++) {
-		arr.push(down.items[i]);
-	}
-	arr.sort(function(a, b) {return b.c_time.localeCompare(a.c_time)});
-	let ui = $('<div class="content"> </div>');
-	for (let i = 0; i < arr.length; i++) {
-		let ctime = arr[i].c_time;
-		let day = ctime.substring(0, 10);
-		let time = ctime.substring(11);
-		let d = new Date(day);
-		let week = d.getDay();
-		week = '一二三四五'.charAt(week - 1);
-		day = '<span width="100px" style="margin-left:10px;" >' + day + '<span>';
-		time = '<span style="margin-left:10px;"> ' + time + '</span>';
-		let tag = '';
-		if (arr[i].float == 'down') {
-			tag = '&nbsp;&nbsp;跌';
-		}
-		ui.append($('<p style="' + arr[i].float + '">' + week + day + time + tag + ' </p>'));
-	}
-	$('.popup-container').empty();
-	$('.popup-container').css('display', 'block');
-	$('.popup-container').append(ui);
-	let tdRc = thiz.parent().get(0).getBoundingClientRect();
-	ui.css({
-		left: tdRc.left,
-		top: tdRc.bottom
-	});
 }
 
 function openChart() {
@@ -303,26 +209,6 @@ function openChart() {
 	new Chart(canvas.get(0), {type: 'line', data: cdata, options: {}});
 }
 
-function hook_proxy() {
-	ah.proxy({
-		onRequest:  function(config, handler) {
-			// console.log('Hook request ->', config);
-			handler.next(config)
-		},
-		
-		onError: function(err, handler) {
-			handler.next(err);
-		},
-		
-		onResponse:function(response, handler) {
-			_doHook(response);
-			handler.next(response);
-		},
-	});
-}
-
-//hook_proxy();
-
 function updateDegree_fs_UI(d) {
 	let canvas = $('#hots_canvas');
 	if (canvas.length == 0) {
@@ -393,6 +279,7 @@ function updateDegree_n_UI() {
 	
 	let cols = ['sday', 'degree', 'amount'];
 	let colsDesc = ['', '热度', '成交额'];
+	let WW = ['一', '二', '三', '四', '五'];
 	for (let c = 0; c < cols.length; c++) {
 		let tr = $('<tr> </tr>');
 		tr.append($('<th>' + colsDesc[c] + '</th>'));
@@ -408,6 +295,8 @@ function updateDegree_n_UI() {
 				} else {
 					v = v.substring(2);
 				}
+				let dx = new Date(datas[i].day);
+				v += '<br/>' + WW[dx.getDay() - 1];
 			} else if (cols[c] == 'degree') {
 				clazz = c == 0 ? '' : (v >= 50 ? 'red' : 'green');
 				let fb = datas[i]['fb'];
@@ -457,13 +346,15 @@ function updateDegree_n_UI() {
 		pageInfo.anchrosView.loadData(data.day, function(av) {
 			adjustAnchors(av, data.day);
 		});
-		loadUpDown('涨停池');
+		let zdn = $('#my-tab-nav > .toggle-nav-active').text();
+		loadUpDown(zdn);
 	}
 	table.find('td, th').hover(inFunction, outFunction);
 	table.find('td').click(onClick);
 }
 
 function updateZdfb_UI(data) {
+	// console.log(data);
 	let tds = $('#zdfb_table td');
 	let dayTh = $('#zdfb_table *[v=day]');
 	dayTh.text(data.day);
@@ -480,9 +371,22 @@ function updateZdfb_UI(data) {
 	tds.eq(0).text(udd.up);
 	tds.eq(1).text(udd.zt);
 	tds.eq(2).text(udd.up_8 + udd.up_10);
-	tds.eq(3).text(udd.down);
-	tds.eq(4).text(udd.dt);
-	tds.eq(5).text(udd.down_8 + udd.down_10);
+	let dgr = tds.eq(3);
+	if (data.degree && data.degree >= 50) {
+		dgr.removeClass('green');
+		dgr.addClass('red');
+		dgr.text(String(data.degree) + '°');
+	} else if (data.degree) {
+		dgr.removeClass('red');
+		dgr.addClass('green');
+		dgr.text(String(data.degree) + '°');
+	} else {
+		dgr.text('');
+	}
+	
+	tds.eq(4).text(udd.down);
+	tds.eq(5).text(udd.dt);
+	tds.eq(6).text(udd.down_8 + udd.down_10);
 }
 
 function wrapAnchor(name) {
@@ -536,13 +440,13 @@ function initUI() {
 	let md1 = $('<div class="my-info-item p-r b-c-222" > <table id="hots_table"> </table> </div>');
 	let md2 = $('<div class="my-info-item p-r b-c-222" > <canvas id="hots_canvas"> </canvas> </div>');
 	let md3 = $('<div class="my-info-item p-r b-c-222" style="height: 70px;"  > <table id="zdfb_table">'+
-				"<tr class='red'> <th> 日期 </th> <th> 上涨数 </th> <td> </td>  <th> 涨停 </th> <td> </td> <th> 涨幅>8% </th> <td> </td> </tr>" +
-				"<tr class='green'> <th v='day'> </th>  <th> 下跌数 </th> <td> </td>  <th> 跌停 </th> <td> </td> <th> 跌幅>8% </th> <td> </td> </tr>" +
+				"<tr class='red'> <th> 日期 </th> <th> 热度</th>  <th> 上涨数 </th> <td> </td>  <th> 涨停 </th> <td> </td> <th> 涨幅>8% </th> <td> </td> </tr>" +
+				"<tr class='green'> <th v='day'> </th> <td> </td>  <th> 下跌数 </th> <td> </td>  <th> 跌停 </th> <td> </td> <th> 跌幅>8% </th> <td> </td> </tr>" +
 				' </table>  </div>');
 	let md4 = $('<div class="my-info-item p-r b-c-222" style="height: 400px;"> <canvas id="fs_canvas" > </canvas> </div>');
 	let md5 = $('<div id="hots" class="my-info-item p-r m-b-20  b-c-222"></div>');
 	let md6 = $('<div id="my-tab-nav" class="clearfix w-100p f-s-14 c-747474 toggle-nav-box finance-toggle-nav">' +
-				'<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div>' + '</div>');
+				'<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div> <div >热度榜</div>' + '</div>');
 	let md7 = $('<div id = "up-down" class="my-info-item p-r b-c-222" style="">  </div>');
 	group.append(md1).append(md2).append(md3).append(md4).append(md5).append(md6).append(md7);
 	$('.watch-content-left > div:gt(1)').hide();
@@ -677,6 +581,10 @@ function loadDegrees_n() {
 }
 
 function loadUpDown(name) {
+	if (name == '热度榜') {
+		loadTopHots(name);
+		return;
+	}
 	if (pageInfo.curDay == pageInfo.lastTradeDay) {
 		let ks = {'涨停池': 'up_pool', '连板池': 'continuous_up_pool', '炸板池': 'up_open_pool', '跌停池': 'down_pool'};
 		let url = 'https://x-quote.cls.cn/quote/index/up_down_analysis?'
@@ -696,7 +604,8 @@ function loadUpDown(name) {
 		let sql = 'select * from cls_updown where day = "' + pageInfo.curDay + '" ';
 		if (name == '涨停池') sql += ' and limit_up_days > 0';
 		else if (name == '连板池') sql += ' and limit_up_days > 1';
-		else if (name == '炸板池') sql += ' and limit_up_days = 0 and change > -0.8';
+		else if (name == '炸板池') sql += ' and limit_up_days = 0 and is_down = 0';
+		else sql += ' and is_down = 1';
 		$.ajax({
 			url : 'http://localhost:5665/query-by-sql/tck',
 			data: {'sql': sql},
@@ -707,8 +616,26 @@ function loadUpDown(name) {
 	}
 }
 
-function updateUpDownUI(name) {
-	let data = pageInfo.upDownData[pageInfo.curDay + name];
+function loadTopHots(name) {
+	let day = pageInfo.curDay.replaceAll('-', '');
+	let sql = 'select * from 个股热度综合排名 where 日期 = ' + day + ' ';
+	$.ajax({
+		url : 'http://localhost:5665/query-by-sql/hot_zh',
+		data: {'sql': sql},
+		success: function(resp) {
+			for (let i = 0; i < resp.length; i++) {
+				let cc = String(resp[i].code);
+				for (let j = cc.length; j < 6; j++) {
+					cc = '0' + cc;
+				}
+				resp[i].code = cc;
+			}
+			updateUpDownUI(name, resp);
+		}
+	});
+}
+
+function updateUpDownUI(name, data) {
 	if (! data) {
 		$('#up-down').empty();
 		return;
@@ -725,12 +652,21 @@ function updateUpDownUI(name) {
 			{text: '动因', 'name': 'up_reason', width: 250, sortable: true, style},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
-	} else {
+	} else if (name == '炸板池' || name == '跌停池') {
 		hd = [
 			{text: '股票/代码', 'name': 'code', width: 80, style},
 			{text: '涨跌幅', 'name': 'change', width: 70, sortable: true, style},
+			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style},
+			{text: '热度', 'name': 'hots', width: 50, sortable: true, style},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
+	} else if (name == '热度榜') {
+		hd = [
+			{text: '股票/代码', 'name': 'code', width: 80, style},
+			{text: '热度', 'name': 'hots', width: 50, sortable: true, style},
+			{text: '分时图', 'name': 'fs', width: 300},
+		];
+		console.log(data);
 	}
 	let st = new StockTable(hd);
 	st.initStyle();

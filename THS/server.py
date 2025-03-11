@@ -61,6 +61,8 @@ class Server:
             rs = hz.getHotsZH(day)
         else:
             rs = hz.getNewestHotZH()
+        if not rs:
+            return []
         m = {}
         for k in rs:
             fk = f'{k :06d}'
