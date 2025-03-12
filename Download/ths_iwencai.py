@@ -94,13 +94,15 @@ def iwencai_load_page_n(page : int, moreUrl):
 # 例： question = '个股及行业板块' -->  http://www.iwencai.com/unifiedwap/result?w=个股及行业板块&querytype=stock
 # intent = 'stock' | 'zhishu' 用于指明是个股还是指数
 # input_type = 'typewrite' | 'click'
+# maxPage = int | None(all pages)
 # @return list
-def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite'):
+def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite', maxPage = None):
     rs = []
     try:
         data1, urlMore, count = iwencai_load_page_1(question, intent, input_type)
         rs.extend(data1)
-        maxPage = (count + 99) // 100
+        if maxPage is None:
+            maxPage = (count + 99) // 100
         for i in range(2, maxPage + 1):
             datas = iwencai_load_page_n(i, urlMore)
             rs.extend(datas)
@@ -430,5 +432,5 @@ def getTradeDays_Cache(prev = 60):
 
 
 if __name__ == '__main__':
-    getTradeDays()
+    data = iwencai_load_list('个股成交额排名, 20250312', maxPage = 2)
     pass

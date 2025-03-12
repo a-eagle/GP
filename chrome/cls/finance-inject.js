@@ -352,7 +352,7 @@ function updateDegree_n_UI() {
 			adjustAnchors(av, data.day);
 		});
 		let zdn = $('#my-tab-nav > .toggle-nav-active').text();
-		loadUpDown(zdn);
+		loaTabNavi(zdn);
 	}
 	table.find('td, th').hover(inFunction, outFunction);
 	table.find('td').click(onClick);
@@ -451,7 +451,7 @@ function initUI() {
 	let md4 = $('<div class="my-info-item p-r b-c-222" style="height: 400px;"> <canvas id="fs_canvas" > </canvas> </div>');
 	let md5 = $('<div id="hots" class="my-info-item p-r m-b-20  b-c-222"></div>');
 	let md6 = $('<div id="my-tab-nav" class="clearfix w-100p f-s-14 c-747474 toggle-nav-box finance-toggle-nav">' +
-				'<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div> <div >热度榜</div>' + '</div>');
+				'<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div> <div >热度榜</div> ' + '</div>');
 	let md7 = $('<div id = "up-down" class="my-info-item p-r b-c-222" style="">  </div>');
 	group.append(md1).append(md2).append(md3).append(md4).append(md5).append(md6).append(md7);
 	$('.watch-content-left > div:gt(1)').hide();
@@ -463,7 +463,7 @@ function initUI() {
 			$('#my-tab-nav > .toggle-nav-active').removeClass('toggle-nav-active');
 			$(this).addClass('toggle-nav-active');
 		}
-		loadUpDown($(this).text().trim());
+		loaTabNavi($(this).text().trim());
 	});
 }
 
@@ -585,7 +585,7 @@ function loadDegrees_n() {
 	});
 }
 
-function loadUpDown(name) {
+function loaTabNavi(name) {
 	if (name == '热度榜') {
 		loadTopHots(name);
 		return;
@@ -631,7 +631,43 @@ function loadTopHots(name) {
 				resp[k].secu_name = resp[k].name;
 				rs.push(resp[k]);
 			}
-			rs.sort(function(a, b) {return a.zhHotOrder - b.zhHotOrder})
+			rs.sort(function(a, b) {return a.zhHotOrder - b.zhHotOrder});
+			loadTopAmounts(name, rs);
+		}
+	});
+}
+
+function loadTopAmounts(name, rs) {
+	let day = pageInfo.curDay;
+	day = day.replaceAll('-', '');
+	$.ajax({
+		url: 'http://localhost:5665/iwencai', type: 'GET',
+		data: {q: '个股成交额排名, ' + day, maxPage : 2},
+		success: function(resp) {
+			let amountAttrName = 'amount';
+			if (resp && resp.length > 0) {
+				for (let k in resp[0]) {
+					if (k.indexOf('成交额[') >= 0) amountAttrName = k;
+				}
+			}
+			let map = {};
+			for (let k = 0; k < resp.length; k++) {
+				resp[k].secu_name = resp[k].股票简称;
+				resp[k].change = resp[k].最新涨跌幅;
+				resp[k].amount = parseFloat(resp[k][amountAttrName]) / 100000000;
+				resp[k].amountIdx = k + 1;
+				map[resp[k].code] = resp[k];
+			}
+			for (let i = 0; i < rs.length; i++) {
+				let code = rs[i].code;
+				if (map[code]) {
+					rs[i].amount = map[code].amount;
+					rs[i].amountIdx = map[code].amountIdx;
+				} else {
+					rs[i].amount = 0;
+					rs[i].amountIdx = 0;
+				}
+			}
 			updateUpDownUI(name, rs);
 		}
 	});
@@ -645,6 +681,14 @@ function updateUpDownUI(name, data) {
 	let hd = null;
 	function lbFormater(idx, rowData, header, tdObj) {
 		tdObj.text(String(rowData.limit_up_days) + '板');
+	}
+	function lbAmount(idx, rowData, header, tdObj) {
+		if (! rowData.amount) {
+			tdObj.text('');
+			return;
+		}
+		let v = String(parseInt(rowData.amount)) + ' 亿<br/>( ' + rowData.amountIdx + ' )';
+		tdObj.html(v);
 	}
 	if (name == '涨停池' || name == '连板池') {
 		hd = [
@@ -673,6 +717,7 @@ function updateUpDownUI(name, data) {
 			{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
 			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
 			{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
+			{text: '成交额', 'name': 'amount', width: 50, sortable: true, formater : lbAmount, defined: true},
 			{text: '热度', 'name': 'hots', width: 50, sortable: true},
 			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
 			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},

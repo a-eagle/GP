@@ -1,4 +1,4 @@
-import threading, sys
+import threading, sys, traceback
 import flask, flask_cors
 import win32con, win32gui, peewee as pw
 
@@ -24,6 +24,7 @@ class Server:
         self.app.add_url_rule('/get-time-degree', view_func = self.getTimeDegree)
         self.app.add_url_rule('/query-by-sql/<dbName>', view_func = self.queryBySql)
         self.app.add_url_rule('/get-trade-days', view_func = self.getTradeDays)
+        self.app.add_url_rule('/iwencai', view_func = self.queryIWenCai)
         self.app.run('localhost', 5665, use_reloader = False, debug = False)
 
     def openUI_Timeline(self, code, day):
@@ -136,6 +137,21 @@ class Server:
         for d in days:
             rs.append(f"{d[0 : 4]}-{d[4 : 6]}-{d[6 : 8]}")
         return rs
+
+    def queryIWenCai(self):
+        try:
+            from Download import ths_iwencai
+            q = flask.request.args.get('q', None)
+            if not q:
+                return None
+            maxPage = flask.request.args.get('maxPage', 1, int)
+            if maxPage < 0:
+                maxPage = None
+            data = ths_iwencai.iwencai_load_list(q, maxPage = maxPage)
+            return data
+        except Exception as e:
+            traceback.print_exc()
+        return None
 
 if __name__ == '__main__':
     s = Server()
