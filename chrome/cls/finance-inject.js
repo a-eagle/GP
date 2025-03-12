@@ -201,7 +201,12 @@ function openChart() {
 	$('.popup-container').css('display', 'block');
 	$('.popup-container').append(ui);
 	let tdRc = thiz.parent().get(0).getBoundingClientRect();
-	ui.css({left: tdRc.left, top: tdRc.bottom});
+	let dw = $(window.document).width();
+	if (dw < tdRc.left + ui.width()) {
+		ui.css({left: dw - ui.width() - 10, top: tdRc.bottom});
+	} else {
+		ui.css({left: tdRc.left, top: tdRc.bottom});
+	}
 	ui.append(canvas);
 	canvas.width(ui.width());
 	canvas.height(ui.height());
@@ -663,10 +668,12 @@ function updateUpDownUI(name, data) {
 	} else if (name == '热度榜') {
 		hd = [
 			{text: '股票/代码', 'name': 'code', width: 80, style},
-			{text: '行业', 'name': 'ths_hy', width: 200, sortable: true, style},
+			{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, style},
+			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, style, defined: true},
+			{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, style, defined: true},
+			{text: '热度', 'name': 'hots', width: 50, sortable: true, style},
 			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, style, defined: true},
 			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style, defined: true},
-			{text: '热度', 'name': 'hots', width: 50, sortable: true, style},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
 	}

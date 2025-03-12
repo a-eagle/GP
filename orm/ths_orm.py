@@ -205,7 +205,7 @@ class THS_ZT(pw.Model):
 
     class Meta:
         #database = db_zt
-        table_name = 'ths_zt'       
+        table_name = 'ths_zt'
 
 #db_f10.create_tables([THS_JGCG, THS_HYDB, THS_Top10_LTGD, THS_Newest])
 db_hot.create_tables([THS_Hot])

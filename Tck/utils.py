@@ -1,12 +1,13 @@
 import win32gui, win32con , win32api, win32ui, pyautogui # pip install pywin32
 import threading, time, datetime, sys, os, copy
-import os, sys, requests
+import os, sys, requests, peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import ths_orm, cls_orm
+from orm import ths_orm, cls_orm, tck_orm
 
 ths_gntc_s = {}
 cls_gntc_s = {}
+ths_cls_zt_reason_s = {'loadTime': 0}
 
 def _init():
     q = ths_orm.THS_GNTC.select().dicts()
@@ -17,6 +18,38 @@ def _init():
         cls_gntc_s[it['code']] = it
 
 _init()
+
+def get_CLS_THS_ZT_Reason(code):
+    if type(code) == int:
+        code = f'{code :06d}'
+    if time.time() - ths_cls_zt_reason_s['loadTime'] <= 30 * 60:
+        return ths_cls_zt_reason_s.get(code, None)
+    ths_cls_zt_reason_s['loadTime'] = time.time()
+    qr = tck_orm.THS_ZT.select(tck_orm.THS_ZT.code, tck_orm.THS_ZT.ztReason).where(
+                                                              tck_orm.THS_ZT.id.in_(
+                                                                  tck_orm.THS_ZT.select(pw.fn.max(tck_orm.THS_ZT.id)).where(
+                                                                      tck_orm.THS_ZT.ztReason != '').group_by(tck_orm.THS_ZT.code)
+                                                              )
+                                                              ).tuples()
+    for it in qr:
+        obj = ths_cls_zt_reason_s.get(it[0])
+        if not obj:
+            obj = {'code': it[0], 'ths_ztReason': '', 'cls_ztReason': ''}
+            ths_cls_zt_reason_s[it[0]] = obj
+        obj['ths_ztReason'] = it[1]
+    qr = tck_orm.CLS_ZT.select(tck_orm.CLS_ZT.code, tck_orm.CLS_ZT.ztReason).where(
+                                                              tck_orm.CLS_ZT.id.in_(
+                                                                  tck_orm.CLS_ZT.select(pw.fn.max(tck_orm.CLS_ZT.id)).where(
+                                                                      tck_orm.CLS_ZT.ztReason != '').group_by(tck_orm.CLS_ZT.code)
+                                                              )
+                                                              ).tuples()
+    for it in qr:
+        obj = ths_cls_zt_reason_s.get(it[0])
+        if not obj:
+            obj = {'code': it[0], 'ths_ztReason': '', 'cls_ztReason': ''}
+            ths_cls_zt_reason_s[it[0]] = obj
+        obj['cls_ztReason'] = it[1]
+    return ths_cls_zt_reason_s.get(code, None)
 
 # return ths_orm.THS_GNTC dict
 def get_THS_GNTC(code):
@@ -53,3 +86,12 @@ def formatDateTime(ts):
     ds = formatDate(ts)
     ms = f'{ts.hour :02d}:{ts.minute :02d}:{ts.second :02d}'
     return f'{ds} {ms}'
+
+
+if __name__ == '__main__':
+    c = time.time()
+    for k in ths_gntc_s:
+        rs = get_CLS_THS_ZT_Reason(k)
+        print(rs)
+    diff = time.time() - c
+    print(diff)

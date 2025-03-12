@@ -151,6 +151,7 @@ function loadUI() {
 	let st = window[tag + '_StockTable'];
     cnt.find('.watch-table').replaceWith(st.table);
     cnt.attr('name', tag);
+    window.st = st;
 }
 
 initPlatePage();

@@ -80,6 +80,8 @@ class Server:
             it['cls_hy'] = cl.get('hy', '')
             it['ths_hy'] = th.get('hy', '')
             it['ltsz'] = th.get('ltsz', 0) # 流通市值
+            zt = utils.get_CLS_THS_ZT_Reason(code)
+            if zt: it.update(zt)
         return m
     
     # day = YYYY-MM-DD
