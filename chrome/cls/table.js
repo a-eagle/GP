@@ -184,13 +184,18 @@ class StockTable {
             }
         } else if (k == 'hots') {
             header.formater = function(rowIdx, rowData, head, tdObj) {
-                let val = rowData.hots ? rowData.hots : '';
+                let val = '';
+                if (rowData.hots) val =  String(rowData.hots) + '°'
                 tdObj.text(val);
             }
         } else if (k == 'change') {
             header.formater = function(rowIdx, rowData, head, tdObj) {
-                let val = rowData.change || 0;
-                val = (val * 100).toFixed(2) + '%';
+                if (typeof(rowData.change) != 'number') {
+                    tdObj.text('');
+                    return;
+                }
+                let val = rowData.change;
+                val = (val * 100).toFixed(1) + '%';
                 if (rowData.change >= 0)
                     tdObj.css('color', '#de0422');
                 else
@@ -222,13 +227,25 @@ class StockTable {
                 tdObj.append(view.canvas);
                 view.addListener('LoadDataEnd', function(evt) {thiz.onLoadFsDataEnd(evt);});
             }
-        } else if (k == 'zs' || k == 'zf') {
+        } else if (k == 'zs') {
             header.formater = function(rowIdx, rowData, head, tdObj) {
                 let val = '';
-                if (typeof(rowData[k]) == 'number' && rowData[k]) {
-                    val = rowData[k].toFixed(1) + '%';
+                if (typeof(rowData.zs) == 'number' && rowData.zs) {
+                    val = '↑&nbsp;' + rowData.zs.toFixed(1) ;
                 }
-                tdObj.addClass('zs');
+                tdObj.html(val);
+            }
+        } else if ( k == 'zf') {
+            header.formater = function(rowIdx, rowData, head, tdObj) {
+                if (typeof(rowData.zf) != 'number') {
+                    tdObj.text('');
+                    return;
+                }
+                let val = rowData.zf.toFixed(1) + '%';
+                if (rowData.zf >= 0)
+                    tdObj.css('color', '#de0422');
+                else
+                    tdObj.css('color', '#52C2A3');
                 tdObj.text(val);
             }
         } else {

@@ -643,37 +643,39 @@ function updateUpDownUI(name, data) {
 		return;
 	}
 	let hd = null;
-	let style = 'text-align:center;'
 	function lbFormater(idx, rowData, header, tdObj) {
 		tdObj.text(String(rowData.limit_up_days) + '板');
 	}
 	if (name == '涨停池' || name == '连板池') {
 		hd = [
-			{text: '股票/代码', 'name': 'code', width: 80, style},
-			{text: '涨跌幅', 'name': 'change', width: 70, sortable: true, style},
-			{text: '连板', 'name': 'limit_up_days', width: 50, sortable: true, style, formater: lbFormater},
-			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style, defined: true},
-			{text: '热度', 'name': 'hots', width: 50, sortable: true, style},
-			{text: '动因', 'name': 'up_reason', width: 250, sortable: true, style},
+			{text: '股票/代码', 'name': 'code', width: 80},
+			{text: '涨跌幅', 'name': 'change', width: 70, sortable: true},
+			{text: '连板', 'name': 'limit_up_days', width: 50, sortable: true, formater: lbFormater},
+			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
+			{text: '热度', 'name': 'hots', width: 50, sortable: true},
+			{text: '动因', 'name': 'up_reason', width: 250, sortable: true},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
 	} else if (name == '炸板池' || name == '跌停池') {
 		hd = [
-			{text: '股票/代码', 'name': 'code', width: 80, style},
-			{text: '涨跌幅', 'name': 'change', width: 70, sortable: true, style},
-			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style, defined: true},
-			{text: '热度', 'name': 'hots', width: 50, sortable: true, style},
+			{text: '股票/代码', 'name': 'code', width: 80},
+			{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
+			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
+			{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
+			{text: '热度', 'name': 'hots', width: 50, sortable: true, full: true},
+			{text: '涨跌幅', 'name': 'change', width: 70, sortable: true},
+			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
 	} else if (name == '热度榜') {
 		hd = [
-			{text: '股票/代码', 'name': 'code', width: 80, style},
-			{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, style},
-			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, style, defined: true},
-			{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, style, defined: true},
-			{text: '热度', 'name': 'hots', width: 50, sortable: true, style},
-			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, style, defined: true},
-			{text: '涨速', 'name': 'zs', width: 50, sortable: true, style, defined: true},
+			{text: '股票/代码', 'name': 'code', width: 80},
+			{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
+			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
+			{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
+			{text: '热度', 'name': 'hots', width: 50, sortable: true},
+			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
+			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
 	}
