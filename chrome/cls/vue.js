@@ -15,7 +15,7 @@
         if (isObject(className)) {
             let rs = '';
             for (let k in className) {
-                if (className[k]) rs +=  k + ' ';
+                if (k != '_target' && className[k]) rs +=  k + ' ';
             }
             return rs;
         }
@@ -27,7 +27,7 @@
         if (isObject(style)) {
             let rs = '';
             for (let k in style) {
-                if (style[k] != null && style[k] != undefined) 
+                if (style[k] != null && style[k] != undefined && k != '_target')
                     rs +=  k + ':' + style[k] + '; ';
             }
             return rs;
@@ -38,7 +38,9 @@
         if (! isObject(obj))
             return;
         for (let k in obj) {
-            obj[k] = obj[k];
+            if (k != '_target')
+                obj[k] = obj[k];
+            console.log('notifyObject ', k, obj[k]);
         }
     }
 
@@ -46,7 +48,7 @@
         set: function(attrsObj, attr, value) {
             let el = attrsObj._target._elem;
             attrsObj[attr] = value;
-            if (! el) return;
+            if (! el) return true;
             el.setAttribute('class', classNameToString(attrsObj));
         },
         deleteProperty: function(attrsObj, attr) {
@@ -61,13 +63,14 @@
         set: function(attrsObj, attr, value) {
             let el = attrsObj._target._elem;
             attrsObj[attr] = value;
-            if (! el) return;
-            el.setAttribute('class', styleToString(attrsObj));
+            if (! el) return true;
+            el.setAttribute('style', styleToString(attrsObj));
         },
         deleteProperty: function(attrsObj, attr) {
             let el = attrsObj._target._elem;
             delete attrsObj[attr];
-            el.setAttribute('class', styleToString(attrsObj));
+            if (! el) return true;
+            el.setAttribute('style', styleToString(attrsObj));
             return true;
         }
     };
@@ -76,25 +79,25 @@
         set: function(attrsObj, attr, value) {
             let el = attrsObj._target._elem;
             let aValue = value;
-            if (attr == 'className' || attr == 'style') {
+            if (attr == 'class' || attr == 'style') {
                 if (value == null || value == undefined) {
                     aValue = null;
                     attrsObj[attr] = null;
                 } else if (isObject(value)) {
                     value._target = attrsObj._target;
-                    if (attr == 'className')
+                    if (attr == 'class')
                         attrsObj[attr] = new Proxy(value, classNameHandler);
                     else
                         attrsObj[attr] = new Proxy(value, styleHandler);
                 } else {
                     attrsObj[attr] = value;
                 }
-                if (attr == 'className')
+                if (attr == 'class')
                     aValue = classNameToString(value);
                 else
                     aValue = styleToString(value);
             }
-            if (el) {
+            if (el && attr != '_target') {
                 if (aValue == null || aValue == undefined) 
                     el.removeAttribute(attr);
                 else
@@ -104,15 +107,31 @@
         deleteProperty: function(attrsObj, attr) {
             let el = attrsObj._target._elem;
             if (el) {
-                if (attr == 'className')
-                    el.removeAttribute('class');
-                else
-                    el.removeAttribute(attr);
+                el.removeAttribute(attr);
             }
             delete attrsObj[attr];
             return true;
         }
     };
+
+    let eventsHandler = {
+        set: function(attrsObj, attr, value) {
+            let el = attrsObj._target._elem;
+            if (el) {
+                el.removeEventListener(attr, attrsObj[attr]);
+                if (typeof(value) == 'function')
+                    el.addEventListener(attr, value);
+            }
+            return true;
+        },
+        deleteProperty: function(attrsObj, attr) {
+            let el = attrsObj._target._elem;
+            if (el) {
+                el.removeEventListener(attr, attrsObj[attr]);
+            }
+            return true;
+        }
+    }
 
     function removeElemAttrs(elem, attrs) {
         if (! elem || !attrs) return;
@@ -120,29 +139,12 @@
             elem.removeAttribute(k);
         }
     };
-    function updateElemAttrs(elem, attrs) {
-        if (! elem || !attrs) return;
-        for (let k in attrs) {
-            if (k == 'className')
-               elem.setAttribute('class', classNameToString(attrs[j]));
-            else if (k == 'style')
-                elem.setAttribute('style', styleToString(attrs[j]));
-            else
-                elem.setAttribute(k, attrs[j]);
-        }
-    }
     function removeElemEvents(elem, events) {
         if (! elem || !events) return;
         for (let k in events) {
             elem.removeEventListener(k, events[k]);
         }
     };
-    function updateElemEvents(elem, events) {
-        if (! elem || !events) return;
-        for (let k in events) {
-            elem.addEventListener(k, events[k]);
-        }
-    }
 
     let targetHander = {
         set: function(target, attr, value) {
@@ -159,20 +161,21 @@
                 else target._elem.innerText = target[attr];
             } else if (attr == 'attrs' ) {
                 removeElemAttrs(target._elem, target[attr]);
-                target[attr]._target = target;
                 if (isObject(value)) {
+                    value._target = target;
                     target[attr] = new Proxy(value, attrsHandler);
                     notifyObject(target[attr]);
                 }
             } else if (attr == 'events') {
                 removeElemEvents(target._elem, target[attr]);
-                target[attr]._target = target;
                 if (isObject(value)) {
+                    value._target = target;
                     target[attr] = new Proxy(value, eventsHandler);
                     notifyObject(target[attr]);
                 }
+            } else {
+                target[attr] = value;
             }
-            target[attr] = value;
             return true;
         },
         deleteProperty: function(target, attr) {
@@ -183,25 +186,19 @@
         },
     };
 
-    // target.tag = 'button' | .. | 'text'
-    // target.attrs = {width : 100, ..., className: ...};
-    //                  className = string | {class: true | false, ..},
+    // target.tag = 'button' | 'div' |  ... 
+    // target.attrs = {width : 100, ..., class: ...};
+    //                  class = string | {className: true | false, ..},
     //                  style = string | {}
     // target.events = {click: func, ...} 
     // target.html = inner html | target.text = inner text
     // target._elem
-    createElement = function(target) {
+    window.createElement = function(target) {
         if (! isObject(target))
             return null;
-        let elem = null;
-        if (! target.attrs) target.attrs = {};
-        if (! target.events) target.events = {};
-        if (target.tag == 'text') {
-            elem = document.createTextNode(target.text | target.html);
-        } else {
-            elem = document.createElement(target.tag);
-        }
-        target._elem = elem;
+        // if (! target.attrs) target.attrs = {};
+        // if (! target.events) target.events = {};
+        target._elem = document.createElement(target.tag);
         let tg = new Proxy(target, targetHander);
         notifyObject(tg);
         return tg;
