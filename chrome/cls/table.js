@@ -19,7 +19,7 @@ class StockTable {
         this.day = null;
 
         this.table = null;
-        this.headersUI = null;
+        this.headersTr = null;
         this.trs = {};
         this.tlMgr = new TimeLineUIManager();
         this.config = {elipseNum: 40};
@@ -124,35 +124,73 @@ class StockTable {
     }
 
     buildHeadersUI() {
-        if (this.headersUI || !this.headers) {
+        if (this.headersTr || !this.headers) {
             return;
         }
+        let thiz = this;
         let tr = $('<tr style="vertical-align: middle; "> </tr>');
         for (let i = 0; i < this.headers.length; i++) {
-            let cur = this.headers[i];
-            cur['__colIdx__'] = i;
-            let hd = $('<th> ' + cur.text + ' </th>');
-            for (let k in cur) {
-                if (typeof(cur[k]) != 'function')
-                    hd.attr(k, cur[k]);
+            let hd = this.headers[i];
+            let th = $('<th> </th>');
+            hd.headerFormater(i, hd, th);
+            if (hd.sortable) {
+                th.click(function() {
+                    thiz.sortHeader($(this).attr('name'));
+                });
             }
-            tr.append(hd);
+            tr.append(th);
         }
-        let tds = tr.find('th[sortable]');
-        let thiz = this;
-        for (let i = 0; i < tds.length; i++) {
-            let td = tds.eq(i);
-            td.append('&#9830;');
-            td.click(function() {
-                thiz.onSortHead($(this));
-            });
-        }
-        this.headersUI = tr;
+        
+        this.headersTr = tr;
         this.table.append(tr);
     }
 
     initHeadersDefault() {
-        this.headers.splice(0, 0, {name: '__rowIdx__', text: '', width:50, defined : true})
+        let proxyHeaders = [];
+        let thiz = this;
+        function updateAttr(target, attr, op) {
+            let th = thiz.headersTr.find('th:nth-child(' + (target.__colIdx__ + 1) +')');
+            th.empty()
+            if (op == 'del') th.removeAttr(attr);
+            target.headerFormater(target.__colIdx__, target, th);
+        }
+        let hander = {
+            set: function(target, attr, value) {
+                target[attr] = value;
+                updateAttr(target, attr, 'set');
+                return true;
+            },
+            deleteProperty: function(target, attr) {
+                delete target[attr];
+                updateAttr(target, attr, 'del');
+                return true;
+            },
+        };
+        this.headers.splice(0, 0, {name: '__rowIdx__', text: '', width:50, defined : true});
+        for (let i = 0; i < this.headers.length; i++) {
+            let cur = this.headers[i];
+            cur.__colIdx__ = i;
+            if (cur.headerFormater) {
+                continue;
+            }
+            cur.headerFormater = function(colIdx, header, thObj) {
+                for (let k in header) {
+                    if (typeof(header[k]) != 'function')
+                        thObj.attr(k, header[k]);
+                }
+                let txt = header.text;
+                if (header.__sort__ == 'asc') {
+                    txt += '&nbsp;&#8593;';
+                } else if (header.__sort__ == 'desc') {
+                    txt += '&nbsp;&#8595;';
+                }  else if (header.sortable) {
+                    txt += '&#9830;';
+                }
+                thObj.html(txt);
+            }
+            proxyHeaders.push(new Proxy(cur, hander));
+        }
+        
         for (let i = 0; i < this.headers.length; i++) {
             let k = this.headers[i].name;
             let header = this.headers[i];
@@ -169,6 +207,8 @@ class StockTable {
                 this.initFormaterDefault(k, header);
             }
         }
+        
+        this.headers = proxyHeaders;
     }
 
     initFormaterDefault(k, header) {
@@ -293,27 +333,28 @@ class StockTable {
         $.get('http://localhost:5665/openui/kline/' + code + params);
     }
 
-    onSortHead(td) {
-        //console.log('[onSortHead]', td);
+    // header = header obj | header.name
+    // by = null | undefined | 'asc' | 'desc'
+    sortHeader(header, by) {
+        if (typeof(header) == 'string') {
+            for (let i in this.headers) {
+                if (this.headers[i].name == header) {
+                    header = this.headers[i];
+                    break;
+                }
+            }
+        }
         let old = this.lastSortHeader;
-        //let td = $(this);
-        let v = td.attr('sv');
-        let tag = '';
-        if (!v || v == 'asc') {
-            v = 'desc';
-            tag = '&nbsp;&#8595;';
-        } else {
-            v = 'asc';
-            tag = '&nbsp;&#8593;';
+        if (! by) {
+            if (! header.__sort__) by = 'desc';
+            else by = header.__sort__ == 'asc' ? 'desc' : 'asc';
         }
-        td.attr('sv', v);
-        this.lastSortHeader = td;
-        if (old != this.lastSortHeader && old) {
-            old.html(old.attr('text') + '&#9830;');
-            old.attr('sv', '');
+        header.__sort__ = by;
+        this.lastSortHeader = header;
+        if (old && old != header) {
+            delete old.__sort__;
         }
-        td.html(td.attr('text') + tag);
-        this.sortBy(td.attr('name'), v == 'asc');
+        this.sortBy(header.name, by == 'asc');
     }
 
     onLoadFsDataEnd(evt) {

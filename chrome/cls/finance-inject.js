@@ -632,6 +632,7 @@ function loadTopHots(name) {
 				rs.push(resp[k]);
 			}
 			rs.sort(function(a, b) {return a.zhHotOrder - b.zhHotOrder});
+			rs.splice(100, rs.length - 100);
 			loadTopAmounts(name, rs);
 		}
 	});
@@ -687,8 +688,15 @@ function updateUpDownUI(name, data) {
 			tdObj.text('');
 			return;
 		}
-		let v = String(parseInt(rowData.amount)) + ' 亿<br/>( ' + rowData.amountIdx + ' )';
+		let v = String(parseInt(rowData.amount)) + ' 亿';
 		tdObj.html(v);
+	}
+	function lbAmountIdx(idx, rowData, header, tdObj) {
+		if (! rowData.amountIdx) {
+			tdObj.text('');
+			return;
+		}
+		tdObj.html(rowData.amountIdx);
 	}
 	if (name == '涨停池' || name == '连板池') {
 		hd = [
@@ -718,6 +726,7 @@ function updateUpDownUI(name, data) {
 			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
 			{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
 			{text: '成交额', 'name': 'amount', width: 50, sortable: true, formater : lbAmount, defined: true},
+			{text: '成交额<br/>排名', 'name': 'amountIdx', width: 50, sortable: false, formater : lbAmountIdx, defined: true},
 			{text: '热度', 'name': 'hots', width: 50, sortable: true},
 			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
 			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
