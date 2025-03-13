@@ -40,7 +40,6 @@
         for (let k in obj) {
             if (k != '_target')
                 obj[k] = obj[k];
-            console.log('notifyObject ', k, obj[k]);
         }
     }
 
@@ -48,13 +47,13 @@
         set: function(attrsObj, attr, value) {
             let el = attrsObj._target._elem;
             attrsObj[attr] = value;
-            if (! el) return true;
-            el.setAttribute('class', classNameToString(attrsObj));
+            if (el) el.setAttribute('class', classNameToString(attrsObj));
+            return true;
         },
         deleteProperty: function(attrsObj, attr) {
             let el = attrsObj._target._elem;
             delete attrsObj[attr];
-            el.setAttribute('class', classNameToString(attrsObj));
+            if (el) el.setAttribute('class', classNameToString(attrsObj));
             return true;
         }
     };
@@ -149,7 +148,7 @@
     let targetHander = {
         set: function(target, attr, value) {
             if (attr == 'html' || attr == 'text') {
-                target[attr] = toString(value);
+                target['html'] = target['text'] = toString(value);
                 if (! target._elem) {
                     return true;
                 }
@@ -179,8 +178,12 @@
             return true;
         },
         deleteProperty: function(target, attr) {
-            if (attr == 'tag' || attr == 'attrs' || attr == 'events' || attr == '_elem' || attr == 'html' || attr == 'text')
+            if (attr == 'tag' || attr == '_elem' || attr == 'html' || attr == 'text')
                 return false;
+            if (attr == 'attrs')
+                removeElemAttrs(target._elem, target[attr]);
+            else if (attr == 'events')
+                removeElemEvents(target._elem, target[attr]);
             delete target[attr];
             return true;
         },
@@ -196,8 +199,8 @@
     window.createElement = function(target) {
         if (! isObject(target))
             return null;
-        // if (! target.attrs) target.attrs = {};
-        // if (! target.events) target.events = {};
+        if (! target.attrs) target.attrs = {};
+        if (! target.events) target.events = {};
         target._elem = document.createElement(target.tag);
         let tg = new Proxy(target, targetHander);
         notifyObject(tg);
