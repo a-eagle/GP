@@ -31,12 +31,10 @@ class StockTable {
     }
 
     init() {
-        let tab = $('<table class="my-stoks-table" > </table>');
-        this.table = tab;
-        if (this.headers) {
-            this.initHeadersDefault();
-            this.buildHeadersUI();
-        }
+	    this.initStyle();
+        this.table = $('<table class="my-stoks-table" > </table>');;
+        this.initHeadersDefault();
+        this.buildHeadersUI();
     }
 
     createTimeLineView(code, width, height) {
@@ -146,6 +144,8 @@ class StockTable {
     }
 
     initHeadersDefault() {
+        if (! this.headers) 
+            return;
         let proxyHeaders = [];
         let thiz = this;
         function updateAttr(target, attr, op) {

@@ -352,7 +352,7 @@ function updateDegree_n_UI() {
 			adjustAnchors(av, data.day);
 		});
 		let zdn = $('#my-tab-nav > .toggle-nav-active').text();
-		loaTabNavi(zdn);
+		loadTabNavi(zdn);
 	}
 	table.find('td, th').hover(inFunction, outFunction);
 	table.find('td').click(onClick);
@@ -463,7 +463,7 @@ function initUI() {
 			$('#my-tab-nav > .toggle-nav-active').removeClass('toggle-nav-active');
 			$(this).addClass('toggle-nav-active');
 		}
-		loaTabNavi($(this).text().trim());
+		loadTabNavi($(this).text().trim());
 	});
 }
 
@@ -585,7 +585,7 @@ function loadDegrees_n() {
 	});
 }
 
-function loaTabNavi(name) {
+function loadTabNavi(name) {
 	if (name == '热度榜') {
 		loadTopHots(name);
 		return;
@@ -602,7 +602,7 @@ function loaTabNavi(name) {
 				for (let i = resp.data.length - 1; i >= 0; i--) {
 					if (resp.data[i].is_st) resp.data.splice(i, 1);
 				}
-				updateUpDownUI(name, resp.data);
+				updateTabNavi(name, resp.data);
 			}
 		});
 	} else {
@@ -615,7 +615,7 @@ function loaTabNavi(name) {
 			url : 'http://localhost:5665/query-by-sql/tck',
 			data: {'sql': sql},
 			success: function(resp) {
-				updateUpDownUI(name, resp);
+				updateTabNavi(name, resp);
 			}
 		});
 	}
@@ -669,12 +669,12 @@ function loadTopAmounts(name, rs) {
 					rs[i].amountIdx = 0;
 				}
 			}
-			updateUpDownUI(name, rs);
+			updateTabNavi(name, rs);
 		}
 	});
 }
 
-function updateUpDownUI(name, data) {
+function updateTabNavi(name, data) {
 	if (! data) {
 		$('#up-down').empty();
 		return;
@@ -735,9 +735,13 @@ function updateUpDownUI(name, data) {
 	}
 	let st = new StockTable(hd);
 	window.st = st;
-	st.initStyle();
 	st.setDay(pageInfo.curDay);
 	st.setData(data);
+	if (name == '涨停池') {
+		st.sortHeader('limit_up_days', 'asc');
+	} else if (name == '连板池') {
+		st.sortHeader('limit_up_days', 'desc');
+	}
 	st.buildUI();
 	$('#up-down').empty();
 	$('#up-down').append(st.table);
