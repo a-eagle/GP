@@ -432,5 +432,7 @@ def getTradeDays_Cache(prev = 60):
 
 
 if __name__ == '__main__':
-    data = iwencai_load_list('个股成交额排名, 20250312', maxPage = 2)
+    # data = iwencai_load_list('个股成交额排名, 20250312', maxPage = 2)
+    ds = getTradeDays_Cache()
+    print(ds)
     pass

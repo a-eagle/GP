@@ -12,12 +12,12 @@ from THS import hot_utils
 
 class Server:
     def __init__(self) -> None:
-        self.download_hygn_infos = {}
         self.last_zt_time = 0
         self.last_zs_time = 0
         self.last_dde_time = 0
         self.last_hot_time = 0
         self.last_hotzh_time = 0
+        self.downloadInfos = {}
         
     def formatZtTime(self, ds):
         if not ds:
@@ -128,7 +128,7 @@ class Server:
                 obj.save()
                 updateNum += 1
         if insertNum or updateNum:
-            console.writeln_1(console.YELLOW, f'[ths-zt] {self.formatNowTime(False)}', f'{day} insert {insertNum}, update {updateNum}')
+            console.writeln_1(console.YELLOW, f'[THS-zt] {self.formatNowTime(False)}', f'{day} insert {insertNum}, update {updateNum}')
 
     def downloadSaveOneDayTry(self, day):
         try:
@@ -173,11 +173,11 @@ class Server:
             traceback.print_exc()
         return False
 
-    def downloadSaveZs(self):
+    def downloadSaveZs(self, tag):
         try:
             rs = ths_iwencai.download_zs_zd()
             num = ths_iwencai.save_zs_zd(rs)
-            console.write_1(console.GREEN, f'[THS-ZS] {self.formatNowTime(False)}')
+            console.write_1(console.GREEN, f'[THS-ZS] {tag} {self.formatNowTime(False)}')
             if rs:
                 console.writeln_1(console.GREEN, f"Save ZS success, insert {rs[0].day} num: {num} ")
             else:
@@ -201,11 +201,11 @@ class Server:
             traceback.print_exc()
         return False
 
-    def download_hygn(self):
+    def download_hygn(self, tag):
         try:
             upd, ins = ths_iwencai.download_hygn()
             u, i = ths_iwencai.save_hygn(upd, ins)
-            console.writeln_1(console.CYAN, f'[THS-HyGn] {self.formatNowTime(True)} update {u}, insert {i}')
+            console.writeln_1(console.CYAN, f'[THS-HyGn] {tag} {self.formatNowTime(True)} update {u}, insert {i}')
             return True
         except Exception as e:
             traceback.print_exc()
@@ -225,21 +225,19 @@ class Server:
                 self.last_zt_time = time.time()
 
         # 下载同花顺指数涨跌信息
-        if curTime >= '15:10' and curTime < '16:00':
-            if time.time() - self.last_zs_time >= 60 * 60:
-                self.downloadSaveZs()
-                self.last_zs_time = time.time()
+        if curTime >= '15:10' and not self.downloadInfos.get(f'zs-{day}', False):
+            self.downloadInfos[f'zs-{day}'] = True
+            self.downloadSaveZs('[1]')
 
         # 下载dde数据, 前100 + 后100
-        if curTime >= '15:15' and curTime < '16:00':
-            if time.time() - self.last_dde_time >= 60 * 60:
-                #self.downloadSaveDde()
-                self.last_dde_time = time.time()
+        if curTime >= '15:15':
+            #self.downloadSaveDde()
+            self.last_dde_time = time.time()
 
         # 下载个股板块概念信息
-        if (curTime >= '15:20') and (day not in self.download_hygn_infos):
-            self.download_hygn()
-            self.download_hygn_infos[day] = True
+        if (curTime >= '15:20') and not self.downloadInfos.get(f'hygn-{day}', False):
+            self.downloadInfos[f'hygn-{day}'] = True
+            self.download_hygn('[2]')
 
     def loadHotsOneTime(self):
         now = datetime.datetime.now()
@@ -259,7 +257,7 @@ class Server:
             if time.time() - self.last_hotzh_time >= 60 * 60:
                 hot_utils.calcAllHotZHAndSave()
                 self.last_hotzh_time = time.time()
-                console.writeln_1(console.RED, f'[hot-server] {self.formatNowTime(False)}', ' calc hot ZH success')
+                console.writeln_1(console.RED, f'[THS-ZH-hot] {self.formatNowTime(False)}', ' calc hot ZH success')
 
 if __name__ == '__main__':
     #autoLoadHistory(20240708)

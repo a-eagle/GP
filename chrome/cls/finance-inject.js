@@ -736,6 +736,7 @@ function updateTabNavi(name, data) {
 	let st = new StockTable(hd);
 	window.st = st;
 	st.setDay(pageInfo.curDay);
+	st.setTradeDays(pageInfo.tradeDays);
 	st.setData(data);
 	if (name == '涨停池') {
 		st.sortHeader('limit_up_days', 'asc');

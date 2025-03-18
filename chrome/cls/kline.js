@@ -463,6 +463,7 @@ class TimeLineView extends Listener {
     constructor(width, height) {
         super();
         this.data = null;
+        this.day = null;
         let thiz = this;
         let canvas = $('<canvas style="width: ' + width + 'px; height: ' + height + 'px; " />'); //border-right: solid 1px #ccc;
         canvas = canvas.get(0);
@@ -488,6 +489,7 @@ class TimeLineView extends Listener {
     setData(data) {
         // {code: xx, date:xx, pre: xx, line: [{time, price, amount, avgPrice, vol}, ...] }
         this.data = data;
+        this.day = this.data ? this.data.date : null;
         this.zf = null;
         if (!data || !data['line'] || !data.line.length) {
             return;
@@ -750,10 +752,14 @@ class TimeLineView extends Listener {
     }
 
     // cb(code, TimeLineView)
-    loadData(code, cb) {
+    loadData(code, day, cb) {
         let thiz = this;
         this.code = code;
-        this.loadData_(code, function(rs) {
+        this.day = null;
+        this.cb = cb;
+        if (code.substring(0, 2) == 'sz' || code.substring(0, 2) == 'sh')
+            code = code.substring(2)
+        this.loadData_2(code, day, function(rs) {
             thiz.setData(rs);
             thiz.draw();
             thiz.notify({name: 'LoadDataEnd', src: thiz});
@@ -762,7 +768,27 @@ class TimeLineView extends Listener {
     }
 
     reloadData() {
-        this.loadData(this.code);
+        this.loadData_2(this.code, this.day);
+    }
+
+    loadData_2(code, day, callback) {
+        this.code = code;
+        let thiz = this;
+        day = day || ''
+        $.ajax({
+            url: `http://localhost:5665/get-fenshi/${code}?day=${day}`,
+            success: function(resp) {
+                if (! resp) {
+                    if (callback) callback(null);
+                    return;
+                }
+                let ds = resp;
+                if (resp.line) ds.date = resp.line[0].day;
+                else ds.date = null;
+                thiz.updateTime = Date.now();
+                if (callback) callback(ds);
+            }
+        });
     }
 
     loadData_(code, callback) {

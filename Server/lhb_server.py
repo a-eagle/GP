@@ -214,12 +214,12 @@ class Server:
     
     def loadOneTime(self):
         try:
-            if time.time() - self._lastLoadTime <= 20 * 60:
+            if time.time() - self._lastLoadTime <= 30 * 60:
                 return
-            self._lastLoadTime = time.time()
             now = datetime.datetime.now()
             curTime = now.strftime('%H:%M')
-            if now.isoweekday() < 6 and curTime > '15:00' and curTime < '21:00': # 周一至周五, 晚上8点
+            if now.isoweekday() < 6 and curTime > '19:00' and curTime < '22:00': # 周一至周五, 晚上8点
+                self._lastLoadTime = time.time()
                 self.loadTdxLHB()
         except Exception as e:
             traceback.print_exc()

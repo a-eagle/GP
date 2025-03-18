@@ -3,10 +3,11 @@ import win32gui, win32con , win32api, win32ui # pip install pywin32
 import threading, time, datetime, sys, os, json, copy
 from multiprocessing import Process
 from multiprocessing.shared_memory import SharedMemory
-import system_hotkey #pip install system_hotkey
+import system_hotkey
+from Server import chrome_server #pip install system_hotkey
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from THS import hot_utils, ths_win, hot_win, ths_ocr, tips_win, server
+from THS import hot_utils, ths_win, hot_win, ths_ocr, tips_win
 from orm import ths_orm
 from Common import base_win
 
@@ -290,8 +291,6 @@ if __name__ == '__main__':
     # listen ths fu ping
     #p = Process(target = listen_ThsFuPing_Process, daemon = False)
     #p.start()
-    svr = server.Server()
-    svr.start()
     time.sleep(1)
     while True:
         p = Process(target = subprocess_main, daemon = True)

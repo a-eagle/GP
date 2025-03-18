@@ -145,19 +145,30 @@
         }
     };
 
+    function modelChanged() {
+        let target = this;
+        let value = target.model;
+        if (! target._elem) {
+            return true;
+        }
+        if (target.tag == 'text') {
+            target._elem.data = toString(value);
+            return true;
+        }
+        if (! target.render) {
+            target._elem.innerHTML = toString(value);
+            return true;
+        }
+        target._elem.innerHTML = '';
+        target.render(target, target._elem);
+        return true;
+    }
+
     let targetHander = {
         set: function(target, attr, value) {
-            if (attr == 'html' || attr == 'text') {
-                target['html'] = target['text'] = toString(value);
-                if (! target._elem) {
-                    return true;
-                }
-                if (target.tag == 'text') {
-                    target._elem.data = target[attr];
-                    return true;
-                }
-                if (attr == 'html') target._elem.innerHTML = target[attr];
-                else target._elem.innerText = target[attr];
+            if (attr == 'model') {
+                target[attr] = value;
+                modelChanged.apply(target);
             } else if (attr == 'attrs' ) {
                 removeElemAttrs(target._elem, target[attr]);
                 if (isObject(value)) {
@@ -172,13 +183,18 @@
                     target[attr] = new Proxy(value, eventsHandler);
                     notifyObject(target[attr]);
                 }
+            } else if (attr == '_elem') {
+                if (target._elem instanceof Text)
+                    target.tag = 'text';
+                elif (target._elem instanceof Element)
+                    target.tag = target._elem.tagName.toLowerCase();
             } else {
                 target[attr] = value;
             }
             return true;
         },
         deleteProperty: function(target, attr) {
-            if (attr == 'tag' || attr == '_elem' || attr == 'html' || attr == 'text')
+            if (attr == 'tag' || attr == '_elem' || attr == 'html' || attr == 'text' || attr == 'render')
                 return false;
             if (attr == 'attrs')
                 removeElemAttrs(target._elem, target[attr]);
@@ -189,22 +205,38 @@
         },
     };
 
-    // target.tag = 'button' | 'div' |  ... 
-    // target.attrs = {width : 100, ..., class: ...};
+    // data.tag = 'button' | 'div' |  ... 'text'
+    // data.attrs = {width : 100, ..., class: ...};
     //                  class = string | {className: true | false, ..},
     //                  style = string | {}
-    // target.events = {click: func, ...} 
-    // target.html = inner html | target.text = inner text
-    // target._elem
-    window.createElement = function(target) {
-        if (! isObject(target))
+    // data.events = {click: func, ...} 
+    // data.model = any data, inner content data 
+    // data.render = func(data, elem),  render element content(childs),
+    // auto build attrs:
+    //   ._elem  .modelChanged() ._is_proxy
+    function createElement(data) {
+        if (! isObject(data))
             return null;
-        if (! target.attrs) target.attrs = {};
-        if (! target.events) target.events = {};
-        target._elem = document.createElement(target.tag);
-        let tg = new Proxy(target, targetHander);
+        let elem = null;
+        if (data.tag == 'text') elem = document.createTextNode('');
+        else elem = document.createElement(data.tag);
+        return bindElement(data, elem);
+    };
+
+    function bindElement(data, elem) {
+        if (! isObject(data) || !elem)
+            return null;
+        if (! data.attrs) data.attrs = {};
+        if (! data.events) data.events = {};
+        data.modelChanged = modelChanged;
+        let tg = new Proxy(data, targetHander);
+        tg._elem = elem;
+        tg._is_proxy = true;
         notifyObject(tg);
         return tg;
     };
 
+    window.V = {
+        c: createElement, b: bindElement
+    };
 })();

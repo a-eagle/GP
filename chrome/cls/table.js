@@ -17,6 +17,7 @@ class StockTable {
         this.datasMap = null; // map of this.datas, key = secu_code
         this.hotsZH = null;
         this.day = null;
+        this.tradeDays = null;
 
         this.table = null;
         this.headersTr = null;
@@ -24,6 +25,10 @@ class StockTable {
         this.tlMgr = new TimeLineUIManager();
         this.config = {elipseNum: 40};
         this.init()
+    }
+
+    setTradeDays(days) {
+        this.tradeDays = days;
     }
 
     setDay(day) {
@@ -42,7 +47,7 @@ class StockTable {
         height = height || 60;
         let view = new TimeLineView(width, height);
         this.tlMgr.add(view);
-        view.loadData(code);
+        view.loadData(code, this.day);
         return view;
     }
 
@@ -173,6 +178,7 @@ class StockTable {
             if (cur.headerFormater) {
                 continue;
             }
+            let thiz = this;
             cur.headerFormater = function(colIdx, header, thObj) {
                 for (let k in header) {
                     if (typeof(header[k]) != 'function')
@@ -209,6 +215,10 @@ class StockTable {
         }
         
         this.headers = proxyHeaders;
+    }
+
+    loadFenShi(day) {
+
     }
 
     initFormaterDefault(k, header) {

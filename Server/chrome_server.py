@@ -1,4 +1,4 @@
-import threading, sys, traceback
+import threading, sys, traceback, datetime
 import flask, flask_cors
 import win32con, win32gui, peewee as pw
 
@@ -12,19 +12,21 @@ class Server:
         self.workThread = None
 
     def start(self):
-        th = threading.Thread(target = self.runner, daemon = True)
-        th.start()
+        #th = threading.Thread(target = self.runner, daemon = True)
+        #th.start()
+        base_win.ThreadPool.instance().start()
         self.workThread = base_win.Thread()
         self.workThread.start()
+        self.runner()
 
     def runner(self):
-        base_win.ThreadPool.instance().start()
         self.app.add_url_rule('/openui/<type_>/<code>', view_func = self.openUI)
         self.app.add_url_rule('/get-hots', view_func = self.getHots)
         self.app.add_url_rule('/get-time-degree', view_func = self.getTimeDegree)
         self.app.add_url_rule('/query-by-sql/<dbName>', view_func = self.queryBySql)
         self.app.add_url_rule('/get-trade-days', view_func = self.getTradeDays)
         self.app.add_url_rule('/iwencai', view_func = self.queryIWenCai)
+        self.app.add_url_rule('/get-fenshi/<code>', view_func = self.getFenShi)
         self.app.run('localhost', 5665, use_reloader = False, debug = False)
 
     def openUI_Timeline(self, code, day):
@@ -89,7 +91,6 @@ class Server:
     def getTimeDegree(self):
         from orm import tck_orm
         day = flask.request.args.get('day', None)
-        print(day)
         if not day:
             qr = tck_orm.CLS_SCQX_Time.select(pw.fn.max(tck_orm.CLS_SCQX_Time.day)).tuples()
             for q in qr:
@@ -152,10 +153,44 @@ class Server:
         except Exception as e:
             traceback.print_exc()
         return None
-
+    
+    def getFenShi(self, code):
+        from Download import datafile, ths_iwencai, cls, henxin
+        day = flask.request.args.get('day', None)
+        lastTradeDay = ths_iwencai.getTradeDays_Cache()[-1]
+        today = datetime.date.today().strftime('%Y%m%d')
+        rs = {'code': code, 'pre': 0, 'line': None}
+        if today == lastTradeDay and (not day or day.replace('-', '') == today): # load from server
+            if (code[0 : 3] == 'cls'):
+                data = cls.ClsUrl().loadHistory5FenShi(code)
+                lines = data['line']
+                if lines[-1].time == 1500:
+                    preLastIdx = -1 - 241
+                else:
+                    preLastIdx = -1 - len(data['line']) % 241
+                rs['pre'] = data['line'][preLastIdx]['price']
+                rs['line'] = lines[preLastIdx + 1 : ]
+            else:
+                hx = henxin.HexinUrl()
+                data = hx.loadUrlData(hx.getFenShiUrl(code))
+                rs['pre'] = data['pre']
+                rs['line'] = data['line']
+        else:
+            df = datafile.DataFile(code, datafile.DataFile.DT_MINLINE)
+            df.loadDataByDay(day)
+            rs['pre'] = getattr(df, 'pre', df.data[0].price)
+            rs['line'] = df.data
+        rsd = []
+        for ln in rs['line']:
+            item = {}
+            for k in datafile.ItemData.MLS2: 
+                item[k] = getattr(ln, k)
+            rsd.append(item)
+        rs['line'] = rsd
+        return rs
 if __name__ == '__main__':
-    s = Server()
-    #s.runner()
+    svr = Server()
+    svr.start()
     #s.queryBySql('hot_zh', 'select *  from 个股热度综合排名 where 日期 >= 20250415')
     #s.getTimeDegree()
     

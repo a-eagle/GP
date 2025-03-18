@@ -9,7 +9,7 @@ from Download import console, cls, ths_iwencai
 
 class Server:
     def __init__(self) -> None:
-        self._runInfo = {}
+        self.downloadInfos = {}
         self._lastLoadTime = 0
         self._lastLoadHotTcTime = 0
         self._lastLoadZSTime = 0
@@ -50,7 +50,7 @@ class Server:
             insertNum += ins
             updateNum += upd
         if insertNum > 0 or updateNum > 0:
-            console.writeln_1(console.CYAN, '[cls-server] ', f'{self.now()} save cls zt {day} insert({insertNum}) update({updateNum})')
+            console.writeln_1(console.CYAN, '[cls-zt] ', f'{self.now()} save cls zt {day} insert({insertNum}) update({updateNum})')
 
     def __downloadClsZT(self):
         url = 'https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=7.7.5&type=up_pool&way=last_px&sign=a820dce18412fac3775aa940d0b00dcb'
@@ -110,7 +110,7 @@ class Server:
         degree = int(float(degree) * 100)
         return day, degree
 
-    def downloadScqx(self):
+    def downloadScqx(self, tag):
         try:
             now = datetime.datetime.now()
             today = now.strftime('%Y-%m-%d')
@@ -129,7 +129,7 @@ class Server:
             if not obj:
                 fb = json.dumps(fb)
                 tck_orm.CLS_SCQX.create(day = day, zhqd = degree, fb = fb)
-                console.write_1(console.CYAN, '[cls-server] ')
+                console.write_1(console.CYAN, f'[cls-degree] {tag} ')
                 print(' load degree: ', day, ' -> ', degree)
             return True
         except Exception as e:
@@ -150,18 +150,23 @@ class Server:
             return
         curTime = now.strftime('%H:%M')
         day = now.strftime('%Y-%m-%d')
-        if curTime > '15:00' and (not self._runInfo.get(day, False)):
-            rs = self.downloadScqx()
-            self._runInfo[day] = rs
         if curTime >= '09:30' and curTime <= '16:00':
             self.downloadClsZT()
-        if curTime >= '16:00' and (not self._runInfo.get(f'updown-{day}', False)):
-            ok = self.downloadUpDown()
-            self._runInfo[f'updown-{day}'] = ok
-
-        self.downloadZS()
-        self.downloadBkGn()
-        self.downloadZT_PanKou()
+        if curTime > '15:00' and (not self.downloadInfos.get(f'scqx-{day}', False)):
+            rs = self.downloadScqx('[1]')
+            self.downloadInfos[f'scqx-{day}'] = rs
+        if curTime >= '15:30' and (not self.downloadInfos.get(f'updown-{day}', False)):
+            ok = self.downloadUpDown('[2]')
+            self.downloadInfos[f'updown-{day}'] = ok
+        if curTime >= '15:30' and (not self.downloadInfos.get(f'zs-{day}', False)):
+            self.downloadInfos[f'zs-{day}'] = True
+            self.downloadZS('[3]')
+        if curTime >= '15:30' and (not self.downloadInfos.get(f'bkgn-{day}', False)):
+            self.downloadInfos[f'bkgn-{day}'] = True
+            self.downloadBkGn('[4]')
+        if curTime >= '15:50' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
+            self.downloadInfos[f'ztpk-{day}'] = True
+            self.downloadZT_PanKou('[5]')
 
     def loadTimeDegree(self):
         now = datetime.datetime.now()
@@ -222,13 +227,8 @@ class Server:
                 tck_orm.CLS_HotTc.create(day = day, code = d['symbol_code'], name = d['symbol_name'], up = d['float'] == 'up', ctime = ctime)
 
     # 指数（板块概念）
-    def downloadZS(self):
+    def downloadZS(self, tag):
         try:
-            if time.time() - self._lastLoadZSTime < 90 * 60:
-                return
-            st = datetime.datetime.now().strftime('%H:%M')
-            if st < '15:00' or st > '16:00':
-                return
             rs = cls.ClsUrl().loadAllZS()
             ex = {}
             from orm import cls_orm
@@ -246,8 +246,7 @@ class Server:
                 else:
                     cls_orm.CLS_ZS.create(code = it['code'], name = it['name'], type_ = it['type_'])
                     i += 1
-            self._lastLoadZSTime = time.time()
-            console.writeln_1(console.GREEN, f'[CLS-ZS] {self.formatNowTime(True)} insert={i} update={u}')
+            console.writeln_1(console.GREEN, f'[CLS-ZS] {tag} {self.formatNowTime(True)} insert={i} update={u}')
         except Exception as e:
             traceback.print_exc()
 
@@ -270,13 +269,8 @@ class Server:
             traceback.print_exc()
 
     # 个股概念板块
-    def downloadBkGn(self):
+    def downloadBkGn(self, tag):
         try:
-            if time.time() - self._lastLoadBkGnTime < 90 * 60:
-                return
-            st = datetime.datetime.now().strftime('%H:%M')
-            if st < '15:00' or st > '16:00':
-                return
             console.writeln_1(console.CYAN, f'[CLS-HyGn] {self.formatNowTime(True)} begin...')
             from orm import ths_orm, cls_orm
             qr = ths_orm.THS_GNTC.select().dicts()
@@ -305,17 +299,11 @@ class Server:
                 else:
                     info.save() # create new
                     i += 1
-            self._lastLoadBkGnTime = time.time()
-            console.writeln_1(console.CYAN, f'[CLS-HyGn] {self.formatNowTime(True)} update {u}, insert {i}')
+            console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} {self.formatNowTime(True)} update {u}, insert {i}')
         except Exception as e:
             traceback.print_exc()
 
-    def downloadZT_PanKou(self):
-        if time.time() - self._lastLoadZT_PanKou < 60 * 60 * 2:
-            return
-        st = datetime.datetime.now().strftime('%H:%M')
-        if st < '15:30' or st > '17:00':
-            return
+    def downloadZT_PanKou(self, tag):
         try:
             rs = self.__downloadClsZT()
             full = True
@@ -330,12 +318,12 @@ class Server:
                 tck_orm.ZT_PanKou.create(code = r['code'], day = r['day'], info = pk)
             if full:
                 self._lastLoadZT_PanKou = time.time()
-                console.writeln_1(console.CYAN, f'[ZT-PanKou] {self.formatNowTime(True)} ')
+                console.writeln_1(console.CYAN, f'[Cls-ZT-PanKou] {tag} {self.formatNowTime(True)} ')
         except Exception as e:
             traceback.print_exc()
 
     # 涨跌停、炸板
-    def downloadUpDown(self):
+    def downloadUpDown(self, tag):
         urls = ['https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=8.4.6&type=up_pool&way=last_px&sign=a6ab28604a6dbe891cdbd7764799eda1',
                 'https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=8.4.6&type=up_open_pool&way=last_px&sign=c178185f9b06e3d9e885ba54a47d68ec',
                 'https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=8.4.6&type=down_pool&way=last_px&sign=95d3a7c20bb0313a0bb3445d9faf2d27']
@@ -363,7 +351,7 @@ class Server:
             except Exception as e:
                 print('[downloadUpDown] ', url)
                 traceback.print_exc()
-        console.writeln_1(console.CYAN, f'[Cls-UpDown] {self.formatNowTime(True)} ', ('Success' if ok else 'Fail'))
+        console.writeln_1(console.CYAN, f'[Cls-UpDown] {tag} {self.formatNowTime(True)} ', ('Success' if ok else 'Fail'))
         return ok
 
 def do_reason():

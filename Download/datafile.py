@@ -111,6 +111,7 @@ class DataFile:
             RL = 24
             numDays = filesize // (RL * self.MINUTES_IN_DAY)
             PAGE_SIZE = self.MINUTES_IN_DAY * RL
+            finded = False
             for i in range(numDays):
                 f.seek(-RL - PAGE_SIZE * i , 2)
                 bs = f.read(RL)
@@ -118,13 +119,23 @@ class DataFile:
                 if cday < day:
                     break
                 if cday == day:
-                    if i != numDays - 1:
-                        i += 1
-                        break
-            rd = min(i + 1, numDays)
-            pos = rd * PAGE_SIZE
-            f.seek(- pos, 2)
-            for j in range(min(rd, 2) * self.MINUTES_IN_DAY):
+                    finded = True
+                    break
+            if not finded:
+                f.close()
+                return
+            if i == numDays - 1:
+                pos = numDays * PAGE_SIZE
+                f.seek(- pos, 2)
+            else:
+                i += 1
+                pos = i * PAGE_SIZE + RL
+                f.seek(- pos, 2)
+                bs = f.read(RL)
+                items = struct.unpack('2l4f', bs)
+                v = ItemData(*items)
+                self.pre = v.price
+            for j in range(self.MINUTES_IN_DAY):
                 bs = f.read(RL)
                 items = struct.unpack('2l4f', bs)
                 v = ItemData(*items)
@@ -199,6 +210,8 @@ class DataFile:
             else:
                 bp = os.path.join(NET_THS_MINLINE_PATH, f'{code}.lc1')
         else: # GP
+            if code[0 : 2] in ('sz', 'sh'):
+                code = code[2 : ]
             if self.dataType == DataFile.DT_DAY:
                 bp = os.path.join(NET_LDAY_PATH, f'{code}.day')
             else:
