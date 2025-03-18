@@ -6,7 +6,9 @@
 class StockTable {
     // headers = [ {text: 'xxx', name: 'xx', width: 60, sortable: true,
     //              sortVal?: function(rowData), defined? : true,
-    //              formater?: function(rowIdx, rowData, header, tdObj) }, ...]
+    //              cellRender?: function(rowIdx, rowData, header, tdObj) },
+    //              headerRender? : function(colIdx, header, thObj),
+    //           ...]
     // fix headers : 'zs' 涨速, 'hots': 热度  'zf': 涨幅(根据'fs'列自动生成)
     // 必须有列：secu_code(如果有code, 会根据code自动生成), secu_name
     // {name: 'hots', full? : true}
@@ -57,7 +59,7 @@ class StockTable {
             return;
         let td = this.trs[key].find('td:nth-child(' + (header.__colIdx__ + 1) + ')');
         td.empty();
-        header.formater(rowData.__rowIdx__, rowData, header, td);
+        header.cellRender(rowData.__rowIdx__, rowData, header, td);
     }
 
     _defineAttr(obj, attr, val) {
@@ -135,7 +137,7 @@ class StockTable {
         for (let i = 0; i < this.headers.length; i++) {
             let hd = this.headers[i];
             let th = $('<th> </th>');
-            hd.headerFormater(i, hd, th);
+            hd.headerRender(i, hd, th);
             if (hd.sortable) {
                 th.click(function() {
                     thiz.sortHeader($(this).attr('name'));
@@ -148,6 +150,22 @@ class StockTable {
         this.table.append(tr);
     }
 
+    _headerRender(colIdx, header, thObj) {
+        for (let k in header) {
+            if (typeof(header[k]) != 'function')
+                thObj.attr(k, header[k]);
+        }
+        let txt = header.text;
+        if (header.__sort__ == 'asc') {
+            txt += '&nbsp;&#8593;';
+        } else if (header.__sort__ == 'desc') {
+            txt += '&nbsp;&#8595;';
+        }  else if (header.sortable) {
+            txt += '&#9830;';
+        }
+        thObj.html(txt);
+    }
+
     initHeadersDefault() {
         if (! this.headers) 
             return;
@@ -157,7 +175,7 @@ class StockTable {
             let th = thiz.headersTr.find('th:nth-child(' + (target.__colIdx__ + 1) +')');
             th.empty()
             if (op == 'del') th.removeAttr(attr);
-            target.headerFormater(target.__colIdx__, target, th);
+            target.headerRender(target.__colIdx__, target, th);
         }
         let hander = {
             set: function(target, attr, value) {
@@ -175,25 +193,10 @@ class StockTable {
         for (let i = 0; i < this.headers.length; i++) {
             let cur = this.headers[i];
             cur.__colIdx__ = i;
-            if (cur.headerFormater) {
+            if (cur.headerRender) {
                 continue;
             }
-            let thiz = this;
-            cur.headerFormater = function(colIdx, header, thObj) {
-                for (let k in header) {
-                    if (typeof(header[k]) != 'function')
-                        thObj.attr(k, header[k]);
-                }
-                let txt = header.text;
-                if (header.__sort__ == 'asc') {
-                    txt += '&nbsp;&#8593;';
-                } else if (header.__sort__ == 'desc') {
-                    txt += '&nbsp;&#8595;';
-                }  else if (header.sortable) {
-                    txt += '&#9830;';
-                }
-                thObj.html(txt);
-            }
+            cur.headerRender = this._headerRender;
             proxyHeaders.push(new Proxy(cur, hander));
         }
         
@@ -209,8 +212,8 @@ class StockTable {
                     return rowData.hots && rowData.hots > 0 ? 1000 - rowData.hots : 0
                 }
             }
-            if (! header.formater) {
-                this.initFormaterDefault(k, header);
+            if (! header.cellRender) {
+                this.initCellRender(k, header);
             }
         }
         
@@ -221,25 +224,25 @@ class StockTable {
 
     }
 
-    initFormaterDefault(k, header) {
+    initCellRender(k, header) {
         let thiz = this;
         if (k == '__rowIdx__') {
-            header.formater = function(rowIdx, rowData, head, tdObj) {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 tdObj.text(rowData.__rowIdx__ + 1);
             }
         } else if (k == 'code') {
-            header.formater = function(rowIdx, rowData, head, tdObj) {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 tdObj.append($('<span> <a href="https://www.cls.cn/stock?code=' + rowData.secu_code + '" target=_blank> <span style="color:#383838; font-weight:bold;" >' + 
                 rowData.secu_name + '</span> </a> <br/> <span style="color:#666;font-size:12px;"> ' + rowData.code + '</span></span> '));
             }
         } else if (k == 'hots') {
-            header.formater = function(rowIdx, rowData, head, tdObj) {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 let val = '';
                 if (rowData.hots) val =  String(rowData.hots) + '°'
                 tdObj.text(val);
             }
         } else if (k == 'change') {
-            header.formater = function(rowIdx, rowData, head, tdObj) {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 if (typeof(rowData.change) != 'number') {
                     tdObj.text('');
                     return;
@@ -253,24 +256,32 @@ class StockTable {
                 tdObj.text(val);
             }
         } else if (k == 'cmc') {
-            header.formater = function(rowIdx, rowData, head, tdObj) {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 let val = parseInt(rowData.cmc / 100000000) + '亿';
                 tdObj.text(val);
             }
         } else if (k == 'fundflow') {
-            header.formater = function(rowIdx, rowData, head, tdObj) {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 let val = parseInt(rowData.fundflow / 10000) + '万';
                 tdObj.text(val);
             }
         } else if (k == 'assoc_desc' || k == 'up_reason') {
-            header.formater = function(rowIdx, rowData, head, tdObj) {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 tdObj.addClass('pl20');
                 tdObj.attr('title', rowData[head.name]);
                 tdObj.css('font-size', '12px');
                 tdObj.html(thiz.buildUI_elipse(rowData[head.name]));
             }
+        } else if (k == 'cls_ztReason' || (k == 'ths_ztReason')) {
+            header.cellRender = function (idx, rowData, header, tdObj) {
+                if (header.name.indexOf('cls') >= 0)
+                    tdObj.addClass('cls-zt-reason');
+                else
+                    tdObj.addClass('ths-zt-reason');
+                tdObj.text(rowData[header.name] || '');
+            }
         } else if (k == 'fs') {
-            header.formater = function(rowIdx, rowData, head, tdObj) {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 tdObj.addClass('fs');
                 let view = thiz.createTimeLineView(rowData.secu_code, 300, 60);
                 view.key = rowData.key;
@@ -278,7 +289,7 @@ class StockTable {
                 view.addListener('LoadDataEnd', function(evt) {thiz.onLoadFsDataEnd(evt);});
             }
         } else if (k == 'zs') {
-            header.formater = function(rowIdx, rowData, head, tdObj) {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 let val = '';
                 if (typeof(rowData.zs) == 'number' && rowData.zs) {
                     val = '↑&nbsp;' + rowData.zs.toFixed(1) ;
@@ -286,7 +297,7 @@ class StockTable {
                 tdObj.html(val);
             }
         } else if ( k == 'zf') {
-            header.formater = function(rowIdx, rowData, head, tdObj) {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 if (typeof(rowData.zf) != 'number') {
                     tdObj.text('');
                     return;
@@ -298,8 +309,12 @@ class StockTable {
                     tdObj.css('color', '#52C2A3');
                 tdObj.text(val);
             }
+        } else if (k == 'limit_up_days') {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
+                tdObj.text(String(rowData.limit_up_days) + '板');
+            }
         } else {
-            header.formater = function(rowIdx, rowData, head, tdObj) {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 let val = rowData[head.name];
                 tdObj.text(val == undefined ? '' : val);
             }
@@ -309,7 +324,7 @@ class StockTable {
     buildRowUI(idx, rowData) {
         let tr = $('<tr style="vertical-align: middle;" code="' + rowData.secu_code + '"> </tr>');
         for (let i = 0; i < this.headers.length; i++) {
-            let ff = this.headers[i].formater;
+            let ff = this.headers[i].cellRender;
             let td = $('<td> </td>');
             tr.append(td);
             ff(idx, rowData, this.headers[i], td);
@@ -364,7 +379,7 @@ class StockTable {
         if (old && old != header) {
             delete old.__sort__;
         }
-        this.sortBy(header.name, by == 'asc');
+        this._sortBy(header.name, by == 'asc');
     }
 
     onLoadFsDataEnd(evt) {
@@ -412,7 +427,7 @@ class StockTable {
         return function(a, b) {return 0;};
     }
 
-    sortBy(name, asc) {
+    _sortBy(name, asc) {
         //console.log('[sortNumberBy]', name, asc);
         if (!this.datas || !this.table) {
             return;
@@ -521,6 +536,8 @@ class StockTable {
                    .my-stoks-table .pl20 {padding-right:20px;} \n\
                    .my-stoks-table .sel {background-color: #ECEFF9;}\n\
                    .my-stoks-table .elipse {color: #66B2FF; }\n\
+                   .my-stoks-table .cls-zt-reason {color: #6495ED; font-size: 12px;}\n\
+                   .my-stoks-table .ths-zt-reason {color: #5CACEE; font-size: 12px;}\n\
                    .my-stoks-table .industry {background-color: #8C92A6; height: 26px; vertical-align: middle; color: #fff; }\n\
                    .my-stoks-table .industry:before {content:'\\20'; width: 6px; height:16px; background-color: #8d1f1f; margin: 0 5px 0 10px; display: inline-block; vertical-align: middle;} \n\
                 ";
@@ -584,7 +601,7 @@ class IndustryTable extends StockTable {
         }
     }
 
-    sortBy(name, asc) {
+    _sortBy(name, asc) {
         //console.log('[sortNumberBy]', name, asc);
         if (!this.datas || !this.table) {
             return;

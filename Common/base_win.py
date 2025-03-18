@@ -2,7 +2,7 @@ import win32gui, win32con , win32api, win32ui, win32gui_struct, win32clipboard #
 import threading, time, datetime, sys, os, copy, calendar, functools, ctypes
 import pyperclip # pip install pyperclip
 from multiprocessing import shared_memory # python 3.8+
-import ctypes
+import ctypes, traceback
 
 class Listener:
     class Event:
@@ -225,8 +225,11 @@ class Thread:
                 task = self.tasks[0]
                 self.tasks.pop(0)
                 self.lock.release()
-                func = task['func']
-                func( *task['args'] )
+                try:
+                    func = task['func']
+                    func( *task['args'] )
+                except Exception as e:
+                    traceback.print_exc()
 
 class TimerThread:
     _num = 0

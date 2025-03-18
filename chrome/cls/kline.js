@@ -1169,7 +1169,11 @@ class AnchrosView extends Listener {
     onDbClick(x, y) {
         let an = this.findAnchor(x, y);
         if (! an) return;
-        window.open('https://www.cls.cn/plate?code=' + an.data.symbol_code, '_blank');
+        let code = an.data.symbol_code;
+        if (code.length == 8 && (code.substring(0, 2) == 'sz' || code.substring(0, 2) == 'sh'))
+            window.open('https://www.cls.cn/stock?code=' + code, '_blank');
+        else
+            window.open('https://www.cls.cn/plate?code=' + code, '_blank');
     }
 
     draw() {

@@ -680,10 +680,7 @@ function updateTabNavi(name, data) {
 		return;
 	}
 	let hd = null;
-	function lbFormater(idx, rowData, header, tdObj) {
-		tdObj.text(String(rowData.limit_up_days) + '板');
-	}
-	function lbAmount(idx, rowData, header, tdObj) {
+	function amountRender(idx, rowData, header, tdObj) {
 		if (! rowData.amount) {
 			tdObj.text('');
 			return;
@@ -691,21 +688,23 @@ function updateTabNavi(name, data) {
 		let v = String(parseInt(rowData.amount)) + ' 亿';
 		tdObj.html(v);
 	}
-	function lbAmountIdx(idx, rowData, header, tdObj) {
+	function amountIdxRender(idx, rowData, header, tdObj) {
 		if (! rowData.amountIdx) {
 			tdObj.text('');
 			return;
 		}
 		tdObj.html(rowData.amountIdx);
 	}
+
 	if (name == '涨停池' || name == '连板池') {
 		hd = [
 			{text: '股票/代码', 'name': 'code', width: 80},
 			{text: '涨跌幅', 'name': 'change', width: 70, sortable: true},
-			{text: '连板', 'name': 'limit_up_days', width: 50, sortable: true, formater: lbFormater},
+			{text: '连板', 'name': 'limit_up_days', width: 50, sortable: true},
 			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
-			{text: '热度', 'name': 'hots', width: 50, sortable: true},
+			{text: '热度', 'name': 'hots', width: 50, sortable: true, full: true},
 			{text: '动因', 'name': 'up_reason', width: 250, sortable: true},
+			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
 	} else if (name == '炸板池' || name == '跌停池') {
@@ -725,8 +724,8 @@ function updateTabNavi(name, data) {
 			{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
 			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
 			{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
-			{text: '成交额', 'name': 'amount', width: 50, sortable: true, formater : lbAmount, defined: true},
-			{text: '成交额<br/>排名', 'name': 'amountIdx', width: 50, sortable: false, formater : lbAmountIdx, defined: true},
+			{text: '成交额', 'name': 'amount', width: 50, sortable: true, cellRender : amountRender, defined: true},
+			{text: '成交额<br/>排名', 'name': 'amountIdx', width: 50, sortable: false, cellRender : amountIdxRender, defined: true},
 			{text: '热度', 'name': 'hots', width: 50, sortable: true},
 			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
 			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
