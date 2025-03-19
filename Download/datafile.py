@@ -288,7 +288,16 @@ class DataFile:
             maxDays = filesize // (RL * self.MINUTES_IN_DAY)
             if daysNum > maxDays:
                 daysNum = maxDays
-            n = f.seek(-RL * daysNum * self.MINUTES_IN_DAY, 2)
+            pk = RL * daysNum * self.MINUTES_IN_DAY
+            if pk + RL <= filesize:
+                pk += RL
+                n = f.seek(-pk, 2)
+                bs = f.read(RL)
+                item = struct.unpack('2l4f', bs)
+                self.pre = item.price
+            else:
+                n = f.seek(-pk, 2)
+                self.pre = 0
             for i in range(daysNum * self.MINUTES_IN_DAY):
                 bs = f.read(RL)
                 item = struct.unpack('2l4f', bs)

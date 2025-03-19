@@ -133,6 +133,8 @@ class SimpleTimelineModel:
             else:
                 self.dataFile.loadDataByDay(day)
                 self.day = day
+            if self.dataFile.data:
+                self.pre = getattr(self.dataFile, 'pre', self.dataFile.data[0].price)
     
     def merge(self):
         if not self.dataFile:
@@ -177,8 +179,8 @@ class SimpleTimelineModel:
             return
         if code[0 : 2] in ('sz', 'sh'):
             code = code[2 : ]
-        self.loadNet(code, day)
-        self.loadLocal(code, day)
+        if not self.loadNet(code, day):
+            self.loadLocal(code, day)
         self.merge()
         if type(day) == str:
             self.day = int(day.replace('-', ''))

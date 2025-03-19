@@ -17,7 +17,7 @@ class Server:
         self.last_dde_time = 0
         self.last_hot_time = 0
         self.last_hotzh_time = 0
-        self.downloadInfos = {}
+        self.downloadInfos = {'ignore': '2025-03-18'}
         
     def formatZtTime(self, ds):
         if not ds:
@@ -205,7 +205,7 @@ class Server:
         try:
             upd, ins = ths_iwencai.download_hygn()
             u, i = ths_iwencai.save_hygn(upd, ins)
-            console.writeln_1(console.CYAN, f'[THS-HyGn] {tag} {self.formatNowTime(True)} update {u}, insert {i}')
+            console.writeln_1(console.GREEN, f'[THS-HyGn] {tag} {self.formatNowTime(True)} update {u}, insert {i}')
             return True
         except Exception as e:
             traceback.print_exc()
@@ -224,20 +224,28 @@ class Server:
                 self.downloadSaveOneDayTry(day)
                 self.last_zt_time = time.time()
 
+        # 计算热度综合排名
+        if curTime >= '15:05' and (not self.downloadInfos.get(f'zh-hots-{day}', False)):
+            self.downloadInfos[f'zh-hots-{day}'] = True
+            hot_utils.calcAllHotZHAndSave()
+            console.writeln_1(console.GREEN, f'[THS-ZH-hot] [1] {self.formatNowTime(False)}', ' calc hot ZH success')
+
+        if self.downloadInfos.get('ignore', None) == day:
+            return
         # 下载同花顺指数涨跌信息
-        if curTime >= '15:10' and not self.downloadInfos.get(f'zs-{day}', False):
+        if curTime >= '15:05' and not self.downloadInfos.get(f'zs-{day}', False):
             self.downloadInfos[f'zs-{day}'] = True
-            self.downloadSaveZs('[1]')
+            self.downloadSaveZs('[2]')
 
         # 下载dde数据, 前100 + 后100
-        if curTime >= '15:15':
+        if curTime >= '15:05':
             #self.downloadSaveDde()
             self.last_dde_time = time.time()
 
         # 下载个股板块概念信息
-        if (curTime >= '15:20') and not self.downloadInfos.get(f'hygn-{day}', False):
+        if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False):
             self.downloadInfos[f'hygn-{day}'] = True
-            self.download_hygn('[2]')
+            self.download_hygn('[3]')
 
     def loadHotsOneTime(self):
         now = datetime.datetime.now()
@@ -251,13 +259,6 @@ class Server:
             if (now.minute % 5 <= 1) and (time.time() - self.last_hot_time >= 3 * 60):
                 self.last_hot_time = time.time()
                 self.downloadSaveHot()
-        
-        # 计算热度综合排名
-        if curTime > '15:05' and curTime < '16:00':
-            if time.time() - self.last_hotzh_time >= 60 * 60:
-                hot_utils.calcAllHotZHAndSave()
-                self.last_hotzh_time = time.time()
-                console.writeln_1(console.RED, f'[THS-ZH-hot] {self.formatNowTime(False)}', ' calc hot ZH success')
 
 if __name__ == '__main__':
     #autoLoadHistory(20240708)

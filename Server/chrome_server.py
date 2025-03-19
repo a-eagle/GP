@@ -168,7 +168,7 @@ class Server:
                     preLastIdx = -1 - 241
                 else:
                     preLastIdx = -1 - len(data['line']) % 241
-                rs['pre'] = data['line'][preLastIdx]['price']
+                rs['pre'] = lines[preLastIdx].price
                 rs['line'] = lines[preLastIdx + 1 : ]
             else:
                 hx = henxin.HexinUrl()

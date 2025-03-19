@@ -9,7 +9,7 @@ from Download import console, cls, ths_iwencai
 
 class Server:
     def __init__(self) -> None:
-        self.downloadInfos = {}
+        self.downloadInfos = {'ignore': '2025-03-18'}
         self._lastLoadTime = 0
         self._lastLoadHotTcTime = 0
         self._lastLoadZSTime = 0
@@ -152,7 +152,10 @@ class Server:
         day = now.strftime('%Y-%m-%d')
         if curTime >= '09:30' and curTime <= '16:00':
             self.downloadClsZT()
-        if curTime > '15:00' and (not self.downloadInfos.get(f'scqx-{day}', False)):
+        
+        if self.downloadInfos.get('ignore', None) == day:
+            return
+        if curTime > '15:30' and (not self.downloadInfos.get(f'scqx-{day}', False)):
             rs = self.downloadScqx('[1]')
             self.downloadInfos[f'scqx-{day}'] = rs
         if curTime >= '15:30' and (not self.downloadInfos.get(f'updown-{day}', False)):
@@ -164,7 +167,7 @@ class Server:
         if curTime >= '15:30' and (not self.downloadInfos.get(f'bkgn-{day}', False)):
             self.downloadInfos[f'bkgn-{day}'] = True
             self.downloadBkGn('[4]')
-        if curTime >= '15:50' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
+        if curTime >= '15:30' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
             self.downloadInfos[f'ztpk-{day}'] = True
             self.downloadZT_PanKou('[5]')
 
@@ -246,7 +249,7 @@ class Server:
                 else:
                     cls_orm.CLS_ZS.create(code = it['code'], name = it['name'], type_ = it['type_'])
                     i += 1
-            console.writeln_1(console.GREEN, f'[CLS-ZS] {tag} {self.formatNowTime(True)} insert={i} update={u}')
+            console.writeln_1(console.CYAN, f'[CLS-ZS] {tag} {self.formatNowTime(True)} insert={i} update={u}')
         except Exception as e:
             traceback.print_exc()
 
