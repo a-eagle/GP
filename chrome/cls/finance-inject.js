@@ -679,7 +679,7 @@ function updateTabNavi(name, data) {
 		$('#up-down').empty();
 		return;
 	}
-	let hd = null;
+	let hd = null, ops = null;
 	function amountRender(idx, rowData, header, tdObj) {
 		if (! rowData.amount) {
 			tdObj.text('');
@@ -731,6 +731,7 @@ function updateTabNavi(name, data) {
 			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
+		ops = $('<div style="text-align:center; "> <input name="searchText" placeHolder = ""/>  </div>');
 	}
 	let st = new StockTable(hd);
 	window.st = st;
@@ -744,6 +745,7 @@ function updateTabNavi(name, data) {
 	}
 	st.buildUI();
 	$('#up-down').empty();
+	if (ops) $('#up-down').append(ops);
 	$('#up-down').append(st.table);
 }
 

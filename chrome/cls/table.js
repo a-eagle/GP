@@ -16,6 +16,7 @@ class StockTable {
         this.headers = headers;
         this.lastSortHeader = null;
         this.datas = null;
+        this.srcDatas = null;
         this.datasMap = null; // map of this.datas, key = secu_code
         this.hotsZH = null;
         this.day = null;
@@ -96,10 +97,8 @@ class StockTable {
 
     // should call setDay before setData
     setData(data) {
-        if (data == this.datas || !data) {
-            return;
-        }
         let mdata = {};
+        data = data || [];
         for (let i = data.length - 1; i >= 0; i--) {
             let code = data[i].code;
             if (!data[i].secu_code && code) {
@@ -122,7 +121,8 @@ class StockTable {
         this.lastSortHeader = null;
         this.trs = {};
         this.tlMgr = new TimeLineUIManager();
-        this.datas = data;
+        this.srcDatas = data;
+        this.datas = data.slice();
         this.datasMap = mdata;
         this._defineProterties()
         this.loadHotsZH();
@@ -220,8 +220,70 @@ class StockTable {
         this.headers = proxyHeaders;
     }
 
-    loadFenShi(day) {
+    filter(text) {
+        if (! this.srcDatas) {
+            return;
+        }
+        for (let k in this.trs) {
+            this.trs[k].hide();
+        }
+        let rs = this._searchText(text);
+        this.datas = rs;
+        for (let i = 0; i < rs.length; i++) {
+            let d = rs[i];
+            d.__rowIdx__ = i;
+            this.trs[d.secu_code].show();
+        }
+    }
 
+    _searchText(text) {
+        let qs, cond, qrs = new Set();
+        if (!text || !text.trim()) {
+            return this.srcDatas.slice();
+        }
+        text = text.trim().toUpperCase();
+        if (text.indexOf('|') >= 0) {
+            qs = text.split('|')
+            cond = 'OR'
+        } else {
+            qs = text.split(' ')
+            cond = 'AND'
+        }
+        for (let q of qs) {
+            q = q.trim();
+            if (q && !qrs.has(q))
+                qrs.add(q);
+        }
+        let rs = [];
+        for (let d of this.srcDatas) {
+            if (this.match(d, qrs, cond))
+                rs.push(d)
+        }
+        return rs;
+    }
+
+    match(data, qrs, cond) {
+        for (let q of qrs) {
+            let fd = false;
+            for (let hd of this.headers) {
+                let v = data[hd.name] || '';
+                if (typeof(v) == 'string') {
+                    if (hd.name == 'up_reason' && v.indexOf('|') > 0) 
+                        v = v.substring(0, v.indexOf('|'));
+                    if (v.toUpperCase().indexOf(q) >= 0) {
+                        fd = true;
+                        break;
+                    }
+                }
+            }
+            if (cond == 'AND' && !fd)
+                return false;
+            if (cond == 'OR' && fd)
+                return true;
+        }
+        if (cond == 'AND')
+            return true;
+        return false;
     }
 
     initCellRender(k, header) {
@@ -392,7 +454,7 @@ class StockTable {
 
     getAttrType(list, name) {
         for (let i = 0; i < list.length; i++) {
-            if (list[i][name] == undefined)
+            if (list[i][name] == undefined || list[i][name] == null)
                 continue;
             return typeof(list[i][name]);
         }
@@ -433,6 +495,7 @@ class StockTable {
             return;
         }
         this.datas.sort(this.compare(this.datas, name, asc));
+        this.srcDatas.sort(this.compare(this.srcDatas, name, asc));
         for (let k in this.trs) {
             this.trs[k].detach();
         }
