@@ -690,3 +690,146 @@ class IndustryTable extends StockTable {
         }
     }
 }
+
+class UIListener {
+    constructor() {
+        this.listeners = {};
+    }
+    addListener(eventName, listener) {
+        let lsts = this.listeners[eventName];
+        if (! lsts) {
+            lsts = this.listeners[eventName] = [];
+        }
+        lsts.push(listener);
+    }
+
+    // event = {name: '', ..}
+    notify(event) {
+        let name = event.name;
+        let lsts = this.listeners[name];
+        if (! lsts) {
+            return;
+        }
+        for (let i in lsts) {
+            lsts[i](event);
+        }
+    }
+}
+
+class DatePicker extends UIListener {
+    constructor() {
+        super();
+        this.table = null;
+        this.curSelDate = null;
+        this.popup = null;
+    }
+
+    openFor(targetElem) {
+        this.reset();
+        let tdRc = targetElem.getBoundingClientRect();
+        let dw = $(window.document).width();
+        if (dw < tdRc.left + this.table.width()) {
+            this.table.css({left: dw - this.table.width() - 10, top: tdRc.bottom});
+        } else {
+            this.table.css({left: tdRc.left, top: tdRc.bottom});
+        }
+	    this.popup.css('display', 'block');
+    }
+
+    reset() {
+        let d = this.curSelDate || new Date();
+        if (typeof(d) == 'string')
+            d = new Date(d);
+        let y = d.getFullYear();
+        let m = d.getMonth() + 1;
+        this.changeMonth(y, m);
+    }
+
+    changeMonth(year, month) {
+        let ds = this.getDays(year, month);
+        this.buildUI(ds);
+    }
+
+    formatDate(date) {
+        let y = date.getFullYear();
+        let m = String(date.getMonth() + 1);
+        let d = String(date.getDate());
+        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+
+    getDays(year, month) {
+        year = parseInt(year);
+        month = parseInt(month) - 1;
+        let firstDate = new Date(year, month, 1);
+        let sweek = (firstDate.getDay() + 6) % 7; // 0 ~ 6, 一 ~ 日
+        let days = [];
+        for (let i = 0; i < 31; i++) {
+            let d = new Date(year, month, i + 1);
+            if (d.getFullYear() == year && d.getMonth() == month) {
+                days.push(d);
+            } else {
+                break;
+            }
+        }
+        for (let i = sweek - 1, j = 0; i >= 0; i--, j ++) {
+            let d = new Date(year, month, - j);
+            days.unshift(d);
+        }
+        let lastDate = days[days.length - 1];
+        let eweek = (lastDate.getDay() + 6) % 7;
+        for (let i = eweek + 1, j = 0; i < 7; i++, j++) {
+            let d = new Date(year, month + 1, 1 + j);
+            days.push(d);
+        }
+    }
+
+    buildUI(days) {
+        this.initStyle();
+        this.table.empty();
+        let tr = $('<tr> </tr>');
+        for (let k of '一二三四五六日') {
+            tr.append($(`<th> ${k} </th>`));
+        }
+        this.table.append(tr);
+        tr = null;
+        for (let i = 0; i < days.length; i++) {
+            if (i % 7 == 0) {
+                tr = $('<tr> </tr>');
+                this.table.append(tr);
+            }
+            let td = $(`<td> ${this.formatDate(days[i])} </td>`);
+            tr.append(td);
+        }
+        let thiz = this;
+        this.table.find('td').click(function() { thiz.onSel($(this));});
+    }
+    
+    onSel(elem) {
+        let txt = elem.text().trim();
+        if (txt.length == 10) {
+            this.curSelDate = txt;
+            this.popup.css('display', 'none');
+            this.notify({name: 'select', date: this.curSelDate});
+        }
+    }
+
+    initStyle() {
+        if (window['DatePicker-InitStyle'])
+            return;
+        window['DatePicker-InitStyle'] = true;
+        let style = document.createElement('style');
+        let css = " \
+            .datepicker-popup {z-index: 81100; display: none;  position: fixed; padding: 0; outline: 0; left:0px; top: 0px;width:100%;height:100%;}\n\
+            .datepicker-popup .content {position:absolute; background-color: #fcfcfc; border: solid 1px #d0d0d0;} \n\
+            .datepicker-popup tr {width: 200px; height: 25px;} \n\
+        ";
+        style.appendChild(document.createTextNode(css));
+        document.head.appendChild(style);
+        this.popup = $('<div class="datepicker-popup" > </div>');
+        this.popup.click(function() {$(this).css('display', 'none')});
+        this.popup.on('mousewheel', function(event) {event.preventDefault();});
+        $(document.body).append(this.popup);
+        this.table = $('<table> </table>');
+        this.popup.append(this.table);
+    }
+}

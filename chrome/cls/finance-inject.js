@@ -732,6 +732,11 @@ function updateTabNavi(name, data) {
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
 		ops = $('<div style="text-align:center; "> <input name="searchText" placeHolder = ""/>  </div>');
+		ops.find('input').bind('keydown', function(event) { 
+			if(event.keyCode == 13) {
+				window.st.filter($(this).val().trim());
+			}
+		});
 	}
 	let st = new StockTable(hd);
 	window.st = st;
