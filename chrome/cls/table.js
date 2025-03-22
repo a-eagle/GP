@@ -716,16 +716,24 @@ class UIListener {
     }
 }
 
-class DatePicker extends UIListener {
-    constructor() {
+class TradeDatePicker extends UIListener {
+    constructor(tradeDays) {
         super();
         this.table = null;
-        this.curSelDate = null;
+        this.curSelDate = null; // String YYYY-mm-dd
         this.popup = null;
+        this.tradeDays = {};
+        this.changeInfo = {};
+        for (let d of tradeDays) {
+            if (d.length == 8)
+                d = d.substring(0, 4) + '-' + d.substring(4, 6) + '-' + d.substring(6, 8);
+            this.tradeDays[d] = true;
+        }
     }
 
     openFor(targetElem) {
         this.reset();
+        if (! targetElem.tagName) targetElem = targetElem.get(0);
         let tdRc = targetElem.getBoundingClientRect();
         let dw = $(window.document).width();
         if (dw < tdRc.left + this.table.width()) {
@@ -746,11 +754,30 @@ class DatePicker extends UIListener {
     }
 
     changeMonth(year, month) {
+        year = parseInt(year);
+        month = parseInt(month);
+        if (month == 0) {
+            year -= 1;
+            month = 12;
+        } else if (month == 13) {
+            month = 1;
+            year += 1;
+        }
+        this.changeInfo.year = year;
+        this.changeInfo.month = month;
         let ds = this.getDays(year, month);
         this.buildUI(ds);
     }
 
     formatDate(date) {
+        if (! date) {
+            return '';
+        }
+        if (typeof(date) == 'string') {
+            if (date.length == 8) {
+                return date.substring(0, 4) + '-' + date.substring(4, 6) + '-' + date.substring(6, 8);
+            }
+        }
         let y = date.getFullYear();
         let m = String(date.getMonth() + 1);
         let d = String(date.getDate());
@@ -773,20 +800,31 @@ class DatePicker extends UIListener {
         }
         for (let i = sweek - 1, j = 0; i >= 0; i--, j ++) {
             let d = new Date(year, month, - j);
-            days.unshift(d);
+            days.unshift('');
         }
         let lastDate = days[days.length - 1];
         let eweek = (lastDate.getDay() + 6) % 7;
         for (let i = eweek + 1, j = 0; i < 7; i++, j++) {
             let d = new Date(year, month + 1, 1 + j);
-            days.push(d);
+            days.push('');
         }
+        return days;
+    }
+
+    getWeek(date) {
+        let sweek = (date.getDay() + 6) % 7; // 0 ~ 6, 一 ~ 日
+        return sweek;
     }
 
     buildUI(days) {
         this.initStyle();
         this.table.empty();
         let tr = $('<tr> </tr>');
+        let ym = `${this.changeInfo.year}-${this.changeInfo.month}`;
+        let today = this.formatDate(new Date());
+        tr.append($(`<td colspan=5> ${ym} </td> <td val="prev" able=true> &lt; </td> <td val="next" able=true> &gt; </td> `));
+        this.table.append(tr);
+        tr = $('<tr> </tr>');
         for (let k of '一二三四五六日') {
             tr.append($(`<th> ${k} </th>`));
         }
@@ -797,19 +835,30 @@ class DatePicker extends UIListener {
                 tr = $('<tr> </tr>');
                 this.table.append(tr);
             }
-            let td = $(`<td> ${this.formatDate(days[i])} </td>`);
+            let sday = this.formatDate(days[i]);
+            let td = $(`<td val=${sday}> ${sday ? parseInt(sday.substring(8)) : ''} </td>`);
+            let able = this.tradeDays[sday];
+            td.attr('able', able);
+            if (! able) td.addClass('no-able');
+            if (sday == today) td.html(`<span class="today"> ${td.text()} </span>`);
+            if (sday == this.curSelDate) td.addClass('sel');
             tr.append(td);
         }
         let thiz = this;
-        this.table.find('td').click(function() { thiz.onSel($(this));});
+        this.table.find('td').click(function() { thiz.onSel($(this)); return false;});
     }
     
     onSel(elem) {
-        let txt = elem.text().trim();
-        if (txt.length == 10) {
-            this.curSelDate = txt;
+        let val = elem.attr('val');
+        if (! elem.attr('able'))
+            return;
+        if (val.length == 10) {
+            this.curSelDate = val;
             this.popup.css('display', 'none');
             this.notify({name: 'select', date: this.curSelDate});
+        } else if (val == 'prev' || val == 'next') {
+            let v = val == 'prev' ? -1 : 1;
+            this.changeMonth(this.changeInfo.year, this.changeInfo.month + v);
         }
     }
 
@@ -820,8 +869,13 @@ class DatePicker extends UIListener {
         let style = document.createElement('style');
         let css = " \
             .datepicker-popup {z-index: 81100; display: none;  position: fixed; padding: 0; outline: 0; left:0px; top: 0px;width:100%;height:100%;}\n\
-            .datepicker-popup .content {position:absolute; background-color: #fcfcfc; border: solid 1px #d0d0d0;} \n\
-            .datepicker-popup tr {width: 200px; height: 25px;} \n\
+            .datepicker-popup tr {width: 300px; height: 25px;} \n\
+            .datepicker-popup table {position:absolute; color: #383838; font-size: 14px; border-collapse: collapse; border: 1px solid #aaa; text-align: center; background-color: #fcfcfc; } \n\
+            .datepicker-popup th {width: 30px; height: 30px; border: solid 1px #ddd; background-color:#ECECEC;vertical-align: middle;} \n\
+            .datepicker-popup td {height: 30px; border: solid 1px #ddd;vertical-align: middle;} \n\
+            .datepicker-popup .no-able {background-color:#f0f0f0; } \n\
+            .datepicker-popup .today {color: #0a0; } \n\
+            .datepicker-popup .sel {background-color: #FF66FF; } \n\
         ";
         style.appendChild(document.createTextNode(css));
         document.head.appendChild(style);
@@ -831,5 +885,6 @@ class DatePicker extends UIListener {
         $(document.body).append(this.popup);
         this.table = $('<table> </table>');
         this.popup.append(this.table);
+        this.table.click(function() {return false;});
     }
 }
