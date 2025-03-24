@@ -733,22 +733,11 @@ function updateTabNavi(name, data) {
 		];
 		ops = $('<div style="text-align:center; "> \
 			<input name="searchText" placeHolder = "" style="border:solid 1px #999;"/>  \
-			<span style="background-color: #ddd; "> &nbsp;&nbsp;&nbsp;&nbsp; </span> \
 			</div>');
-		ops.find('input').bind('keydown', function(event) { 
+		ops.find('input').bind('keydown', function(event) {
 			if(event.keyCode == 13) {
 				window.st.filter($(this).val().trim());
 			}
-		});
-		ops.find('span').click(function() {
-			let thiz = this;
-			if (! window.dp) {
-				window.dp = new TradeDatePicker(pageInfo.tradeDays);
-				window.dp.addListener('select', function(evt) {
-					$(thiz).text(evt.date);
-				})
-			}
-			window.dp.openFor(this);
 		});
 	}
 	let st = new StockTable(hd);

@@ -517,6 +517,7 @@ class TimeLineView extends Listener {
     }
 
     fx() {
+        this.zsResults.length = 0;
         let data = this.data.line;
         for (let i = 0; i < data.length - 1; i++) {
             let m = data[i];
@@ -768,7 +769,7 @@ class TimeLineView extends Listener {
     }
 
     reloadData() {
-        this.loadData_2(this.code, this.day);
+        this.loadData(this.code, this.day);
     }
 
     loadData_2(code, day, callback) {

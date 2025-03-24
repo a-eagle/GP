@@ -137,7 +137,7 @@ class StockTable {
         for (let i = 0; i < this.headers.length; i++) {
             let hd = this.headers[i];
             let th = $('<th> </th>');
-            hd.headerRender(i, hd, th);
+            hd.headerRender(i, hd, th, this);
             if (hd.sortable) {
                 th.click(function() {
                     thiz.sortHeader($(this).attr('name'));
@@ -150,7 +150,7 @@ class StockTable {
         this.table.append(tr);
     }
 
-    _headerRender(colIdx, header, thObj) {
+    _headerRender(colIdx, header, thObj, thiz) {
         for (let k in header) {
             if (typeof(header[k]) != 'function')
                 thObj.attr(k, header[k]);
@@ -160,10 +160,35 @@ class StockTable {
             txt += '&nbsp;&#8593;';
         } else if (header.__sort__ == 'desc') {
             txt += '&nbsp;&#8595;';
-        }  else if (header.sortable) {
+        } else if (header.sortable) {
             txt += '&#9830;';
         }
         thObj.html(txt);
+        if (header.name == 'fs') {
+            thiz._fsHeaderRender(colIdx, header, thObj);
+        }
+    }
+
+    _fsHeaderRender(colIdx, header, thObj) {
+        let btn = $('<button> &nbsp;&nbsp;</button>');
+        let thiz = this;
+        btn.click(function() {
+            if (! window.dpFS) {
+                window.dpFS = new TradeDatePicker();
+            }
+            window.dpFS.removeListener('select');
+            window.dpFS.addListener('select', function(evt) {
+                let dd = new Date(evt.date);
+                let ss = '日一二三四五六';
+                btn.text(evt.date.substring(5) + ' ' + ss.charAt(dd.getDay()));
+                for (let view of thiz.tlMgr.views) {
+                    view.day = evt.date;
+                    view.reloadData();
+                }
+            });
+            window.dpFS.openFor(this);
+        });
+        thObj.append(btn);
     }
 
     initHeadersDefault() {
@@ -703,6 +728,10 @@ class UIListener {
         lsts.push(listener);
     }
 
+    removeListener(eventName) {
+        delete this.listeners[eventName];
+    }
+
     // event = {name: '', ..}
     notify(event) {
         let name = event.name;
@@ -717,18 +746,14 @@ class UIListener {
 }
 
 class TradeDatePicker extends UIListener {
-    constructor(tradeDays) {
+    constructor() {
         super();
         this.table = null;
         this.curSelDate = null; // String YYYY-mm-dd
         this.popup = null;
         this.tradeDays = {};
         this.changeInfo = {};
-        for (let d of tradeDays) {
-            if (d.length == 8)
-                d = d.substring(0, 4) + '-' + d.substring(4, 6) + '-' + d.substring(6, 8);
-            this.tradeDays[d] = true;
-        }
+        this.loadTradeDays();
     }
 
     openFor(targetElem) {
@@ -742,6 +767,18 @@ class TradeDatePicker extends UIListener {
             this.table.css({left: tdRc.left, top: tdRc.bottom});
         }
 	    this.popup.css('display', 'block');
+    }
+
+    loadTradeDays() {
+        let thiz = this;
+        $.ajax({url: 'http://localhost:5665/get-trade-days', async: false, success: function(data) {
+            for (let d of data) {
+                if (d.length == 8) {
+                    d = d.substring(0, 4) + '-' + d.substring(4, 6) + '-' + d.substring(6, 8);
+                }
+                thiz.tradeDays[d] = true;
+            }
+        }});
     }
 
     reset() {
