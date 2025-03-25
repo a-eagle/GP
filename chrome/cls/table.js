@@ -433,16 +433,28 @@ class StockTable {
         }
     }
 
+    getCodeList() {
+        if (! this.datas)
+            return [];
+        let rs = [];
+        for (let k of this.datas) {
+            if (k.secu_code.length == 8)
+                rs.push(k.secu_code.substring(2));
+        }
+        return rs;
+    }
+
     openKLineDialog(code) {
         //console.log('[openKLineDialog]', code);
         if (code.substring(0, 2) == 'sz' || code.substring(0, 2) == 'sh') {
             code = code.substring(2);
         }
-        let params = '';
-        if (this.day) {
-            params = '?day=' + this.day;
-        }
-        $.get('http://localhost:5665/openui/kline/' + code + params);
+        let data = JSON.stringify({ codes: this.getCodeList(), day: this.day});
+        $.post({
+            url: 'http://localhost:5665/openui/kline/' + code,
+            contentType: "application/json",
+            data: data
+        });
     }
 
     // header = header obj | header.name

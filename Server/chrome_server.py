@@ -1,4 +1,4 @@
-import threading, sys, traceback, datetime
+import threading, sys, traceback, datetime, json
 import flask, flask_cors
 import win32con, win32gui, peewee as pw
 
@@ -20,7 +20,7 @@ class Server:
         self.runner()
 
     def runner(self):
-        self.app.add_url_rule('/openui/<type_>/<code>', view_func = self.openUI)
+        self.app.add_url_rule('/openui/<type_>/<code>', view_func = self.openUI, methods = ['GET', 'POST'])
         self.app.add_url_rule('/get-hots', view_func = self.getHots)
         self.app.add_url_rule('/get-time-degree', view_func = self.getTimeDegree)
         self.app.add_url_rule('/query-by-sql/<dbName>', view_func = self.queryBySql)
@@ -37,11 +37,14 @@ class Server:
         win.load(code, day)
         win32gui.PumpMessages()
 
-    def openUI_Kline(self, code, day):
+    def openUI_Kline(self, code, params):
         from Tck import kline_utils
         win = kline_utils.createKLineWindow(None)
         win.changeCode(code)
-        win.klineWin.setMarkDay(day)
+        if params:
+            js = json.loads(params.decode())
+            win.klineWin.setMarkDay(js.get('day'), None)
+            win.setCodeList(js.get('codes', None))
         win.klineWin.makeVisible(-1)
         win32gui.PumpMessages()
 
@@ -50,8 +53,7 @@ class Server:
             day = flask.request.args.get('day', None)
             self.workThread.addTask(code, self.openUI_Timeline, code, day)
         elif type_ == 'kline':
-            day = flask.request.args.get('day', None)
-            self.workThread.addTask(code, self.openUI_Kline, code, day)
+            self.workThread.addTask(code, self.openUI_Kline, code, flask.request.data)
         else:
             return {'code': 2, 'msg': f'Type Error: {type_}'}
         return {'code': 0, 'msg': 'OK'}

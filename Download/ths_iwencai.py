@@ -327,53 +327,47 @@ def download_one_dde(code):
     memcache.cache.saveCache(code, datas, KIND)
     return datas
 
-# 查找涨停或炸板个股
+# 查找涨停 、炸板、跌停个股
 # day = int | str
 def download_zt_zb(day = None):
     if not day:
         day = ''
     if isinstance(day, str):
         day = day.replace('-', '')
-        day = int(day)
-    qs = ''
-    if day:
-        y, m, d = day // 10000, day // 100 % 100, day % 100
-        qs = f'{y}年{m}月{d}日'
-    qs += '涨停或者曾涨停,非st,成交额'
-    datas = iwencai_load_list(qs)
+    elif isinstance(day, int):
+        day = str(day)
+    qs = day + ' 涨停或者曾涨停,非st,成交额,收盘价,涨跌幅'
+    datas = iwencai_load_list(qs) or []
+    qs = day + ' 跌停,非st,成交额,收盘价,涨跌幅'
+    datas2 = iwencai_load_list(qs) or []
+    datas.extend(datas2)
     if not datas:
         return None
     # find day
-    rday = None
-    for k in datas[0]:
-        if '首次涨停时间[' in k:
-            rday = k[len('首次涨停时间[') : k.index(']')]
-            break
-    if not rday:
-        print('Error [ths_iwencai].download_zt_zb not find day')
-        return None
     rs = []
-    fday = rday[0 : 4] + '-' + rday[4 : 6] + '-' +  rday[6 : 8]
+    fday = day[0 : 4] + '-' + day[4 : 6] + '-' +  day[6 : 8]
     for it in datas:
         code = it['code']
         if code[0] not in ('0', '3', '6'):
             continue
         obj = {}
         obj['code'] = it['code']
+        if code[0] == '6': obj['secu_code'] = 'sh' + code
+        else: obj['secu_code'] = 'sz' + code
+        obj['secu_name'] = obj['name'] = it['股票简称']
         obj['day'] = fday
-        a = it.get(f'曾涨停[{rday}]', None)
-        obj['tag'] = '炸板' if a else '涨停'
-        obj['lbs'] = it.get(f'几天几板[{rday}]', '')
-        obj['name'] = it['股票简称']
-        obj['lastZtTime'] = it.get(f'最终涨停时间[{rday}]', '')
-        obj['firstZtTime'] = it.get(f'首次涨停时间[{rday}]', '')
-        obj['kbs'] = int(it.get(f'涨停开板次数[{rday}]', 0))
-        obj['reason'] = it.get(f'涨停原因类别[{rday}]', '')
-        m = it.get(f'涨停封单额[{rday}]', None)
-        obj['ztMoney'] = float(m) / 100000000 if m else None
-        obj['ltsz'] = int(float(it.get(f'a股市值(不含限售股)[{rday}]', 0)) / 100000000) # 亿元
-        obj['amount'] = int(float(it.get(f'成交额[{rday}]', 0))) // 100000000 # 亿元
-        obj['vol'] = int(float(it.get(f'成交量[{rday}]', 0))) # 手
+        lbs = it.get(f'连续涨停天数[{day}]', 0)
+        dts = it.get(f'连续跌停天数[{day}]', 0)
+        obj['limit_up_days'] = lbs
+        obj['is_down'] = 1 if dts else 0
+        ztTime = it.get(f'首次涨停时间[{day}]', '')
+        dtTime = it.get(f'首次跌停时间[{day}]', '')
+        obj['time'] = (ztTime or dtTime or '').strip()
+        rr = it.get(f'涨停原因类别[{day}]', '')
+        rr2 = it.get(f'跌停原因类型[{day}]', '')
+        obj['up_reason'] = rr or rr2
+        obj['last_px'] = 0
+        obj['change'] = 0
         rs.append(obj)
     return rs
 
@@ -433,6 +427,7 @@ def getTradeDays_Cache(prev = 60):
 
 if __name__ == '__main__':
     # data = iwencai_load_list('个股成交额排名, 20250312', maxPage = 2)
-    ds = getTradeDays_Cache()
-    print(ds)
-    pass
+    ds = download_zt_zb('20250317')
+    from orm import tck_orm
+    for d in ds:
+        tck_orm.CLS_UpDown.create(**d)

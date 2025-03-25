@@ -3310,6 +3310,8 @@ class KLineCodeWindow(base_win.BaseWindow):
     # codes = [ str, str, ... ]  |  [ int, int, ... ]
     #         [ {'code':xxx, }, ... ]  | [ {'secu_code':xxx, }, ... ]
     def setCodeList(self, codes, curIdx = -1):
+        if not codes:
+            return
         self.codeList = codes
         if curIdx < 0:
             curIdx = self._findIdx()

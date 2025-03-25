@@ -731,15 +731,8 @@ function updateTabNavi(name, data) {
 			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
-		ops = $('<div style="text-align:center; "> \
-			<input name="searchText" placeHolder = "" style="border:solid 1px #999;"/>  \
-			</div>');
-		ops.find('input').bind('keydown', function(event) {
-			if(event.keyCode == 13) {
-				window.st.filter($(this).val().trim());
-			}
-		});
 	}
+
 	let st = new StockTable(hd);
 	window.st = st;
 	st.setDay(pageInfo.curDay);
@@ -752,7 +745,15 @@ function updateTabNavi(name, data) {
 	}
 	st.buildUI();
 	$('#up-down').empty();
-	if (ops) $('#up-down').append(ops);
+	ops = $('<div style="text-align:center; "> \
+		<input name="searchText" placeHolder = "" style="border:solid 1px #999;"/>  \
+		</div>');
+	ops.find('input').bind('keydown', function(event) {
+		if(event.keyCode == 13) {
+			window.st.filter($(this).val().trim());
+		}
+	});
+	 $('#up-down').append(ops);
 	$('#up-down').append(st.table);
 }
 
