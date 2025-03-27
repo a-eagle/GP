@@ -937,3 +937,128 @@ class TradeDatePicker extends UIListener {
         this.table.click(function() {return false;});
     }
 }
+
+class RichEditor extends UIListener {
+    constructor(name) {
+        super();
+        this.name = name;
+        this.ui = null;
+    }
+
+    buildUI() {
+        this.initStyle();
+        if (this.ui) {
+            this.loadData();
+            return;
+        }
+        this.ui = $('<div class="richeditor" contenteditable="true" > </div>');
+        let thiz = this;
+        this.ui.keydown(function(evt) {thiz.onKeyDown(evt);});
+        this.loadData();
+    }
+
+    loadData() {
+        this.ui.html(localStorage.getItem(this.name));
+    }
+
+    onKeyDown(event) {
+        // console.log(event);
+        if (event.keyCode == 83 && event.ctrlKey) {
+            // ctrl + S
+            localStorage.setItem(this.name, this.ui.html());
+            event.preventDefault();
+            event.returnValue = false;
+        }
+    }
+
+    initStyle() {
+        if (window['RichEditor-InitStyle'])
+            return;
+        window['RichEditor-InitStyle'] = true;
+        let style = document.createElement('style');
+        let css = " \
+            .richeditor  {border:solid 1px #aaa; min-height: 400px; padding: 10px; } \n\
+        ";
+        style.appendChild(document.createTextNode(css));
+        document.head.appendChild(style);
+    }
+
+    setBgColor(color) { // 修改文档的背景颜色
+        document.execCommand('backColor', false, color); 
+    }
+    setBgColor2(color) { // 更改选择或插入点的背景颜色
+        document.execCommand('hiliteColor', false, color);
+    }
+    bold() { // 开启或关闭
+        document.execCommand('bold');
+    }
+    italic() { // 在光标插入点开启或关闭斜体字
+        document.execCommand('italic');
+    }
+    setFontName(fontName) { // 在插入点或者选中文字部分修改字体名称
+        document.execCommand('fontName', false, fontName);
+    }
+    setFontSize(fontSize) {
+        document.execCommand('fontSize', false, fontSize);
+    }
+    setColor(foreColor) { // 在插入点或者选中文字部分修改字体颜色。
+        document.execCommand('foreColor', false, foreColor);
+    }
+    insertHorizontalRule() { // 在插入点插入一个水平线（删除选中的部分）
+        document.execCommand('insertHorizontalRule');
+    }
+    insertHtml(html) { // 在插入点插入一个 HTML 字符串（删除选中的部分）
+        document.execCommand('insertHtml', false, html);
+    }
+    insertText(text) { // 在插入点插入一个 Text 字符串（删除选中的部分）
+        document.execCommand('insertText', false, text);
+    }
+    insertImage(url) { // 在插入点插入一张图片（删除选中的部分）
+        document.execCommand('insertImage', false, url);
+    }
+    enableObjectResizing() { // 启用或禁用图像和其他对象的大小可调整大小手柄。
+        document.execCommand('enableObjectResizing');
+    }
+    createLink(url) { // 将选中内容创建为一个锚链接
+        document.execCommand('createLink', false, url || ' ');
+    }
+    unlink() { // 去除所选的锚链接的<a>标签
+        document.execCommand('unlink');
+    }
+    // align: center, full, left, right
+    textAlign(align) { // 对光标插入位置或者所选内容进行文字对齐
+        align = align.toLowerCase();
+        let first = align.substring(0, 1).toUpperCase();
+        let cmd = 'justify' + first + align.substring(1);
+        document.execCommand(cmd);
+    }
+    redo() { // 重做被撤销的操作。
+        document.execCommand('redo');
+    }
+    undo() { // 撤销最近执行的命令。
+        document.execCommand('undo');
+    }
+    removeFormat() { // 对所选内容去除所有格式
+        document.execCommand('removeFormat');
+    }
+    strikeThrough() { // 在光标插入点开启或关闭删除线。
+        document.execCommand('strikeThrough');
+    }
+    underline() { // 在光标插入点开启或关闭下划线。
+        document.execCommand('underline');
+    }
+    subScript() { // 在光标插入点开启或关闭下角标。
+        document.execCommand('subscript');
+    }
+    superScript() { // 在光标插入点开启或关闭上角标。
+        document.execCommand('superscript');
+    }
+    formatBlock(tagName) { // 添加一个 HTML 块式标签在包含当前选择的"行"
+        document.execCommand('formatBlock', false, tagName);
+    }
+
+    useCss(flag) {
+        document.execCommand('styleWithCSS', false, flag);
+    }
+
+}

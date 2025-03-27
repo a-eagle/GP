@@ -451,7 +451,7 @@ function initUI() {
 	let md4 = $('<div class="my-info-item p-r b-c-222" style="height: 400px;"> <canvas id="fs_canvas" > </canvas> </div>');
 	let md5 = $('<div id="hots" class="my-info-item p-r m-b-20  b-c-222"></div>');
 	let md6 = $('<div id="my-tab-nav" class="clearfix w-100p f-s-14 c-747474 toggle-nav-box finance-toggle-nav">' +
-				'<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div> <div >热度榜</div> ' + '</div>');
+				'<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div> <div >热度榜</div> <div>笔记</div> </div>');
 	let md7 = $('<div id = "up-down" class="my-info-item p-r b-c-222" style="">  </div>');
 	group.append(md1).append(md2).append(md3).append(md4).append(md5).append(md6).append(md7);
 	$('.watch-content-left > div:gt(1)').hide();
@@ -587,7 +587,11 @@ function loadDegrees_n() {
 
 function loadTabNavi(name) {
 	if (name == '热度榜') {
-		loadTopHots(name);
+		loadTopHotsNavi(name);
+		return;
+	}
+	if (name == '笔记') {
+		loadNoteNavi(name);
 		return;
 	}
 	if (pageInfo.curDay == pageInfo.lastTradeDay) {
@@ -621,7 +625,7 @@ function loadTabNavi(name) {
 	}
 }
 
-function loadTopHots(name) {
+function loadTopHotsNavi(name) {
 	let day = pageInfo.curDay;
 	$.ajax({
 		url: 'http://localhost:5665/get-hots?full=true&day=' + day, type: 'GET',
@@ -753,8 +757,18 @@ function updateTabNavi(name, data) {
 			window.st.filter($(this).val().trim());
 		}
 	});
-	 $('#up-down').append(ops);
+	$('#up-down').append(ops);
 	$('#up-down').append(st.table);
+}
+
+function loadNoteNavi(name) {
+	$('#up-down').empty();
+	if (! window.richEditor ) {
+		window.richEditor = new RichEditor('my-note');
+		window.richEditor.buildUI();
+	}
+	let re = window.richEditor;
+	$('#up-down').append(re.ui);
 }
 
 initRequest();

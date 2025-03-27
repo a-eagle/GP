@@ -9,14 +9,14 @@ class Server:
     def __init__(self) -> None:
         self.app = flask.Flask(__name__)
         flask_cors.CORS(self.app)
-        self.workThread = None
+        self.uiThread = None
 
     def start(self):
         #th = threading.Thread(target = self.runner, daemon = True)
         #th.start()
         base_win.ThreadPool.instance().start()
-        self.workThread = base_win.Thread()
-        self.workThread.start()
+        self.uiThread = base_win.Thread()
+        self.uiThread.start()
         self.runner()
 
     def runner(self):
@@ -44,16 +44,18 @@ class Server:
         if params:
             js = json.loads(params.decode())
             win.klineWin.setMarkDay(js.get('day'), None)
-            win.setCodeList(js.get('codes', None))
+            cs : list = js.get('codes', [])
+            idx = cs.index(code) if code in cs else -1
+            win.setCodeList(cs, idx)
         win.klineWin.makeVisible(-1)
         win32gui.PumpMessages()
 
     def openUI(self, type_, code):
         if type_ == 'timeline':
             day = flask.request.args.get('day', None)
-            self.workThread.addTask(code, self.openUI_Timeline, code, day)
+            self.uiThread.addTask(code, self.openUI_Timeline, code, day)
         elif type_ == 'kline':
-            self.workThread.addTask(code, self.openUI_Kline, code, flask.request.data)
+            self.uiThread.addTask(code, self.openUI_Kline, code, flask.request.data)
         else:
             return {'code': 2, 'msg': f'Type Error: {type_}'}
         return {'code': 0, 'msg': 'OK'}
