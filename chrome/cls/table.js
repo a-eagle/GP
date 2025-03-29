@@ -9,7 +9,7 @@ class StockTable {
     //              cellRender?: function(rowIdx, rowData, header, tdObj) },
     //              headerRender? : function(colIdx, header, thObj),
     //           ...]
-    // fix headers : 'zs' 涨速, 'hots': 热度  'zf': 涨幅(根据'fs'列自动生成)
+    // fix headers : 'zs' 涨速, 'hots': 热度  'zf': 涨幅(根据'fs'列自动生成)  mark_color 标记颜色
     // 必须有列：secu_code(如果有code, 会根据code自动生成), secu_name
     // {name: 'hots', full? : true}
     constructor(headers) {
@@ -124,6 +124,7 @@ class StockTable {
         this.srcDatas = data;
         this.datas = data.slice();
         this.datasMap = mdata;
+        this.loadMarkColors();
         this._defineProterties()
         this.loadHotsZH();
     }
@@ -400,6 +401,16 @@ class StockTable {
             header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 tdObj.text(String(rowData.limit_up_days) + '板');
             }
+        } else if (k == 'head_num') {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
+                let val = rowData[head.name];
+                tdObj.text(!val ? '' : String(val) + '次');
+            }
+        } else if (k == 'mark_color') {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
+                let val = rowData[head.name];
+                if (val) tdObj.append($(`<span style="width: 20px; height: 20px; display: inline-block; background-color:${val}; vertical-align: middle; "> </span>`));
+            }
         } else {
             header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 let val = rowData[head.name];
@@ -409,6 +420,7 @@ class StockTable {
     }
 
     buildRowUI(idx, rowData) {
+        let thiz = this;
         let tr = $('<tr style="vertical-align: middle;" code="' + rowData.secu_code + '"> </tr>');
         for (let i = 0; i < this.headers.length; i++) {
             let ff = this.headers[i].cellRender;
@@ -416,19 +428,139 @@ class StockTable {
             tr.append(td);
             ff(idx, rowData, this.headers[i], td);
         }
+        tr.dblclick(function() {thiz.openKLineDialog($(this).attr('code'))});
+        tr.on('contextmenu', function(event) {
+            event.preventDefault();
+            const x = event.clientX;
+            const y = event.clientY;
+            thiz.onContextMenu(event, x, y);
+            return false;
+        });
         return tr;
+    }
+
+    onContextMenu(event, x, y) {
+        let thiz = this;
+        let tr = event.currentTarget;
+        function onselect(evt) {
+            thiz.onMenuItem(tr, evt);
+        }
+        if (! this.__menu__) {
+            this.__menu__ = new PopupMenu();
+        }
+        this.__menu__.removeListener('select-item');
+        this.__menu__.addListener('select-item', onselect);
+        let menu = this.__menu__;
+        let model = [
+                    {title: '标记', sub: [
+                        {name: 'mark-color', title: ' <span style="border:solid 1px #999; width: 50px; height:15px; display: inline-block; vertical-align: middle;"> &nbsp; </span>', color: ''},
+                        {name: 'mark-color', title: ' <span style="background-color: #f00; width: 50px; height:15px; display: inline-block; vertical-align: middle;"> &nbsp; </span>', color: '#f00'}, 
+                        {name: 'mark-color', title: ' <span style="background-color: #0f0; width: 50px; height:15px; display: inline-block; vertical-align: middle;"> &nbsp; </span>', color: '#0f0'}, 
+                        {name: 'mark-color', title: ' <span style="background-color: #00f; width: 50px; height:15px; display: inline-block; vertical-align: middle;"> &nbsp; </span>', color: '#00f'}, 
+                        {name: 'mark-color', title: ' <span style="background-color: #FF1493; width: 50px; height:15px; display: inline-block; vertical-align: middle;"> &nbsp; </span>', color: '#FF1493'}, 
+                        {name: 'mark-color', title: ' <span style="background-color: #9A32CD; width: 50px; height:15px; display: inline-block; vertical-align: middle;"> &nbsp; </span>', color: '#9A32CD'}, 
+                    ]},
+                ];
+        menu.setModel(model);
+        menu.show(x, y);
+    }
+
+    onMenuItem(tr, evt) {
+        let code = tr.getAttribute('code');
+        // console.log(code, evt);
+        if (evt.item.name == 'add-my-sel-list') {
+            this.addToMySelList(code);
+        } else if (evt.item.name == 'mark-color') {
+            this.markColor(code, evt.item.color);
+        } 
+    }
+
+    addToMySelList(code) {
+        const TAG = '[GP]:my-sel-list';
+        let rs = this.getLocalObject(TAG) || [];
+        for (let k of rs) {
+            if (k.code == code)
+                return;
+        }
+        let date = new Date();
+        let y = date.getFullYear();
+        let m = String(date.getMonth() + 1);
+        let d = String(date.getDate());
+        let day = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        rs.push({code, day});
+        this.saveLocalObject(TAG, rs);
+    }
+
+    getLocalObject(key) {
+        let rs = localStorage.getItem(key);
+        if (! rs) return null;
+        rs = JSON.parse(rs);
+        return rs;
+    }
+
+    saveLocalObject(key, data) {
+        if (! data) {
+            localStorage.setItem(key, null);
+        } else {
+            localStorage.setItem(key, JSON.stringify(data));
+        }
+    }
+
+    // color: null(取消) | rgb
+    markColor(code, color) {
+        const TAG = '[GP]:mark-color';
+        let rs = this.getLocalObject(TAG) || [];
+        let find = false;
+        for (let i = 0; i < rs.length; i++) {
+            let k = rs[i];
+            if (k.code == code) {
+                find = true;
+                if (! color) rs.splice(i, 1);
+                else k.color = color;
+            }
+        }
+        if (! find) {
+            rs.push({code, color});
+        }
+        this.saveLocalObject(TAG, rs);
+        let ds = this.findInDatasMap(code);
+        if (! ds) return;
+        if (Array.isArray(ds)) {
+            ds.forEach(function(it) {it.mark_color = color;});
+        } else {
+            ds.mark_color = color;
+        }
+    }
+
+    loadMarkColors() {
+        const TAG = '[GP]:mar-color';
+        let rs = this.getLocalObject(TAG);
+        if (! rs) return;
+        let thiz = this;
+        rs.forEach(function(it) {
+            let color = it.color;
+            let ds = thiz.findInDatasMap(it.code);
+            if (! ds) return;
+            if (Array.isArray(ds)) {
+                ds.forEach(function(itx) {itx.mark_color = color;});
+            } else {
+                ds.mark_color = color;
+            }
+        });
+    }
+
+    findInDatasMap(code) {
+        return this.datasMap[code];
     }
 
     buildUI() {
         if (! this.datas) {
             return;
         }
-        let thiz = this;
         for (let i = 0; i < this.datas.length; i++) {
             let sd = this.datas[i];
             let tr = this.buildRowUI(i, sd);
             this.table.append(tr);
-            tr.dblclick(function() {thiz.openKLineDialog($(this).attr('code'))});
             this.trs[sd.key] = tr;
         }
     }
@@ -695,7 +827,6 @@ class IndustryTable extends StockTable {
                 let sdx = sd.stocks[j];
                 let tr = this.buildRowUI(j, sdx);
                 this.table.append(tr);
-                tr.dblclick(function() {thiz.openKLineDialog($(this).attr('code'))});
                 this.trs[sdx.key] = tr;
             }
         }
@@ -725,6 +856,14 @@ class IndustryTable extends StockTable {
                 this.table.append(tr);
             }
         }
+    }
+
+    findInDatasMap(code) {
+        let rs = [];
+        for (let k in this.datasMap) {
+            if (k.indexOf(code) >= 0) rs.push(this.datasMap[k]);
+        }
+        return rs;
     }
 }
 
@@ -930,12 +1069,154 @@ class TradeDatePicker extends UIListener {
         document.head.appendChild(style);
         this.popup = $('<div class="datepicker-popup" > </div>');
         this.popup.click(function() {$(this).css('display', 'none')});
-        this.popup.on('mousewheel', function(event) {event.preventDefault();});
+        this.popup.on('mousewheel', function(event) {event.preventDefault(); return false;});
         $(document.body).append(this.popup);
         this.table = $('<table> </table>');
         this.popup.append(this.table);
         this.table.click(function() {return false;});
     }
+}
+
+class PopupMenu extends UIListener {
+    constructor() {
+        super();
+        this.menus = []; // menu manager list
+        this.popup = null;
+        this.menu = null;
+        this.model = null;
+        this.config = {maxVisibleItemNum: 10};
+    }
+
+    // model = [{title: string, name?: string, style?: string, sub?: model}, ...]
+    // model-item = null, means split line
+    setModel(model) {
+        this.menus.length = 0;
+        this.model = model;
+        if (this.popup) this.popup.empty();
+        this.initStyle();
+        this.menu = this._buildMenu(this.model, 0);
+    }
+
+    show(x, y) {
+        this.popup.append(this.menu);
+        this.menu.css({left: String(x) + 'px', top: String(y) + 'px'});
+        this.menu.show();
+        this.popup.show();
+    }
+
+    hide() {
+        if (this.popup) {
+            this.popup.empty();
+            this.popup.hide();
+        }
+    }
+
+    _closeMenuLevel(level) {
+        for (let i = this.menus.length - 1; i >= 0;  --i) {
+            let cur = this.menus[i];
+            if (cur.data('level') >= level) {
+                cur.hide();
+                this.menus.splice(i, 1);
+            }
+        }
+    }
+
+    _buildMenu(model, level) {
+        let thiz = this;
+        let menu = $('<div class="menu"> </div>');
+        menu.data('level', level);
+        menu.css('max-height', `${this.config.maxVisibleItemNum * 25 + 20}px`);
+        menu.click(function() {return false;});
+        let m = 0;
+        menu.on('mousewheel', function(event) {
+            let dy = event.originalEvent.deltaY;
+            let curElem = event.originalEvent.currentTarget;
+            let cntHeight = curElem.scrollHeight;
+            let h = $(curElem).height();
+            let moveableH = cntHeight - h;
+            if (dy > 0) {
+                let mmy = moveableH - curElem.scrollTop;
+                dy = Math.min(mmy, dy);
+                curElem.scrollTo(0, curElem.scrollTop + dy);
+            } else {
+                let mmy = curElem.scrollTop;
+                dy = Math.min(mmy, -dy);
+                curElem.scrollTo(0, curElem.scrollTop - dy);
+            }
+            return false;
+        });
+        menu.hide();
+        this.popup.append(menu);
+        for (let k of model) {
+            if (! k) {
+                menu.append($('<hr style="padding: 0; margin: 0;"/>'));
+                continue;
+            }
+            let item = $(`<p class="menu-item"> <span class="menu-item-prefix"> </span> ${k.title} <span class="menu-item-suffix"> ${k.sub && k.sub.length ? ">" : ""} </span> </p>`);
+            item.data('__model__', k);
+            menu.append(item);
+            item.click(function(evt) {let mi = $(this).data('__model__');  thiz.hide(); thiz.notify({name: 'select-item', item: mi, menu: thiz});});
+            if (k.style) {
+                k.style.split(';').forEach(function(it) {let s = it.split(':'); item.css[s[0].trim()] = s[1];});
+            }
+            
+            item.on('mouseenter', function() {
+                let it = $(this);
+                let itModel = it.data('__model__');
+                if (!k.sub || !k.sub.length) {
+                    thiz._closeMenuLevel(level + 1);
+                    return;
+                }
+                if (! itModel.__submenu__) {
+                    itModel.__submenu__ = thiz._buildMenu(itModel.sub, level + 1);
+                    thiz.popup.append(itModel.__submenu__);
+                }
+                let bb = it.get(0).getBoundingClientRect();
+                itModel.__submenu__.css({left: bb.right, top: bb.top});
+                thiz._closeMenuLevel(itModel.__submenu__.data('level'));
+                thiz.menus.push(itModel.__submenu__);
+                itModel.__submenu__.show();
+            });
+            item.on('mouseleave', function(event) {
+                let it = $(this);
+                let itModel = it.data('__model__');
+                if (! itModel.__submenu__) return;
+                if (! itModel.__submenu__.is(':visible')) return;
+                let bb = itModel.__submenu__.get(0).getBoundingClientRect();
+                let isIn = event.clientX >= bb.left && event.clientX <= bb.right && event.clientY >= bb.top && event.clientY <= bb.bottom;
+                if (! isIn) itModel.__submenu__.hide();
+            });
+        }
+        return menu;
+    }
+
+    initStyle() {
+        if (window['PopupMenu-InitStyle']) {
+            if (! this.popup )
+                this.popup = $('.popupmenu-popup');
+            return;
+        }
+        window['PopupMenu-InitStyle'] = true;
+        let style = document.createElement('style');
+        let css = " \
+            .popupmenu-popup {z-index: 99900; display: none;  position: fixed; padding: 0; outline: 0; left:0px; top: 0px;width:100%;height:100%;}\n\
+            .popupmenu-popup .menu {position:absolute; color: #383838; font-size: 14px; border: 1px solid #888; padding: 10px 0;  \n\
+                background-color:#fcfcfc;vertical-align: middle; overflow-x: hidden; overflow-y: scroll;-ms-overflow-style: none; } \n\
+            .popupmenu-popup .menu::-webkit-scrollbar {display: none;} \n\
+            .popupmenu-popup .menu-item {min-width: 100px; min-height: 25px; display: block; vertical-align: middle; user-select: none; -webkit-user-select: none;} \n\
+            .popupmenu-popup .menu-item-prefix {width: 30px; height: 25px; float: left;} \n\
+            .popupmenu-popup .menu-item-suffix {width: 30px; height: 25px; float:right; margin-left: 10px; text-align:center;} \n\
+            .popupmenu-popup .menu-item:hover {background-color:#ECECEC;} \n\
+            .popupmenu-popup .menu-item-updown {min-width: 100px; height: 15px; display: block; vertical-align: middle; user-select: none; -webkit-user-select: none;} \n\
+        ";
+        style.appendChild(document.createTextNode(css));
+        document.head.appendChild(style);
+        this.popup = $('<div class="popupmenu-popup" > </div>');
+        this.popup.click(function() {$(this).css('display', 'none'); $(this).empty();});
+        this.popup.on('mousewheel', function(event) { return false;}); //  event.stopPropagation();event.preventDefault();
+        $(document.body).append(this.popup); 
+    }
+
 }
 
 class RichEditor extends UIListener {
@@ -953,8 +1234,88 @@ class RichEditor extends UIListener {
         }
         this.ui = $('<div class="richeditor" contenteditable="true" > </div>');
         let thiz = this;
-        this.ui.keydown(function(evt) {thiz.onKeyDown(evt);});
+        this.ui.keydown(function(evt) {return thiz.onKeyDown(evt);});
+        this.ui.on('contextmenu', function(event) {
+            event.preventDefault();
+            const x = event.clientX;
+            const y = event.clientY;
+            thiz.onContextMenu(x, y);
+            return false;
+        });
         this.loadData();
+    }
+
+    onContextMenu(x, y) {
+        let thiz = this;
+        let menu = this.__menu__ = new PopupMenu();
+        const onselect = function(evt) {
+            thiz.onMenuItem(evt);
+        }
+        menu.addListener('select-item', onselect);
+        const makeColorItem = function(name, color) {
+            if (! color)
+                return {name: name, title: ' <span style="border:solid 1px #999; width: 50px; height:15px; display: inline-block; vertical-align: middle;">  </span>', value: ''};
+            return {name: name, title: ` <span style="background-color: ${color};width: 50px; height:15px; display: inline-block; vertical-align: middle;">  </span>`, value: color};
+        }
+        const makeColorItems = function(name, colors) {
+            let rs = [];
+            if (typeof(colors) == 'string') {
+                colors = colors.split(';');
+            }
+            for (let c of colors) {
+                rs.push(makeColorItem(name, c.trim()));
+            }
+            return rs;
+        }
+        const simpleItems = function(name, vals) {
+            let rs = [];
+            vals.split(';').forEach(function(item) {
+                let ss = item.split(':');
+                let m = {name: name, title: ss[0].trim()};
+                if (ss.length == 1) m.value = ss[0].trim();
+                else  m.value = ss[1].trim();
+                rs.push(m);
+            });
+            return rs;
+
+        }
+        let colors = ' ;#DCDCDC; #FFDEAD; #2F4F4F; #696969; #000080; #6A5ACD; #00CED1; #006400; #556B2F; #CD5C5C; #CD853F; #FF1493; #9932CC;  #FF7F00; #8B008B';
+        let model = [{ title: '前景色', sub: makeColorItems('setColor', colors)},
+                    {title: '背景色', sub: makeColorItems('setBgColor', colors)},
+                    {title: '字体', sub: [{name: 'bold', title: '粗体'}, {name: 'italic', title: '斜体'},
+                        {name: 'strikeThrough', title: '删除线'}, {name: 'underline', title: '下划线'},
+                        {name: 'superScript', title: '上标'}, {name: 'subScript', title: '下标'}]},
+                    {title: '字体大小', sub: simpleItems('setFontSize', '小-x:1;  小:2;  中:3;   大:4;   大-x:5;   大-xx:6;   大-xxx:7')},
+                    {title: '对齐', sub: simpleItems('textAlign', '左对齐:left; 居中对齐:center; 右对齐:right; 两端齐:full')},
+                    null,
+                    {title: '插入/删除', sub: [{name: 'insertHorizontalRule', title: '插入水平线'},
+                        {name: 'insertHtml', title: '插入Html', input: true},
+                        {name: 'insertText', title: '插入Text', input: true},
+                        {name: 'createLink', title: '插入Link', input: true},
+                        {name: 'unlink', title: '删除Link'},]},
+                    null,
+                    {name: 'removeFormat', title: '清除格式'},
+                    {name: 'redo', title: '重做'},
+                    {name: 'undo', title: '撤消'},
+                    null,
+                    {name: 'save', title: '保存'},
+                ];
+        menu.setModel(model);
+        menu.show(x, y);
+    }
+
+    onMenuItem(evt) {
+        let name = evt.item.name;
+        if (! name) return;
+        let func = this[name];
+        if (evt.item.input) {
+            let val = prompt(evt.item.title);
+            func.call(this, val);
+        } else if (evt.item.value) {
+            func.call(this, evt.item.value);
+        } else {
+            func.call(this);
+        }
     }
 
     loadData() {
@@ -965,9 +1326,10 @@ class RichEditor extends UIListener {
         // console.log(event);
         if (event.keyCode == 83 && event.ctrlKey) {
             // ctrl + S
-            localStorage.setItem(this.name, this.ui.html());
+            this.save();
             event.preventDefault();
-            event.returnValue = false;
+            event.stopPropagation();
+            return false;
         }
     }
 
@@ -998,6 +1360,7 @@ class RichEditor extends UIListener {
     setFontName(fontName) { // 在插入点或者选中文字部分修改字体名称
         document.execCommand('fontName', false, fontName);
     }
+    // fontSize = 1 ~ 7
     setFontSize(fontSize) {
         document.execCommand('fontSize', false, fontSize);
     }
@@ -1056,9 +1419,11 @@ class RichEditor extends UIListener {
     formatBlock(tagName) { // 添加一个 HTML 块式标签在包含当前选择的"行"
         document.execCommand('formatBlock', false, tagName);
     }
-
     useCss(flag) {
         document.execCommand('styleWithCSS', false, flag);
+    }
+    save() {
+        localStorage.setItem(this.name, this.ui.html());
     }
 
 }
