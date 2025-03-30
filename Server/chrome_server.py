@@ -63,9 +63,6 @@ class Server:
     
     def getHots(self):
         day = flask.request.args.get('day', None)
-        full = flask.request.args.get('full', False)
-        if full == 'true':
-            full = True
         from THS import hot_utils
         from Tck import utils
         hz = hot_utils.DynamicHotZH.instance()
@@ -77,19 +74,10 @@ class Server:
             return {}
         m = {}
         for k in rs:
+            obj = rs[k]
             code = f'{k :06d}'
-            it = m[code] = rs[k]
-            it['code'] = code
-            if not full:
-                continue
-            cl = utils.cls_gntc_s.get(code, None) or {}
-            th = utils.ths_gntc_s.get(code, None) or {}
-            it['name'] = cl.get('name', '') or th.get('name', '')
-            it['cls_hy'] = cl.get('hy', '')
-            it['ths_hy'] = th.get('hy', '')
-            it['ltsz'] = th.get('ltsz', 0) # 流通市值
-            zt = utils.get_CLS_THS_ZT_Reason(code)
-            if zt: it.update(zt)
+            it = m[code] = {'code': code, 'hots': obj['zhHotOrder']}
+            it['name'] = utils.get_THS_GNTC_Attr(code, 'name')
         return m
     
     # day = YYYY-MM-DD

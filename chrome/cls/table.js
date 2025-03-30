@@ -228,10 +228,6 @@ class StockTable {
         for (let i = 0; i < this.headers.length; i++) {
             let k = this.headers[i].name;
             let header = this.headers[i];
-
-            if (k == 'hots' || k == 'zs' || k == 'zf') {
-                header.defined = true;
-            }
             if (k == 'hots' && !header.sortVal) {
                 header.sortVal = function(rowData) {
                     return rowData.hots && rowData.hots > 0 ? 1000 - rowData.hots : 0
@@ -692,7 +688,6 @@ class StockTable {
             let it = this.datasMap[scode];
             let hh = infos[scode];
             if (! hh) {
-                it.hots = 0;
                 continue;
             }
             for (let k in hh) {

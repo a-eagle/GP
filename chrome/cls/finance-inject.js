@@ -646,15 +646,16 @@ function loadMarkNavi(name) {
 function loadTopHotsNavi(name) {
 	let day = pageInfo.curDay;
 	$.ajax({
-		url: 'http://localhost:5665/get-hots?full=true&day=' + day, type: 'GET',
+		url: 'http://localhost:5665/get-hots?day=' + day, type: 'GET',
 		success: function(resp) {
 			let rs = [];
 			for (let k in resp) {
 				resp[k].secu_name = resp[k].name;
 				rs.push(resp[k]);
 			}
-			rs.sort(function(a, b) {return a.zhHotOrder - b.zhHotOrder});
+			rs.sort(function(a, b) {return a.hots - b.hots});
 			rs.splice(100, rs.length - 100);
+			updateTabNavi(name, rs);
 			loadTopAmounts(name, rs);
 		}
 	});
@@ -691,7 +692,6 @@ function loadTopAmounts(name, rs) {
 					rs[i].amountIdx = 0;
 				}
 			}
-			updateTabNavi(name, rs);
 		}
 	});
 }
@@ -722,10 +722,10 @@ function updateTabNavi(name, data) {
 		hd = [
 			{text: ' ', 'name': 'mark_color', width: 40, sortable: true, defined: true},
 			{text: '股票/代码', 'name': 'code', width: 80},
-			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true}, // change
+			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true}, // change
 			{text: '连板', 'name': 'limit_up_days', width: 50, sortable: true},
 			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
-			{text: '热度', 'name': 'hots', width: 50, sortable: true, full: true},
+			{text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
 			{text: '动因', 'name': 'up_reason', width: 250, sortable: true},
 			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
 			{text: '分时图', 'name': 'fs', width: 300},
@@ -737,12 +737,12 @@ function updateTabNavi(name, data) {
 			{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
 			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
 			{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
-			{text: '热度', 'name': 'hots', width: 50, sortable: true, full: true},
-			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true},
+			{text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
+			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
 			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
-	} else if (name == '热度榜' || name == '标记') {
+	} else if (name == '热度榜') {
 		hd = [
 			{text: ' ', 'name': 'mark_color', width: 40, sortable: true, defined: true},
 			{text: '股票/代码', 'name': 'code', width: 80},
@@ -752,6 +752,19 @@ function updateTabNavi(name, data) {
 			{text: '成交额', 'name': 'amount', width: 50, sortable: true, cellRender : amountRender, defined: true},
 			{text: '成交额<br/>排名', 'name': 'amountIdx', width: 50, sortable: false, cellRender : amountIdxRender, defined: true},
 			{text: '热度', 'name': 'hots', width: 50, sortable: true},
+			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
+			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
+			{text: '分时图', 'name': 'fs', width: 300},
+		];
+	} else if ( name == '标记') {
+		hd = [
+			{text: ' ', 'name': 'mark_color', width: 40, sortable: true, defined: true},
+			{text: '股票/代码', 'name': 'code', width: 80},
+			{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
+			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
+			{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
+			{text: '标记日期', 'name': 'day', width: 80, sortable: true},
+			{text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
 			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
 			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
 			{text: '分时图', 'name': 'fs', width: 300},

@@ -57,6 +57,12 @@ def get_THS_GNTC(code):
         code = f'{code :06d}'
     return ths_gntc_s.get(code, None)
 
+def get_THS_GNTC_Attr(code, attrName):
+    obj = get_THS_GNTC(code)
+    if not obj:
+        return None
+    return obj.get(attrName, None)
+
 def getAllGNTC():
     return ths_gntc_s
 
