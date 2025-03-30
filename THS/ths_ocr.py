@@ -217,10 +217,10 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
         self.thread.addIntervalTask('ZS-OCR', 10, self.run)
 
     def start(self):
-        from orm import zs_orm
+        from orm import speed_orm
         today = datetime.date.today()
         iday = today.year * 10000 + today.month * 100 + today.day
-        qr = zs_orm.RealZSModel.select().where(zs_orm.RealZSModel.day == iday)
+        qr = speed_orm.RealSpeedModel.select().where(speed_orm.RealSpeedModel.day == iday)
         for it in qr:
             v = copy.copy(it.__data__)
             v['obj'] = it
@@ -359,7 +359,7 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
     def saveOcrResult(self, rs):
         if not rs:
             return
-        from orm import zs_orm
+        from orm import speed_orm
         first = rs[0]
         if first['day'] != self.today:
             self.today = first['day']
@@ -369,14 +369,14 @@ class ThsZhangShuOcrUtils(number_ocr.DumpWindowUtils):
             r['op'] = 'NoOp'
             if code not in self.datas:
                 self.datas[code] = [r]
-                obj = zs_orm.RealZSModel.create(code = r['code'], day = r['day'], minuts = r['minuts'], zf = r['zf'], time = r['time'])
+                obj = speed_orm.RealSpeedModel.create(code = r['code'], day = r['day'], minuts = r['minuts'], zf = r['zf'], time = r['time'])
                 r['obj'] = obj
                 r['op'] = 'Create'
                 continue
             last = self.datas[code][-1]
             if last['zf'] < r['zf']:
                 if last['time'] - r['time'] > 10 * 60:
-                    obj = zs_orm.RealZSModel.create(code = r['code'], day = r['day'], minuts = r['minuts'], zf = r['zf'], time = r['time'])
+                    obj = speed_orm.RealSpeedModel.create(code = r['code'], day = r['day'], minuts = r['minuts'], zf = r['zf'], time = r['time'])
                     r['obj'] = obj
                     cl = self.datas[code]
                     cl.append(r)

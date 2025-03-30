@@ -4,7 +4,7 @@ import win32gui, win32con
 import requests, peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import ths_orm, tdx_orm, tck_orm, tck_def_orm, lhb_orm, zs_orm, cls_orm
+from orm import speed_orm, ths_orm, tdx_orm, tck_orm, tck_def_orm, lhb_orm, cls_orm
 from Download import datafile
 from Download import henxin, cls
 from Common import base_win, ext_win, dialog
@@ -1732,7 +1732,7 @@ class ZhangSuIndicator(CustomIndicator):
             self.setCustomData(None)
             return
         code = self.klineWin.model.code
-        qr = zs_orm.LocalZSModel.select().where(zs_orm.LocalZSModel.code == code).dicts()
+        qr = speed_orm.LocalSpeedModel.select().where(speed_orm.LocalSpeedModel.code == code).dicts()
         maps = {}
         for d in qr:
             day = d['day']

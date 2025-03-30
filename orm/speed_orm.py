@@ -6,7 +6,7 @@ path = path[0 : path.index('GP') ]
 zsdb = pw.SqliteDatabase(f'{path}GP/db/ZhangSu.db')
 
 # Local涨速
-class LocalZSModel(pw.Model):
+class LocalSpeedModel(pw.Model):
     day = pw.IntegerField() # 日期
     code = pw.CharField() #股票代码
     fromMinute = pw.IntegerField()
@@ -20,7 +20,7 @@ class LocalZSModel(pw.Model):
         table_name = 'LocalZS'
 
 # 当日实时涨速
-class RealZSModel(pw.Model):
+class RealSpeedModel(pw.Model):
     day = pw.IntegerField() # 日期
     minuts = pw.IntegerField() # 时间
     code = pw.CharField() #股票代码
@@ -32,4 +32,4 @@ class RealZSModel(pw.Model):
         table_name = 'RealZS'
 
 #zsdb.drop_tables([LocalZSModel, RealZSModel])
-zsdb.create_tables([LocalZSModel, RealZSModel])
+zsdb.create_tables([LocalSpeedModel, RealSpeedModel])

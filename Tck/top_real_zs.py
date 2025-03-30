@@ -3,10 +3,10 @@ import threading, time, datetime, sys, os, copy, pyautogui
 import os, sys, requests, re
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import ths_orm
+from orm import speed_orm, ths_orm
 from THS import ths_win, hot_utils
 from Common import base_win, ext_win
-from orm import tck_orm, zs_orm
+from orm import tck_orm
 from Tck import kline_utils, conf, mark_utils, utils, cache, ext_table
 
 # 涨速
@@ -205,9 +205,9 @@ class ZS_Window(base_win.BaseWindow):
         clsQr = tck_orm.CLS_ZT.select(tck_orm.CLS_ZT.code, tck_orm.CLS_ZT.ztReason).where(tck_orm.CLS_ZT.day >= fromDay, tck_orm.CLS_ZT.day <= endDay).tuples()
         dbWhere = self.dbWin.getSelectItem()
         if dbWhere['key'] == 'real':
-            qr = zs_orm.RealZSModel.select().where(zs_orm.RealZSModel.day == iday).dicts()
+            qr = speed_orm.RealSpeedModel.select().where(speed_orm.RealSpeedModel.day == iday).dicts()
         else:
-            qr = zs_orm.LocalZSModel.select().where(zs_orm.LocalZSModel.day == iday).order_by(zs_orm.LocalZSModel.fromMinute.asc()).dicts()
+            qr = speed_orm.LocalSpeedModel.select().where(speed_orm.LocalSpeedModel.day == iday).order_by(speed_orm.LocalSpeedModel.fromMinute.asc()).dicts()
         hots = hot_utils.DynamicHotZH.instance().getHotsZH(iday)
         for q in thsQr:
             thsRs[q[0]] = q[1]

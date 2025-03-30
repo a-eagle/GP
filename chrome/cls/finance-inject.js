@@ -630,17 +630,15 @@ function loadTabNavi(name) {
 }
 
 function loadMarkNavi(name) {
-	const TAG = '[GP]:mark-color';
-	let rs = localStorage.getItem(TAG);
-	if (rs) rs = JSON.parse(rs);
-	let data = [];
-	rs = rs || [];
-	for (let k of rs) {
-		if (! k.color) continue;
-		let item = {secu_code: k.code, color: k.color, day: k.day};
-		data.push(item);
-	}
-	updateTabNavi(name, data);
+	$.ajax({
+		url: 'http://localhost:5665/mark-color',
+		contentType: 'application/json',
+		type: 'POST',
+		data: JSON.stringify({op: 'get'}),
+		success: function(resp) {
+			updateTabNavi(name, resp);
+		}
+	});
 }
 
 function loadTopHotsNavi(name) {

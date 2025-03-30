@@ -9,7 +9,7 @@ from Download.datafile import *
 from Download import console
 from Common import base_win
 from Tck import kline_utils
-from orm import zs_orm
+from orm import speed_orm
 
 class FenXiCode:
     def __init__(self, code) -> None:
@@ -157,7 +157,7 @@ class FenXiLoader:
         if not rs:
             return
         lrs = {}
-        q = zs_orm.LocalZSModel.select().where(zs_orm.LocalZSModel.code == code, zs_orm.LocalZSModel.day >= rs[0]['day'])
+        q = speed_orm.LocalSpeedModel.select().where(speed_orm.LocalSpeedModel.code == code, speed_orm.LocalSpeedModel.day >= rs[0]['day'])
         for it in q:
             key = f"{it.day}-{it.fromMinute}"
             lrs[key] = it
@@ -165,7 +165,7 @@ class FenXiLoader:
             key = f"{r['day']}-{r['fromMinute']}"
             obj = lrs.get(key, None)
             if not obj:
-                zs_orm.LocalZSModel.create(day = r['day'], code = code, fromMinute = r['fromMinute'], 
+                speed_orm.LocalSpeedModel.create(day = r['day'], code = code, fromMinute = r['fromMinute'], 
                         endMinute = r['endMinute'], minuts = r['minuts'], zf = r['zf'], 
                         max3MinutesAvgAmount = r['max3MinutesAvgAmount'])
             elif obj.endMinute != r['endMinute']:

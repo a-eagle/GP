@@ -112,6 +112,9 @@ class StockTable {
                 data[i].code = code;
                 mdata[data[i].secu_code] = data[i];
             }
+            if (!data[i].secu_name && data[i].name) {
+                data[i].secu_name = data[i].name;
+            }
         }
         for (let i = 0; i < data.length; i++) {
             data[i].__rowIdx__ = i;
@@ -315,8 +318,9 @@ class StockTable {
             }
         } else if (k == 'code') {
             header.cellRender = function(rowIdx, rowData, head, tdObj) {
+                let name = rowData.secu_name || rowData.name;
                 tdObj.append($('<span> <a href="https://www.cls.cn/stock?code=' + rowData.secu_code + '" target=_blank> <span style="color:#383838; font-weight:bold;" >' + 
-                rowData.secu_name + '</span> </a> <br/> <span style="color:#666;font-size:12px;"> ' + rowData.code + '</span></span> '));
+                name + '</span> </a> <br/> <span style="color:#666;font-size:12px;"> ' + rowData.code + '</span></span> '));
             }
         } else if (k == 'hots') {
             header.cellRender = function(rowIdx, rowData, head, tdObj) {
@@ -511,46 +515,43 @@ class StockTable {
     }
 
     // color: null(取消) | rgb
-    markColor(code, color) {
-        const TAG = '[GP]:mark-color';
-        let rs = this.getLocalObject(TAG) || [];
-        let find = false;
-        for (let i = 0; i < rs.length; i++) {
-            let k = rs[i];
-            if (k.code == code) {
-                find = true;
-                if (! color) rs.splice(i, 1);
-                else k.color = color;
+    markColor(scode, color) {
+        let thiz = this;
+        let name = this.datasMap[scode]?.name || '';
+        let item = {code: scode.substring(2), secu_code: scode, name:name, color: color, day: this.formatDay(new Date())};
+        $.ajax({
+            url: 'http://localhost:5665/mark-color',
+            type: 'POST', contentType: 'application/json',
+            data: JSON.stringify({op: 'save', data: item}),
+            success: function(resp) {
+                thiz._adjustMarkColor(item);
             }
-        }
-        if (! find) {
-            rs.push({code, color, day: this.formatDay(new Date())});
-        }
-        this.saveLocalObject(TAG, rs);
-        let ds = this.findInDatasMap(code);
-        if (! ds) return;
-        if (Array.isArray(ds)) {
-            ds.forEach(function(it) {it.mark_color = color;});
-        } else {
-            ds.mark_color = color;
-        }
+        });
     }
 
     loadMarkColors() {
-        const TAG = '[GP]:mark-color';
-        let rs = this.getLocalObject(TAG);
-        if (! rs) return;
         let thiz = this;
-        rs.forEach(function(it) {
-            let color = it.color;
-            let ds = thiz.findInDatasMap(it.code);
-            if (! ds) return;
-            if (Array.isArray(ds)) {
-                ds.forEach(function(itx) {itx.mark_color = color;});
-            } else {
-                ds.mark_color = color;
+        $.ajax({
+            url: 'http://localhost:5665/mark-color',
+            type: 'POST', contentType: 'application/json',
+            data: JSON.stringify({op: 'get', data: null}),
+            success: function(rs) {
+                rs.forEach(function(it) {
+                    thiz._adjustMarkColor(it);
+                });
             }
         });
+    }
+
+    _adjustMarkColor(item) {
+        let color = item.color;
+        let ds = this.findInDatasMap(item.secu_code);
+        if (! ds) return;
+        if (Array.isArray(ds)) {
+            ds.forEach(function(itx) {itx.mark_color = color;});
+        } else {
+            ds.mark_color = color;
+        }
     }
 
     findInDatasMap(code) {
@@ -1325,7 +1326,15 @@ class RichEditor extends UIListener {
     }
 
     loadData() {
-        this.ui.html(localStorage.getItem(this.name));
+        let thiz = this;
+        $.ajax({
+            url: 'http://localhost:5665/mynote',
+            type: 'POST', contentType: 'application/json',
+            data: JSON.stringify({op: 'get', name: this.name}),
+            success: function(data) {
+                thiz.ui.html(data);
+            }
+        });
     }
 
     onKeyDown(event) {
@@ -1429,7 +1438,15 @@ class RichEditor extends UIListener {
         document.execCommand('styleWithCSS', false, flag);
     }
     save() {
-        localStorage.setItem(this.name, this.ui.html());
+        $.ajax({
+            url: 'http://localhost:5665/mynote',
+            contentType: 'application/json',
+            type: 'POST',
+            data: JSON.stringify({op: 'save', name: this.name, cnt: this.ui.html()}),
+            success: function(data) {
+                // console.log(data);
+            }
+        });
     }
 
 }

@@ -28,6 +28,8 @@ class Server:
         self.app.add_url_rule('/iwencai', view_func = self.queryIWenCai)
         self.app.add_url_rule('/get-fenshi/<code>', view_func = self.getFenShi)
         self.app.add_url_rule('/query-codes-info', view_func = self.queryCodesInfo, methods = ['POST'])
+        self.app.add_url_rule('/mark-color', view_func = self.markColor, methods = ['POST'])
+        self.app.add_url_rule('/mynote', view_func = self.myNote, methods = [ 'POST'])
         self.app.run('localhost', 5665, use_reloader = False, debug = False)
 
     def openUI_Timeline(self, code, day):
@@ -98,14 +100,18 @@ class Server:
             rs.append(q)
         return rs
     
-    def queryBySql(self, dbName):
-        from orm import cls_orm, lhb_orm, tck_def_orm, tck_orm, ths_orm, zs_orm
+    def _getDBs(self):
+        from orm import cls_orm, lhb_orm, tck_def_orm, tck_orm, ths_orm, chrome_orm, speed_orm
         dbs = {'cls_gntc': cls_orm.db_gntc, 
                'lhb': lhb_orm.db_lhb,
-               'tck_def': tck_def_orm.db_tck_def, 
+               'tck_def': tck_def_orm.db_tck_def,
                'tck': tck_orm.db_tck,
                'ths_gntc': ths_orm.db_gntc, 'hot': ths_orm.db_hot, 'hot_zh': ths_orm.db_hot_zh, 'ths_zs': ths_orm.db_thszs,
-               'zs': zs_orm.zsdb}
+               'speed': speed_orm.zsdb, 'chrome': chrome_orm.db_chrome}
+        return dbs
+
+    def queryBySql(self, dbName):
+        dbs = self._getDBs()
         if dbName not in dbs:
             return {'code': 1, 'msg': f'Not find dbName: "{dbName}"'}
         sql = flask.request.args.get('sql', None)
@@ -124,6 +130,51 @@ class Server:
             ex.append(item)
         return ex
     
+    # params = {op: 'save | get', data?: {code, secu_code?, name, color, day}  }
+    def markColor(self):
+        from orm import chrome_orm
+        params = flask.request.data
+        js = json.loads(params.decode())
+        mrs = {}
+        rs = []
+        qr = chrome_orm.MyMarkColor.select()
+        for it in qr:
+            rs.append(it.__data__)
+            mrs[it.code] = it
+        if js['op'] == 'get':
+            return rs
+        data = js['data']
+        if not data:
+            return 'ok'
+        code = data['code']
+        if not data['color']:
+            if code in mrs:
+                mrs[code].delete_instance()
+        else:
+            if code in mrs:
+                mrs[code].day = data['day']
+                mrs[code].color = data['color']
+                mrs[code].save()
+            else:
+                secu_code = data.get('secu_code', self._getSecuCode(code))
+                chrome_orm.MyMarkColor.create(code = code, secu_code = secu_code, day = data.get('day', ''), name = data['name'], color = data['color'])
+        return 'ok'
+    
+    # params = {op: 'save | get', name: xxx, cnt?: xxx}
+    def myNote(self):
+        from orm import chrome_orm
+        params = flask.request.data
+        js = json.loads(params.decode())
+        obj = chrome_orm.MyNote.get_or_none(chrome_orm.MyNote.tag == js['name'])
+        if js['op'] == 'get':
+            return obj.cnt if obj else ''
+        if not obj:
+            chrome_orm.MyNote.create(tag = js['name'], cnt = js['cnt'] )
+        else:
+            obj.cnt = js['cnt']
+            obj.save()
+        return 'ok'
+
     def getTradeDays(self):
         from Download import ths_iwencai
         days = ths_iwencai.getTradeDays_Cache(180)
