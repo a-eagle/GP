@@ -26,5 +26,4 @@ class CLS_ZS(pw.Model):
     class Meta:
         database = db_gntc
 
-
 db_gntc.create_tables([CLS_GNTC, CLS_ZS])

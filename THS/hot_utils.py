@@ -131,14 +131,14 @@ class DynamicHotZH:
         if type(day) == str:
             day = int(day.replace('-', ''))
         hotZHMaxDay = THS_HotZH.select(pw.fn.max(THS_HotZH.day)).scalar()
-        if day <= hotZHMaxDay:
+        if day and day <= hotZHMaxDay:
             rs = {}
             qs = THS_HotZH.select().where(THS_HotZH.day == day).dicts()
             for q in qs:
                 rs[q['code']] = q
             return rs
         hotMaxDay = getLastTradeDay()
-        if day == hotMaxDay:
+        if not day or day == hotMaxDay:
             return self.getNewestHotZH()
         return None
 

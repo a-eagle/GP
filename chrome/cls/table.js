@@ -18,7 +18,6 @@ class StockTable {
         this.datas = null;
         this.srcDatas = null;
         this.datasMap = null; // map of this.datas, key = secu_code
-        this.hotsZH = null;
         this.day = null;
         this.tradeDays = null;
 
@@ -126,7 +125,7 @@ class StockTable {
         this.datasMap = mdata;
         this.loadMarkColors();
         this._defineProterties()
-        this.loadHotsZH();
+        this.loadCodesInfo();
     }
 
     buildHeadersUI() {
@@ -506,6 +505,15 @@ class StockTable {
         }
     }
 
+    formatDay (date) {
+        let y = date.getFullYear();
+        let m = date.getMonth() + 1;
+        let d = date.getDate();
+        if (m < 10) m = '0' + m;
+        if (d < 10) d = '0' + d;
+        return y + '-' + m + '-' + d;
+    }
+
     // color: null(取消) | rgb
     markColor(code, color) {
         const TAG = '[GP]:mark-color';
@@ -520,7 +528,7 @@ class StockTable {
             }
         }
         if (! find) {
-            rs.push({code, color});
+            rs.push({code, color, day: this.formatDay(new Date())});
         }
         this.saveLocalObject(TAG, rs);
         let ds = this.findInDatasMap(code);
@@ -533,7 +541,7 @@ class StockTable {
     }
 
     loadMarkColors() {
-        const TAG = '[GP]:mar-color';
+        const TAG = '[GP]:mark-color';
         let rs = this.getLocalObject(TAG);
         if (! rs) return;
         let thiz = this;
@@ -677,39 +685,42 @@ class StockTable {
         }
     }
 
-    mergeHotsZH() {
-        if (!this.hotsZH || !this.datasMap || !this.headers)
+    mergeCodesInfo(infos) {
+        if (!infos|| !this.datasMap || !this.headers)
             return;
         for (let scode in this.datasMap) {
             let it = this.datasMap[scode];
-            let hh = this.hotsZH[it.code];
+            let hh = infos[scode];
             if (! hh) {
                 it.hots = 0;
                 continue;
             }
-            it.hots = hh.zhHotOrder;
             for (let k in hh) {
-                it[k] = hh[k];
+                if (! it[k]) it[k] = hh[k];
             }
         }
     }
 
-    loadHotsZH() {
+    loadCodesInfo() {
         let thiz = this;
         let day = this.day || ''
         let full = null;
+        let cols = [];
         for (let i = 0; i < this.headers.length; i++) {
-            if (this.headers[i].name == 'hots') {
-                full = this.headers[i].full;
-                break;
+            if (this.headers[i].name == 'hots' && this.headers[i].defined) {
+                cols.push('hots:' + day);
+            }
+            if (this.headers[i].name.indexOf('_ztReason') > 0 && this.headers[i].defined) {
+                cols.push('ztReason');
             }
         }
-        full = full ? '&full=true' : ''
         $.ajax({
-            url: 'http://localhost:5665/get-hots?day=' + day + full, type: 'GET',
+            url: 'http://localhost:5665/query-codes-info',
+            type: 'POST',
+            contentType: "application/json",
+            data: JSON.stringify({cols: cols, codes: this.getCodeList()}),
             success: function(resp) {
-                thiz.hotsZH = resp;
-                thiz.mergeHotsZH();
+                thiz.mergeCodesInfo(resp);
             }
         });
     }
@@ -809,7 +820,7 @@ class IndustryTable extends StockTable {
         this.datas = data;
         this.datasMap = mdata;
         this._defineProterties()
-        this.loadHotsZH();
+        this.loadCodesInfo();
     }
 
     buildUI() {

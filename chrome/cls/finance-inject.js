@@ -631,12 +631,14 @@ function loadTabNavi(name) {
 
 function loadMarkNavi(name) {
 	const TAG = '[GP]:mark-color';
-	let rs = localStorage.getItem(key);
+	let rs = localStorage.getItem(TAG);
 	if (rs) rs = JSON.parse(rs);
 	let data = [];
 	rs = rs || [];
 	for (let k of rs) {
-		let item = {suce_code: k.code, };
+		if (! k.color) continue;
+		let item = {secu_code: k.code, color: k.color, day: k.day};
+		data.push(item);
 	}
 	updateTabNavi(name, data);
 }

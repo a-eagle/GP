@@ -27,6 +27,7 @@ class Server:
         self.app.add_url_rule('/get-trade-days', view_func = self.getTradeDays)
         self.app.add_url_rule('/iwencai', view_func = self.queryIWenCai)
         self.app.add_url_rule('/get-fenshi/<code>', view_func = self.getFenShi)
+        self.app.add_url_rule('/query-codes-info', view_func = self.queryCodesInfo, methods = ['POST'])
         self.app.run('localhost', 5665, use_reloader = False, debug = False)
 
     def openUI_Timeline(self, code, day):
@@ -192,6 +193,63 @@ class Server:
             rsd.append(item)
         rs['line'] = rsd
         return rs
+    
+    def _getSecuCode(self, code):
+        if type(code) == int:
+            code = f'{code :06d}'
+        code = code.strip()
+        if len(code) != 6:
+            return code
+        if code[0] == '6':
+            return f'sh{code}'
+        return f'sz{code}'
+
+    # {cols?:[ztReason, hots:[yyyy-mm-dd] ], codes:[]}
+    def queryCodesInfo(self):
+        from THS import hot_utils
+        from Tck import utils
+        params = flask.request.data
+        js = json.loads(params.decode())
+        cols = js.get('cols', ['ztReason', 'hots'])
+        mcols = {}
+        for c in cols:
+            if 'hots:' in c:
+                mcols['hots'] =  c[c.index(':') + 1 : ].strip()
+            else:
+                mcols[c] = True
+        codes = js['codes']
+        ncodes = []
+        SS =  ('sz', 'sh')
+        for c in codes:
+            if len(c) == 6:
+                ncodes.append(c)
+            elif len(c) == 8 and c[0 : 2] in SS:
+                ncodes.append(c[2 : ])
+        hz = hot_utils.DynamicHotZH.instance()
+        rs = {}
+        for code in ncodes:
+            it = {'code': code, 'secu_code': self._getSecuCode(code)}
+            rs[it['secu_code']] = it
+            cl = utils.cls_gntc_s.get(code, None) or {}
+            th = utils.ths_gntc_s.get(code, None) or {}
+            it['name'] = cl.get('name', '') or th.get('name', '')
+            it['cls_hy'] = cl.get('hy', '')
+            it['ths_hy'] = th.get('hy', '')
+            it['ltsz'] = th.get('ltsz', 0) # 流通市值
+            if 'hots' in mcols:
+                day = mcols['hots']
+                if not day or day == True or len(day) < 8:
+                    day = None
+                hh = hz.getHotsZH(day)
+                hc = hh.get(int(code), None)
+                it['hots'] = 0 if not hc else hc['zhHotOrder']
+            if 'ztReason' in mcols:
+                zt = utils.get_CLS_THS_ZT_Reason(code)
+                it['ths_ztReason'] = zt['ths_ztReason'] if zt else ''
+                it['cls_ztReason'] = zt['cls_ztReason'] if zt else ''
+        return rs
+
+
 if __name__ == '__main__':
     svr = Server()
     svr.start()
