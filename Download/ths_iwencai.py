@@ -329,17 +329,24 @@ def download_one_dde(code):
 
 # 查找涨停 、炸板、跌停个股
 # day = int | str
-def download_zt_zb(day = None):
+# tag = 'ZT' | 'DT'
+def download_zt_dt(day = None, tag  = None):
     if not day:
         day = ''
+    if not tag:
+        tag = 'ZT | DT'
+    tag = tag.upper()
     if isinstance(day, str):
         day = day.replace('-', '')
     elif isinstance(day, int):
         day = str(day)
-    qs = day + ' 涨停或者曾涨停,非st,成交额,收盘价,涨跌幅'
-    datas = iwencai_load_list(qs) or []
-    qs = day + ' 跌停,非st,成交额,收盘价,涨跌幅'
-    datas2 = iwencai_load_list(qs) or []
+    datas, datas2 = [], []
+    if 'ZT' in tag:
+        qs = day + ' 涨停或者曾涨停,非st,成交额,收盘价,涨跌幅'
+        datas = iwencai_load_list(qs) or []
+    if 'DT' in tag:
+        qs = day + ' 跌停,非st,成交额,收盘价,涨跌幅'
+        datas2 = iwencai_load_list(qs) or []
     datas.extend(datas2)
     if not datas:
         return None
@@ -424,10 +431,38 @@ def getTradeDays_Cache(prev = 60):
         memcache.cache.saveCache(CODE, rs, KIND)
     return rs
 
+# 查找前100个股成交量
+# day = int | str
+def download_vol_top100(day = None):
+    if not day:
+        day = ''
+    if isinstance(day, str):
+        day = day.replace('-', '')
+    elif isinstance(day, int):
+        day = str(day)
+    qs = day + ' 成交额从大到小排名前100,且换手率大于5%,非北证'
+    datas = iwencai_load_list(qs) or []
+    if not datas:
+        return None
+    # find day
+    rs = []
+    fday = None
+    for k in datas[0]:
+        if '成交额[' in k and ']' in k:
+            day = fday = k[4 : k.index(']')]
+            fday = fday[0 : 4] + '-' + fday[4 : 6] + '-' +  fday[6 : 8]
+            break
+    for idx, it in enumerate(datas):
+        obj = {}
+        obj['code'] = it['code']
+        obj['name'] = it['股票简称']
+        obj['day'] = fday
+        amount = it.get(f'成交额[{day}]', '0')
+        obj['vol'] = float(amount) / 100000000 # 亿元
+        obj['pm'] = idx + 1
+        rs.append(obj)
+    return rs
 
 if __name__ == '__main__':
-    # data = iwencai_load_list('个股成交额排名, 20250312', maxPage = 2)
-    ds = download_zt_zb('20250317')
     from orm import tck_orm
-    for d in ds:
-        tck_orm.CLS_UpDown.create(**d)
+    ds = download_vol_top100()

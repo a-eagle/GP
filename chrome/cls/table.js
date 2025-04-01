@@ -126,8 +126,8 @@ class StockTable {
         this.srcDatas = data;
         this.datas = data.slice();
         this.datasMap = mdata;
-        this.loadMarkColors();
         this._defineProterties()
+        this.loadMarkColors();
         this.loadCodesInfo();
     }
 
@@ -700,7 +700,6 @@ class StockTable {
     loadCodesInfo() {
         let thiz = this;
         let day = this.day || ''
-        let full = null;
         let cols = [];
         for (let i = 0; i < this.headers.length; i++) {
             if (this.headers[i].name == 'hots' && this.headers[i].defined) {
@@ -816,6 +815,7 @@ class IndustryTable extends StockTable {
         this.datas = data;
         this.datasMap = mdata;
         this._defineProterties()
+        this.loadMarkColors();
         this.loadCodesInfo();
     }
 
@@ -1235,12 +1235,12 @@ class RichEditor extends UIListener {
 
     buildUI() {
         this.initStyle();
-        if (this.ui) {
-            this.loadData();
-            return;
+        if (! this.ui) {
+            this.ui = $('<div class="richeditor" contenteditable="true" > </div>');
         }
-        this.ui = $('<div class="richeditor" contenteditable="true" > </div>');
         let thiz = this;
+        this.ui.off('keydown');
+        this.ui.off('contextmenu');
         this.ui.keydown(function(evt) {return thiz.onKeyDown(evt);});
         this.ui.on('contextmenu', function(event) {
             event.preventDefault();

@@ -280,7 +280,7 @@ class Server:
                 if not day or day == True or len(day) < 8:
                     day = None
                 hh = hz.getHotsZH(day)
-                hc = hh.get(int(code), None)
+                hc = hh.get(int(code), None) if hh else None
                 it['hots'] = 0 if not hc else hc['zhHotOrder']
             if 'ztReason' in mcols:
                 zt = utils.get_CLS_THS_ZT_Reason(code)

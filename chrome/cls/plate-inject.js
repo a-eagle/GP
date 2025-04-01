@@ -134,7 +134,7 @@ function loadUI() {
 	if (! window[tag + '_StockTable']) {
         let hd = [
             {text: '股票/代码', 'name': 'code', width: 80},
-            {text: '涨跌幅', 'name': 'zf', width: 70, sortable: true},
+            {text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
             {text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
             {text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
             {text: '领涨次数', 'name': 'head_num', width: 70, sortable: true},

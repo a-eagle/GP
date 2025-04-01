@@ -4,7 +4,7 @@ import threading, time, datetime, sys, os, json, copy
 from multiprocessing import Process
 from multiprocessing.shared_memory import SharedMemory
 import system_hotkey
-from Server import chrome_server #pip install system_hotkey
+#pip install system_hotkey
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from THS import hot_utils, ths_win, hot_win, ths_ocr, tips_win

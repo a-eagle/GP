@@ -4,10 +4,10 @@ var pageInfo = {
 	newestAnchros: {}, // {day: ... }
 	degrees_fs: {}, //分时degree {day: val, ...}
 	degrees_n: null, //日期degree
-	curDay: null,
 	sh000001: null, sz399001: null,
 	tradeDays: null, // ['YYYY-MM-DD', ...]
-	lastTradeDay: null,
+	lastTradeDay: null, //最新交易日期
+	curDay: null, //当前选择的日期
 	newestZdfb: {}, // {day: val, ...} 最新涨跌分布
 	upDownData: {}, //涨停、跌停 {day: val, ...}
 }
@@ -728,13 +728,26 @@ function updateTabNavi(name, data) {
 			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
 			{text: '分时图', 'name': 'fs', width: 300},
 		];
-	} else if (name == '炸板池' || name == '跌停池') {
+	} else if (name == '炸板池') {
 		hd = [
 			{text: ' ', 'name': 'mark_color', width: 40, sortable: true, defined: true},
 			{text: '股票/代码', 'name': 'code', width: 80},
 			{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
 			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
 			{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
+			{text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
+			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
+			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
+			{text: '分时图', 'name': 'fs', width: 300},
+		];
+	} else if (name == '跌停池') {
+		hd = [
+			{text: ' ', 'name': 'mark_color', width: 40, sortable: true, defined: true},
+			{text: '股票/代码', 'name': 'code', width: 80},
+			{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
+			{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
+			{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
+			{text: 'THS-DT', 'name': 'up_reason', width: 100, sortable: true, defined: true},
 			{text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
 			{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
 			{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
@@ -791,15 +804,34 @@ function updateTabNavi(name, data) {
 	});
 	$('#up-down').append(ops);
 	$('#up-down').append(st.table);
+	if (name == '跌停池' && pageInfo.curDay == pageInfo.lastTradeDay) {
+		loadDTInfo(st, window.st.day);
+	}
+}
+
+function loadDTInfo(st, day) {
+	day = day || '';
+	day = day.replaceAll('-', '');
+	// ths_dtReason
+	$.ajax({
+		url: `http://localhost:5665/iwencai?q=${day} 跌停,非st,成交额,收盘价,涨跌幅`,
+		success: function(resp) {
+			if (! resp) return;
+			for (let r of resp) {
+				let reason = '';
+				for (let m in r) if (m.indexOf('跌停原因类型[') >= 0) { reason = r[m]; break; }
+				let scode = r.code.charAt(0) == '6' ? 'sh' : 'sz';
+				let fd = st.datasMap[scode + r.code];
+				if (fd) fd.up_reason = reason;
+			}
+		}
+	});
 }
 
 function loadNoteNavi(name) {
 	$('#up-down').empty();
-	if (! window.richEditor ) {
-		window.richEditor = new RichEditor('my-note');
-		window.richEditor.buildUI();
-	}
-	let re = window.richEditor;
+	let re = new RichEditor('my-note');
+	re.buildUI();
 	$('#up-down').append(re.ui);
 }
 

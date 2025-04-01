@@ -205,7 +205,7 @@ class ZT_Window(base_win.BaseWindow):
         clsQr = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day == day).dicts()
         hotZH = ths_orm.THS_HotZH.select().where(ths_orm.THS_HotZH.day == int(day.replace('-', ''))).dicts()
 
-        rs = ths_iwencai.download_zt_zb(day)
+        rs = ths_iwencai.download_zt_dt(day)
         allDicts = {}
         for d in rs:
             allDicts[d['code']] = d

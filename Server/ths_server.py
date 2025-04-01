@@ -5,7 +5,7 @@ import datetime, time, sys, os, re
 
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import tck_orm
+from orm import tck_orm, ths_orm
 from Download import henxin, console, ths_iwencai
 from Common import holiday
 from THS import hot_utils
@@ -173,6 +173,30 @@ class Server:
             traceback.print_exc()
         return False
 
+    def downloadSaveVolTop100(self, tag, day = None):
+        try:
+            rs = ths_iwencai.download_vol_top100(day)
+            if not rs:
+                return False
+            day = rs[0]['day']
+            obj = ths_orm.HotVol.get_or_none(ths_orm.HotVol.day == day)
+            if not obj:
+                vols = [d['vol'] for d in rs]
+                item = ths_orm.HotVol()
+                item.day = day
+                for i in (1, 10, 20, 50, 100):
+                    setattr(item, f'p{i}', int(vols[i - 1]))
+                rg = [('avg10', 0, 10), ('avg20', 10, 20), ('avg50',20, 50), ('avg100',50, 100)]
+                for r in rg:
+                    avg = sum(vols[r[1] : r[2]]) / (r[2] - r[1])
+                    setattr(item, f'avg{r[1]}_{r[2]}', int(avg))
+                item.save()
+            console.write_1(console.GREEN, f'[Vol-Top100] {tag} {self.formatNowTime(False)}')
+            return True
+        except Exception as e:
+            traceback.print_exc()
+        return False
+
     def downloadSaveZs(self, tag):
         try:
             rs = ths_iwencai.download_zs_zd()
@@ -211,6 +235,24 @@ class Server:
             traceback.print_exc()
         return False
 
+    def download_dt(self, tag):
+        try:
+            datas = ths_iwencai.download_zt_dt(None, 'dt')
+            num = 0
+            for d in datas:
+                if not d['is_down']:
+                    continue
+                obj = tck_orm.CLS_UpDown.get_or_none(tck_orm.CLS_UpDown.secu_code == d['secu_code'], tck_orm.CLS_UpDown.day == d['day'])
+                if obj:
+                    obj.up_reason = d['up_reason']
+                    obj.save()
+                    num += 1
+            console.writeln_1(console.GREEN, f'[THS-DT] {tag} {self.formatNowTime(True)}  update {num}')
+            return True
+        except Exception as e:
+            traceback.print_exc()
+        return False
+
     def loadOneTime(self):
         now = datetime.datetime.now()
         day = now.strftime('%Y%m%d')
@@ -232,20 +274,22 @@ class Server:
 
         if self.downloadInfos.get('ignore', None) == day:
             return
+        # 下载成交量前100信息
+        if curTime >= '15:05' and not self.downloadInfos.get(f'vol-top100-{day}', False):
+            self.downloadInfos[f'vol-top100-{day}'] = True
+            self.downloadSaveVolTop100('[2]')
         # 下载同花顺指数涨跌信息
         if curTime >= '15:05' and not self.downloadInfos.get(f'zs-{day}', False):
             self.downloadInfos[f'zs-{day}'] = True
-            self.downloadSaveZs('[2]')
-
-        # 下载dde数据, 前100 + 后100
-        if curTime >= '15:05':
-            #self.downloadSaveDde()
-            self.last_dde_time = time.time()
-
+            self.downloadSaveZs('[3]')
         # 下载个股板块概念信息
         if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False):
             self.downloadInfos[f'hygn-{day}'] = True
-            self.download_hygn('[3]')
+            self.download_hygn('[4]')
+        # 下载个股跌停
+        if (curTime >= '22:00') and not self.downloadInfos.get(f'dt-{day}', False):
+            self.downloadInfos[f'dt-{day}'] = True
+            self.download_dt('[5]')
 
     def loadHotsOneTime(self):
         now = datetime.datetime.now()
@@ -264,5 +308,7 @@ if __name__ == '__main__':
     #autoLoadHistory(20240708)
     #downloadOneDay(20240702)
 
-    #Server().downloadSaveZs()
+    days = ths_iwencai.getTradeDays()
+    for d in days:
+        Server().downloadSaveVolTop100('[4]', d)
     pass
