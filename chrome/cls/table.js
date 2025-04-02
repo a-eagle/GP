@@ -1450,3 +1450,95 @@ class RichEditor extends UIListener {
     }
 
 }
+
+class Vuex  extends UIListener {
+
+    // data = {...}
+    constructor(data) {
+        super();
+        this.data = data;
+        this._binds = {};
+    }
+
+    // :bind="bind attr name to this.data"    xx.yy.zz
+    // :render="func name of this.data"       xx.yy.zz = function(elem, bindName, obj, attrName)
+    bind(elem) {
+        if (! this.data) {
+            return;
+        }
+        let e = $(elem);
+        let es = e.find('*[:bind]');
+        for (let i = 0; i < es.length; i++) {
+            this._parseAttr(es.get(i));
+        }
+    }
+
+    // name = xx.yy.zz
+    // return {obj: xx.yy, attr: 'zz'}
+    getObject(name) {
+        if (! name || !name.trim())
+            return null;
+        let bns = name.trim().split('.');
+        let obj = this.data;
+        for (let i = 0 ; i < bns.length - 1; i++) {
+            let attr = bns[i].trim();
+            if (typeof(obj[attr]) != 'object') {
+                console.error(`[Vue] Bind attr not a object. "${attr}" of "${name}"`);
+                return null;
+            }
+            obj = obj[attr];
+        }
+        let attr = bns[bns.length - 1];
+        if (! obj.hasOwnProperty(attr)) {
+            console.error(`[Vue] Bind attr not exists. "${attr}"  of "${name}"`);
+            return null;
+        }
+        return {obj, attr};
+    }
+    
+    _parseAttr(elem) {
+        let bindName = elem.getAttribute(':bind');
+        if (!bindName || !bindName.trim())
+            return;
+        bindName = bindName.trim();
+        let r = this.getObject(bindName);
+        if (! r) {
+            return;
+        }
+        let {obj, attr} = r;
+        this._binds[bindName] = {bindName, elem};
+        this._defineAttr(obj, attr, elem);
+        this._updateAttrUI(obj, attr, elem);
+    }
+
+    _defineAttr(obj, attr, elem) {
+        let thiz = this;
+        let val = obj[attr];
+        Object.defineProperty(obj, attr, {
+            get: function() {return val;},
+            set: function(newVal) {
+                val = newVal;
+                thiz._updateAttrUI(obj, attr, elem);
+            }
+        });
+    }
+
+    _updateAttrUI(obj, attr, elem) {
+        let render = elem.getAttribute(':render');
+        if (! render) {
+            elem.innerHTML = obj[attr] || '';
+            return;
+        }
+        let rs = this.getObject(render);
+        if (! rs) {
+            return;
+        }
+        let func = rs.obj[rs.attr];
+        if (typeof(func) != 'function') {
+            console.error(`[Vue] Render is not a function "${func}"`, elem);
+            return;
+        }
+        let bindName = elem.getAttribute(':bind').trim();
+        func(elem, bindName, obj, attr);
+    }
+}
