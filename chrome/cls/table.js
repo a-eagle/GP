@@ -1451,26 +1451,40 @@ class RichEditor extends UIListener {
 
 }
 
-class Vuex  extends UIListener {
+class Vuex extends UIListener {
 
-    // data = {...}
     constructor(data) {
         super();
-        this.data = data;
-        this._binds = {};
+        this.data = data || {};
+        this._defines = {};
+        this.BIND_ATTR = 'v-bind';
+        this.RENDER_ATTR = 'v-render';
     }
 
     // :bind="bind attr name to this.data"    xx.yy.zz
     // :render="func name of this.data"       xx.yy.zz = function(elem, bindName, obj, attrName)
-    bind(elem) {
-        if (! this.data) {
-            return;
-        }
+    mount(elem) {
         let e = $(elem);
-        let es = e.find('*[:bind]');
+        let es = e.find(`*[${this.BIND_ATTR}]`);
         for (let i = 0; i < es.length; i++) {
             this._parseAttr(es.get(i));
         }
+    }
+
+    addWatch(bindName, func) {
+        if (! bindName) {
+            return;
+        }
+        bindName = bindName.trim();
+        let defs = this._defines[bindName];
+        if (! defs) {
+            let r = this.getObject(bindName);
+            if (! r) return;
+            let {obj, attr} = r;
+            defs = this._defines[bindName] = {bindName, elems: [], watchs: []};
+            this._defineAttr(obj, attr, bindName);
+        }
+        defs.watchs.push(func);
     }
 
     // name = xx.yy.zz
@@ -1497,7 +1511,7 @@ class Vuex  extends UIListener {
     }
     
     _parseAttr(elem) {
-        let bindName = elem.getAttribute(':bind');
+        let bindName = elem.getAttribute('v-bind');
         if (!bindName || !bindName.trim())
             return;
         bindName = bindName.trim();
@@ -1506,25 +1520,61 @@ class Vuex  extends UIListener {
             return;
         }
         let {obj, attr} = r;
-        this._binds[bindName] = {bindName, elem};
-        this._defineAttr(obj, attr, elem);
+        if (! this._defines[bindName]) {
+            this._defines[bindName] = {bindName, elems: [], watchs: []};
+        }
+        let els = this._defines[bindName].elems;
+        let fd = els.find((e) => e == elem);
+        if (fd) {
+            return;
+        }
+        els.push(elem);
+        this._defineAttr(obj, attr, bindName);
         this._updateAttrUI(obj, attr, elem);
     }
 
-    _defineAttr(obj, attr, elem) {
+    _defineAttr(obj, attr, bindName) {
+        if (! obj || !attr || !bindName)
+            return;
         let thiz = this;
         let val = obj[attr];
+        bindName = bindName.trim();
         Object.defineProperty(obj, attr, {
             get: function() {return val;},
             set: function(newVal) {
+                let old = val;
                 val = newVal;
-                thiz._updateAttrUI(obj, attr, elem);
+                thiz._updateWatch(bindName, val, old);
+                thiz._updateBindNamesUI(bindName);
             }
         });
     }
 
+    _updateBindNamesUI(bindName) {
+        if (! this._defines[bindName])
+            return;
+        let els = this._defines[bindName].elems;
+        let r = this.getObject(bindName);
+        if (! r) {
+            return;
+        }
+        for (let el of els) {
+            this._updateAttrUI(r.obj, r.attr, el);
+        }
+    }
+
+    _updateWatch(bindName, newVal, oldVal) {
+        let ws = this._defines[bindName]?.watchs;
+        if (! ws)
+            return;
+        for (let func of ws) {
+            if (func && typeof(func) == "function")
+                func(newVal, oldVal);
+        }
+    }
+
     _updateAttrUI(obj, attr, elem) {
-        let render = elem.getAttribute(':render');
+        let render = elem.getAttribute('v-render');
         if (! render) {
             elem.innerHTML = obj[attr] || '';
             return;
@@ -1538,7 +1588,7 @@ class Vuex  extends UIListener {
             console.error(`[Vue] Render is not a function "${func}"`, elem);
             return;
         }
-        let bindName = elem.getAttribute(':bind').trim();
+        let bindName = elem.getAttribute(`${this.BIND_ATTR}`).trim();
         func(elem, bindName, obj, attr);
     }
 }
