@@ -52,7 +52,7 @@ class Server:
         if insertNum > 0 or updateNum > 0:
             console.writeln_1(console.CYAN, '[cls-zt] ', f'{self.now()} save cls zt {day} insert({insertNum}) update({updateNum})')
 
-    def __downloadClsZT(self):
+    def _downloadClsZT(self):
         url = 'https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=7.7.5&type=up_pool&way=last_px&sign=a820dce18412fac3775aa940d0b00dcb'
         resp = requests.get(url)
         txt = resp.content.decode('utf-8')
@@ -85,7 +85,7 @@ class Server:
 
     def downloadClsZT(self):
         try:
-            rs = self.__downloadClsZT()
+            rs = self._downloadClsZT()
             self.saveCls_ZT_List(rs)
         except Exception as e:
             traceback.print_exc()
@@ -308,7 +308,7 @@ class Server:
 
     def downloadZT_PanKou(self, tag):
         try:
-            rs = self.__downloadClsZT()
+            rs = self._downloadClsZT()
             full = True
             for r in rs:
                 obj = tck_orm.ZT_PanKou.get_or_none(day = r['day'], code = r['code'])
@@ -377,6 +377,6 @@ if __name__ == '__main__':
     #days = ths_iwencai.getTradeDays(100)
     #for day in days:
     #    svr._loadHotTcOfDay(day)
-    svr.downloadUpDown()
+    svr._downloadClsZT()
     pass
     #do_reason()
