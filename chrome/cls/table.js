@@ -1457,17 +1457,30 @@ class Vuex extends UIListener {
         super();
         this.data = data || {};
         this._defines = {};
-        this.BIND_ATTR = 'v-bind';
-        this.RENDER_ATTR = 'v-render';
+        this.BIND_ATTR = ':bind';
+        this.RENDER_ATTR = ':render';
     }
 
     // :bind="bind attr name to this.data"    xx.yy.zz
     // :render="func name of this.data"       xx.yy.zz = function(elem, bindName, obj, attrName)
     mount(elem) {
         let e = $(elem);
-        let es = e.find(`*[${this.BIND_ATTR}]`);
-        for (let i = 0; i < es.length; i++) {
-            this._parseAttr(es.get(i));
+        for (let i = 0; i < e.length; i++) {
+            this._findChild(e.get(i), this.BIND_ATTR);
+        }
+    }
+
+    _findChild(elem, attrName) {
+        if (! elem) return;
+        let attrs = elem.getAttributeNames();
+        let idx = attrs.indexOf(attrName);
+        if (idx >= 0) {
+            this._parseAttr(elem);
+        }
+        let child = elem.children;
+        if (! child) return;
+        for (let ch of child) {
+            this._findChild(ch, attrName);
         }
     }
 
@@ -1511,7 +1524,7 @@ class Vuex extends UIListener {
     }
     
     _parseAttr(elem) {
-        let bindName = elem.getAttribute('v-bind');
+        let bindName = elem.getAttribute(this.BIND_ATTR);
         if (!bindName || !bindName.trim())
             return;
         bindName = bindName.trim();
@@ -1574,7 +1587,7 @@ class Vuex extends UIListener {
     }
 
     _updateAttrUI(obj, attr, elem) {
-        let render = elem.getAttribute('v-render');
+        let render = elem.getAttribute(this.RENDER_ATTR);
         if (! render) {
             elem.innerHTML = obj[attr] || '';
             return;

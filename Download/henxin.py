@@ -1,8 +1,6 @@
-import datetime, time, random, requests, re, json, os, sys, struct, re, traceback
+import datetime, time, random, requests, re, json, os, sys, struct, re, traceback, copy
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-
-from Download.datafile import DataFile, ItemData
 
 class Base64:
     def __init__(self):
@@ -206,56 +204,6 @@ class Henxin:
     def copy(self, param):
         buf = self.base64.decode(param)
         self.decodeBuffer(buf)
-
-class ThsZsCache:
-    def __init__(self) -> None:
-        self.codes = {}
-        pass
-
-    def isLastKLineValid(self, data):
-        now = datetime.datetime.now()
-        day = now.year * 10000 + now.month * 100 + now.day
-        if data.day < day:
-            return True
-        if data.day > day:
-            return False
-        return now.hour >= 16
-    
-    # res = {name:xx, data:[], today: }
-    def saveKline(self, code, res):
-        if not res or not res['data']:
-            return
-        df = DataFile(code, DataFile.DT_DAY)
-        df.loadData(DataFile.FLAG_NEWEST)
-        rdata = res['data']
-        if not rdata:
-            return
-        fromIdx = -1
-        n = 1  #  skip last one
-        lastData = rdata[-1]
-        if self.isLastKLineValid(lastData):
-            n = 0 # not skip
-        maxLen = len(rdata) - n
-        if df.data:
-            existsDay = df.days[-1]
-            for i in range(maxLen - 1, -1, -1): 
-                if rdata[i].day == existsDay:
-                    fromIdx = i + 1
-                    break
-        else:
-            fromIdx = 0
-        if fromIdx < 0 or fromIdx >= maxLen:
-            return
-        f = open(df.getPath(), 'ab')
-        arr = bytearray(32)
-        while fromIdx < maxLen:
-            d = rdata[fromIdx]
-            struct.pack_into('l5f2l', arr, 0, d.day, d.open / 100, d.high / 100, d.low / 100, d.close / 100, d.amount, 0, 0)
-            f.write(arr)
-            fromIdx += 1
-        f.close()
-
-_cache = ThsZsCache()
 
 class CacheItem:
     def __init__(self, data) -> None:
@@ -485,13 +433,6 @@ class HexinUrl(Henxin):
             if not klineRs:
                 return None
             data = klineRs['data']
-            if code[0 : 2] == '88' and '/01/last1800' in url: # 仅保存指数
-                _cache.saveKline(code, klineRs)
-            if (code[0 : 2] == '88') and (not data):
-                df = DataFile(code, DataFile.DT_DAY)
-                df.loadData(DataFile.FLAG_ALL)
-                data = df.data
-                pass
             if data:
                 last = data[-1]
             url = self.getTodayKLineUrl(code)
@@ -506,125 +447,101 @@ class HexinUrl(Henxin):
         return None
     
     def parseTodayData(self, txt : str):
-        try:
-            js = json.loads(txt)
-            for k in js:
-                js = js[k]
-                break
-            item = ItemData()
-            if js['1']:
-                setattr(item, 'day', int(js['1']))
-            if js['13']:
-                setattr(item, 'vol', int(js['13']))
-            if js['19']:
-                setattr(item, 'amount', int(float(js['19'])))
-            if js['1968584']:
-                setattr(item, 'rate', float(js['1968584']))
-            
-            keys = { 'open': '7', 'high':'8', 'low':'9', 'close':'11'} # vol: 单位股, amount:单位元 'amount':'19', 'rate':'1968584'  'vol':'13'  'day': '1',
-            for k in keys:
-                v = js[keys[k]]
-                if type(v) == str:
-                    if not v:
-                        del item
-                        item = None
-                        break
-                setattr(item, k, float(v))
-            rs = {'name': js['name'], 'data': item}
-            return rs
-        except Exception as e:
-            traceback.print_exc()
-        return None
+        from Download.datafile_2 import ItemData
+        js = json.loads(txt)
+        for k in js:
+            js = js[k]
+            break
+        item = ItemData()
+        if js['1']:
+            setattr(item, 'day', int(js['1']))
+        if js['13']:
+            setattr(item, 'vol', int(js['13']))
+        if js['19']:
+            setattr(item, 'amount', int(float(js['19'])))
+        if js['1968584']:
+            setattr(item, 'rate', float(js['1968584']))
+        
+        keys = { 'open': '7', 'high':'8', 'low':'9', 'close':'11'} # vol: 单位股, amount:单位元 'amount':'19', 'rate':'1968584'  'vol':'13'  'day': '1',
+        for k in keys:
+            v = js[keys[k]]
+            if type(v) == str:
+                if not v:
+                    del item
+                    item = None
+                    break
+            setattr(item, k, float(v))
+        rs = {'name': js['name'], 'data': item}
+        return rs
 
     # 解析日线数据
     def parseDaylyData(self, txt):
-        try:
-            js = json.loads(txt)
-            name, today = js['name'], js['today']
-            ds = js['data'].split(';')
-            keys = ['day', 'open', 'high', 'low', 'close', 'vol', 'amount', 'rate']; # vol: 单位股, amount:单位元
-            rs = []
-            for m, d in enumerate(ds):
-                if not d:
-                    continue
-                obj = ItemData()
-                row = d.split(',')
-                #if m == len(ds) - 1: 
-                #    print('[henxin.parseDaylyData]', name, row) # last row
-                for i, k in enumerate(keys):
-                    if row[i] == '':
-                        row[i] = '0' # fix bug
-                    if i == 0 or i == 5 or i == 6:
-                        setattr(obj, keys[i], int(float(row[i])))
-                    elif i >= 1 and i <= 4:
-                        if row[i] == '0':
-                            del obj
-                            obj = None
-                            break
-                        setattr(obj, keys[i], float(row[i]))
-                    elif i == 7:
-                        setattr(obj, keys[i], float(row[i]))
-                if obj:
-                    rs.append(obj)
-            rv = {'name': name, 'today': today,  'data': rs}
-            #print('[henxin.parseDaylyData ] rs[-1]=', rs[-1].__dict__)
-            return rv
-        except Exception as e:
-            traceback.print_exc()
-        return None
+        from Download.datafile_2 import ItemData
+        js = json.loads(txt)
+        name, today = js['name'], js['today']
+        ds = js['data'].split(';')
+        keys = ['day', 'open', 'high', 'low', 'close', 'vol', 'amount', 'rate']; # vol: 单位股, amount:单位元
+        rs = []
+        for m, d in enumerate(ds):
+            if not d:
+                continue
+            obj = ItemData()
+            row = d.split(',')
+            #if m == len(ds) - 1: 
+            #    print('[henxin.parseDaylyData]', name, row) # last row
+            for i, k in enumerate(keys):
+                if row[i] == '':
+                    row[i] = '0' # fix bug
+                if i == 0 or i == 5 or i == 6:
+                    setattr(obj, keys[i], int(float(row[i])))
+                elif i >= 1 and i <= 4:
+                    if row[i] == '0':
+                        del obj
+                        obj = None
+                        break
+                    setattr(obj, keys[i], float(row[i]))
+                elif i == 7:
+                    setattr(obj, keys[i], float(row[i]))
+            if obj:
+                rs.append(obj)
+        rv = {'name': name, 'today': today,  'data': rs}
+        #print('[henxin.parseDaylyData ] rs[-1]=', rs[-1].__dict__)
+        return rv
 
     def parseFenShiData(self, txt):
-        try:
-            js = json.loads(txt)
-            for k in js:
-                js = js[k]
+        from Download.datafile_2 import ItemData
+        js = json.loads(txt)
+        for k in js:
+            js = js[k]
+            break
+        rs = {}
+        rs['name'] = js['name']
+        rs['pre'] = float(js['pre'])
+        rs['date'] = int(js['date'])
+        rs['line'] = []
+        iv = js['data'].split(';')
+        for item in iv:
+            # 时间，价格，成交额（元），分时均价，成交量（手）
+            its = item.split(',')
+            row = ItemData()
+            row.day = rs['date']
+            row.time = int(its[0])
+            if row.time == 1300:
+                continue # skip 13:00
+            if row.time > 1500:
                 break
-            rs = {}
-            rs['name'] = js['name']
-            rs['pre'] = float(js['pre'])
-            rs['date'] = int(js['date'])
-            rs['line'] = []
-            iv = js['data'].split(';')
-            for item in iv:
-                # 时间，价格，成交额（元），分时均价，成交量（手）
-                its = item.split(',')
-                row = ItemData()
-                row.day = rs['date']
-                row.time = int(its[0])
-                if row.time == 1300:
-                    continue # skip 13:00
-                if row.time > 1500:
-                    break
-                row.price = float(its[1])
-                row.amount = int(float(its[2]))
-                row.avgPrice = float(its[3])
-                row.vol = int(float(its[4] if its[4] else '0'))
+            row.price = float(its[1])
+            row.amount = int(float(its[2]))
+            row.avgPrice = float(its[3])
+            row.vol = int(float(its[4] if its[4] else '0'))
+            if row.time == 931 and len(rs['line']) == 0:
+                row930 = copy.copy(row)
+                row930.time = 930
+                row930.amount = row930.vol = 0
                 rs['line'].append(row)
-            return rs
-        except Exception as e:
-            traceback.print_exc()
-        return None
+            rs['line'].append(row)
+        return rs
 
-class ThsDataFile(DataFile):
-    def __init__(self, code, dataType):
-        #super().__init__(code, datafile.DataFile.DT_DAY, 0)
-        if type(code) == int:
-            code = f'{code :06d}'
-        self.code = code
-        self.dataType = dataType
-        self.data = []
-        self.name = ''
-
-    def loadDataFile(self):
-        if self.dataType == DataFile.DT_DAY:
-            hx = HexinUrl()
-            rs = hx.loadKLineData(self.code)
-            if rs:
-                self.data = rs['data']
-                self.name = rs['name']
-            else:
-                self.data = None
-            
 if __name__ == '__main__':
     hx = HexinUrl()
     #url = hx.getKLineUrl('002456')

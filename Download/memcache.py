@@ -15,6 +15,8 @@ class MemCache:
         'cls-scqx': 3 * 60,
         'cls-hot-tc': 30,
         '30-minuts': 30 * 60,
+        'kline': 5 * 60,
+        'timeline': 1 * 60
     }
     def __init__(self) -> None:
         self.datas = {} # key = code + kind, value = CacheItem
@@ -25,6 +27,8 @@ class MemCache:
         key = code + kind
         rs = self.datas.get(key, None)
         if rs:
+            if self.needUpdate(code, kind):
+                return None
             return rs.data
         return None
     
@@ -35,7 +39,7 @@ class MemCache:
     # @return True | False
     def needUpdate(self, code, kind):
         if not code or not kind:
-            return False
+            return True
         key = f'{code}{kind}'
         item = self.datas.get(key, None)
         if not item:

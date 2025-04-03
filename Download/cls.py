@@ -1,7 +1,6 @@
 import ctypes, os, sys, requests, json, traceback, datetime
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from Download import datafile
 from Download import memcache
 
 PX = os.path.join(os.path.dirname(__file__), 'cls-sign.dll')
@@ -66,6 +65,9 @@ class ClsUrl:
         return None # error params
     
     def loadFenShi(self, code):
+        item = memcache.cache.getCache(f'cls:{code}', 'timeline')
+        if item:
+            return item
         url = 'https://x-quote.cls.cn/quote/stock/tline?'
         scode = self._getTagCode(code)
         params = f'app=CailianpressWeb&fields=date,minute,last_px,business_balance,business_amount,open_px,preclose_px,av_px&os=web&secu_code={scode}&sv=7.7.5'
@@ -77,6 +79,7 @@ class ClsUrl:
         data['code'] = code
         if data and 'line' in data:
             data['line'] = self._toStds(data['line'], False)
+        memcache.cache.saveCache(f'cls:{code}', data, 'timeline')
         return data
     
     # day = None : 当日分时 只能用于指数
@@ -115,53 +118,55 @@ class ClsUrl:
 
     # 基本信息
     def loadBasic(self, code):
-        try:
-            KIND = 'cls-basic'
-            if not memcache.cache.needUpdate(code, KIND):
-                return memcache.cache.getCache(code, KIND)
-            params = {
-                'secu_code': self._getTagCode(code),
-                'fields': 'open_px,av_px,high_px,low_px,change,change_px,down_price,change_3,change_5,qrr,entrust_rate,tr,amp,TotalShares,mc,NetAssetPS,NonRestrictedShares,cmc,business_amount,business_balance,pe,ttm_pe,pb,secu_name,secu_code,trade_status,secu_type,preclose_px,up_price,last_px',
-                'app': 'CailianpressWeb',
-                'os': 'web',
-                'sv': '7.7.5'
-            }
-            url = f'https://x-quote.cls.cn/quote/stock/basic?' + self.signParams(params)
-            resp = requests.get(url)
-            txt = resp.content.decode('utf-8')
-            js = json.loads(txt)
-            data = js['data']
-            rt = {}
-            rt['pre'] = self.getVal(data, 'preclose_px', float, 0) # 昨日收盘价
-            rt['code'] = data['secu_code'][2 : ]
-            rt['name'] = data['secu_name']
-            rt['vol'] = self.getVal(data, 'business_amount', int, 0) # int 股
-            rt['amount'] = self.getVal(data, 'business_balance', int, 0) # int 元
-            rt['open'] = self.getVal(data, 'open_px', float, 0)
-            rt['high'] = self.getVal(data, 'high_px', float, 0)
-            rt['close'] = self.getVal(data, 'last_px', float, 0)
-            rt['low'] = self.getVal(data, 'low_px', float, 0)
-            #pre = rt['pre'] or rt['open']
-            #if pre != 0:
-            #    rt['涨幅'] = (rt['close'] - pre) / pre * 100
-            rt['涨幅'] = self.getVal(data, 'change', float, 0) * 100
-            rt['委比'] = self.getVal(data, 'entrust_rate', float, 0) * 100 # 0 ~ 100%
-            rt['总市值'] = self.getVal(data, 'mc', int, 0) # int 元
-            rt['流通市值'] = self.getVal(data, 'cmc', int, 0) # int 元
-            rt['每股净资产'] = self.getVal(data, 'NetAssetPS', float, 0)
-            rt['流通股本'] = self.getVal(data, 'NonRestrictedShares', int, 0)
-            rt['总股本'] = self.getVal(data, 'TotalShares', int, 0)
-            rt['市净率'] = self.getVal(data, 'pb', float, 0)
-            rt['市盈率_静'] = self.getVal(data, 'pe', float, 0)
-            rt['市盈率_TTM'] = self.getVal(data, 'ttm_pe', float, 0)
-            #print(rt)
-            memcache.cache.saveCache(code, rt, KIND)
-            return rt
-        except Exception as e:
-            traceback.print_exc()
-    
+        KIND = 'cls-basic'
+        item = memcache.cache.getCache(f'cls-{code}', KIND)
+        if item:
+            return item
+        params = {
+            'secu_code': self._getTagCode(code),
+            'fields': 'open_px,av_px,high_px,low_px,change,change_px,down_price,change_3,change_5,qrr,entrust_rate,tr,amp,TotalShares,mc,NetAssetPS,NonRestrictedShares,cmc,business_amount,business_balance,pe,ttm_pe,pb,secu_name,secu_code,trade_status,secu_type,preclose_px,up_price,last_px',
+            'app': 'CailianpressWeb',
+            'os': 'web',
+            'sv': '7.7.5'
+        }
+        url = f'https://x-quote.cls.cn/quote/stock/basic?' + self.signParams(params)
+        resp = requests.get(url)
+        txt = resp.content.decode('utf-8')
+        js = json.loads(txt)
+        data = js['data']
+        rt = {}
+        rt['pre'] = self.getVal(data, 'preclose_px', float, 0) # 昨日收盘价
+        rt['code'] = data['secu_code'][2 : ]
+        rt['name'] = data['secu_name']
+        rt['vol'] = self.getVal(data, 'business_amount', int, 0) # int 股
+        rt['amount'] = self.getVal(data, 'business_balance', int, 0) # int 元
+        rt['open'] = self.getVal(data, 'open_px', float, 0)
+        rt['high'] = self.getVal(data, 'high_px', float, 0)
+        rt['close'] = self.getVal(data, 'last_px', float, 0)
+        rt['low'] = self.getVal(data, 'low_px', float, 0)
+        #pre = rt['pre'] or rt['open']
+        #if pre != 0:
+        #    rt['涨幅'] = (rt['close'] - pre) / pre * 100
+        rt['涨幅'] = self.getVal(data, 'change', float, 0) * 100
+        rt['委比'] = self.getVal(data, 'entrust_rate', float, 0) * 100 # 0 ~ 100%
+        rt['总市值'] = self.getVal(data, 'mc', int, 0) # int 元
+        rt['流通市值'] = self.getVal(data, 'cmc', int, 0) # int 元
+        rt['每股净资产'] = self.getVal(data, 'NetAssetPS', float, 0)
+        rt['流通股本'] = self.getVal(data, 'NonRestrictedShares', int, 0)
+        rt['总股本'] = self.getVal(data, 'TotalShares', int, 0)
+        rt['市净率'] = self.getVal(data, 'pb', float, 0)
+        rt['市盈率_静'] = self.getVal(data, 'pe', float, 0)
+        rt['市盈率_TTM'] = self.getVal(data, 'ttm_pe', float, 0)
+        #print(rt)
+        memcache.cache.saveCache(f'cls-{code}', rt, KIND)
+        return rt
+
     # 近5日分时
     def loadHistory5FenShi(self, code):
+        KIND = 'timeline'
+        item = memcache.cache.getCache(f'cls-{code}-5', KIND)
+        if item:
+            return item
         params = {
             'secu_code': self._getTagCode(code),
             'app': 'CailianpressWeb',
@@ -176,6 +181,7 @@ class ClsUrl:
         data['code'] = code
         if data and ('line' in data):
             data['line'] = self._toStds(data['line'], False)
+        item = memcache.cache.saveCache(f'cls-{code}-5', data, KIND)
         return data
 
     def _toStds(self, datas, kline):
@@ -191,12 +197,13 @@ class ClsUrl:
         return rs
 
     def _toStdFs(self, d):
+        from Download import datafile_2
         if not d:
             return None
         price = self.getVal(d, 'last_px', float, 0)
         if price == 0:
             return None
-        ts = datafile.ItemData()
+        ts = datafile_2.ItemData()
         ts.day = self.getVal(d, 'date', int, 0)
         ts.time = self.getVal(d, 'minute', int, 0)
         ts.price = price
@@ -206,9 +213,10 @@ class ClsUrl:
         return ts
     
     def _toStdKl(self, d):
+        from Download import datafile_2
         if not d:
             return None
-        ts = datafile.ItemData()
+        ts = datafile_2.ItemData()
         if 'secu_code' in d:
             sc = d['secu_code']
             if ('cls' in sc) or ('sh0' in sc):
@@ -229,11 +237,15 @@ class ClsUrl:
 
     # K线数据
     # limit : K线数量
-    # type_: 周期 'DAY' | 'WEEK' | 'MONTH'
-    def loadKline(self, code, limit = 1200, type_ = 'DAY'):
-        if type_ == 'DAY': type_ = 'fd1'
-        elif type_ == 'WEEK': type_ = 'fw'
-        elif type_ == 'MONTH': type_ = 'fm'
+    # period: 周期 'day' | 'week' | 'month'
+    def loadKline(self, code, limit = 1200, period = 'day'):
+        item = memcache.cache.getCache(f'cls-{code}-{period}', 'kline')
+        if item:
+            return item
+        period = period.upper()
+        if period == 'DAY': period = 'fd1'
+        elif period == 'WEEK': period = 'fw'
+        elif period == 'MONTH': period = 'fm'
         params = {
             'secu_code': self._getTagCode(code),
             'app': 'CailianpressWeb',
@@ -241,7 +253,7 @@ class ClsUrl:
             'sv': '7.7.5',
             'offset': 0,
             'limit': limit,
-            'type': type_
+            'type': period
         }
         url = f'https://x-quote.cls.cn/quote/stock/kline?' + self.signParams(params)
         resp = requests.get(url)
@@ -249,6 +261,7 @@ class ClsUrl:
         js = json.loads(txt)
         data = js['data']
         rs = self._toStds(data, True)
+        memcache.cache.saveCache(f'cls-{code}-{period}', rs, 'kline')
         #print(data)
         return rs
     
@@ -257,8 +270,9 @@ class ClsUrl:
     def loadPanKou5(self, code):
         try:
             KIND = 'cls-pankou-5'
-            if not memcache.cache.needUpdate(code, KIND):
-                return memcache.cache.getCache(code, KIND)
+            item = memcache.cache.getCache(code, KIND)
+            if item: 
+                return item
             params = {
                 'secu_code': self._getTagCode(code),
                 'app': 'CailianpressWeb',
@@ -283,8 +297,9 @@ class ClsUrl:
     def loadPanKouVol(self, code):
         try:
             KIND = 'cls-pankou-vol'
-            if not memcache.cache.needUpdate(code, KIND):
-                return memcache.cache.getCache(code, KIND)
+            item = memcache.cache.getCache(code, KIND)
+            if item:
+                return item
             params = {
                 'secu_code': self._getTagCode(code),
                 'app': 'CailianpressWeb',
@@ -306,61 +321,53 @@ class ClsUrl:
 
     # 热度题材
     def loadHotTC(self, day):
-        try:
-            today = datetime.date.today().strftime('%Y-%m-%d')
-            KIND = 'cls-hot-tc'
-            if isinstance(day, datetime.date):
-                cday = day.strftime('%Y-%m-%d')
-            elif isinstance(day, str):
-                if len(day) == 8:
-                    cday = f'{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}'
-                else:
-                    cday = day
-            elif isinstance(day, int):
-                cday = f'{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}'
-            if today > cday:
-                cc = memcache.cache.getCache(cday, KIND)
-                if cc:
-                    return cc
-            if not memcache.cache.needUpdate(cday, KIND):
-                return memcache.cache.getCache(cday, KIND)
-            params = {
-                'app': 'CailianpressWeb',
-                'cdate': cday,
-                'os': 'web',
-                'sv': '7.7.5',
-            }
-            url = 'https://www.cls.cn/v3/transaction/anchor?' + self.signParams(params)
-            resp = requests.get(url, headers = self.reqHeaders)
-            txt = resp.content.decode('utf-8')
-            js = json.loads(txt)
-            data = js['data']
-            #print(data)
-            memcache.cache.saveCache(cday, data, KIND)
-            return data
-        except Exception as e:
-            traceback.print_exc()
-        return None
+        today = datetime.date.today().strftime('%Y-%m-%d')
+        KIND = 'cls-hot-tc'
+        if isinstance(day, datetime.date):
+            cday = day.strftime('%Y-%m-%d')
+        elif isinstance(day, str):
+            if len(day) == 8:
+                cday = f'{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}'
+            else:
+                cday = day
+        elif isinstance(day, int):
+            cday = f'{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}'
+        if today > cday:
+            cc = memcache.cache.getCache(cday, KIND)
+            if cc:
+                return cc
+        if not memcache.cache.needUpdate(cday, KIND):
+            return memcache.cache.getCache(cday, KIND)
+        params = {
+            'app': 'CailianpressWeb',
+            'cdate': cday,
+            'os': 'web',
+            'sv': '7.7.5',
+        }
+        url = 'https://www.cls.cn/v3/transaction/anchor?' + self.signParams(params)
+        resp = requests.get(url, headers = self.reqHeaders)
+        txt = resp.content.decode('utf-8')
+        js = json.loads(txt)
+        data = js['data']
+        #print(data)
+        memcache.cache.saveCache(cday, data, KIND)
+        return data
 
     # 市场情绪 {day: YYYY-MM-DD, degree: int}
     def loadDegree(self):
-        try:
-            KIND = 'cls-scqx'
-            if not memcache.cache.needUpdate(KIND, KIND):
-                return memcache.cache.getCache(KIND, KIND)
-            url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
-            resp = requests.get(url)
-            txt = resp.content.decode('utf-8')
-            js = json.loads(txt)
-            day = js['data']['date']
-            degree = js['data']['market_degree'] or 0
-            degree = int(float(degree) * 100)
-            data = {'day': day, 'degree': degree}
-            memcache.cache.saveCache(KIND, data, KIND)
-            return data
-        except Exception as e:
-            traceback.print_exc()
-        return None
+        KIND = 'cls-scqx'
+        if not memcache.cache.needUpdate(KIND, KIND):
+            return memcache.cache.getCache(KIND, KIND)
+        url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
+        resp = requests.get(url)
+        txt = resp.content.decode('utf-8')
+        js = json.loads(txt)
+        day = js['data']['date']
+        degree = js['data']['market_degree'] or 0
+        degree = int(float(degree) * 100)
+        data = {'day': day, 'degree': degree}
+        memcache.cache.saveCache(KIND, data, KIND)
+        return data
     
     # 所有的板块、概念
     # type_ = 'industry' | 'concept'
@@ -391,47 +398,43 @@ class ClsUrl:
 
     # zs set to {}
     def loadBkGnOfCode(self, code, zs = {}):
-        try:
-            from orm import cls_orm
-            if type(code) == int:
-                code = f'{code :06d}'
-            if code[0 : 2] in ('sh', 'sz'):
-                code = code[2 : ]
-            if code[0] not in ('0', '3', '6'):
-                return None
-            if not zs:
-                qr = cls_orm.CLS_ZS.select().dicts()
-                for it in qr:
-                    zs[it['code']] = it
-            params = f'app=CailianpressWeb&os=web&secu_code={self._getTagCode(code)}&sv=8.4.6'
-            url = 'https://x-quote.cls.cn/web_quote/stock/assoc_plate?' + self.signParams(params)
-            resp = requests.get(url)
-            cnt = resp.content.decode('utf-8')
-            js = json.loads(cnt)
-            data = js['data']
-            rs = cls_orm.CLS_GNTC()
-            rs.code = code
-            for d in data:
-                c, n = d['secu_code'], d['secu_name']
-                if c not in zs:
-                    continue
-                type_ = zs[c]['type_']
-                if type_ == 'HY': 
-                    rs.hy_code += c + ';'
-                    rs.hy += n + ';'
-                else:
-                    rs.gn_code += c + ';'
-                    rs.gn += n + ';'
-            if rs.gn_code:
-                rs.gn_code = rs.gn_code[0 : -1]
-                rs.gn = rs.gn[0 : -1]
-            if rs.hy_code:
-                rs.hy_code = rs.hy_code[0 : -1]
-                rs.hy = rs.hy[0 : -1]
-            return rs
-        except Exception as e:
-            traceback.print_exc()
-        return None
+        from orm import cls_orm
+        if type(code) == int:
+            code = f'{code :06d}'
+        if code[0 : 2] in ('sh', 'sz'):
+            code = code[2 : ]
+        if code[0] not in ('0', '3', '6'):
+            return None
+        if not zs:
+            qr = cls_orm.CLS_ZS.select().dicts()
+            for it in qr:
+                zs[it['code']] = it
+        params = f'app=CailianpressWeb&os=web&secu_code={self._getTagCode(code)}&sv=8.4.6'
+        url = 'https://x-quote.cls.cn/web_quote/stock/assoc_plate?' + self.signParams(params)
+        resp = requests.get(url)
+        cnt = resp.content.decode('utf-8')
+        js = json.loads(cnt)
+        data = js['data']
+        rs = cls_orm.CLS_GNTC()
+        rs.code = code
+        for d in data:
+            c, n = d['secu_code'], d['secu_name']
+            if c not in zs:
+                continue
+            type_ = zs[c]['type_']
+            if type_ == 'HY': 
+                rs.hy_code += c + ';'
+                rs.hy += n + ';'
+            else:
+                rs.gn_code += c + ';'
+                rs.gn += n + ';'
+        if rs.gn_code:
+            rs.gn_code = rs.gn_code[0 : -1]
+            rs.gn = rs.gn[0 : -1]
+        if rs.hy_code:
+            rs.hy_code = rs.hy_code[0 : -1]
+            rs.hy = rs.hy[0 : -1]
+        return rs
 
     # 最新交易日的涨跌票的数量分布
     def getZDFenBu(self):
@@ -455,29 +458,6 @@ class ClsUrl:
             'down_2': v['down_2'], 'down_4': v['down_4'], 'down_6': v['down_6'], 'down_8': v['down_8'], 'down_10': v['down_10']
         }
         return rs
-
-class ClsDataFile(datafile.DataFile):
-    def __init__(self, code, dataType):
-        #super().__init__(code, dataType, flag)
-        if type(code) == int:
-            code = f'{code :06d}'
-        self.code = code
-        self.dataType = dataType
-        self.name = ''
-        self.data = []
-
-    def loadDataFile(self):
-        if self.dataType == self.DT_DAY:
-            self._loadDataFile_KLine()
-        else:
-            self._loadDataFile_FS()
-
-    def _loadDataFile_KLine(self):
-        self.data = ClsUrl().loadKline(self.code, 1200)
-        
-    def _loadDataFile_FS(self):
-        datas = ClsUrl().loadHistory5FenShi(self.code)
-        self.data = datas['line']
 
 if __name__ == '__main__':
     #m = signByStr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012')

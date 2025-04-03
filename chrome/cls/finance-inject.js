@@ -363,11 +363,11 @@ class ZdfbMgr {
 
 	_buildUI() {
 		this.table = $('<table>'+
-			"<tr class='red'> <th> 日期 </th> <th> 热度</th>  <th> 上涨数 </th> <td v-bind='zdfb.up'> </td>  <th> 涨停 </th> " +
-			"<td v-bind='zdfb.zt'> </td> <th> 涨幅>8% </th> <td v-bind='zdfb.up_8'> </td> </tr>" +
-			"<tr class='green'> <th v-bind='zdfb.day'> </th> <td v-bind='zdfb.degree' v-render='zdfb.r'> </td>  <th> 下跌数 </th> " +
-			"<td v-bind='zdfb.down'> </td>  <th> 跌停 </th> <td v-bind='zdfb.dt'> </td> <th> 跌幅>8% </th>" +
-			"<td v-bind='zdfb.down_8'> </td> </tr> </table> ");
+			"<tr class='red'> <th> 日期 </th> <th> 热度</th>  <th> 上涨数 </th> <td :bind='zdfb.up'> </td>  <th> 涨停 </th> " +
+			"<td :bind='zdfb.zt'> </td> <th> 涨幅>8% </th> <td :bind='zdfb.up_8'> </td> </tr>" +
+			"<tr class='green'> <th :bind='zdfb.day'> </th> <td :bind='zdfb.degree' :render='zdfb.r'> </td>  <th> 下跌数 </th> " +
+			"<td :bind='zdfb.down'> </td>  <th> 跌停 </th> <td :bind='zdfb.dt'> </td> <th> 跌幅>8% </th>" +
+			"<td :bind='zdfb.down_8'> </td> </tr> </table> ");
 		this.table.find('td').css('width', '120px');
 		$('div[name="zdfb-item"]').append(this.table);
 		this.vue.mount(this.table);
@@ -511,7 +511,7 @@ class AnchorsMgr {
 		for (let i = 0; i < data.length; i++) {
 			let an = data[i];
 			let key = an.symbol_code + '#' + an.float;
-			let num = anchrosCP[key].num;
+			let num = anchrosCP[key]?.num || 1;
 			an.symbol_name += '' + num + '';
 		}
 	}
@@ -552,7 +552,7 @@ class AnchorsMgr {
 		if (cday > lastDay) {
 			model.anchros.unshift(newVal);
 		} else if (cday == lastDay) {
-			model.anchros[0] = json;
+			model.anchros[0] = newVal;
 		}
 		if (model.curDay >= cday) {
 			model.curAnchorGroup = this.calcGroups(model.curDay);
