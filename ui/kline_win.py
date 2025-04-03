@@ -116,6 +116,10 @@ class KLineWindow(base_win.BaseWindow):
         return None
 
     def changeCode(self, code, period):
+        if type(code) == int:
+            code = f'{code :06d}'
+        if len(code) == 8 and code[0] == 's':
+            code = code[2 : ]
         for it in self.indicators:
             it.changeCode(code, period)
         self.makeVisible(-1)
@@ -547,8 +551,19 @@ if __name__ == '__main__':
     win = KLineWindow()
     win.addIndicator(RateIndicator(win, {'height': 60, 'margins': (15, 2)}))
     win.addIndicator(AmountIndicator(win, {'height': 60, 'margins': (10, 2)}))
+    win.addIndicator(DayIndicator(win))
+    win.addIndicator(ScqxIndicator(win))
+    win.addIndicator(LsAmountIndicator(win))
+    win.addIndicator(HotIndicator(win))
+    win.addIndicator(ThsZT_Indicator(win))
+    win.addIndicator(ClsZT_Indicator(win))
+
+    win.addIndicator(GnLdIndicator(win))
+    win.addIndicator(ZhangSuIndicator(win))
+    win.addIndicator(LhbIndicator(win))
+
     win.createWindow(None, (0, 0, 1500, 800), win32con.WS_OVERLAPPEDWINDOW)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
 
-    win.changeCode('000737', 'day')
+    win.changeCode('002261', 'day') # 000737
     win32gui.PumpMessages()

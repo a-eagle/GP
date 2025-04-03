@@ -3,11 +3,13 @@ import win32gui, win32con
 import requests, peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import speed_orm, ths_orm, tdx_orm, tck_orm, tck_def_orm, lhb_orm, cls_orm
 from Download.datafile_2 import *
-from Download import henxin, cls
 from Common.base_win import *
+
 from THS import hot_utils
+from Download import henxin, cls
+from orm import speed_orm, ths_orm, tdx_orm, tck_orm, tck_def_orm, lhb_orm, cls_orm
+
 
 def getTypeByCode(code):
     if not code:
@@ -110,7 +112,7 @@ class Indicator:
         x = self.getCenterX(idx)
         sx = x - self.getItemWidth() // 2 #- self.getItemSpace()
         ex = x + self.getItemWidth() // 2 #+ self.getItemSpace()
-        rc = (sx, 0, ex, self.height + self.getMargins(1))
+        rc = (sx, 1, ex, self.height + self.getMargins(1))
         drawer.fillRect(hdc, rc, 0x202030)
 
     def drawMouse(self, hdc, drawer, x, y):
@@ -432,7 +434,8 @@ class AttrIndicator(Indicator):
 
     def onMouseClick(self, x, y):
         si = self.getIdxAtX(x)
-        self.win.setSelIdx(si)
+        if si >= 0:
+            self.win.setSelIdx(si)
         return True
 
     def onMouseMove(self, x, y):
@@ -591,6 +594,521 @@ class RateIndicator(AttrIndicator):
         drawer.drawText(hdc, txt, rt, 0xab34de, win32con.DT_LEFT)
         win32gui.RestoreDC(hdc, sdc)
 
+# config = {itemWidth: int}
+class CustomIndicator(Indicator):
+    _taskIds = 0
+
+    def __init__(self, win, config = None) -> None:
+        super().__init__(win, config)
+        if 'itemWidth' not in self.config:
+            self.config['itemWidth'] = 80
+        self.cdata = None
+        self.code = None
+        self.win.addNamedListener('K-Model-Changed', self.onDataChanged)
+        self.win.addNamedListener('selIdx-Changed', self.onSelIdxChanged)
+
+    def onDataChanged(self, event, args):
+        self.code = event.code
+        self.data = event.data
+
+    def changeCode(self, code, period):
+        self.code = code
+        self.valueRange = None
+        self.visibleRange = None
+        self.period = period
+        CustomIndicator._taskIds += 1
+        ThreadPool.instance().addTask(CustomIndicator._taskIds, self._changeCode)
+
+    def _changeCode(self):
+        self.calcVisibleRange(self.win.selIdx)
+
+    def onSelIdxChanged(self, evt, args):
+        idx = evt.idx
+        self.calcVisibleRange(idx)
+        if self.visibleRange:
+            self.calcValueRange(*self.visibleRange)
+
+    def onMouseMove(self, x, y):
+        return True
+
+    def onMouseClick(self, x, y):
+        si = self.getIdxAtX(x)
+        if si >= 0:
+            self.win.setSelIdx(si)
+        return True
+
+    def getItemWidth(self):
+        return self.config['itemWidth']
+
+    def getItemSpace(self):
+        return 1
+
+    def onContextMenu(self, x, y):
+        self.win.invalidWindow() # redraw
+        return True
+
+    def draw(self, hdc, drawer):
+        if not self.visibleRange:
+            return
+        sdc = win32gui.SaveDC(hdc)
+        for idx in range(*self.visibleRange):
+            cx = self.getCenterX(idx)
+            bx = cx - self.getItemWidth() // 2
+            self.drawItem(hdc, drawer, idx, bx)
+        win32gui.RestoreDC(hdc, sdc)
+        # draw title
+        title = self.config.get('title', None)
+        if not title:
+            return
+        wc, *_ = win32gui.GetTextExtentPoint32(hdc, title)
+        rc = (0, 2, wc + 5, 20)
+        drawer.fillRect(hdc, rc, 0x0)
+        drawer.drawText(hdc, title, rc, 0xab34de, win32con.DT_LEFT)
+
+    def drawItem(self, hdc, drawer, idx, x):
+        x += self.config['itemWidth']
+        drawer.drawLine(hdc, x, 0, x, self.height, 0x606060, win32con.PS_DASHDOT)
+
+class DayIndicator(CustomIndicator):
+    def __init__(self, win, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 20
+        super().__init__(win, config)
+    
+    def drawItem(self, hdc, drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        iw = self.config['itemWidth']
+        day = str(self.data[idx].day)
+        rc = (x + 1, 1, x + iw, self.height)
+        hday = day[4 : 6] + '-' + day[6 : 8]
+        today = datetime.date.today()
+        if today.year != int(day[0 : 4]):
+            day = day[2: 4] + '-' + hday
+        else:
+            day = hday
+        drawer.drawText(hdc, day, rc, 0xcccccc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+
+class ScqxIndicator(CustomIndicator):
+    def __init__(self, win, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 30
+        super().__init__(win, config)
+        if 'title' not in self.config:
+            self.config['title'] = '[市场情绪]'
+
+    def _changeCode(self):
+        super()._changeCode()
+        datas = tck_orm.CLS_SCQX.select().dicts()
+        maps = {}
+        for d in datas:
+            day = d['day'].replace('-', '')
+            maps[int(day)] = d['zhqd']
+        self.cdata = maps
+
+    def drawItem(self, hdc, drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        iw = self.config['itemWidth']
+        day = self.data[idx].day
+        if not self.cdata or day not in self.cdata:
+            return
+        val = self.cdata[day]
+        rc = (x + 1, 1, x + iw, self.height)
+        rc = (x + 3, 3, x + iw - 3, self.height)
+        color = 0xcccccc
+        if val >= 60: color = 0x0000FF
+        elif val >= 40: color = 0x1D77FF
+        else: color = 0x00ff00 #0x24E7C8
+        drawer.drawText(hdc, str(val) + '°', rc, color, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+
+class LsAmountIndicator(CustomIndicator):
+    def __init__(self, win, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 30
+        super().__init__(win, config)
+        self.config['title'] = '[两市成交额]'
+
+    def _changeCode(self):
+        super()._changeCode()
+        maps = {}
+        url = cls.ClsUrl()
+        ds = url.loadKline('sh000001')
+        for d in ds:
+            maps[d.day] = d.amount / 1000000000000 # 万亿
+        ds = url.loadKline('sz399001')
+        for d in ds:
+            maps[d.day] += d.amount / 1000000000000 # 万亿
+        self.cdata = maps
+
+    def drawItem(self, hdc, drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        iw = self.config['itemWidth']
+        day = self.data[idx].day
+        if not self.cdata or day not in self.cdata:
+            return
+        rc = (x + 1, 1, x + iw, self.height)
+        drawer.drawText(hdc,f"{self.cdata[day] :.02f}", rc, 0xcccccc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+
+class HotIndicator(CustomIndicator):
+    def __init__(self, win, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 30
+        super().__init__(win, config)
+        self.config['title'] = '[热度排名]'
+
+    def _changeCode(self):
+        super()._changeCode()
+        if len(self.code) != 6:
+            return
+        maps = {}
+        hots = ths_orm.THS_HotZH.select().where(ths_orm.THS_HotZH.code == int(self.code)).dicts()
+        maps = {}
+        for d in hots:
+            maps[d['day']] = d['zhHotOrder']
+        lastDay = self.data[-1].day
+        if lastDay not in maps:
+            hot = hot_utils.DynamicHotZH.instance().getDynamicHotZH(lastDay, self.code)
+            if hot: maps[lastDay] = hot['zhHotOrder']
+        self.cdata = maps
+
+    def drawItem(self, hdc, drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        iw = self.config['itemWidth']
+        rc = (x + 1, 1, x + iw, self.height)
+        day = self.data[idx].day
+        if not self.cdata or day not in self.cdata:
+            return
+        drawer.drawText(hdc,f"{self.cdata[day]}", rc, 0xcccccc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+
+class ThsZT_Indicator(CustomIndicator):
+    def __init__(self, win, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 50
+        super().__init__(win, config)
+        self.config['title'] = '[同花顺涨停]'
+
+    def _changeCode(self):
+        super()._changeCode()
+        if len(self.code) != 6:
+            return
+        maps = {}
+        datas = tck_orm.THS_ZT.select().where(tck_orm.THS_ZT.code == self.code).dicts()
+        for d in datas:
+            day = int(d['day'].replace('-', ''))
+            maps[day] = d
+        self.cdata = maps
+
+    def drawItem(self, hdc, drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        iw = self.config['itemWidth']
+        rc = (x + 1, 1, x + iw, self.height)
+        day = self.data[idx].day
+        if not self.cdata or day not in self.cdata:
+            return
+        txt = self.cdata[day]['ztReason']
+        # sdc = win32gui.SaveDC(hdc)
+        drawer.use(hdc, drawer.getFont(fontSize = 12))
+        drawer.drawText(hdc,txt, rc, 0xcccccc, win32con.DT_WORDBREAK | win32con.DT_VCENTER)
+        # win32gui.RestoreDC(hdc, sdc)
+
+class ClsZT_Indicator(CustomIndicator):
+    def __init__(self, win, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 50
+        super().__init__(win, config)
+        self.config['title'] = '[财联社涨停]'
+
+    def _changeCode(self):
+        super()._changeCode()
+        if len(self.code) != 6:
+            return
+        maps = {}
+        datas = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.code == self.code).dicts()
+        for d in datas:
+            day = int(d['day'].replace('-', ''))
+            maps[day] = d
+        self.cdata = maps
+
+    def drawItem(self, hdc, drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        iw = self.config['itemWidth']
+        rc = (x + 1, 1, x + iw, self.height)
+        day = self.data[idx].day
+        if not self.cdata or day not in self.cdata:
+            return
+        txt = self.cdata[day]['ztReason']
+        drawer.use(hdc, drawer.getFont(fontSize = 12))
+        drawer.drawText(hdc,txt, rc, 0xcccccc, win32con.DT_WORDBREAK | win32con.DT_VCENTER)
+
+class GnLdIndicator(CustomIndicator):
+    def __init__(self, win, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 30
+        super().__init__(win, config)
+        self.config['title'] = '[联动]'
+        self.clsGntc = None
+        self.curGntc = ''
+
+    def _changeCode(self):
+        super()._changeCode()
+        if len(self.code) != 6:
+            return
+        # load gntc
+        obj = cls_orm.CLS_GNTC.get_or_none(code = self.code)
+        self.clsGntc = []
+        isCurGntcExists = False
+        if obj and obj.hy:
+            for it in obj.hy.split(';'):
+                it = it.strip()
+                if it: self.clsGntc.append({'name': it, 'type': 'hy', 'title': f'【{it}】'})
+                if self.curGntc and self.curGntc == it:
+                    isCurGntcExists = True
+        if obj and obj.gn:
+            for it in obj.gn.split(';'):
+                it = it.strip()
+                if it: self.clsGntc.append({'name': it, 'type': 'gn', 'title': f'{it}'})
+                if self.curGntc and self.curGntc == it:
+                    isCurGntcExists = True
+        
+        curGntc = self.curGntc
+        if not isCurGntcExists:
+            curGntc = ''
+        self.changeGntc(curGntc, True)
+        # self.cdata = maps
+
+    def changeGntc(self, gntc, force = False):
+        if self.curGntc == gntc and not force:
+            return
+        self.curGntc = gntc or ''
+        self.config['title'] = f'[联动-{self.curGntc}]'
+
+        qr = tck_orm.CLS_HotTc.select().where(tck_orm.CLS_HotTc.name == self.curGntc).dicts()
+        maps = {}
+        for d in qr:
+            day = int(d['day'].replace('-', ''))
+            if day not in maps:
+                maps[day] = [d]
+            else:
+                maps[day].append(d)
+        self.cdata = maps
+
+    def drawItem(self, hdc, drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        iw = self.config['itemWidth']
+        rc = (x + 1, 1, x + iw, self.height)
+        day = self.data[idx].day
+        if not self.cdata or day not in self.cdata:
+            return
+        items = self.cdata[day]
+        IIW = 6
+        w = IIW * len(items)
+        sx = (iw - w) // 2 + x
+        y = int(self.height * 0.3)
+        for it in items:
+            rc = (sx, y, sx + IIW - 1, self.height - 1)
+            if it['up']:
+                drawer.fillRect(hdc, rc, 0xee2b8c)
+            else:
+                drawer.fillRect(hdc, rc, 0x3CDC14)
+            sx += IIW
+
+    def onContextMenu(self, x, y):
+        if not self.clsGntc:
+            return
+        menu = PopupMenu.create(self.win.hwnd, self.clsGntc)
+        menu.VISIBLE_MAX_ITEM = 8
+        menu.addNamedListener('Select', self.onSelectItem)
+        x, y = win32gui.GetCursorPos()
+        menu.show(x, y)
+        return True
+    
+    def onSelectItem(self, evt, args):
+        item = evt.item
+        self.changeGntc(item['name'])
+        self.win.invalidWindow()
+
+# 涨速，用于指明进攻意愿
+class ZhangSuIndicator(CustomIndicator):
+    def __init__(self, win, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 30
+        super().__init__(win, config)
+        self.config['title'] = '[涨速]'
+
+    def _changeCode(self):
+        super()._changeCode()
+        if len(self.code) != 6:
+            return
+        qr = speed_orm.LocalSpeedModel.select().where(speed_orm.LocalSpeedModel.code == self.code).dicts()
+        maps = {}
+        for d in qr:
+            day = d['day']
+            if day not in maps:
+                maps[day] = [d]
+            else:
+                maps[day].append(d)
+        self.cdata = maps
+
+    def drawItem(self, hdc, drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        iw = self.config['itemWidth']
+        rc = (x + 1, 1, x + iw, self.height)
+        day = self.data[idx].day
+        if not self.cdata or day not in self.cdata:
+            return
+        items = self.cdata[day]
+        MAX_ITEM_ZF = 5
+        IW = 2
+        zs = 0
+        for it in items:
+            zs += it['zf']
+        import math
+        aw = math.ceil(zs / MAX_ITEM_ZF)
+        w = aw * IW
+        sx = (iw - w) // 2 + x
+        y = int(self.height * 0.3)
+        rc = (sx, y, sx + w, self.height - 1)
+        drawer.fillRect(hdc, rc, 0x3C14DC)
+
+class LhbIndicator(CustomIndicator):
+    def __init__(self, win, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 30
+        super().__init__(win, config)
+        self.config['title'] = '[龙虎榜]'
+
+    def _changeCode(self):
+        super()._changeCode()
+        if len(self.code) != 6:
+            return
+        maps = {}
+        qr = lhb_orm.TdxLHB.select().where(lhb_orm.TdxLHB.code == self.code).dicts()
+        for d in qr:
+            day = int(d['day'].replace('-', ''))
+            old = maps.get(day, None)
+            if old:
+                if '累计' in old['title']:
+                    maps[day] = d
+                    d['detail'] = json.loads(d['detail'])
+            else:
+                maps[day] = d
+                d['detail'] = json.loads(d['detail'])
+        self.cdata = maps
+
+    def drawItem(self, hdc, drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        iw = self.config['itemWidth']
+        rc = (x + 1, 1, x + iw, self.height)
+        day = self.data[idx].day
+        if not self.cdata or day not in self.cdata:
+            return
+        # detail = self.cdata[day]['detail']
+        drawer.drawText(hdc, 'Y', rc, 0xcccccc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+
+    def getYzName(self, it):
+        if it.get('yz', None):
+            return ' (' + it['yz'] + ')'
+        yyb = it.get('yyb', '')
+        if '分公司' in yyb:
+            yyb = yyb[0 : yyb.index('公司') + 2]
+        if '公司' in yyb:
+            i = yyb.index('公司')
+            if i != len(yyb) - 2:
+                yyb = yyb[i + 2 : ]
+        yyb = yyb.replace('有限责任公司', '')
+        yyb = yyb.replace('股份有限公司', '')
+        yyb = yyb.replace('有限公司', '')
+        yyb = yyb.replace('证券营业部', '')
+        return yyb
+    
+    def onMouseClick(self, x, y):
+        si = self.getIdxAtX(x)
+        if si != self.win.selIdx:
+            super().onMouseClick(x, y)
+            return
+        if si < 0:
+            return True
+        # draw tip
+        day = self.data[si].day
+        if not self.cdata or day not in self.cdata:
+            return
+        itemData = self.cdata[day]
+        if not itemData or not itemData['detail']:
+            return True
+        hdc = win32gui.GetDC(self.win.hwnd)
+        W, H = 400, 240
+        ix = (si - self.visibleRange[0]) * (self.getItemWidth() + self.getItemSpace())
+        drawer : Drawer = self.win.drawer
+        if ix + W <= self.width:
+            sx = self.x + ix
+        else:
+            sx = self.width - W + self.x
+        sy = self.y - H
+        rc = [sx, sy, sx + W, sy + H]
+        drawer.fillRect(hdc, rc, 0x101010)
+        drawer.drawRect(hdc, rc, 0xa0f0a0)
+        win32gui.SetBkMode(hdc, win32con.TRANSPARENT)
+        drawer.use(hdc, drawer.getFont())
+        rc[0] += 1
+        rc[1] += 1
+        rc[2] -= 1
+        rc[3] -= 1
+        self.drawItemDetail(drawer, hdc, rc, itemData)
+        win32gui.ReleaseDC(self.win.hwnd, hdc)
+        return True
+
+    def drawItemDetail(self, drawer : Drawer, hdc, rect, itemData):
+        detail = itemData['detail']
+        if not detail:
+            return
+        newDetail = []
+        detail.sort(key = lambda x : x['mrje'], reverse = True)
+        mr = detail[0 : 5]
+        newDetail.extend(mr)
+        detail.sort(key = lambda x : x['mcje'], reverse = True)
+        mc = detail[0 : 5]
+        newDetail.extend(mc)
+
+        ws = [0, 60, 60, 60, 60]
+        ws[0] = rect[2] - rect[0] - sum(ws)
+        IH = (rect[3] - rect[1]) / 11
+        drawer.fillRect(hdc, (rect[0], rect[1], rect[2], rect[1] + int(IH)), 0x404040)
+        titles = ['席位名称', '买入', '卖出', '净额', '']
+        sx = rect[0]
+        sy = rect[1]
+        VCENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER
+        for i in range(4):
+            drawer.drawText(hdc, titles[i], (sx + 2, sy, sx + ws[i], int(sy + IH)), 0xcccccc, align = VCENTER)
+            sx += ws[i]
+        for r, d in enumerate(newDetail):
+            sx = rect[0]
+            sy += IH
+            lw = 1
+            lc = 0x202020
+            if r == 5:
+                lw = 1
+                lc = 0xa0f0a0
+            drawer.drawLine(hdc, rect[0] + 1, int(sy), rect[2] - 1, int(sy), lc, width = lw)
+            cs = (self.getYzName(d), d.get('mrje', 0), d.get('mcje', 0), d.get('jme', 0))
+            for i in range(len(cs)):
+                drawer.drawText(hdc, cs[i], (sx + 2, int(sy), sx + ws[i], int(sy + IH)), color = 0xd0d0d0, align = VCENTER)
+                sx += ws[i]
+        # draw sum info
+        sx = rect[2] - ws[-1]
+        sy = rect[1] + IH
+        sumInfo = ['总买', f'{itemData["mrje"] :.1f}亿', f'{itemData["mrje"] / itemData["cjje"] * 100 :.1f}%', '', '',
+                   '总卖', f'{itemData["mcje"] :.1f}亿', f'{itemData["mcje"] / itemData["cjje"] * 100 :.1f}%']
+        for i in range(len(sumInfo)):
+            drawer.drawText(hdc, sumInfo[i], (sx + 2, int(sy), rect[2], int(sy + IH)), color = 0xd0d0d0, align = VCENTER)
+            sy += IH
 
 
 if __name__ == '__main__':
