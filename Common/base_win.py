@@ -313,6 +313,7 @@ class ThreadPool:
     def __init__(self) -> None:
         self.threads = [Thread(), Thread(), Thread()]
         self.started = False
+        self._taskId = 0
 
     @staticmethod
     def instance():
@@ -327,6 +328,10 @@ class ThreadPool:
         for th in self.threads:
             th.start()
 
+    def nextTaskId(self):
+        self._taskId += 1
+        return self._taskId
+
     def addTask(self, taskId, func, *args):
         th = None
         for t in self.threads:
@@ -334,9 +339,15 @@ class ThreadPool:
                 th = t
         th.addTask(taskId, func, *args)
 
+    def addTask_N(self, func, *args):
+        self.addTask(self.nextTaskId(), func, *args)
+
     def addTaskOnThread(self, threadIdx, taskId, func, *args):
         if threadIdx >= 0 and threadIdx < len(self.threads):
             self.threads[threadIdx].addTask(taskId, func, *args)
+
+    def addTaskOnThread_N(self, threadIdx, func, *args):
+        self.addTaskOnThread(threadIdx, self.nextTaskId(), func, *args)
 
     def removeTask(self, taskId):
         for t in self.threads:
