@@ -424,7 +424,6 @@ class TextLineManager:
                 return self.onDblClick(x, y)
         return False
 
-
 class KLineWindow(base_win.BaseWindow):
     LEFT_MARGIN, RIGHT_MARGIN = 0, 70
 
@@ -587,7 +586,7 @@ class KLineWindow(base_win.BaseWindow):
         item = idt.getItemData(idx)
         if not item:
             return
-        self.notifyListener(Listener.Event('selIdx-Changed', self, idx = idx, day = item.day, datas = self.klineIndicator.data))
+        self.notifyListener(Listener.Event('selIdx-Changed', self, idx = idx, day = item.day, data = item, datas = self.klineIndicator.data))
         self.invalidWindow()
 
     def onKeyDown(self, keyCode):
@@ -733,9 +732,304 @@ class KLineWindow(base_win.BaseWindow):
         win.addIndicator(LhbIndicator(win))
         return win
 
+    @staticmethod
+    def createSimple():
+        win = KLineWindow()
+        win.addIndicator(RateIndicator(win, {'height': 60, 'margins': (15, 2)}))
+        win.addIndicator(AmountIndicator(win, {'height': 60, 'margins': (10, 2)}))
+        return win
+
+class CodeWindow(ext_win.CellRenderWindow):
+    def __init__(self, klineWin : KLineWindow) -> None:
+        super().__init__((70, '1fr'), 5)
+        self.curCode = None
+        self.data = None
+        self.selData = None
+        self.cacheData = {}
+        self.klineWin : KLineWindow = klineWin
+        klineWin.addNamedListener('selIdx-Changed', self.onSelIdxChanged)
+        self.V_CENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER
+        self.init()
+    
+    def getBasicCell(self, rowInfo, idx):
+        cell = {'text': '', 'color': 0xcccccc, 'textAlign': self.V_CENTER, 'fontSize': 15}
+        if not self.data:
+            return cell
+        name = rowInfo['name']
+        val = self.data.get(name, None)
+        if val == None:
+            #cell['text'] = '--'
+            return cell
+        if name == '委比': cell['text'] = f'{int(val)} %'
+        elif '市值' in name: cell['text'] = f'{val // 100000000}' + ' 亿'
+        elif '市盈率' in name:
+            if val < 0: cell['text'] = '亏损'
+            else: cell['text'] = f'{int(val)}'
+        elif '涨幅' == name: cell['text'] = f'{val :.2f} %'
+        else: 
+            cell['text'] = str(val)
+        if name == '涨幅' or name == '委比':
+            cell['color'] = 0x0000ff if int(val) >= 0 else 0x00ff00
+        if '市盈率' in name and val < 0:
+            cell['color'] =  0x00ff00
+        return cell
+
+    def getBkCell(self, rowInfo, idx):
+        cell = {'text': '', 'color': 0x808080, 'textAlign': self.V_CENTER, 'fontSize': 15}
+        if not self.klineWin or not self.klineWin.refIndicator.model:
+            return cell
+        refModel = self.klineWin.refIndicator.model
+        val = ''
+        name = rowInfo['name']
+        if name == 'refZSName':
+           val = refModel.name
+        elif name == 'refZSCode':
+            val = refModel.code
+        cell['text'] = val
+        if name == 'refZSName':
+            cell['span'] = 2
+            cell['textAlign'] |= win32con.DT_CENTER
+        return cell
+
+    def getCodeCell(self, rowInfo, idx):
+        cell = {'text': '', 'color': 0x5050ff, 'textAlign': win32con.DT_CENTER | self.V_CENTER, 'fontSize': 15, 'fontWeight': 1000, 'span': 2}
+        if not self.data:
+            return cell
+        if rowInfo['name'] == 'code':
+            code = self.data.get('code', None)
+            cell['text'] = code
+        elif rowInfo['name'] == 'name':
+            name = self.data.get('name', None)
+            cell['text'] = name
+        return cell
+
+    def init(self):
+        RH = 25
+        self.addRow({'height': 25, 'margin': 0, 'name': 'code'}, self.getCodeCell)
+        self.addRow({'height': 25, 'margin': 0, 'name': 'name'}, self.getCodeCell)
+        KEYS = ('Line', '流通市值', '总市值', 'Line', '市盈率_静', '市盈率_TTM', 'Line') # '涨幅', '委比', 
+        for k in KEYS:
+            if k == 'Line':
+                self.addRow({'height': 1, 'margin': 0, 'name': 'split-line'}, {'color': 0xa0a0a0, 'bgColor': 0x606060, 'span': 2})
+            else:
+                self.addRow({'height': RH, 'margin': 0, 'name': k}, {'text': k, 'color': 0xcccccc, 'textAlign': self.V_CENTER}, self.getBasicCell)
+        self.addRow({'height': RH, 'margin': 0, 'name': 'refZSName'}, self.getBkCell)
+        self.addRow({'height': RH, 'margin': 0, 'name': 'refZSCode'}, {'text': '板块指数', 'color': 0x808080, 'textAlign': self.V_CENTER}, self.getBkCell)
+        self.addRow({'height': RH, 'margin': 0, 'name': 'refZSZhangFu'}, {'text': '指数涨幅', 'color': 0x808080, 'textAlign': self.V_CENTER}, self.getCell)
+        self.addRow({'height': 1, 'margin': 0, 'name': 'split-line'}, {'color': 0xa0a0a0, 'bgColor': 0x606060, 'span': 2})
+        self.addRow({'height': RH, 'margin': 0, 'name': 'zhangFu'}, {'text': '涨幅', 'color': 0xcccccc, 'textAlign': self.V_CENTER}, self.getCell)
+        self.addRow({'height': RH, 'margin': 0, 'name': 'vol'},{'text': '成交额', 'color': 0xcccccc, 'textAlign': self.V_CENTER},  self.getCell)
+        self.addRow({'height': RH, 'margin': 0, 'name': 'rate'}, {'text': '换手率', 'color': 0xcccccc, 'textAlign': self.V_CENTER}, self.getCell)
+
+    def loadZS(self, code):
+        name = ths_orm.THS_ZS.select(ths_orm.THS_ZS.name).where(ths_orm.THS_ZS.code == code).scalar()
+        self.data = {'code': self.curCode, 'name': name}
+        self.invalidWindow()
+
+    def loadCodeBasic(self, code):
+        if code[0] == '8':
+            self.loadZS(code)
+            return
+        url = cls.ClsUrl()
+        data = url.loadBasic(code)
+        data['code'] = code
+        self.cacheData[code] = data
+        if code[0] in ('0', '3', '6'):
+            bk = ths_orm.THS_GNTC.get_or_none(code = code)
+            if bk:
+                data['refZSName'] = bk.hy_2_name
+                data['refZSCode'] = bk.hy_2_code
+        self._useCacheData(code)
+
+    def _useCacheData(self, code):
+        if code != self.curCode or code not in self.cacheData:
+            return
+        self.data = self.cacheData[code]
+        self.invalidWindow()
+        
+    def changeCode(self, code):
+        scode = f'{code :06d}' if type(code) == int else code
+        if (self.curCode == scode) or (not scode):
+            return
+        self.curCode = scode
+        self.data = None
+        #if len(scode) != 6 or (scode[0] not in ('0', '3', '6')):
+        #    self.invalidWindow()
+        #    return
+        if scode in self.cacheData:
+            self._useCacheData(scode)
+        else:
+            base_win.ThreadPool.instance().addTask(scode, self.loadCodeBasic, scode)
+
+    def onSelIdxChanged(self, evt, args):
+        self.selData = evt.data
+        self.klineWin = evt.src
+        self.invalidWindow()
+
+    def getCell(self, rowInfo, idx):
+        refIndicator = self.klineWin.refIndicator
+        cell = {'text': '', 'color': 0xcccccc, 'textAlign': self.V_CENTER, 'fontSize': 15}
+        if self.selData is None:
+            return
+        if rowInfo['name'] == 'zhangFu':
+            zf = getattr(self.selData, 'zhangFu', None)
+            if zf is not None:
+                cell['text'] = f'{zf :.02f}%'
+                cell['color'] = 0x0000ff if zf >= 0 else 0x00ff00
+        elif rowInfo['name'] == 'vol':
+            money = getattr(self.selData, 'amount', None)
+            if money:
+                cell['text'] = f'{money / 100000000 :.01f} 亿'
+        elif rowInfo['name'] == 'rate':
+            rate = getattr(self.selData, 'rate', None)
+            if rate:
+                cell['text'] = f'{int(rate)} %'
+        elif rowInfo['name'] == 'refZSZhangFu' and self.klineWin:
+            zf = None
+            day = self.selData.day
+            if refIndicator.model:
+                idx = refIndicator.model.getItemIdx(day)
+                if idx >= 0: zf = refIndicator.model.data[idx].zhangFu
+            if zf is not None:
+                cell['text'] = f'{zf :.02f}%'
+                cell['color'] = 0x808080
+        elif rowInfo['name'] == 'refZSCode' and self.klineWin:
+            code = self.klineWin.refIndicator.code
+            cell['text'] = f'{code}'
+            cell['color'] = 0x808080
+        elif rowInfo['name'] == 'refZSName' and self.klineWin:
+            cell['span'] = 2
+            cell['textAlign'] = win32con.DT_CENTER
+            if refIndicator.model:
+                cell['text'] = refIndicator.model.name
+                cell['color'] = 0x808080
+        return cell        
+
+class KLineCodeWindow(base_win.BaseWindow):
+    def __init__(self) -> None:
+        super().__init__()
+        self.css['bgColor'] = 0x101010
+        self.layout = None
+        self.klineWin = KLineWindow.createSimple()
+        self.codeWin = CodeWindow(self.klineWin)
+        self.codeList = None
+        self.code = None
+        self.idxCodeList = -1
+        self.idxCodeWin = None
+
+    def createWindow(self, parentWnd, rect, style = win32con.WS_VISIBLE | win32con.WS_CHILD, className='STATIC', title = ''):
+        super().createWindow(parentWnd, rect, style, className, title)
+        DETAIL_WIDTH = 150
+        self.layout = base_win.GridLayout(('100%', ), ('1fr', DETAIL_WIDTH), (5, 5))
+        self.klineWin.createWindow(self.hwnd, (0, 0, 1, 1))
+        self.layout.setContent(0, 0, self.klineWin)
+
+        rightLayout = base_win.FlowLayout()
+        self.codeWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, self.codeWin.getContentHeight()))
+        rightLayout.addContent(self.codeWin, {'margins': (0, 5, 0, 5)})
+        btn = base_win.Button({'title': '<<', 'name': 'LEFT'})
+        btn.createWindow(self.hwnd, (0, 0, 40, 30))
+        btn.addNamedListener('Click', self.onLeftRight)
+        rightLayout.addContent(btn, {'margins': (0, 10, 0, 0)})
+        self.idxCodeWin = base_win.Label()
+        self.idxCodeWin.createWindow(self.hwnd, (0, 0, 70, 30))
+        self.idxCodeWin.css['textAlign'] |= win32con.DT_CENTER
+        rightLayout.addContent(self.idxCodeWin, {'margins': (0, 10, 0, 0)})
+        btn = base_win.Button({'title': '>>', 'name': 'RIGHT'})
+        btn.createWindow(self.hwnd, (0, 0, 40, 30))
+        btn.addNamedListener('Click', self.onLeftRight)
+        rightLayout.addContent(btn, {'margins': (0, 10, 0, 0)})
+        self.layout.setContent(0, 1, rightLayout)
+        self.layout.resize(0, 0, *self.getClientSize())
+
+    def findInBk(self, rowData):
+        bkCodes = []
+        key = rowData['name']
+        day = rowData['day']
+        q = ths_orm.THS_GNTC.select().where(ths_orm.THS_GNTC.hy_2_name == key)
+        KV = ('0', '3', '6')
+        for it in q:
+            if it.code[0] not in KV:
+                continue
+            bkCodes.append(it.code)
+        i = 0
+        rs = []
+        while i < len(bkCodes):
+            ei = min(i + 50, len(bkCodes))
+            bc = bkCodes[i : ei]
+            i = ei
+            q = tck_orm.THS_ZT.select(tck_orm.THS_ZT.code, tck_orm.THS_ZT.name).distinct().where(tck_orm.THS_ZT.day == day, tck_orm.THS_ZT.code.in_(bc)).dicts()
+            for it in q:
+                rs.append({'code': it['code'], 'name': it['name'],  'day': day})
+        #arr.sort(key = lambda it: it['num'], reverse = True)
+        return rs
+
+    def _getCode(self, d):
+        if type(d) == dict:
+            code = d.get('code', None) or d.get('secu_code', None) or ''
+            if len(code) == 8 and code[0] == 's':
+                code = code[2 : ]
+            return code
+        if type(d) == str:
+            return d
+        if type(d) == int:
+            return f'{d :06d}'
+        return d
+
+    def _findIdx(self):
+        for idx, d in enumerate(self.codeList):
+            if self._getCode(d) == self.code:
+                return idx
+        return -1
+
+    def onLeftRight(self, evt, args):
+        if not self.codeList or not self.code:
+            return
+        idx = self.idxCodeList
+        if evt.info['name'] == 'LEFT':
+            if idx == 0:
+                idx = len(self.codeList)
+            idx -= 1
+        else:
+            if idx == len(self.codeList) - 1:
+                idx = -1
+            idx += 1
+        self.idxCodeList = idx
+        cur = self.codeList[idx]
+        self.changeCode(self._getCode(cur))
+        self.updateCodeIdxView()
+
+    def changeCode(self, code, peroid = 'day'):
+        try:
+            self.code = code
+            self.codeWin.changeCode(code)
+            self.klineWin.changeCode(code, peroid)
+        except Exception as e:
+            traceback.print_exc()
+    
+    def updateCodeIdxView(self):
+        if not self.codeList:
+            self.idxCodeWin.setText('')
+            return
+        idx = self.idxCodeList
+        if idx >= 0:
+            self.idxCodeWin.setText(f'{idx + 1} / {len(self.codeList)}')
+
+    # codes = [ str, str, ... ]  |  [ int, int, ... ]
+    #         [ {'code':xxx, }, ... ]  | [ {'secu_code':xxx, }, ... ]
+    def setCodeList(self, codes, curIdx = -1):
+        if not codes:
+            return
+        self.codeList = codes
+        if curIdx < 0:
+            curIdx = self._findIdx()
+        self.idxCodeList = curIdx
+        self.updateCodeIdxView()
+
+
 if __name__ == '__main__':
     base_win.ThreadPool.instance().start()
-    win = KLineWindow.createDefault()
+    win = KLineCodeWindow()
     win.createWindow(None, (0, 0, 1300, 700), win32con.WS_OVERLAPPEDWINDOW)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
 

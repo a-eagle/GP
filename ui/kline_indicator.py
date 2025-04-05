@@ -422,6 +422,7 @@ class RefIndicator(Indicator):
         tag = getTypeByCode(self.code)
         model = Cls_K_DataModel(self.code) if tag == 'cls' else Ths_K_DataModel(self.code)
         model.loadNetData(self.period)
+        model.calcZhangFu()
         self.model = model
         self.mdata = None
         if not self.model.data:

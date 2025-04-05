@@ -3113,92 +3113,21 @@ class KLineCodeWindow(base_win.BaseWindow):
         rightLayout = base_win.FlowLayout()
         self.codeWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, self.codeWin.getContentHeight()))
         rightLayout.addContent(self.codeWin, {'margins': (0, 5, 0, 5)})
-
         btn = base_win.Button({'title': '<<', 'name': 'LEFT'})
         btn.createWindow(self.hwnd, (0, 0, 40, 30))
         btn.addNamedListener('Click', self.onLeftRight)
         rightLayout.addContent(btn, {'margins': (0, 10, 0, 0)})
-        
         self.idxCodeWin = base_win.Label()
         self.idxCodeWin.createWindow(self.hwnd, (0, 0, 70, 30))
         self.idxCodeWin.css['textAlign'] |= win32con.DT_CENTER
         rightLayout.addContent(self.idxCodeWin, {'margins': (0, 10, 0, 0)})
-
         btn = base_win.Button({'title': '>>', 'name': 'RIGHT'})
         btn.createWindow(self.hwnd, (0, 0, 40, 30))
         btn.addNamedListener('Click', self.onLeftRight)
         rightLayout.addContent(btn, {'margins': (0, 10, 0, 0)})
-
-        self.refZtReasonWin = base_win.TableWindow()
-        self.refZtReasonWin.css['bgColor'] = 0x000000
-        self.refZtReasonWin.css['textColor'] = 0xc0c0c0
-        self.refZtReasonWin.css['selBgColor'] = 0x303030
-        self.refZtReasonWin.css['cellBorder'] = 0x101010
-        #self.refZtReasonWin.css['headerBgColor'] = 0x303030
-        #self.refZtReasonWin.css['headerBorderColor'] = None
-        #self.refZtReasonWin.css['cellBorder'] = 0x101010  # A
-        #self.refZtReasonWin.css['selBgColor'] = 0xA0A0A0  # A
-        self.refZtReasonWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 300))
-        self.refZtReasonWin.headers = [
-            {'name': 'gn', 'title': '涨停原因', 'width': 0, 'stretch': 1, 'paddings': (15, 0, 0, 0)}
-        ]
-        rightLayout.addContent(self.refZtReasonWin, {'margins': (0, 15, 0, 0)})
-        self.refZtReasonWin.addListener(self.onSelectZtResason)
         self.layout.setContent(0, 1, rightLayout)
-
-        self.refZtReasonDetailWin = base_win.TableWindow()
-        self.refZtReasonDetailWin.css['bgColor'] = 0x000000
-        self.refZtReasonDetailWin.css['textColor'] = 0xc0c0c0
-        self.refZtReasonDetailWin.css['selBgColor'] = 0x303030
-        self.refZtReasonDetailWin.css['cellBorder'] = 0x101010
-        #self.refZtReasonDetailWin.css['cellBorder'] = 0x101010  # A
-        #self.refZtReasonDetailWin.css['selBgColor'] = 0xA0A0A0  # A
-        def renderReasonDetail(win, hdc, row, col, colName, value, rowData, rect):
-            if self.code == rowData['code']:
-                color = 0x00dd00
-            else:
-                color = win.css['textColor']
-            self.drawer.drawText(hdc, value, rect, color = color, align = win32con.DT_VCENTER | win32con.DT_SINGLELINE)
-        
-        def hotFormater(colName, val, rowData):
-            if not val:
-                return ''
-            return str(val)
-
-        self.refZtReasonDetailWin.headers = [
-            {'name': '#idx',  'width': 20, 'textAlign': win32con.DT_VCENTER | win32con.DT_SINGLELINE},
-            {'name': 'name', 'title': '关联股票', 'width': 0, 'stretch': 1, 'render': renderReasonDetail, 'textAlign': win32con.DT_VCENTER | win32con.DT_SINGLELINE},
-            {'name': 'hotZH', 'title': 'Hot', 'width': 25, 'formater': hotFormater, 'textAlign': win32con.DT_VCENTER | win32con.DT_SINGLELINE}
-        ]
-        self.refZtReasonDetailWin.addListener(self.onSelectZtResasonDetail)
-        self.refZtReasonDetailWin.createWindow(self.hwnd, (0, 0, 1, 1))
-        self.layout.setContent(0, 2, self.refZtReasonDetailWin)
         self.layout.resize(0, 0, *self.getClientSize())
 
-    def onSelectZtResason(self, evt, args):
-        if evt.name != 'RowEnter' and evt.name != 'DbClick':
-            return
-        rowData = evt.data
-        if rowData['is_bk']:
-            info = self.findInBk(rowData)
-        else:
-            info = self.findInZtReason(rowData)
-        day = int(rowData['day'].replace('-', ''))
-        hots = hot_utils.DynamicHotZH.instance().getHotsZH(day)
-        for d in info:
-            cc = int(d['code'])
-            if cc in hots:
-                d['hotZH'] = hots[cc]['zhHotOrder']
-        info.sort(key = lambda k : k.get('hotZH', 1000), reverse = False)
-        self.refZtReasonDetailWin.setData(info)
-        self.refZtReasonDetailWin.invalidWindow()
-
-    def onSelectZtResasonDetail(self, evt, args):
-        if evt.name != 'RowEnter' and evt.name != 'DbClick':
-            return
-        rowData = evt.data
-        self.changeCode(rowData['code'])
-    
     def findInBk(self, rowData):
         bkCodes = []
         key = rowData['name']
@@ -3220,25 +3149,6 @@ class KLineCodeWindow(base_win.BaseWindow):
                 rs.append({'code': it['code'], 'name': it['name'],  'day': day})
         #arr.sort(key = lambda it: it['num'], reverse = True)
         return rs
-
-    def findInZtReason(self, rowData):
-        day = rowData['day']
-        key = rowData['name']
-        q1 = tck_orm.THS_ZT.select().where(tck_orm.THS_ZT.day == day, tck_orm.THS_ZT.ztReason.contains(key))
-        q2 = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day == day, tck_orm.CLS_ZT.ztReason.contains(key))
-        rs = {}
-        for q in (q1, q2):
-            for it in q:
-                if not it.ztReason:
-                    continue
-                rzs = it.ztReason.split('+')
-                if key not in rzs:
-                    continue
-                if it.code not in rs:
-                    rs[it.code] = {'code': it.code, 'name': it.name, 'day': day}
-        arr = [rs[k] for k in rs]
-        #arr.sort(key = lambda it: it['num'], reverse = True)
-        return arr
 
     def _getCode(self, d):
         if type(d) == dict:
@@ -3271,23 +3181,8 @@ class KLineCodeWindow(base_win.BaseWindow):
         cur = self.codeList[idx]
         self.changeCode(self._getCode(cur))
         self.updateCodeIdxView()
-        self.refZtReasonWin.setData(None)
-        self.refZtReasonDetailWin.setData(None)
-        self.refZtReasonWin.invalidWindow()
-        self.refZtReasonDetailWin.invalidWindow()
-
-    # nameOrObj : str = 'rate amount'
-    # nameOrObj : Indicator
-    def addIndicator(self, nameOrObj):
-        if isinstance(nameOrObj, str):
-            self.klineWin.addDefaultIndicator(nameOrObj)
-        if isinstance(nameOrObj, Indicator):
-            self.klineWin.addIndicator(nameOrObj)
 
     def changeCode(self, code):
-        base_win.ThreadPool.instance().addTask(f'K-{code}', self.changeCode_R, code)
-
-    def changeCode_R(self, code):
         try:
             self.code = code
             self.codeWin.changeCode(code)
@@ -3317,42 +3212,7 @@ class KLineCodeWindow(base_win.BaseWindow):
             curIdx = self._findIdx()
         self.idxCodeList = curIdx
         self.updateCodeIdxView()
-
-    def onZtReason(self, evt, args):
-        hd = self.refZtReasonWin.headers[0]
-        fmt = f'{evt.day // 100 % 100 :02d}-{evt.day % 100 :02d}'
-        hd['title'] = '涨停原因 ' + fmt
-        self.updateGnTable(evt.code, evt.day)
-        self.klineWin.setMarkDay(evt.day, 'ZT')
-
-    def updateGnTable(self, code, day):
-        rs = []
-        gns = []
-        if type(day) == int:
-            day = f'{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}'
-        if len(day) == 8:
-            day = f'{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}'
-        gntc = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
-        ds = self.klineWin.model.data
-        if gntc and gntc.hy:
-            hys = gntc.hy.split('-')
-            rs.append({'gn': '【' + hys[1] + '】', 'is_bk': True, 'day': day, 'name': hys[1], 'fromDay': day})
-        ths = tck_orm.THS_ZT.get_or_none(tck_orm.THS_ZT.code == code, tck_orm.THS_ZT.day == day)
-        if ths and ths.ztReason:
-            its = ths.ztReason.split('+')
-            for it in its: 
-                it = it.strip()
-                gns.append(it)
-                rs.append({'gn': it, 'is_bk': False, 'day': day, 'type': 'ths', 'name': it, 'fromDay': day})
-        cls = tck_orm.CLS_ZT.get_or_none(tck_orm.CLS_ZT.code == code, tck_orm.CLS_ZT.day == day)
-        if cls and cls.ztReason:
-            its = cls.ztReason.split('+')
-            for it in its: 
-                it = it.strip()
-                if it not in gns:
-                    rs.append({'gn': it, 'is_bk': False, 'day': day, 'type': 'cls', 'name': it, 'fromDay': day})
-        self.refZtReasonWin.setData(rs)
-        self.refZtReasonWin.invalidWindow()
+    
 
 if __name__ == '__main__':
     base_win.ThreadPool.instance().start()
