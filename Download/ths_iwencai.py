@@ -2,7 +2,7 @@ import sys, peewee as pw, requests, json, re, traceback, time, datetime
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import ths_orm
-from Download import henxin, memcache
+from download import henxin, memcache
 
 def iwencai_search_info(question, intent = 'stock', input_type = 'typewrite'):
     url = 'http://www.iwencai.com/customized/chart/get-robot-data'
@@ -316,15 +316,11 @@ def save_zs_zd(datas):
 #  dde-info = {时间, 股票简称, dde大单净额, dde大单卖出金额, dde大单买入金额, 股票代码, dde大单净量, dde散户数量}
 # @return list of dde-info
 def download_one_dde(code):
-    KIND = 'DDE'
-    if not memcache.cache.needUpdate(code, KIND):
-        return memcache.cache.getCache(code, KIND)
     txt = iwencai_search_info(f'{code}, dde')
     js = json.loads(txt)
     answer = js['data']['answer'][0]
     components = answer['txt'][0]['content']['components']
     datas = components[-1]['data']['datas']
-    memcache.cache.saveCache(code, datas, KIND)
     return datas
 
 # 查找涨停 、炸板、跌停个股
@@ -402,6 +398,10 @@ def download_zt_lianban(day = None):
 
 def getTradeDays(prev = 60):
     try:
+        key = f'TradeDays-{prev}'
+        item = memcache.cache.getCache(key)
+        if item:
+            return item
         today = datetime.date.today()
         today = today.strftime('%Y%m%d')
         url = f'http://data.10jqka.com.cn/dataapi/limit_up/trade_day?date={today}&stock=stock&next=1&prev={prev}'
@@ -415,21 +415,11 @@ def getTradeDays(prev = 60):
         rs = data['prev_dates']
         if data['trade_day']:
             rs.append(today)
+        memcache.cache.saveCache(key, rs, 60 * 60)
         return rs
     except Exception as e:
         traceback.print_exc()
     return None
-
-def getTradeDays_Cache(prev = 60):
-    CODE = f'TradeDays-{prev}'
-    KIND = '30-minuts'
-    if not memcache.cache.needUpdate(CODE, KIND):
-        ca = memcache.cache.getCache(CODE, KIND)
-        return ca
-    rs = getTradeDays(prev)
-    if rs:
-        memcache.cache.saveCache(CODE, rs, KIND)
-    return rs
 
 # 查找前100个股成交量
 # day = int | str

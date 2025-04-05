@@ -1,14 +1,12 @@
-from win32.lib.win32con import WS_CHILD, WS_VISIBLE
 import win32gui, win32con , win32api, win32ui # pip install pywin32
-import threading, time, datetime, sys, os, threading, copy
+import threading, time, datetime, sys, os, threading, copy, traceback
 import sys, pyautogui
 import peewee as pw
 import types
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from Download import datafile
+from download import datafile, henxin, cls
 from THS import hot_utils
-from Download import henxin, cls
-from Common import base_win, ext_win, dialog, richeditor
+from common import base_win, ext_win, dialog
 from orm import tck_orm, ths_orm, tck_def_orm, cls_orm
 
 #-----------------------------------------------------------
@@ -950,6 +948,7 @@ class HotZHCardView(ListView):
             win32gui.InvalidateRect(self.hwnd, None, True)
         except Exception as e:
             print('[HotZHView.loadCodeInfoNet]', data, e)
+            traceback.print_exc()
 
     def loadCodeInfoNative(self, code, setNull):
         if type(code) == int:
@@ -1375,7 +1374,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         if msg == win32con.WM_NCLBUTTONDBLCLK:
             return True
         if msg == win32con.WM_LBUTTONDBLCLK:
-            from Tck import kline_utils
+            from kline import kline_utils
             if self.data and 'code' in self.data and self.data['code']:
                 data = {'code': self.data['code'], 'day': None}
                 kline_utils.openInCurWindow(self, data)
@@ -1936,115 +1935,7 @@ class BkGnWindow(base_win.BaseWindow):
             win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW)
         else:
             win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
-
-class ToolBarWindow(base_win.BaseWindow):
-    def __init__(self) -> None:
-        super().__init__()
-        self.css['borderColor'] = 0x00ffff
-        self.DEF_SIZE = (280, 25)
-        self.MOVE_BOX_WIDTH = 20
-        self.ITEM_WIDTH = 40
-        from Tck import top_zt_net, top_bk, top_lhb, top_zt_lianban, top_real_zs, top_hots, top_xgc
-        self.model = [
-            {'title': '记', 'name': 'Record', 'class': RecordWindow, 'win': None, 'win-title': '笔记'},
-            #{'title': '板块', 'name': 'BK', 'class': top_bk.Bk_Window, 'win': None, 'win-title': '板块概念'},
-            #{'title': '涨停', 'name': 'ZT', 'class': top_zt_net.ZT_Window, 'win': None, 'win-title': '涨停'},
-            #{'title': '天梯', 'name': 'BK', 'class': top_zt_lianban.ZT_Window, 'win': None, 'win-title': '连板天梯'},
-            #{'title': '龙','name': 'LHB', 'class': top_lhb.LHB_Window, 'win': None, 'win-title': '龙虎榜'},
-            #{'title': '速', 'name': 'SU', 'class': top_real_zs.ZS_Window, 'win': None, 'win-title': '涨速联动'},
-            {'title': '热', 'name': 'SU', 'class': top_hots.Hots_Window, 'win': None, 'win-title': '热度'},
-            {'title': '选', 'name': 'XG', 'class': top_xgc.XGC_Window, 'win': None, 'win-title': '选股'},
-        ]
-
-    def setVisible(self, visible : bool):
-        if not win32gui.IsWindow(self.hwnd):
-            return
-        if visible:
-            win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW)
-        else:
-            win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
-
-    def getWindowState(self):
-        rc = win32gui.GetWindowRect(self.hwnd)
-        return {'pos': (rc[0], rc[1])}
-
-    def setWindowState(self, state):
-        if not state:
-            return
-        x, y = state['pos']
-        win32gui.SetWindowPos(self.hwnd, 0, x, y, 0, 0, win32con.SWP_NOZORDER | win32con.SWP_NOSIZE)
-
-    @staticmethod
-    def _wp(winObj, hwnd, msg, wParam, lParam):
-        if msg == win32con.WM_CLOSE:
-            win32gui.ShowWindow(hwnd, win32con.SW_HIDE)
-            return True
-        old = winObj.old_win_proc
-        return old(hwnd, msg, wParam, lParam)
-    
-    def rebindWinProc(self, win):
-        win.old_win_proc = win.winProc
-        win.winProc = types.MethodType(ToolBarWindow._wp, win)
-
-    def newWindow(self, item):
-        if item['win']:
-            return item['win']
-        item['win'] = win = item['class']()
-        win.css['paddings'] = (4, 4, 4, 4)
-        sw = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
-        sh = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
-        W, H = sw, 600
-        rc = (0, sh - H - 35, W, H)
-        win.createWindow(self.hwnd, rc, style = win32con.WS_POPUPWINDOW | win32con.WS_CAPTION | win32con.WS_MAXIMIZEBOX | win32con.WS_MINIMIZEBOX | win32con.WS_THICKFRAME, title = item['win-title'])
-        self.rebindWinProc(win)
-        win32gui.PostMessage(win.hwnd, win32con.WM_SIZE, 0, 0)
-        return win
-
-    def onClick(self, x, y):
-        idx = x // self.ITEM_WIDTH
-        if idx >= 0 and idx < len(self.model):
-            item = self.model[idx]
-            win = self.newWindow(item)
-            if hasattr(win, 'show'):
-                win.show()
-            else:
-                win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
-
-    def winProc(self, hwnd, msg, wParam, lParam):
-        if msg == win32con.WM_NCHITTEST:
-            x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
-            cx, cy = win32gui.ScreenToClient(self.hwnd, (x, y))
-            W, H = self.getClientSize()
-            if cx >= W - self.MOVE_BOX_WIDTH:
-                return win32con.HTCAPTION
-            return win32con.HTCLIENT
-        elif msg == win32con.WM_LBUTTONUP:
-            x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
-            self.onClick(x, y)
-            return True
-        return super().winProc(hwnd, msg, wParam, lParam)
-
-    def createWindow(self, parentWnd, rect = None, style = None, className = 'STATIC', title = ''):
-        style = win32con.WS_POPUP
-        rect = (0, 0, *self.DEF_SIZE)
-        super().createWindow(parentWnd, rect, style, className, title)
-
-    def onDraw(self, hdc):
-        W, H = self.getClientSize()
-        self.drawer.fillRect(hdc, (W - self.MOVE_BOX_WIDTH, 1, W - 1, H - 1), 0x202020)
-        sx = 1
-        for i in range(len(self.model)):
-            item = self.model[i]
-            color = 0x333333
-            isx = sx + i * self.ITEM_WIDTH
-            rc = [isx, 1, isx + self.ITEM_WIDTH, H - 1]
-            self.drawer.fillRect(hdc, rc, color)
-            self.drawer.drawRect(hdc, rc, 0x202020)
-            self.drawer.drawText(hdc, item['title'], rc, 0xAAAA2f, win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER)
-
-def test():
-    pass
-
+            
 if __name__ == '__main__':
     #win = BkGnWindow()
     #win.createWindow(None)

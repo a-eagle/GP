@@ -13,7 +13,6 @@ class LocalSpeedModel(pw.Model):
     endMinute  = pw.IntegerField()
     minuts =  pw.IntegerField() # 时间
     zf = pw.FloatField() #涨幅
-    max3MinutesAvgAmount = pw.FloatField() #最大三分钟平均成交额
 
     class Meta:
         database = zsdb

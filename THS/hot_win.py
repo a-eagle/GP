@@ -5,7 +5,7 @@ from PIL import Image  # pip install pillow
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import ths_orm, tdx_orm, lhb_orm, tck_orm
-from Common import base_win
+from common import base_win
 from THS import hot_utils
 
 class HotWindow(base_win.BaseWindow):

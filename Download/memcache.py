@@ -1,52 +1,38 @@
 import time, datetime
 
 class CacheItem:
-    def __init__(self, data) -> None:
+    def __init__(self, data, timeout) -> None:
         self.data = data
         self.lastTime = time.time()
         self.lastDay = datetime.date.today()
+        self.timeout = timeout
 
 class MemCache:
-    TIMEOUT = {
-        'default': 10 * 60,
-        'cls-pankou-5': 60,
-        'cls-pankou-vol': 60,
-        'cls-basic': 10 * 60 * 60,
-        'cls-scqx': 3 * 60,
-        'cls-hot-tc': 30,
-        '30-minuts': 30 * 60,
-        'kline': 5 * 60,
-        'timeline': 1 * 60
-    }
     def __init__(self) -> None:
-        self.datas = {} # key = code + kind, value = CacheItem
+        self.datas = {} # key = , value = CacheItem
     
-    def getCache(self, code, kind):
-        if not code or not kind:
+    def getCache(self, key):
+        if not key:
             return None
-        key = code + kind
         rs = self.datas.get(key, None)
         if rs:
-            if self.needUpdate(code, kind):
+            if self._needUpdate(key):
                 return None
             return rs.data
         return None
     
-    def saveCache(self, code, data, kind):
-        it = CacheItem(data)
-        self.datas[code + kind] = it
+    def saveCache(self, key, data, timeout):
+        it = CacheItem(data, timeout)
+        self.datas[key] = it
     
     # @return True | False
-    def needUpdate(self, code, kind):
-        if not code or not kind:
-            return True
-        key = f'{code}{kind}'
+    def _needUpdate(self, key):
         item = self.datas.get(key, None)
         if not item:
             return True
         if item.lastDay != datetime.date.today():
             return True
-        u = self._checkTime(item, self._getTimeout(kind))
+        u = self._checkTime(item, item.timeout)
         return u
 
     def _checkTime(self, item, diff):
@@ -61,10 +47,5 @@ class MemCache:
         if mm < 930 and nmm < 930:
             return False
         return True
-    
-    def _getTimeout(self, kind):
-        if kind in MemCache.TIMEOUT:
-            return MemCache.TIMEOUT[kind]
-        return MemCache.TIMEOUT['default']
         
 cache = MemCache()

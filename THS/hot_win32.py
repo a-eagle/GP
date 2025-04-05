@@ -7,9 +7,8 @@ import system_hotkey
 #pip install system_hotkey
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from THS import hot_utils, ths_win, hot_win, ths_ocr, tips_win
-from orm import ths_orm
-from Common import base_win
+from THS import ths_win, hot_win, ths_ocr, tips_win
+from common import base_win
 
 curCode = None
 thsWindow = ths_win.ThsWindow()
@@ -21,9 +20,8 @@ thsShareMem = base_win.ThsShareMemory()
 simpleHotZHWindow = tips_win.SimpleHotZHWindow()
 codeBasicWindow = tips_win.CodeBasicWindow()
 thsSelDayWin = ths_win.ThsSelDayWindow()
-toolbarWin = tips_win.ToolBarWindow()
 bkGnWin = tips_win.BkGnWindow()
-tipWins = [simpleWindow, simpleWindow2, simpleHotZHWindow, codeBasicWindow, toolbarWin, bkGnWin]
+tipWins = [simpleWindow, simpleWindow2, simpleHotZHWindow, codeBasicWindow, bkGnWin]
 
 def updateCode(nowCode):
     global curCode, thsShareMem
@@ -91,7 +89,6 @@ def updateWindowInfo(thsWin, stateMgr : WinStateMgr):
         simpleWindow2.setWindowState(cp.get('s3', None))
         simpleHotZHWindow.setWindowState(cp.get('s2', None))
         codeBasicWindow.setWindowState(cp.get('s4', None))
-        toolbarWin.setWindowState(cp.get('s5', None))
         bkGnWin.setWindowState(cp.get('s6', None))
         if curPageName == '技术分析':
             ths_win.ThsSmallF10Window.adjustPos()
@@ -104,7 +101,6 @@ def updateWindowInfo(thsWin, stateMgr : WinStateMgr):
         cp2['s2'] = simpleHotZHWindow.getWindowState()
         cp2['s3'] = simpleWindow2.getWindowState()
         cp2['s4'] = codeBasicWindow.getWindowState()
-        cp2['s5'] = toolbarWin.getWindowState()
         cp2['s6'] = bkGnWin.getWindowState()
         if cp != cp2:
             cp.update(cp2)
@@ -159,7 +155,6 @@ def subprocess_main():
     simpleWindow2.createWindow(thsWindow.topHwnd)
     simpleHotZHWindow.createWindow(thsWindow.topHwnd)
     codeBasicWindow.createWindow(thsWindow.topHwnd)
-    toolbarWin.createWindow(thsWindow.topHwnd)
     bkGnWin.createWindow(thsWindow.topHwnd)
     #hotWindow.addListener(onListen, 'ListenHotWindow')
     threading.Thread(target = _workThread, args=(thsWindow, 'hot-win32.json')).start()

@@ -5,7 +5,7 @@ import peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import tck_orm
-from Download import console, cls, ths_iwencai
+from download import console, cls, ths_iwencai
 
 class Server:
     def __init__(self) -> None:
@@ -192,7 +192,7 @@ class Server:
             st = datetime.datetime.now().strftime('%H:%M')
             if st < '09:30' or st > '15:00':
                 return
-            days = ths_iwencai.getTradeDays_Cache(daysNum)
+            days = ths_iwencai.getTradeDays(daysNum)
             if not days:
                 return
             maxDay = tck_orm.CLS_HotTc.select(pw.fn.max(tck_orm.CLS_HotTc.day)).scalar()

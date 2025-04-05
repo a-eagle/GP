@@ -1,6 +1,7 @@
 import datetime, time, random, requests, re, json, os, sys, struct, re, traceback, copy
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+from download import memcache
 
 class Base64:
     def __init__(self):
@@ -205,106 +206,6 @@ class Henxin:
         buf = self.base64.decode(param)
         self.decodeBuffer(buf)
 
-class CacheItem:
-    def __init__(self, data) -> None:
-        self.data = data
-        self.lastTime = time.time()
-        self.lastDay = datetime.date.today()
-        td = datetime.datetime.now()
-        self.itime = td.hour * 100 + td.minute
-
-class HexinMemCache:
-    # kind = 'kline' 'today' 'timeline'
-    def __init__(self) -> None:
-        self.datas = {} # key = code + kind, value = CacheItem
-    
-    def getCache(self, code, kind):
-        if not code or not kind:
-            return None
-        key = code + kind
-        rs = self.datas.get(key, None)
-        if rs:
-            return rs.data
-        return None
-    
-    # data:  {'name': xx, 'today': today,  'data': [ItemData, ...]}
-    # data:  {name:xx, data: ItemData}
-    # data: {name:xx, pre:xx, date:yyyymmdd, line: [ItemData, ...], }  data: 时间，价格，成交额（元），分时均价，成交量（手）;
-    def saveCache(self, data, kind):
-        if kind == 'kline' or kind == 'today':
-            if not data or not data['data']:
-                return
-        elif kind == 'timeline':
-            if not data or not data['line']:
-                return
-        code = data['code']
-        it = CacheItem(data)
-        self.datas[code + kind] = it
-    
-    # kind = 'kline' 'today' 'timeline'
-    # @return True | False
-    def needUpdate(self, code, kind):
-        if not code or not kind:
-            return False
-        key = f'{code}{kind}'
-        data = self.datas.get(key, None)
-        if not data:
-            return True
-        td = datetime.datetime.now()
-        itime = td.hour * 100 + td.minute
-        if data.itime < 930 and itime >= 930:
-            return True
-        if kind == 'kline':
-            u = data.lastDay != datetime.date.today()
-            return u
-        if kind == 'today':
-            if data.lastDay != datetime.date.today():
-                return True
-            date = data.data['data'].day
-            today = datetime.date.today()
-            iday = today.year * 10000 + today.month * 100 + today.day
-            if iday != date:
-                return False
-            u = self._checkTime(data, 30)
-            return u
-        if kind == 'timeline':
-            if data.lastDay != datetime.date.today():
-                return True
-            date = int(data.data['date'])
-            today = datetime.date.today()
-            iday = today.year * 10000 + today.month * 100 + today.day
-            if iday != date:
-                return False
-            u = self._checkTime(data, 30)
-            return u
-        return False
-
-    def _checkTime(self, data, diff):
-        if time.time() - data.lastTime <= diff:
-            return False
-        lt = datetime.datetime.fromtimestamp(data.lastTime)
-        mm = lt.hour * 100 + lt.minute
-        now = datetime.datetime.now()
-        nmm = now.hour * 100 + now.minute
-        if mm > 1500 and nmm > 1500:
-            return False
-        if mm < 930 and nmm < 930:
-            return False
-        if mm > 1130 and mm < 1300 and nmm > 1130 and nmm < 1300:
-            return False
-        return True
-
-    def getKindByUrl(self, url):
-        if '/last1800.js' in url:
-            return 'kline'
-        if '/today.js' in url:
-            return 'today'
-        if '/last.js' in url:
-            return 'timeline'
-        return None
-        
-_memcache = HexinMemCache()
-
 class HexinUrl(Henxin):
     session = None
 
@@ -396,9 +297,9 @@ class HexinUrl(Henxin):
         ma = cp.match(url)
         code = ma.group(1)
         # find in cache
-        kind = _memcache.getKindByUrl(url)
-        if not _memcache.needUpdate(code, kind):
-            return _memcache.getCache(code, kind)
+        data = memcache.cache.getCache(f'ths-{code}')
+        if data:
+            return data
         try:
             resp = self.session.get(url)
         except Exception as e:
@@ -423,7 +324,7 @@ class HexinUrl(Henxin):
             rs = self.parseFenShiData(txt)
         if rs:
             rs['code'] = code
-        _memcache.saveCache(rs, kind)
+        memcache.cache.saveCache(f'ths-{code}', rs, 60)
         return rs
     
     def loadKLineData(self, code):
@@ -447,7 +348,7 @@ class HexinUrl(Henxin):
         return None
     
     def parseTodayData(self, txt : str):
-        from Download.datafile_2 import ItemData
+        from download.datafile import ItemData
         js = json.loads(txt)
         for k in js:
             js = js[k]
@@ -476,7 +377,7 @@ class HexinUrl(Henxin):
 
     # 解析日线数据
     def parseDaylyData(self, txt):
-        from Download.datafile_2 import ItemData
+        from download.datafile import ItemData
         js = json.loads(txt)
         name, today = js['name'], js['today']
         ds = js['data'].split(';')
@@ -509,7 +410,7 @@ class HexinUrl(Henxin):
         return rv
 
     def parseFenShiData(self, txt):
-        from Download.datafile_2 import ItemData
+        from download.datafile import ItemData
         js = json.loads(txt)
         for k in js:
             js = js[k]

@@ -3,7 +3,7 @@ import flask, flask_cors
 import win32con, win32gui, peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from Common import base_win
+from common import base_win
 
 class Server:
     def __init__(self) -> None:
@@ -33,7 +33,7 @@ class Server:
         self.app.run('localhost', 5665, use_reloader = False, debug = False)
 
     def openUI_Timeline(self, code, day):
-        from Tck import timeline
+        from kline import timeline
         win = timeline.TimelinePanKouWindow()
         win.createWindow(None, (0, 0, 1200, 600), win32con.WS_OVERLAPPEDWINDOW)
         win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
@@ -41,7 +41,7 @@ class Server:
         win32gui.PumpMessages()
 
     def openUI_Kline(self, code, params):
-        from Tck import kline_utils
+        from kline import kline_utils
         win = kline_utils.createKLineWindow(None)
         win.changeCode(code)
         if params:
@@ -177,7 +177,7 @@ class Server:
 
     def getTradeDays(self):
         from Download import ths_iwencai
-        days = ths_iwencai.getTradeDays_Cache(180)
+        days = ths_iwencai.getTradeDays(180)
         rs = []
         for d in days:
             rs.append(f"{d[0 : 4]}-{d[4 : 6]}-{d[6 : 8]}")
@@ -201,7 +201,7 @@ class Server:
     def getFenShi(self, code):
         from Download import datafile, ths_iwencai, cls, henxin
         day = flask.request.args.get('day', None)
-        lastTradeDay = ths_iwencai.getTradeDays_Cache()[-1]
+        lastTradeDay = ths_iwencai.getTradeDays()[-1]
         today = datetime.date.today().strftime('%Y%m%d')
         rs = {'code': code, 'pre': 0, 'line': None}
         if today == lastTradeDay and (not day or day.replace('-', '') == today): # load from server

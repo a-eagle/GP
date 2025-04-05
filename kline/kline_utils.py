@@ -3,28 +3,12 @@ import threading, time, datetime, sys, os, copy, pyautogui
 import os, sys, requests, traceback
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from Download import datafile
-from Download import henxin, ths_ddlr
-from Common import base_win
-from Tck import ddlr_detail, timeline, kline
+from kline import timeline, kline_win
+from common import base_win
 from THS import ths_win
 
 def createKLineWindow(parent, rect = None, style = None):
-    win = kline.KLineCodeWindow()
-    win.addIndicator('rate | amount')
-    win.addIndicator(kline.DayIndicator())
-    #win.addIndicator(kline.DdlrIndicator( {'height': 100}))
-    #win.addIndicator(kline.DdlrIndicator({}, False))
-    #win.addIndicator(kline.DdlrPmIndicator())
-    win.addIndicator(kline.ScqxIndicator()) # {'itemWidth': 40}
-    win.addIndicator(kline.LsAmountIndicator()) # {'itemWidth': 40}
-    win.addIndicator(kline.HotIndicator()) # {'itemWidth': 40}
-    win.addIndicator(kline.ThsZT_Indicator())
-    win.addIndicator(kline.ClsZT_Indicator())
-    #win.addIndicator(kline.DdeIndicator())
-    win.addIndicator(kline.GnLdIndicator())
-    win.addIndicator(kline.ZhangSuIndicator())
-    win.addIndicator(kline.LhbIndicator())
+    win = kline_win.KLineCodeWindow('default')
     dw = win32api.GetSystemMetrics (win32con.SM_CXSCREEN)
     dh = win32api.GetSystemMetrics (win32con.SM_CYSCREEN) - 35
     if not rect:
@@ -46,15 +30,14 @@ def openInCurWindow_Code(parent : base_win.BaseWindow, data):
     hwnd = parent.hwnd if parent else None
     win = createKLineWindow(hwnd)
     win.changeCode(data['code'])
-    win.klineWin.setMarkDay(data.get('day', None))
+    win.klineWin.marksMgr.setMarkDay(data.get('day', None))
     win.klineWin.makeVisible(-1)
     return win
 
 def openInCurWindow_ZS(parent : base_win.BaseWindow, data):
-    win = kline.KLineCodeWindow()
-    win.addIndicator('amount')
-    win.addIndicator(kline.DayIndicator({}))
-    win.addIndicator(kline.ThsZsPMIndicator({}))
+    win = kline_win.KLineCodeWindow()
+    win.addIndicator(kline_win.DayIndicator({}))
+    win.addIndicator(kline_win.ThsZsPMIndicator({}))
     dw = win32api.GetSystemMetrics (win32con.SM_CXSCREEN)
     dh = win32api.GetSystemMetrics (win32con.SM_CYSCREEN) - 35
     W, H = int(dw * 1), int(dh * 0.8)
@@ -62,7 +45,7 @@ def openInCurWindow_ZS(parent : base_win.BaseWindow, data):
     y = (dh - H) // 2
     win.createWindow(parent.hwnd, (0, y, W, H), win32con.WS_VISIBLE | win32con.WS_POPUPWINDOW | win32con.WS_CAPTION)
     win.changeCode(data['code'])
-    win.klineWin.setMarkDay(data['day'])
+    win.klineWin.marksMgr.setMarkDay(data['day'])
     win.klineWin.addNamedListener('DbClick', openKlineMinutes_Simple, win)
     win.klineWin.makeVisible(-1)
     return win
@@ -76,15 +59,6 @@ def openInCurWindow(parent : base_win.BaseWindow, data):
             return openInCurWindow_Code(parent, data)
     except Exception as e:
         traceback.print_exc()
-
-def openKlineMinutes_DDLR(evt, parent : base_win.BaseWindow):
-    if evt.name != 'DbClick':
-        return
-    win = ddlr_detail.DDLR_MinuteMgrWindow()
-    rc = win32gui.GetWindowRect(parent.hwnd)
-    win.createWindow(parent.hwnd, rc, win32con.WS_VISIBLE | win32con.WS_POPUPWINDOW | win32con.WS_CAPTION)
-    day = evt.data.day
-    win.updateCodeDay(evt.code, day)
 
 def openKlineMinutes_Simple(evt, parent : base_win.BaseWindow):
     win = timeline.TimelinePanKouWindow()
@@ -104,8 +78,8 @@ def openKlineMinutes_Simple(evt, parent : base_win.BaseWindow):
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
     day = evt.data.day
     win.load(evt.code, day)
-    if isinstance(parent, kline.KLineCodeWindow):
-        p : kline.KLineCodeWindow = parent
+    if isinstance(parent, kline_win.KLineCodeWindow):
+        p : kline_win.KLineCodeWindow = parent
         zs = p.klineWin.klineIndicator.refZSDrawer.model
         if zs:
             win.loadRefZS(zs.code)

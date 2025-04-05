@@ -3,8 +3,8 @@ import win32gui, win32con, win32api
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import tck_def_orm
-from Common import base_win, dialog
-from ui.kline_indicator import *
+from common import base_win, dialog
+from kline.kline_indicator import *
 
 class MarksMgr:
     def __init__(self, win) -> None:
@@ -132,7 +132,7 @@ class ContextMenuMgr:
             self.win.refIndicatorVisible = evt.item['checked']
             self.win.invalidWindow()
         elif name == 'open-ref-zs':
-            from Tck import kline_utils
+            from kline import kline_utils
             dt = {'code': evt.item['code'], 'day': None}
             kline_utils.openInCurWindow_ZS(self, dt)
         elif name == 'open-ref-clszs':
@@ -215,6 +215,14 @@ class TextLineManager:
             if d.kind == 'line' and d.endPos and d.endPos.day == day:
                 item = self.lines.pop(i)
                 item.delete_instance()
+        self.win.invalidWindow()
+
+    def delLine2(self, line):
+        for i in range(len(self.lines)):
+            if self.lines[i] == line:
+                line.delete_instance()
+                self.lines.pop(i)
+                break
         self.win.invalidWindow()
 
     def isValidLine(self, line):
@@ -417,6 +425,11 @@ class TextLineManager:
         return True
 
     def winProc(self, hwnd, msg, wParam, lParam):
+        if msg == win32con.WM_KEYDOWN and self.selLine:
+            if wParam == win32con.VK_DELETE or wParam == win32con.VK_BACK:
+                self.delLine2(self.selLine)
+                self.selLine = None
+            return True
         if msg >= win32con.WM_MOUSEFIRST and msg <= win32con.WM_MOUSELAST:
             kl = self.win.klineIndicator
             x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
@@ -841,7 +854,7 @@ class CodeWindow(BaseWindow):
         return None
 
     def loadCodeBasic(self, code):
-        from Download import cls
+        from download import cls
         url = cls.ClsUrl()
         self.basicData = url.loadBasic(code)
         self.invalidWindow()
@@ -859,11 +872,14 @@ class CodeWindow(BaseWindow):
         self.invalidWindow()
 
 class KLineCodeWindow(base_win.BaseWindow):
-    def __init__(self) -> None:
+    def __init__(self, tag) -> None:
         super().__init__()
         self.css['bgColor'] = 0x101010
         self.layout = None
-        self.klineWin = KLineWindow.createSimple()
+        if tag == 'simple':
+            self.klineWin = KLineWindow.createSimple()
+        else:
+            self.klineWin = KLineWindow.createDefault()
         self.codeWin = CodeWindow(self.klineWin)
         self.codeList = None
         self.code = None

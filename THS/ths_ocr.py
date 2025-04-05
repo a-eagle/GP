@@ -4,8 +4,7 @@ import easyocr
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from THS import ths_win, number_ocr
-from Common import base_win
-from Download import console
+from common import base_win
 
 #委比
 class ThsWbOcrUtils(number_ocr.DumpWindowUtils):

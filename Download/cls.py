@@ -1,7 +1,7 @@
 import ctypes, os, sys, requests, json, traceback, datetime
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from Download import memcache
+from download import memcache
 
 PX = os.path.join(os.path.dirname(__file__), 'cls-sign.dll')
 mydll = ctypes.CDLL(PX)
@@ -65,7 +65,7 @@ class ClsUrl:
         return None # error params
     
     def loadFenShi(self, code):
-        item = memcache.cache.getCache(f'cls:{code}', 'timeline')
+        item = memcache.cache.getCache(f'cls:{code}')
         if item:
             return item
         url = 'https://x-quote.cls.cn/quote/stock/tline?'
@@ -79,7 +79,7 @@ class ClsUrl:
         data['code'] = code
         if data and 'line' in data:
             data['line'] = self._toStds(data['line'], False)
-        memcache.cache.saveCache(f'cls:{code}', data, 'timeline')
+        memcache.cache.saveCache(f'cls:{code}', data, 60)
         return data
     
     # day = None : 当日分时 只能用于指数
@@ -119,7 +119,7 @@ class ClsUrl:
     # 基本信息
     def loadBasic(self, code):
         KIND = 'cls-basic'
-        item = memcache.cache.getCache(f'cls-{code}', KIND)
+        item = memcache.cache.getCache(f'cls-basic-{code}')
         if item:
             return item
         params = {
@@ -158,13 +158,13 @@ class ClsUrl:
         rt['市盈率_静'] = self.getVal(data, 'pe', float, 0)
         rt['市盈率_TTM'] = self.getVal(data, 'ttm_pe', float, 0)
         #print(rt)
-        memcache.cache.saveCache(f'cls-{code}', rt, KIND)
+        memcache.cache.saveCache(f'cls-basic-{code}', rt, 60)
         return rt
 
     # 近5日分时
     def loadHistory5FenShi(self, code):
         KIND = 'timeline'
-        item = memcache.cache.getCache(f'cls-{code}-5', KIND)
+        item = memcache.cache.getCache(f'cls-{code}-5')
         if item:
             return item
         params = {
@@ -181,7 +181,7 @@ class ClsUrl:
         data['code'] = code
         if data and ('line' in data):
             data['line'] = self._toStds(data['line'], False)
-        item = memcache.cache.saveCache(f'cls-{code}-5', data, KIND)
+        item = memcache.cache.saveCache(f'cls-{code}-5', data, 60)
         return data
 
     def _toStds(self, datas, kline):
@@ -197,13 +197,13 @@ class ClsUrl:
         return rs
 
     def _toStdFs(self, d):
-        from Download import datafile_2
+        from download import datafile
         if not d:
             return None
         price = self.getVal(d, 'last_px', float, 0)
         if price == 0:
             return None
-        ts = datafile_2.ItemData()
+        ts = datafile.ItemData()
         ts.day = self.getVal(d, 'date', int, 0)
         ts.time = self.getVal(d, 'minute', int, 0)
         ts.price = price
@@ -213,10 +213,10 @@ class ClsUrl:
         return ts
     
     def _toStdKl(self, d):
-        from Download import datafile_2
+        from Download import datafile
         if not d:
             return None
-        ts = datafile_2.ItemData()
+        ts = datafile.ItemData()
         if 'secu_code' in d:
             sc = d['secu_code']
             if ('cls' in sc) or ('sh0' in sc):
@@ -239,7 +239,7 @@ class ClsUrl:
     # limit : K线数量
     # period: 周期 'day' | 'week' | 'month'
     def loadKline(self, code, limit = 1200, period = 'day'):
-        item = memcache.cache.getCache(f'cls-{code}-{period}', 'kline')
+        item = memcache.cache.getCache(f'cls-{code}-{period}')
         if item:
             return item
         period = period.upper()
@@ -261,7 +261,7 @@ class ClsUrl:
         js = json.loads(txt)
         data = js['data']
         rs = self._toStds(data, True)
-        memcache.cache.saveCache(f'cls-{code}-{period}', rs, 'kline')
+        memcache.cache.saveCache(f'cls-{code}-{period}', rs, 60)
         #print(data)
         return rs
     
@@ -270,7 +270,7 @@ class ClsUrl:
     def loadPanKou5(self, code):
         try:
             KIND = 'cls-pankou-5'
-            item = memcache.cache.getCache(code, KIND)
+            item = memcache.cache.getCache(f'pk5-{code}')
             if item: 
                 return item
             params = {
@@ -286,7 +286,7 @@ class ClsUrl:
             js = json.loads(txt)
             data = js['data']
             #print(data)
-            memcache.cache.saveCache(code, data, KIND)
+            memcache.cache.saveCache(f'pk5-{code}', data, 60)
             return data
         except Exception as e:
             traceback.print_exc()
@@ -297,7 +297,7 @@ class ClsUrl:
     def loadPanKouVol(self, code):
         try:
             KIND = 'cls-pankou-vol'
-            item = memcache.cache.getCache(code, KIND)
+            item = memcache.cache.getCache(f'pk-vol-{code}')
             if item:
                 return item
             params = {
@@ -313,7 +313,7 @@ class ClsUrl:
             js = json.loads(txt)
             data = js['data']
             #print(data)
-            memcache.cache.saveCache(code, data, KIND)
+            memcache.cache.saveCache(f'pk-vol-{code}', data, 60)
             return data
         except Exception as e:
             traceback.print_exc()
@@ -332,12 +332,9 @@ class ClsUrl:
                 cday = day
         elif isinstance(day, int):
             cday = f'{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}'
-        if today > cday:
-            cc = memcache.cache.getCache(cday, KIND)
-            if cc:
-                return cc
-        if not memcache.cache.needUpdate(cday, KIND):
-            return memcache.cache.getCache(cday, KIND)
+        cc = memcache.cache.getCache(f'hot-tc-{cday}')
+        if cc:
+            return cc
         params = {
             'app': 'CailianpressWeb',
             'cdate': cday,
@@ -350,14 +347,14 @@ class ClsUrl:
         js = json.loads(txt)
         data = js['data']
         #print(data)
-        memcache.cache.saveCache(cday, data, KIND)
+        memcache.cache.saveCache(f'hot-tc-{cday}', data, 60)
         return data
 
     # 市场情绪 {day: YYYY-MM-DD, degree: int}
     def loadDegree(self):
-        KIND = 'cls-scqx'
-        if not memcache.cache.needUpdate(KIND, KIND):
-            return memcache.cache.getCache(KIND, KIND)
+        item = memcache.cache.getCache(f'cls-scqx')
+        if item:
+            return item
         url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
         resp = requests.get(url)
         txt = resp.content.decode('utf-8')
@@ -366,7 +363,7 @@ class ClsUrl:
         degree = js['data']['market_degree'] or 0
         degree = int(float(degree) * 100)
         data = {'day': day, 'degree': degree}
-        memcache.cache.saveCache(KIND, data, KIND)
+        memcache.cache.saveCache(f'cls-scqx', data, 60)
         return data
     
     # 所有的板块、概念

@@ -3,7 +3,7 @@ import os, sys, io
 from PIL import Image as PIL_Image
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from Common import base_win
+from common import base_win
 
 class CellEditor(base_win.Editor):
     def __init__(self) -> None:

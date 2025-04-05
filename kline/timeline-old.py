@@ -4,11 +4,10 @@ import os, sys, requests, json
 import win32gui, win32con
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from Download import datafile
-from Download import henxin, cls, ths_iwencai
-from Common import base_win, ext_win
+from download import datafile, henxin, cls, ths_iwencai
+from common import base_win, ext_win
 from orm import ths_orm, cls_orm, tck_orm
-from Tck import fx
+from kline import fx
 
 def getTypeByCode(code):
     if not code:
@@ -730,7 +729,7 @@ class PanKouWindow(ext_win.CellRenderWindow):
         super().createWindow(parentWnd, rect, style, className, title)
 
     def load(self, code, day):
-        tds = ths_iwencai.getTradeDays_Cache()
+        tds = ths_iwencai.getTradeDays()
         if not tds:
             return
         if type(day) == str:
