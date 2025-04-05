@@ -134,14 +134,21 @@ class TimelineWindow(base_win.BaseWindow):
 
     def load(self, code, day = None):
         self.model = TimelineModel()
+        # base_win.ThreadPool.instance().addTask_N(self._load, code, day)
+    # def _load(self, code, day):
         self.model.load(code, day)
+        self.model.priceRange = None # recalc 
         self.initHilights()
         title = f'{self.model.dataModel.code}   {self.model.dataModel.name}'
         win32gui.SetWindowText(self.hwnd, title)
         self.invalidWindow()
 
     def loadRef(self, code):
+        base_win.ThreadPool.instance().addTask_N(self._loadRef, code)
+
+    def _loadRef(self, code):
         self.model.loadRef(code)
+        self.model.priceRange = None # recalc 
         self.invalidWindow()
 
     def initHilights(self):
@@ -423,14 +430,14 @@ class TimelineWindow(base_win.BaseWindow):
         name = evt.item['name']
         if name == 'add-ref-ths-zs' or name == 'add-ref-cls-zs':
             code = evt.item['code']
-            self.addRefZS(code)
+            self.loadRef(code)
             self.invalidWindow()
 
     def getRefThsZsModel(self, item):
         model = []
-        if not self.model:
+        if not self.model.dataModel:
             return model
-        code = self.model.code
+        code = self.model.dataModel.code
         if len(code) == 8:
             code = code[2 : ]
         obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
@@ -450,9 +457,9 @@ class TimelineWindow(base_win.BaseWindow):
     
     def getRefClsZsModel(self, item):
         model = []
-        if not self.model:
+        if not self.model.dataModel:
             return model
-        code = self.model.code
+        code = self.model.dataModel.code
         if len(code) == 8:
             code = code[2 : ]
         obj : cls_orm.CLS_GNTC = cls_orm.CLS_GNTC.get_or_none(cls_orm.CLS_GNTC.code == code)

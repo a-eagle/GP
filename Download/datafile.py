@@ -276,7 +276,6 @@ class Ths_K_DataModel(K_DataModel):
             self.name = rs['name']
         else:
             self.data = None
-            self.name = utils.get_THS_GNTC_Attr(self.code, 'name')
 
 class Ths_T_DataModel(T_DataModel):
     def __init__(self, code):
@@ -290,9 +289,6 @@ class Ths_T_DataModel(T_DataModel):
         return rs
     
     def loadData(self, day):
-        from kline import utils
-        if not self.name:
-            self.name = utils.get_THS_GNTC_Attr(self.code, 'name')
         if not day:
             return
         if type(day) == str:
@@ -316,7 +312,6 @@ class Cls_K_DataModel(K_DataModel):
     # period = 'day' | 'week' | 'month'
     def loadNetData(self, period):
         from download import cls
-        from kline import utils
         hx = cls.ClsUrl()
         rs = hx.loadKline(self.code, period = period)
         self.data = rs
@@ -332,9 +327,6 @@ class Cls_T_DataModel(T_DataModel):
         return rs
     
     def loadData(self, day):
-        from kline import utils
-        if not self.name:
-            self.name = utils.get_THS_GNTC_Attr(self.code, 'name')
         if not day:
             return
         if type(day) == str:
