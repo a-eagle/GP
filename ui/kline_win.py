@@ -739,112 +739,94 @@ class KLineWindow(base_win.BaseWindow):
         win.addIndicator(AmountIndicator(win, {'height': 60, 'margins': (10, 2)}))
         return win
 
-class CodeWindow(ext_win.CellRenderWindow):
+class CodeWindow(BaseWindow):
     def __init__(self, klineWin) -> None:
-        super().__init__((70, '1fr'), 5)
+        super().__init__()
         self.curCode = None
         self.basicData = None
         self.selData = None
         self.klineWin = klineWin
         klineWin.addNamedListener('selIdx-Changed', self.onSelIdxChanged)
         self.V_CENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER
-        self.init()
-    
-    def getBasicCell(self, rowInfo, idx):
-        cell = {'text': '', 'color': 0xcccccc, 'textAlign': self.V_CENTER, 'fontSize': 15}
-        if not self.basicData:
-            return cell
-        name = rowInfo['name']
-        val = self.basicData.get(name, None)
-        if val == None:
-            #cell['text'] = '--'
-            return cell
-        if name == '委比': cell['text'] = f'{int(val)} %'
-        elif '市值' in name: cell['text'] = f'{val // 100000000}' + ' 亿'
-        elif '市盈率' in name:
-            if val < 0: cell['text'] = '亏损'
-            else: cell['text'] = f'{int(val)}'
-        elif '涨幅' == name: cell['text'] = f'{val :.2f} %'
-        else: 
-            cell['text'] = str(val)
-        if name == '涨幅' or name == '委比':
-            cell['color'] = 0x0000ff if int(val) >= 0 else 0x00ff00
-        if '市盈率' in name and val < 0:
-            cell['color'] =  0x00ff00
-        return cell
 
-    def getBkCell(self, rowInfo, idx):
-        cell = {'text': '', 'color': 0x808080, 'textAlign': self.V_CENTER, 'fontSize': 15}
-        refModel = self.klineWin.refIndicator.model
-        if not self.klineWin or not refModel:
-            return cell
-        name = rowInfo['name']
-        if name == 'refZSName':
-            cell['text'] = refModel.name
-            cell['span'] = 2
-            cell['textAlign'] |= win32con.DT_CENTER
-        elif name == 'refZSCode':
-            cell['text'] = refModel.code
-        elif rowInfo['name'] == 'refZSZhangFu':
-            if not self.selData:
-                return cell
-            zf = None
-            day = self.selData.day
-            idx = refModel.getItemIdx(day)
-            if idx >= 0: 
-                zf = refModel.data[idx].zhangFu
-                cell['text'] = f'{zf :.02f}%'
-                cell['color'] = 0x808080
-        return cell
-
-    def getCodeCell(self, rowInfo, idx):
-        cell = {'text': '', 'color': 0x5050ff, 'textAlign': win32con.DT_CENTER | self.V_CENTER, 'fontSize': 15, 'fontWeight': 1000, 'span': 2}
-        if not self.basicData:
-            return cell
-        if rowInfo['name'] == 'code':
-            code = self.basicData.get('code', None)
-            cell['text'] = code
-        elif rowInfo['name'] == 'name':
-            name = self.basicData.get('name', None)
-            cell['text'] = name
-        return cell
-
-    def getKlineCell(self, rowInfo, idx):
-        cell = {'text': '', 'color': 0xcccccc, 'textAlign': self.V_CENTER, 'fontSize': 15}
-        if self.selData is None:
-            return
-        if rowInfo['name'] == 'zhangFu':
-            zf = getattr(self.selData, 'zhangFu', None)
-            if zf is not None:
-                cell['text'] = f'{zf :.02f}%'
-                cell['color'] = 0x0000ff if zf >= 0 else 0x00ff00
-        elif rowInfo['name'] == 'vol':
-            money = getattr(self.selData, 'amount', None)
-            if money:
-                cell['text'] = f'{money / 100000000 :.01f} 亿'
-        elif rowInfo['name'] == 'rate':
-            rate = getattr(self.selData, 'rate', None)
-            if rate:
-                cell['text'] = f'{int(rate)} %'
-        return cell
-
-    def init(self):
+    def onDraw(self, hdc):
+        W, H = self.getClientSize()
+        LEFT_X, RIGHT_X = 3, 70
         RH = 25
-        self.addRow({'height': 25, 'margin': 0, 'name': 'code'}, self.getCodeCell)
-        self.addRow({'height': 25, 'margin': 0, 'name': 'name'}, self.getCodeCell)
-        KEYS = ('Line', '流通市值', '总市值', 'Line', '市盈率_静', '市盈率_TTM', 'Line') # '涨幅', '委比', 
-        for k in KEYS:
-            if k == 'Line':
-                self.addRow({'height': 1, 'margin': 0, 'name': 'split-line'}, {'color': 0xa0a0a0, 'bgColor': 0x606060, 'span': 2})
-            else:
-                self.addRow({'height': RH, 'margin': 0, 'name': k}, {'text': k, 'color': 0xcccccc, 'textAlign': self.V_CENTER}, self.getBasicCell)
-        self.addRow({'height': RH, 'margin': 0, 'name': 'refZSName'}, self.getBkCell)
-        self.addRow({'height': RH, 'margin': 0, 'name': 'refZSCode'}, {'text': '板块指数', 'color': 0x808080, 'textAlign': self.V_CENTER}, self.getBkCell)
-        self.addRow({'height': RH, 'margin': 0, 'name': 'refZSZhangFu'}, {'text': '指数涨幅', 'color': 0x808080, 'textAlign': self.V_CENTER}, self.getBkCell)
-        self.addRow({'height': 1, 'margin': 0, 'name': 'split-line'}, {'color': 0xa0a0a0, 'bgColor': 0x606060, 'span': 2})
-        self.addRow({'height': RH, 'margin': 0, 'name': 'zhangFu'}, {'text': '涨幅', 'color': 0xcccccc, 'textAlign': self.V_CENTER}, self.getKlineCell)
-        self.addRow({'height': RH, 'margin': 0, 'name': 'vol'},{'text': '成交额', 'color': 0xcccccc, 'textAlign': self.V_CENTER},  self.getKlineCell)
-        self.addRow({'height': RH, 'margin': 0, 'name': 'rate'}, {'text': '换手率', 'color': 0xcccccc, 'textAlign': self.V_CENTER}, self.getKlineCell)
+        y = 10
+        if self.basicData:
+            cs = self.basicData.get('code', '') + '\n' + self.basicData.get('name', '')
+            self.drawer.use(hdc, self.drawer.getFont(fontSize = 15, weight = 1000))
+            self.drawer.drawText(hdc, cs, (0, y, W, 40), 0x5050ff, win32con.DT_CENTER | win32con.DT_WORDBREAK)
+        self.drawer.use(hdc, self.drawer.getFont(fontSize = 14))
+        y += 40
+        self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
+        y += 3
+        self.drawer.drawText(hdc, '流通市值', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        if self.basicData:
+            val = (str(int(self.basicData.get('流通市值', 0) / 100000000)) or '--') + ' 亿'
+            self.drawer.drawText(hdc, val, (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        y += RH
+        self.drawer.drawText(hdc, '总市值', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        if self.basicData:
+            val = (str(int(self.basicData.get('总市值', 0) / 100000000)) or '--') + ' 亿'
+            self.drawer.drawText(hdc, val, (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        y += RH
+        self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
+        y += 3
+        self.drawer.drawText(hdc, '市盈率_静', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        if self.basicData:
+            rz = int(self.basicData.get('市盈率_静', 0))
+            self.drawer.drawText(hdc, str(rz or '--'), (RIGHT_X + 10, y, W, y + RH), (0xcccccc if rz >= 0 else 0x00ff00), self.V_CENTER)
+        y += RH
+        self.drawer.drawText(hdc, '市盈率_TTM', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        if self.basicData:
+            rz = int(self.basicData.get('市盈率_TTM', 0))
+            self.drawer.drawText(hdc, str(rz or '--'), (RIGHT_X + 10, y, W, y + RH), (0xcccccc if rz >= 0 else 0x00ff00), self.V_CENTER)
+        y += RH
+        self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
+        y += 3
+        # bk gn
+        refModel = self.klineWin.refIndicator.model
+        klineModel = self.klineWin.klineIndicator.model
+        if refModel:
+            self.drawer.drawText(hdc, refModel.name, (0, y, W, y + RH), 0x808080, self.V_CENTER | win32con.DT_CENTER)
+        y += RH
+        self.drawer.drawText(hdc, '板块指数', (LEFT_X, y, W, y + RH), 0x808080, self.V_CENTER)
+        if refModel:
+            self.drawer.drawText(hdc, refModel.code, (RIGHT_X, y, W, y + RH), 0x808080, self.V_CENTER)
+        y += RH
+        self.drawer.drawText(hdc, '指数涨幅', (LEFT_X, y, W, y + RH), 0x808080, self.V_CENTER)
+        rz = self.getModelAttr(refModel, 'zhangFu')
+        if rz is not None:
+            self.drawer.drawText(hdc, f'{rz :.2f}%', (RIGHT_X, y, W, y + RH), 0x808080, self.V_CENTER)
+        y += RH
+        self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
+        y += 3
+        self.drawer.drawText(hdc, '涨幅', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        rz = self.getModelAttr(klineModel, 'zhangFu')
+        if rz is not None:
+            color = 0x0000ff if rz >= 0 else 0x00ff00
+            self.drawer.drawText(hdc, f'{rz :.2f}%', (RIGHT_X, y, W, y + RH), color, self.V_CENTER)
+        y += RH
+        self.drawer.drawText(hdc, '成交额', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        rz = self.getModelAttr(klineModel, 'amount')
+        if rz is not None:
+            self.drawer.drawText(hdc, f'{rz / 100000000 :.1f} 亿', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        y += RH
+        self.drawer.drawText(hdc, '换手率', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        rz = self.getModelAttr(klineModel, 'rate')
+        if rz is not None:
+            self.drawer.drawText(hdc, f'{int(rz)} %', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+
+    def getModelAttr(self, model, attrName):
+        if not self.selData or not model:
+            return None
+        day = self.selData.day
+        idx = model.getItemIdx(day)
+        if idx >= 0: 
+            return getattr(model.data[idx], attrName, None)
+        return None
 
     def loadCodeBasic(self, code):
         url = cls.ClsUrl()
@@ -883,7 +865,7 @@ class KLineCodeWindow(base_win.BaseWindow):
         self.layout.setContent(0, 0, self.klineWin)
 
         rightLayout = base_win.FlowLayout()
-        self.codeWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, self.codeWin.getContentHeight()))
+        self.codeWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 310))
         rightLayout.addContent(self.codeWin, {'margins': (0, 5, 0, 5)})
         btn = base_win.Button({'title': '<<', 'name': 'LEFT'})
         btn.createWindow(self.hwnd, (0, 0, 40, 30))
@@ -899,28 +881,6 @@ class KLineCodeWindow(base_win.BaseWindow):
         rightLayout.addContent(btn, {'margins': (0, 10, 0, 0)})
         self.layout.setContent(0, 1, rightLayout)
         self.layout.resize(0, 0, *self.getClientSize())
-
-    def findInBk(self, rowData):
-        bkCodes = []
-        key = rowData['name']
-        day = rowData['day']
-        q = ths_orm.THS_GNTC.select().where(ths_orm.THS_GNTC.hy_2_name == key)
-        KV = ('0', '3', '6')
-        for it in q:
-            if it.code[0] not in KV:
-                continue
-            bkCodes.append(it.code)
-        i = 0
-        rs = []
-        while i < len(bkCodes):
-            ei = min(i + 50, len(bkCodes))
-            bc = bkCodes[i : ei]
-            i = ei
-            q = tck_orm.THS_ZT.select(tck_orm.THS_ZT.code, tck_orm.THS_ZT.name).distinct().where(tck_orm.THS_ZT.day == day, tck_orm.THS_ZT.code.in_(bc)).dicts()
-            for it in q:
-                rs.append({'code': it['code'], 'name': it['name'],  'day': day})
-        #arr.sort(key = lambda it: it['num'], reverse = True)
-        return rs
 
     def _getCode(self, d):
         if type(d) == dict:
@@ -959,6 +919,10 @@ class KLineCodeWindow(base_win.BaseWindow):
 
     def changeCode(self, code, peroid = 'day'):
         try:
+            if type(code) == int:
+                code = f'{code :06d}'
+            if len(code) == 8 and code[0] == 's':
+                code = code[2 : ]
             self.code = code
             self.codeWin.changeCode(code)
             self.klineWin.changeCode(code, peroid)

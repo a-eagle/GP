@@ -66,6 +66,19 @@ def get_THS_GNTC_Attr(code, attrName):
 def getAllGNTC():
     return ths_gntc_s
 
+def getClsZs(code):
+    obj = cls_orm.CLS_ZS.select().where(cls_orm.CLS_ZS.code == code)
+    if obj: return obj.__data__
+    return None
+
+def getClsZsAttr(code, attrName):
+    if code[0 : 3] != 'cls':
+        return None
+    obj = cls_orm.CLS_ZS.get_or_none(cls_orm.CLS_ZS.code == code)
+    if obj: 
+        return obj.__data__.get(attrName, None)
+    return None
+
 # day = int | str | date | datetime | float [ time.time() ]
 def formatDate(day, hasSplit = True):
     if not day:

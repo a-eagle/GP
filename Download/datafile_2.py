@@ -308,7 +308,7 @@ class Cls_K_DataModel(K_DataModel):
         from Tck import utils
         hx = cls.ClsUrl()
         rs = hx.loadKline(self.code, period = period)
-        self.name = utils.get_THS_GNTC_Attr(self.code, 'name')
+        self.name = utils.get_THS_GNTC_Attr(self.code, 'name') or utils.getClsZsAttr(self.code, 'name')
         self.data = rs
 
 class Cls_T_DataModel(T_DataModel):
