@@ -144,7 +144,8 @@ class MultiInputDialog(Dialog):
         cancelBtn.addNamedListener('Click', onBtn)
 
     def onClose(self):
-        self.notifyListener(self.Event('InputEnd', self, text = '', ok = False))
+        # self.notifyListener(self.Event('InputEnd', self, text = '', ok = False))
+        pass
 
 # listeners: InputEnd = {src, ok : True | False}
 class ConfirmDialog(Dialog):

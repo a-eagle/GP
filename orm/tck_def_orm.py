@@ -48,16 +48,16 @@ class Mark(pw.Model):
         database = db_tck_def
         table_name = '标记'
 
-class DrawLine(pw.Model):
+class TextLine(pw.Model):
     code = pw.CharField()
-    dateType = pw.CharField()
-    day = pw.CharField() # YYYYMMDD
     kind = pw.CharField()
-    info = pw.CharField(null = True)
+    _startPos = pw.CharField(default = None)
+    _endPos = pw.CharField(default = None, null = True)
+    info = pw.CharField(default = None, null = True)
     
     class Meta:
         database = db_tck_def
-        table_name = '画线'
+        table_name = 'TextLine'
 
 # 自选股
 class MyObserve(pw.Model):
@@ -90,5 +90,6 @@ class MySettings(pw.Model):
     class Meta:
         database = db_tck_def
 
-db_tck_def.create_tables([TCK_CiTiao, DailyFuPan, Mark, DrawLine, MyObserve, MyNote, MyHotGn, MySettings])
+# TextLine.drop_table()
+db_tck_def.create_tables([TCK_CiTiao, DailyFuPan, Mark, TextLine, MyObserve, MyNote, MyHotGn, MySettings])
 

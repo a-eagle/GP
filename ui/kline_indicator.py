@@ -8,7 +8,7 @@ from Common.base_win import *
 
 from THS import hot_utils
 from Download import henxin, cls
-from orm import speed_orm, ths_orm, tdx_orm, tck_orm, tck_def_orm, lhb_orm, cls_orm
+from orm import speed_orm, ths_orm, tck_orm, lhb_orm, cls_orm
 
 
 def getTypeByCode(code):
@@ -69,6 +69,7 @@ class Indicator:
         return None
 
     def changeCode(self, code, period):
+        self.code = code
         self.valueRange = None
         self.visibleRange = None
         self.period = period
@@ -77,17 +78,16 @@ class Indicator:
         pass
 
     def getYAtValue(self, value):
-        return self.getYAtValue2(value, self.height)
-
-    def getYAtValue2(self, value, height):
         if not self.valueRange:
             return 0
-        if value < self.valueRange[0] or value > self.valueRange[1]:
-            return 0
+        if value < self.valueRange[0]:
+            value = self.valueRange[0]
+        elif value > self.valueRange[1]:
+            value = self.valueRange[1]
         if self.valueRange[1] == self.valueRange[0]:
             return 0
-        p = height * (value - self.valueRange[0]) / (self.valueRange[1] - self.valueRange[0])
-        y = height - int(p)
+        p = self.height * (value - self.valueRange[0]) / (self.valueRange[1] - self.valueRange[0])
+        y = self.height - int(p)
         return y
 
     def getValueAtY(self, y):
@@ -113,7 +113,7 @@ class Indicator:
         sx = x - self.getItemWidth() // 2 #- self.getItemSpace()
         ex = x + self.getItemWidth() // 2 #+ self.getItemSpace()
         rc = (sx, 1, ex, self.height + self.getMargins(1))
-        drawer.fillRect(hdc, rc, 0x202030)
+        drawer.fillRect(hdc, rc, 0x202020)
 
     def drawMouse(self, hdc, drawer, x, y):
         pass
@@ -219,6 +219,7 @@ class KLineIndicator(Indicator):
         if model:
             model.calcMA(5)
             model.calcMA(10)
+            model.calcZDT()
         self.win.notifyListener(Listener.Event('K-Model-Changed', self, data = self.data, model = model, code = code))
 
     def calcValueRange(self, fromIdx, endIdx):
@@ -255,13 +256,11 @@ class KLineIndicator(Indicator):
         return {'value': val, 'fmtVal': fval, 'valType': 'Price'}
 
     def getColor(self, idx, data):
-        # if not self.code:
-            # return 0xfcfc54
-        # if self.code[0 : 2] == '88' and idx > 0: # 指数
-        #     zdfd = abs((self.data[idx].close - self.data[idx - 1].close) / self.data[idx - 1].close * 100)
-        #     mdfd = abs((max(self.data[idx].high, self.data[idx - 1].close)- self.data[idx].low) / self.data[idx - 1].close * 100)
-        #     if zdfd >= 3.5 or mdfd >= 3.5:
-        #         return 0xff00ff
+        if self.code[0 : 2] == '88' and idx > 0: # 指数
+            zdfd = abs((self.data[idx].close - self.data[idx - 1].close) / self.data[idx - 1].close * 100)
+            mdfd = abs((max(self.data[idx].high, self.data[idx - 1].close)- self.data[idx].low) / self.data[idx - 1].close * 100)
+            if zdfd >= 3.5 or mdfd >= 3.5:
+                return 0xff00ff
         if getattr(data, 'tdb', False):
             return 0x00ff00
         zdt = getattr(data, 'zdt', None)
@@ -379,21 +378,123 @@ class KLineIndicator(Indicator):
     def onMouseMove(self, x, y):
         old = self.win.mouseXY
         si = self.getIdxAtX(x - self.x)
-        while True:
-            if si < 0:
-                self.mouseXY = None
-                break
-            x = self.getCenterX(si)
-            if x < 0:
-                self.mouseXY = None
-                break
-            self.win.mouseXY = (x + self.x, y)
-            break
+        if si < 0:
+            return
+        x = self.getCenterX(si)
+        self.win.mouseXY = (x + self.x, y)
         if not self.win.selIdxOnClick:
             self.win.setSelIdx(si)
         if old != self.win.mouseXY:
             self.win.invalidWindow()
         return True
+
+    def onContextMenu(self, x, y):
+        return False
+
+class RefIndicator(Indicator):
+    def __init__(self, win, config=None) -> None:
+        super().__init__(win, config)
+        self.model = None
+        self.mdata = None
+        self.kindicator = None
+        self.persent = 0
+        self.win.addNamedListener('K-Model-Changed', self.onDataChanged)
+
+    def onDataChanged(self, event, args):
+        self.code = event.code
+        self.data = event.data
+        self.kindicator = event.src
+        self.persent = 0
+
+    def changeCode(self, code, period):
+        self.model = None
+        self.mdata = None
+        self.persent = 0
+        self.code = code
+        self.valueRange = None
+        self.visibleRange = None
+        self.period = period
+        CustomIndicator._taskIds += 1
+        ThreadPool.instance().addTask(CustomIndicator._taskIds, self._changeCode)
+
+    def _changeCode(self):
+        self.persent = 0
+        tag = getTypeByCode(self.code)
+        model = Cls_K_DataModel(self.code) if tag == 'cls' else Ths_K_DataModel(self.code)
+        model.loadNetData(self.period)
+        self.model = model
+        self.mdata = None
+        if not self.model.data:
+            return
+        self.mdata = {}
+        for d in self.model.data:
+            self.mdata[d.day] = d
+
+    def calcVisibleRange(self, idx):
+        self.persent = 0
+
+    def calcValueRange(self, fromIdx, endIdx):
+        pass
+
+    def calcPersent(self):
+        self.persent = 0
+        if not self.kindicator or not self.kindicator.visibleRange or not self.mdata:
+            return
+        for idx in range(*self.kindicator.visibleRange):
+            day = self.data[idx].day
+            if day not in self.mdata:
+                continue
+            self.persent = self.mdata[day].open / self.data[idx].open
+            break
+
+    def draw(self, hdc, drawer):
+        if not self.kindicator or not self.kindicator.visibleRange or not self.mdata:
+            return
+        vr = self.kindicator.visibleRange
+        if self.persent == 0:
+            self.calcPersent()
+        if self.persent == 0:
+            return
+        for idx in range(*vr):
+            self.drawKLineItem(idx, hdc, drawer)
+
+    def getCenterX(self, idx):
+        if not self.kindicator:
+            return -1
+        return self.kindicator.getCenterX(idx)
+
+    def getYAtValue(self, v):
+        if not self.kindicator or not self.persent:
+            return -1
+        v /= self.persent
+        y = self.kindicator.getYAtValue(v)
+        if y < 0:
+            return -1
+        if y > self.height:
+            return self.height
+        return y
+
+    def drawKLineItem(self, idx, hdc, drawer):
+        day = self.data[idx].day
+        if day not in self.mdata or not self.persent:
+            return
+        data = self.mdata[day]
+        cx = self.getCenterX(idx)
+        bx = cx - self.getItemWidth() // 2
+        ex = bx + self.getItemWidth()
+
+        rect = [bx, self.getYAtValue(data.open), ex, self.getYAtValue(data.close)]
+        if rect[1] == rect[3]:
+            rect[1] -=1
+        color = 0xE19800
+        drawer.drawLine(hdc, cx, self.getYAtValue(data.low), cx, self.getYAtValue(min(data.open, data.close)), color)
+        drawer.drawLine(hdc, cx, self.getYAtValue(max(data.open, data.close)), cx, self.getYAtValue(data.high), color)
+        if data.close >= data.open:
+            nullHbr = win32gui.GetStockObject(win32con.NULL_BRUSH)
+            win32gui.SelectObject(hdc, nullHbr)
+            win32gui.Rectangle(hdc, *rect)
+        else:
+            drawer.fillRect(hdc, rect, color)
 
 class AttrIndicator(Indicator):
     def __init__(self, attrName, win, config) -> None:
@@ -689,6 +790,9 @@ class DayIndicator(CustomIndicator):
             day = hday
         drawer.drawText(hdc, day, rc, 0xcccccc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
+    def drawBackground(self, hdc, drawer):
+        drawer.fillRect(hdc, (0, 1, self.width - 1, self.height - 1), 0x151515)
+
 class ScqxIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
@@ -805,15 +909,13 @@ class ThsZT_Indicator(CustomIndicator):
     def drawItem(self, hdc, drawer, idx, x):
         super().drawItem(hdc, drawer, idx, x)
         iw = self.config['itemWidth']
-        rc = (x + 1, 1, x + iw, self.height)
+        rc = (x + 3, 1, x + iw - 3, self.height)
         day = self.data[idx].day
         if not self.cdata or day not in self.cdata:
             return
         txt = self.cdata[day]['ztReason']
-        # sdc = win32gui.SaveDC(hdc)
         drawer.use(hdc, drawer.getFont(fontSize = 12))
         drawer.drawText(hdc,txt, rc, 0xcccccc, win32con.DT_WORDBREAK | win32con.DT_VCENTER)
-        # win32gui.RestoreDC(hdc, sdc)
 
 class ClsZT_Indicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
@@ -837,7 +939,7 @@ class ClsZT_Indicator(CustomIndicator):
     def drawItem(self, hdc, drawer, idx, x):
         super().drawItem(hdc, drawer, idx, x)
         iw = self.config['itemWidth']
-        rc = (x + 1, 1, x + iw, self.height)
+        rc = (x + 3, 1, x + iw - 3, self.height)
         day = self.data[idx].day
         if not self.cdata or day not in self.cdata:
             return
@@ -932,6 +1034,9 @@ class GnLdIndicator(CustomIndicator):
         item = evt.item
         self.changeGntc(item['name'])
         self.win.invalidWindow()
+
+    def drawBackground(self, hdc, drawer):
+        drawer.fillRect(hdc, (0, 1, self.width - 1, self.height - 1), 0x101010)
 
 # 涨速，用于指明进攻意愿
 class ZhangSuIndicator(CustomIndicator):

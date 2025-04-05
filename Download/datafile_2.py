@@ -63,17 +63,9 @@ class DataModel:
                 left = mid + 1
             else:
                 right = mid - 1
-        if idx == -1:
-            return -1
-        if self.dataType == self.DT_DAY:
+        if idx >= 0 and idx < len(self.data) and self.data[idx].day == day:
             return idx
-        t = self.data[idx].day
-        while idx > 0:
-            if self.data[idx - 1].day == t:
-                idx -= 1
-            else:
-                break
-        return idx
+        return -1
 
     # dataType = 'DAY' | 'TIME'
     def getLocalPath(self, dataType):

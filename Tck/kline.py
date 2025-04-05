@@ -2074,7 +2074,7 @@ class DrawLineManager:
     def load(self, code):
         self.reset()
         self.code = code
-        q = tck_def_orm.DrawLine.select().where(tck_def_orm.DrawLine.code == code)
+        q = tck_def_orm.TextLine.select().where(tck_def_orm.TextLine.code == code)
         for row in q:
             row.info = json.loads(row.info)
             self.lines.append(row)
@@ -2085,7 +2085,7 @@ class DrawLineManager:
 
     def begin(self, dateType, kind):
         self.isDrawing = True
-        self.curLine = tck_def_orm.DrawLine(code = self.code, dateType = dateType, kind = kind)
+        self.curLine = tck_def_orm.TextLine(code = self.code, dateType = dateType, kind = kind)
 
     def isValidLine(self, line):
         return line.info and ('startX' in line.info) and ('endX' in line.info)
@@ -2133,7 +2133,7 @@ class DrawLineManager:
         drawer = self.klineWin.drawer
         drawer.drawText(hdc, text, rc, color = 0x404040, align = win32con.DT_LEFT)
 
-    def onDrawLine(self, hdc, line : tck_def_orm.DrawLine):
+    def onDrawLine(self, hdc, line : tck_def_orm.TextLine):
         W, H = self.klineWin.getClientSize()
         if not self.isValidLine(line) or (not self.klineWin.klineIndicator.visibleRange):
             return
@@ -2227,7 +2227,7 @@ class DrawLineManager:
             price = it.getValueAtY(y)
             self.curLine.info = {'startX': data.day, 'startY': price['value']}
 
-            qr = tck_def_orm.DrawLine.select().where(tck_def_orm.DrawLine.code == self.curLine.code, tck_def_orm.DrawLine.day == self.curLine.day, tck_def_orm.DrawLine.kind == 'text')
+            qr = tck_def_orm.TextLine.select().where(tck_def_orm.TextLine.code == self.curLine.code, tck_def_orm.TextLine.day == self.curLine.day, tck_def_orm.TextLine.kind == 'text')
             u = None
             for it in qr:
                 u = it
@@ -2500,7 +2500,7 @@ class KLineWindow(base_win.BaseWindow):
                 self.lineMgr.begin(self.dateType, 'text')
             elif name == 'del-draw-line':
                 #qr = tck_orm.DrawLine.select().where(tck_orm.DrawLine.day == str(selDay))
-                tck_def_orm.DrawLine.delete().where(tck_def_orm.DrawLine.day == str(selDay)).execute()
+                tck_def_orm.TextLine.delete().where(tck_def_orm.TextLine.day == str(selDay)).execute()
                 self.lineMgr.reload()
                 self.invalidWindow()
             elif name == 'JZX':

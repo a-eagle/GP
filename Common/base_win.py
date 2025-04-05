@@ -559,6 +559,16 @@ class Drawer:
             resRect[2] += mx
         return tuple(resRect)
 
+    def calcTextSize(self, hdc, text):
+        if not text:
+            return None
+        w, h = 0, 0
+        for ln in text.split('\n'):
+            tw, th = win32gui.GetTextExtentPoint32(hdc, ln)
+            w = max(w, tw)
+            h += th
+        return (w, h)
+            
     # rect = list or tuple (left, top, right, bottom)
     def fillCycle(self, hdc, rect, color):
         if not rect:
