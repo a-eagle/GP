@@ -1,22 +1,18 @@
 import os, sys, functools, copy, datetime, json, time, traceback
-import win32gui, win32con
-import requests, peewee as pw
+import win32gui, win32con, win32api
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import speed_orm, ths_orm, tdx_orm, tck_orm, tck_def_orm, lhb_orm, cls_orm
-from Download import datafile
-from Download import henxin, cls
-from Common import base_win, ext_win, dialog
-from THS import hot_utils
+from orm import tck_def_orm
+from Common import base_win, dialog
 from ui.kline_indicator import *
 
 class MarksMgr:
     def __init__(self, win) -> None:
         self.win = win
-        self.markDays = {} # int items
+        self.data = {} # int items
 
     def clearMarkDay(self):
-        self.markDays.clear()
+        self.data.clear()
 
     def setMarkDay(self, day, tip = None):
         if type(day) == str:
@@ -26,16 +22,26 @@ class MarksMgr:
             day = dd.year * 10000 + dd.month * 100 + dd.day
         if type(day) != int:
             return
-        if day not in self.markDays:
-            self.markDays[day] = {'day': day, 'tip': tip}
+        if day not in self.data:
+            self.data[day] = {'day': day, 'tip': tip}
         else:
-            self.markDays[day]['tip'] = tip
+            self.data[day]['tip'] = tip
 
     def removeMarkDay(self, day):
         if type(day) == str:
             day = int(day.replace('-', ''))
-        if type(day) == int and day in self.markDays:
-            self.markDays.pop(day)
+        if type(day) == int and day in self.data:
+            self.data.pop(day)
+
+    def onDraw(self, hdc, drawer):
+        kl = self.win.klineIndicator
+        vr = kl.visibleRange
+        if not vr or not kl.model:
+            return
+        for day in self.data:
+            idx = kl.model.getItemIdx(day)
+            if idx >= vr[0] and idx < vr[1]:
+                kl.drawIdxHilight(hdc, drawer, idx)
 
 class ContextMenuMgr:
     def __init__(self, win) -> None:
@@ -54,8 +60,8 @@ class ContextMenuMgr:
               {'title': '叠加指数 CLS', 'name': 'add-ref-zs', 'sub-menu': self.getClsZsList},
               {'title': '打开板块 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList},
               {'title': 'LINE'},
-              {'title': '标记日期', 'name': 'mark-day', 'enable': selDay > 0, 'day': selDay},
-              {'title': '- 取消标记日期', 'name': 'cancel-mark-day', 'enable': selDay > 0, 'day': selDay},
+              {'title': '标记日期 +', 'name': 'mark-day', 'enable': selDay > 0, 'day': selDay},
+              {'title': '标记日期 -', 'name': 'cancel-mark-day', 'enable': selDay > 0, 'day': selDay},
               {'title': 'LINE'},
               {'title': '画线(直线)', 'name': 'draw-line'},
               {'title': '画线(文本)', 'name': 'draw-text'},
@@ -64,6 +70,7 @@ class ContextMenuMgr:
         return mm
 
     def getThsZsList(self, item):
+        from orm import ths_orm
         code = self.win.klineIndicator.code
         obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
         model = []
@@ -83,6 +90,7 @@ class ContextMenuMgr:
         return model
     
     def getClsZsList(self, item):
+        from orm import cls_orm
         model = []
         code = self.win.klineIndicator.code
         obj : cls_orm.CLS_GNTC = cls_orm.CLS_GNTC.get_or_none(cls_orm.CLS_GNTC.code == code)
@@ -127,9 +135,12 @@ class ContextMenuMgr:
             from Tck import kline_utils
             dt = {'code': evt.item['code'], 'day': None}
             kline_utils.openInCurWindow_ZS(self, dt)
+        elif name == 'open-ref-clszs':
+            code = evt.item['code']
+            win32api.ShellExecute(None, 'open', f'https://www.cls.cn/plate?code={code}', '', '', True)
         elif name == 'add-ref-zs':
             code = evt.item['code']
-            self.win.refIndicator.changeCode(code, self.win.klineIndicator.period)
+            self.win.refIndicator.changeCode(code, self.win.refIndicator.period)
             self.win.invalidWindow()
         elif name == 'draw-line':
             self.win.lineMgr.beginNew('line')
@@ -651,7 +662,8 @@ class KLineWindow(base_win.BaseWindow):
             sdc = win32gui.SaveDC(hdc)
             win32gui.SetViewportOrgEx(hdc, idt.x, idt.y)
             idt.drawIdxHilight(hdc, self.drawer, self.selIdx)
-            y = idt.height + idt.getMargins(1)
+            if idt == self.klineIndicator:
+                self.marksMgr.onDraw(hdc, self.drawer) # draw marks
             win32gui.RestoreDC(hdc, sdc)
 
         # draw content
@@ -829,6 +841,7 @@ class CodeWindow(BaseWindow):
         return None
 
     def loadCodeBasic(self, code):
+        from Download import cls
         url = cls.ClsUrl()
         self.basicData = url.loadBasic(code)
         self.invalidWindow()
