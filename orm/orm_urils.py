@@ -59,4 +59,8 @@ def move_z():
     move_table_data(db, z_orm.ZT_PanKou)
 
 if __name__ == '__main__':
+    move_cls()
+    move_ths()
+    move_def()
+    move_z()
     pass

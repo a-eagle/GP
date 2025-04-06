@@ -7,7 +7,7 @@ import datetime, time, sys, os, re
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import ths_orm, cls_orm, z_orm
 from download import henxin, console, ths_iwencai
-from THS import hot_utils
+from utils import hot_utils
 
 class Server:
     def __init__(self) -> None:

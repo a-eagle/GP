@@ -5,7 +5,7 @@ from PIL import Image # pip install pillow
 # import easyocr
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from THS import number_ocr, ths_ocr
+from THS import number_ocr
 from common import base_win
 
 class ThsWindow(base_win.BaseWindow):

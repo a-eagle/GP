@@ -2,13 +2,15 @@ import os, sys, functools, copy, datetime, json, time, traceback
 import win32gui, win32con
 import requests, peewee as pw
 
+from utils import gn_utils
+
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download.datafile import *
 from common.base_win import *
 
-from THS import hot_utils
+from utils import hot_utils
 from download import cls
-from orm import speed_orm, ths_orm, lhb_orm, cls_orm, utils
+from orm import speed_orm, ths_orm, lhb_orm, cls_orm
 
 def getTypeByCode(code):
     if not code:
@@ -33,7 +35,7 @@ def getNameByCode(code):
     if code[0 : 2] in ('sz', 'sh'):
         code = code[2 : ]
     if code[0] in ('0', '3', '6'):
-        obj = utils.get_THS_GNTC(code)
+        obj = gn_utils.get_THS_GNTC(code)
         return obj['name'] if obj else ''
     elif code[0 : 3] == 'cls':
         obj = cls_orm.CLS_ZS.get_or_none(code = code)

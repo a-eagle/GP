@@ -5,7 +5,7 @@ import peewee as pw
 import types
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download import datafile, henxin, cls
-from THS import hot_utils
+from utils import hot_utils
 from common import base_win, dialog
 from orm import def_orm, ths_orm, cls_orm, z_orm
 

@@ -1,4 +1,3 @@
-from win32.lib.win32con import WS_CHILD, WS_VISIBLE
 import win32gui, win32con , win32api, win32ui # pip install pywin32
 import threading, time, datetime, sys, os, json, copy
 from multiprocessing import Process
@@ -7,13 +6,12 @@ import system_hotkey
 #pip install system_hotkey
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from THS import ths_win, hot_win, ths_ocr, tips_win
+from THS import ths_win, ths_ocr, tips_win
 from common import base_win
 
 curCode = None
 thsWindow = ths_win.ThsWindow()
 thsFPWindow = ths_win.ThsFuPingWindow()
-hotWindow = hot_win.HotWindow()
 simpleWindow = tips_win.SimpleWindow('HOT')
 simpleWindow2 = tips_win.SimpleWindow('ZT_GN')
 thsShareMem = base_win.ThsShareMemory()

@@ -67,7 +67,7 @@ class Server:
     
     def getHots(self):
         day = flask.request.args.get('day', None)
-        from THS import hot_utils
+        from utils import hot_utils
         from Tck import utils
         hz = hot_utils.DynamicHotZH.instance()
         if day and len(day) >= 8:
@@ -247,7 +247,7 @@ class Server:
 
     # {cols?:[ztReason, hots:[yyyy-mm-dd] ], codes:[]}
     def queryCodesInfo(self):
-        from THS import hot_utils
+        from utils import hot_utils
         from Tck import utils
         params = flask.request.data
         js = json.loads(params.decode())

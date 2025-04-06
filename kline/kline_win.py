@@ -1,8 +1,10 @@
 import os, sys, functools, copy, datetime, json, time, traceback
 import win32gui, win32con, win32api
 
+from utils import gn_utils
+
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import def_orm, utils
+from orm import def_orm
 from common import base_win, dialog
 from kline.kline_indicator import *
 
@@ -518,7 +520,7 @@ class KLineWindow(base_win.BaseWindow):
             code = code[2 : ]
         for it in self.indicators:
             it.changeCode(code, period)
-        rs = utils.get_THS_GNTC(code)
+        rs = gn_utils.get_THS_GNTC(code)
         if rs and rs.get('hy_2_code', None):
             self.refIndicator.changeCode(rs['hy_2_code'], period)
         self.lineMgr.changeCode(code)
