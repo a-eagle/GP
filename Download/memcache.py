@@ -12,6 +12,7 @@ class MemCache:
         self.datas = {} # key = , value = CacheItem
     
     def getCache(self, key):
+        self._cleanTimeout()
         if not key:
             return None
         rs = self.datas.get(key, None)
@@ -22,6 +23,7 @@ class MemCache:
         return None
     
     def saveCache(self, key, data, timeout):
+        self._cleanTimeout()
         it = CacheItem(data, timeout)
         self.datas[key] = it
     
@@ -47,5 +49,11 @@ class MemCache:
         if mm < 930 and nmm < 930:
             return False
         return True
-        
+    
+    def _cleanTimeout(self):
+        for k in self.datas.keys():
+            item = self.datas[k]
+            if self._checkTime(item, item.timeout):
+                self.datas.pop(k)
+
 cache = MemCache()

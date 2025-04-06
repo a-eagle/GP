@@ -188,7 +188,7 @@ class TextLineManager:
         self.lines = []
         self.isDrawing = False
         self.curLine = None
-        self.selLine = None
+        self.selTextLine = None
 
     def changeCode(self, code):
         self._reset()
@@ -238,18 +238,23 @@ class TextLineManager:
             self.curLine = None
             return
         self.isDrawing = False
-        if self.curLine.kind == 'line' and self.isValidLine(self.curLine):
-            oldId = self.curLine.id
-            self.curLine._startPos = self.curLine.startPos.dump()
-            self.curLine._endPos = self.curLine.endPos.dump()
-            self.curLine.save()
-            if not oldId: self.lines.append(self.curLine)
-        elif self.curLine.kind == 'text' and self.isValidText(self.curLine):
-            oldId = self.curLine.id
-            self.curLine._startPos = self.curLine.startPos.dump()
-            self.curLine.save()
-            if not oldId: self.lines.append(self.curLine)
+        self.save(self.curLine)
         self.curLine = None
+
+    def save(self, line):
+        if not line:
+            return
+        if line.kind == 'line' and self.isValidLine(line):
+            oldId = line.id
+            line._startPos = line.startPos.dump()
+            line._endPos = line.endPos.dump()
+            line.save()
+            if not oldId: self.lines.append(line)
+        elif line.kind == 'text' and self.isValidText(line):
+            oldId = line.id
+            line._startPos = line.startPos.dump()
+            line.save()
+            if not oldId: self.lines.append(line)
     
     def cancel(self):
         self.isDrawing = False
@@ -297,7 +302,7 @@ class TextLineManager:
         rc = (*xy, xy[0] + size[0], xy[1] + size[1])
         line.rect = rc
         drawer.drawText(hdc, line.info, rc, color = 0x404040, align = win32con.DT_LEFT)
-        if line == self.selLine:
+        if line == self.selTextLine:
             drawer.drawRect(hdc, rc, 0x00a0a0)
 
     def onDrawLine(self, hdc, drawer, line):
@@ -349,17 +354,23 @@ class TextLineManager:
         return None
 
     def onLButtonDown(self, x, y):
-        if not self.curLine or not self.isDrawing:
-            return False
-        # print('onLButtonDown ', self.isDrawing, self.curLine.__data__)
-        kl = self.win.klineIndicator
-        if self.curLine.kind == 'line':
-            pos = self.getPosByXY(x, y)
-            if not pos:
-                self.cancel()
-                return False
-            self.curLine.startPos = pos
-            return True
+        if self.curLine and self.isDrawing: # is drawing line
+            kl = self.win.klineIndicator
+            if self.curLine.kind == 'line':
+                pos = self.getPosByXY(x, y)
+                if not pos:
+                    self.cancel()
+                    return False
+                pos.dx = 0 # modify line dx to 0
+                self.curLine.startPos = pos
+                return True
+        else: #click on text
+            old = self.selTextLine
+            self.selTextLine = self.getTextByXY(x, y)
+            if old != self.selTextLine:
+                self.save(old)
+                self.win.invalidWindow()
+            return self.selTextLine != None
         return False
     
     def onInputEnd(self, evt, args):
@@ -370,13 +381,8 @@ class TextLineManager:
             self.cancel()
 
     def onLButtonUp(self, x, y):
-        #print('onLButtonUp ', self.isDrawing, self.curLine.__data__)
-        if (not self.curLine) or (not self.isDrawing):
-            old = self.selLine
-            self.selLine = self.getTextByXY(x, y)
-            if old != self.selLine:
-                self.win.invalidWindow()
-            return self.selLine != None
+        if not self.isDrawing or not self.curLine:
+            return False
         kl = self.win.klineIndicator
         if self.curLine.kind == 'line':
             if not self.isStartDrawLine():
@@ -417,19 +423,44 @@ class TextLineManager:
         return True
 
     def onDblClick(self, x, y):
-        self.selLine = self.getTextByXY(x, y)
-        if not self.selLine:
+        self.selTextLine = self.getTextByXY(x, y)
+        if not self.selTextLine:
             return False
         self.isDrawing = True
-        self.curLine = self.selLine
+        self.curLine = self.selTextLine
         self.openEditText()
         return True
 
+    def onKeyDown(self, key):
+        if key == win32con.VK_DELETE or key == win32con.VK_BACK:
+            self.delLine2(self.selTextLine)
+            self.selTextLine = None
+            return
+        if key == win32con.VK_LEFT:
+            self.selTextLine.startPos.dx -= 4
+            self.win.invalidWindow()
+        elif key == win32con.VK_RIGHT:
+            self.selTextLine.startPos.dx += 4
+            self.win.invalidWindow()
+        elif key == win32con.VK_UP:
+            sy = self.win.klineIndicator.getYAtValue(self.selTextLine.startPos.price)
+            sy = max(sy - 5, 1)
+            val = self.win.klineIndicator.getValueAtY(sy)
+            if val:
+                self.selTextLine.startPos.price = val['value']
+            self.win.invalidWindow()
+        elif key == win32con.VK_DOWN:
+            sy = self.win.klineIndicator.getYAtValue(self.selTextLine.startPos.price)
+            sy = min(sy + 5, self.win.klineIndicator.height - 3)
+            val = self.win.klineIndicator.getValueAtY(sy)
+            if val:
+                self.selTextLine.startPos.price = val['value']
+            self.win.invalidWindow()
+
     def winProc(self, hwnd, msg, wParam, lParam):
-        if msg == win32con.WM_KEYDOWN and self.selLine:
-            if wParam == win32con.VK_DELETE or wParam == win32con.VK_BACK:
-                self.delLine2(self.selLine)
-                self.selLine = None
+        if msg >= win32con.WM_KEYFIRST and msg <= win32con.WM_KEYLAST and self.selTextLine:
+            if msg == win32con.WM_KEYDOWN:
+                self.onKeyDown(wParam)
             return True
         if msg >= win32con.WM_MOUSEFIRST and msg <= win32con.WM_MOUSELAST:
             kl = self.win.klineIndicator
@@ -852,7 +883,7 @@ class CodeWindow(BaseWindow):
             return None
         day = self.selData.day
         idx = model.getItemIdx(day)
-        if idx >= 0: 
+        if idx >= 0:
             return getattr(model.data[idx], attrName, None)
         return None
 

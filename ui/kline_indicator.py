@@ -852,6 +852,63 @@ class LsAmountIndicator(CustomIndicator):
         rc = (x + 1, 1, x + iw, self.height)
         drawer.drawText(hdc,f"{self.cdata[day] :.02f}", rc, 0xcccccc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
+    def onMouseClick(self, x, y):
+        si = self.getIdxAtX(x)
+        if si != self.win.selIdx:
+            super().onMouseClick(x, y)
+            return
+        if si < 0:
+            return True
+        # draw tip
+        day = self.data[si].day
+
+        fday = f'{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}'
+        itemData = d_orm.HotVol.get_or_none(d_orm.HotVol.day == fday)
+        if not itemData:
+            return True
+        self.drawHotVal(itemData, si)
+        return True
+        
+    def drawHotVal(self, itemData, idx):
+        hdc = win32gui.GetDC(self.win.hwnd)
+        W, H = 220, 150
+        ix = (idx - self.visibleRange[0]) * (self.getItemWidth() + self.getItemSpace())
+        drawer : Drawer = self.win.drawer
+        if ix + W <= self.width:
+            sx = self.x + ix
+        else:
+            sx = self.width - W + self.x
+        sy = self.y - H
+        rc = [sx, sy, sx + W, sy + H]
+        drawer.fillRect(hdc, rc, 0x101010)
+        win32gui.SetBkMode(hdc, win32con.TRANSPARENT)
+        drawer.use(hdc, drawer.getFont())
+        self.drawHotValInfo(hdc, rc, itemData)
+        drawer.drawRect(hdc, rc, 0xf0a0a0)
+        win32gui.ReleaseDC(self.win.hwnd, hdc)
+
+    def drawHotValInfo(self, hdc, rc, itemData):
+        drawer : Drawer = self.win.drawer
+        VCENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER
+        W, H = rc[2] - rc[0], rc[3] - rc[1]
+        IW, IH = W / 4, H / 6
+        drawer.fillRect(hdc, (rc[0], rc[1], rc[2], rc[1] + int(IH)), 0x202020)
+        for i, title in enumerate(('', '成交额', '', '平均额')):
+            drawer.drawText(hdc, title, (rc[0] + int(IW * i), rc[1], rc[0] + int(IW + IW * i), int(rc[1] + IH)), 0xcccccc, align = VCENTER)
+        lns = [('第 1', 'p1', '前1-10', 'avg0_10'), ('第10', 'p10', '前10-20', 'avg10_20'),
+                ('第20', 'p20', '前20-50', 'avg20_50'), ('第50', 'p50', '前50-100', 'avg50_100'), ('第100', 'p100', '', '')]
+        for idx, ln in enumerate(lns):
+            for cidx, k in enumerate(ln):
+                drawer.drawLine(hdc, rc[0], int(rc[1] + IH + IH * idx), rc[2], int(rc[1] + IH + IH * idx), 0xf0a0a0)
+                irc = (rc[0] + int(IW * cidx), int(rc[1] + IH + IH * idx),
+                        rc[0] + int(IW * cidx + IW), int(rc[1] + IH * 2 + IH * idx))
+                if cidx % 2 == 0:
+                    drawer.fillRect(hdc, irc, 0x202020)
+                    drawer.drawText(hdc, k, irc, 0xcccccc, align = VCENTER)
+                else:
+                    if k:
+                        drawer.drawText(hdc, getattr(itemData, k), irc, 0xcccccc, align = VCENTER)
+
 class HotIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
@@ -882,7 +939,11 @@ class HotIndicator(CustomIndicator):
         day = self.data[idx].day
         if not self.cdata or day not in self.cdata:
             return
-        drawer.drawText(hdc,f"{self.cdata[day]}", rc, 0xcccccc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+        drawer.use(hdc, drawer.getFont(fontSize = 15, weight = 500))
+        drawer.drawText(hdc,f"{self.cdata[day]}", rc, 0x00dddd, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+
+    def drawBackground(self, hdc, drawer):
+        drawer.fillRect(hdc, (0, 1, self.width - 1, self.height - 1), 0x151515)
 
 class ThsZT_Indicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
