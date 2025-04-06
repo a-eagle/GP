@@ -7,7 +7,7 @@ import types
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download import datafile, henxin, cls
 from utils import hot_utils
-from ui import dialog, base_win
+from ui import dialog, base_win, kline_utils
 from orm import d_orm, def_orm, ths_orm, cls_orm
 
 #-----------------------------------------------------------
@@ -1375,7 +1375,6 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         if msg == win32con.WM_NCLBUTTONDBLCLK:
             return True
         if msg == win32con.WM_LBUTTONDBLCLK:
-            from kline import kline_utils
             if self.data and 'code' in self.data and self.data['code']:
                 data = {'code': self.data['code'], 'day': None}
                 kline_utils.openInCurWindow(self, data)
