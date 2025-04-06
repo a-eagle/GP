@@ -99,6 +99,6 @@ def openInThsWindow(data):
     pyautogui.press('enter')
 
 if __name__ == '__main__':
-    openInCurWindow_Code(None, {'code': '002165'})
+    openInCurWindow_Code(None, {'code': '000002'})
     win32gui.PumpMessages()
     pass

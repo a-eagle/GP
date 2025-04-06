@@ -302,7 +302,7 @@ class Ths_T_DataModel(T_DataModel):
             self.day = day
             return
         rs = self._loadNetLastData()
-        if not rs or rs['date'] != day:
+        if not rs or rs.get('date', -1) != day:
             return
         self.data = rs['line']
         self.name = rs['name']
