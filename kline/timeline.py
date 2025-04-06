@@ -4,8 +4,8 @@ import os, sys, requests, json
 import win32gui, win32con
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from download import datafile, henxin, cls, ths_iwencai
-from common import base_win, ext_win
+from download import datafile, cls, ths_iwencai
+from common import base_win
 from orm import ths_orm, cls_orm, tck_orm
 from kline import fx
 
@@ -35,16 +35,12 @@ class TimelineModel:
         self.refDataModel = None
         self.clsHotTcList = None # only used for ZS ( CLS_HotTc )
 
-    def load(self, code, day = None):
+    # day = int | str
+    def load(self, code, day):
         if type(code) == int:
             code = f'{code :06d}'
         if code[0 : 2] in ('sz', 'sh'):
             code = code[2 : ]
-        if not day:
-            tdays = ths_iwencai.getTradeDays()
-            day = tdays[-1]
-        if type(day) == int:
-            day = str(day)
         if getTypeByCode(code) == 'cls':
             self.dataModel = datafile.Cls_T_DataModel(code)
         else:
@@ -52,20 +48,23 @@ class TimelineModel:
         self.dataModel.loadData(day)
         self.loadClsHotTc(day)
 
-    def loadRef(self, code):
+    def loadRef(self, code, day):
+        if type(code) == int:
+            code = f'{code :06d}'
         if getTypeByCode(code) == 'cls':
             self.refDataModel = datafile.Cls_T_DataModel(code)
         else:
             self.refDataModel = datafile.Ths_T_DataModel(code)
-        self.refDataModel.loadData(self.dataModel.day)
+        self.refDataModel.loadData(day)
 
     def loadClsHotTc(self, day):
         if not self.refDataModel or not self.refDataModel.name:
             return
+        day = str(day)
         if len(day) == 8:
             day = day[0 : 4] + '-' + day[4 : 6] + '-' + day[6 : 8]
         rs = []
-        qr = tck_orm.CLS_HotTc.select().where(tck_orm.CLS_HotTc.name == self.self.refDataModel.name, tck_orm.CLS_HotTc.day == day)
+        qr = tck_orm.CLS_HotTc.select().where(tck_orm.CLS_HotTc.name == self.refDataModel.name, tck_orm.CLS_HotTc.day == day)
         for q in qr:
             rs.append(q.__data__)
         self.clsHotTcList = rs
@@ -118,6 +117,75 @@ class TimelineModel:
         self.amountRange = self.calcAttrRange(self.dataModel, 'amount')
         return self.amountRange
 
+class ContextMenuMgr:
+    def __init__(self, win) -> None:
+        self.win = win
+
+    def onContextMenu(self):
+        mm = [
+            {'title': '叠加指数 THS', 'name': 'add-ref-ths-zs', 'sub-menu': self.getRefThsZsModel},
+            {'title': '叠加指数 CLS', 'name': 'add-ref-cls-zs', 'sub-menu': self.getRefClsZsModel},
+        ]
+        menu = base_win.PopupMenu.create(self.win.hwnd, mm)
+        x, y = win32gui.GetCursorPos()
+        menu.addNamedListener('Select', self.onMenuItem)
+        menu.show(x, y)
+
+    def onMenuItem(self, evt, args):
+        name = evt.item['name']
+        if name == 'add-ref-ths-zs' or name == 'add-ref-cls-zs':
+            code = evt.item['code']
+            self.win.loadRef(code)
+            self.win.invalidWindow()
+
+    def getRefThsZsModel(self, item):
+        model = []
+        if not self.win.model.dataModel:
+            return model
+        code = self.win.model.dataModel.code
+        if len(code) == 8:
+            code = code[2 : ]
+        obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
+        if not obj:
+            return model
+        if obj.hy_2_code: model.append({'title': obj.hy_2_name, 'code': obj.hy_2_code})
+        if obj.hy_3_code: model.append({'title': obj.hy_3_name, 'code': obj.hy_3_code})
+        model.append({'title': 'LINE'})
+        if not obj.gn_code:
+            return model
+        gn_codes = obj.gn_code.split(';')
+        gn_names = obj.gn.split(';')
+        for i in range(len(gn_codes)):
+            if gn_codes[i].strip():
+                model.append({'title': gn_names[i], 'code': gn_codes[i].strip()})
+        return model
+    
+    def getRefClsZsModel(self, item):
+        model = []
+        if not self.win.model.dataModel:
+            return model
+        code = self.win.model.dataModel.code
+        if len(code) == 8:
+            code = code[2 : ]
+        obj : cls_orm.CLS_GNTC = cls_orm.CLS_GNTC.get_or_none(cls_orm.CLS_GNTC.code == code)
+        if not obj:
+            return model
+        if obj.hy:
+            hys = obj.hy.split(';')
+            hycs = obj.hy_code.split(';')
+            for i in range(len(hys)):
+                if hycs[i].strip():
+                    model.append({'title': hys[i], 'code': hycs[i]})
+        model.append({'title': 'LINE'})
+        if not obj.gn_code:
+            return model
+        gn_codes = obj.gn_code.split(';')
+        gn_names = obj.gn.split(';')
+        for i in range(len(gn_codes)):
+            if gn_codes[i].strip():
+                model.append({'title': gn_names[i], 'code': gn_codes[i].strip()})
+        return model
+
 class TimelineWindow(base_win.BaseWindow):
     ONE_DAY_LINES = 241
 
@@ -131,13 +199,16 @@ class TimelineWindow(base_win.BaseWindow):
         self.volRect = None
         self.bottomTipRect = None
         self.hilights = []
+        self.cttMenuMgr = ContextMenuMgr(self)
 
     def load(self, code, day = None):
         self.model = TimelineModel()
-        # base_win.ThreadPool.instance().addTask_N(self._load, code, day)
-    # def _load(self, code, day):
-        self.model.load(code, day)
-        self.model.priceRange = None # recalc 
+        self._day = day
+        base_win.ThreadPool.instance().addTask_N(self._load, code)
+
+    def _load(self, code):
+        self.model.load(code, self._day)
+        self.model.priceRange = None # re-calc
         self.initHilights()
         title = f'{self.model.dataModel.code}   {self.model.dataModel.name}'
         win32gui.SetWindowText(self.hwnd, title)
@@ -147,8 +218,8 @@ class TimelineWindow(base_win.BaseWindow):
         base_win.ThreadPool.instance().addTask_N(self._loadRef, code)
 
     def _loadRef(self, code):
-        self.model.loadRef(code)
-        self.model.priceRange = None # recalc 
+        self.model.loadRef(code, self._day)
+        self.model.priceRange = None # re-calc
         self.invalidWindow()
 
     def initHilights(self):
@@ -210,12 +281,6 @@ class TimelineWindow(base_win.BaseWindow):
             idx = len(self.model.dataModel.data) - 1
         return idx
     
-    def getMinutesNum(self):
-        if self.model and self.model.data:
-            v = len(self.model.data)
-            return v
-        return 1
-
     def formatAmount(self, amount):
         if amount >= 100000000:
             amount /= 100000000
@@ -406,10 +471,10 @@ class TimelineWindow(base_win.BaseWindow):
             win32gui.LineTo(hdc, x, y)
 
     def onDraw(self, hdc):
-        self.drawHilight(hdc)
-        self.drawBackground(hdc)
         if not self.model or not self.model.dataModel or not self.model.dataModel.data:
             return
+        self.drawHilight(hdc)
+        self.drawBackground(hdc)
         self.drawMouse(hdc)
         self.drawRefMinites(hdc)
         self.drawMinites(hdc)
@@ -417,69 +482,7 @@ class TimelineWindow(base_win.BaseWindow):
         self.drawRefClsHotTc(hdc)
 
     def onContextMenu(self, x, y):
-        mm = [
-            {'title': '叠加指数 THS', 'name': 'add-ref-ths-zs', 'sub-menu': self.getRefThsZsModel},
-            {'title': '叠加指数 CLS', 'name': 'add-ref-cls-zs', 'sub-menu': self.getRefClsZsModel},
-        ]
-        menu = base_win.PopupMenu.create(self.hwnd, mm)
-        x, y = win32gui.GetCursorPos()
-        menu.addNamedListener('Select', self.onMenuItem)
-        menu.show(x, y)
-
-    def onMenuItem(self, evt, args):
-        name = evt.item['name']
-        if name == 'add-ref-ths-zs' or name == 'add-ref-cls-zs':
-            code = evt.item['code']
-            self.loadRef(code)
-            self.invalidWindow()
-
-    def getRefThsZsModel(self, item):
-        model = []
-        if not self.model.dataModel:
-            return model
-        code = self.model.dataModel.code
-        if len(code) == 8:
-            code = code[2 : ]
-        obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
-        if not obj:
-            return model
-        if obj.hy_2_code: model.append({'title': obj.hy_2_name, 'code': obj.hy_2_code})
-        if obj.hy_3_code: model.append({'title': obj.hy_3_name, 'code': obj.hy_3_code})
-        model.append({'title': 'LINE'})
-        if not obj.gn_code:
-            return model
-        gn_codes = obj.gn_code.split(';')
-        gn_names = obj.gn.split(';')
-        for i in range(len(gn_codes)):
-            if gn_codes[i].strip():
-                model.append({'title': gn_names[i], 'code': gn_codes[i].strip()})
-        return model
-    
-    def getRefClsZsModel(self, item):
-        model = []
-        if not self.model.dataModel:
-            return model
-        code = self.model.dataModel.code
-        if len(code) == 8:
-            code = code[2 : ]
-        obj : cls_orm.CLS_GNTC = cls_orm.CLS_GNTC.get_or_none(cls_orm.CLS_GNTC.code == code)
-        if not obj:
-            return model
-        if obj.hy:
-            hys = obj.hy.split(';')
-            hycs = obj.hy_code.split(';')
-            for i in range(len(hys)):
-                if hycs[i].strip():
-                    model.append({'title': hys[i], 'code': hycs[i]})
-        model.append({'title': 'LINE'})
-        if not obj.gn_code:
-            return model
-        gn_codes = obj.gn_code.split(';')
-        gn_names = obj.gn.split(';')
-        for i in range(len(gn_codes)):
-            if gn_codes[i].strip():
-                model.append({'title': gn_names[i], 'code': gn_codes[i].strip()})
-        return model
+        self.cttMenuMgr.onContextMenu()
 
     def onSize(self):
         W, H = self.getClientSize()
@@ -505,79 +508,63 @@ class TimelineWindow(base_win.BaseWindow):
             self.onSize()
         return super().winProc(hwnd, msg, wParam, lParam)
 
-class PanKouWindow(ext_win.CellRenderWindow):
+class PanKouWindow(base_win.BaseWindow):
     def __init__(self) -> None:
-        super().__init__(('1fr', '2fr', '2fr'))
+        super().__init__()
         self.data = None
-        VCENTER = win32con.DT_VCENTER | win32con.DT_SINGLELINE
-        CENTER = VCENTER | win32con.DT_CENTER
-        for i in range(5):
-            self.addRow({'height': 25, 'margin': 0, 'name': 'sell', 'val': 5 - i}, {'text': str(5 - i), 'color': 0xc0c0c0, 'textAlign': CENTER, 'fontSize': 16}, self.getCell, self.getCell)
-        self.addRow({'height': 2, 'bgColor': 0x2020a0})
-        for i in range(5):
-            self.addRow({'height': 25, 'margin': 0, 'name': 'buy', 'val': i + 1}, {'text': str(i + 1), 'color': 0xc0c0c0, 'textAlign': CENTER, 'fontSize': 16}, self.getCell, self.getCell)
 
-    def getCell(self, rowInfo, cellIdx):
-        if not self.data:
-            return None
-        k = rowInfo['name'][0]
-        i = rowInfo['val']
-        px = self.data.get(f'{k}_px_{i}', 0)
-        amount = self.data.get(f'{k}_amount_{i}', 0)
-        amount *= px * 100
-        cx = {'textAlign': win32con.DT_VCENTER | win32con.DT_SINGLELINE}
-
-        if cellIdx == 1:
-            ipx = int(px * 100 + 0.5)
-            if ipx > 0:
-                cx['text'] = f'{ipx // 100}.{ipx % 100}'
-            
-            pre = self.data.get('preclose_px', 0)
-            cx['color'] = 0x0000ff if px >= pre else 0x00ff00
-        elif cellIdx == 2:
-            cx['color'] = 0xF4E202
-            if amount >= 100000000:
-                cx['text'] = f'{amount / 100000000 :.2f}亿'
-            elif amount > 0:
-                cx['text'] = f'{amount / 10000 :.1f}万'
-            else:
-                cx['text'] = ''
-        return cx
-
-    def getVolCell(self, rowInfo, cellIdx):
-        if not self.data:
-            return None
-        k = rowInfo['name'][0]
-        i = rowInfo['val']
-        px = self.data.get(f'{k}_px_{i}', 0)
-        
-        cx = {}
-        pre = self.data.get('preclose_px', 0)
-        cx['color'] = 0x0000ff if px >= pre else 0x00ff00
-        ipx = int(px * 100 + 0.5)
-        cx['text'] = f'{ipx // 100}.{ipx % 100}'
-        return cx
-
-    def createWindow(self, parentWnd, rect, style= win32con.WS_VISIBLE | win32con.WS_CHILD, className='STATIC', title=''):
-        super().createWindow(parentWnd, rect, style, className, title)
-
+    # day = str | int
     def load(self, code, day):
-        tds = ths_iwencai.getTradeDays()
-        if not tds:
-            return
-        if type(day) == str:
-            day = day.replace('-', '')
-        elif type(day) == int:
+        base_win.ThreadPool.instance().addTask_N(self._load, code, day)
+    
+    def _load(self, code, day):
+        if type(day) == int:
             day = str(day)
-        if not day or day == tds[-1]:
+        if len(day) == 8:
+            day = f'{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}'
+        tdays = ths_iwencai.getTradeDays()
+        if tdays[-1] == day.replace('-', ''):
             url = cls.ClsUrl()
             self.data = url.loadPanKou5(code)
         else:
-            day = f'{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}'
             obj = tck_orm.ZT_PanKou.get_or_none(day = day, code = code)
-            if obj:
+            if obj and obj.info:
                 self.data = json.loads(obj.info)
         self.invalidWindow()
+
+    def onDraw(self, hdc):
+        if not self.data:
+            return
+        W, H = self.getClientSize()
+        VCENTER = win32con.DT_VCENTER | win32con.DT_SINGLELINE
+        CENTER = VCENTER | win32con.DT_CENTER
+        RH = 25
+        pre = self.data.get('preclose_px', 0)
+        for i in range(10):
+            if i < 5:
+                idx = str(5 - i)
+                px = self.data.get(f's_px_{idx}', 0)
+                amount = self.data.get(f's_amount_{idx}', 0)
+            else:
+                idx = str(i - 4)
+                px = self.data.get(f'b_px_{idx}', 0)
+                amount = self.data.get(f'b_amount_{idx}', 0)
+            amount *= px * 100
+            if amount >= 100000000:
+                famount = f'{amount / 100000000 :.2f}亿'
+            else:
+                famount = f'{amount / 10000 :.1f}万'
+            ipx = int(px * 100 + 0.5)
+            fpx = f'{ipx // 100}.{ipx % 100}'
+            idxColor = 0x0000ff if px >= pre else 0x00ff00
+            valColor = 0xF4E202
+            self.drawer.drawText(hdc, str(idx), (5, RH * i, 20, RH * i + RH), idxColor, VCENTER)
+            if ipx > 0:
+                self.drawer.drawText(hdc, fpx, (40, RH * i, 90, RH * i + RH), idxColor, VCENTER)
+            if amount > 0:
+                self.drawer.drawText(hdc, famount, (60, RH * i, W - 10, RH * i + RH), valColor, VCENTER | win32con.DT_RIGHT)
+            if i == 4:
+                self.drawer.drawLine(hdc, 0, RH * i + RH, W, RH * i + RH, 0x909090)
 
 class TimelinePanKouWindow(base_win.BaseWindow):
     def __init__(self) -> None:
@@ -589,7 +576,7 @@ class TimelinePanKouWindow(base_win.BaseWindow):
     def createWindow(self, parentWnd, rect, style= win32con.WS_VISIBLE | win32con.WS_CHILD, className='STATIC', title=''):
         super().createWindow(parentWnd, rect, style, className, title)
         self.layout = base_win.GridLayout(('1fr', ), ('1fr', 200), (5, 5))
-        self.timelineWin = SimpleTimelineWindow()
+        self.timelineWin = TimelineWindow()
         self.timelineWin.createWindow(self.hwnd, (0, 0, 1, 1))
         self.pankouWin = PanKouWindow()
         self.pankouWin.createWindow(self.hwnd, (0, 0, 1, 1))
@@ -597,28 +584,16 @@ class TimelinePanKouWindow(base_win.BaseWindow):
         self.layout.setContent(0, 1, self.pankouWin)
         win32gui.PostMessage(self.hwnd, win32con.WM_SIZE, 0, 0)
 
-    def load(self, code, day = None):
-        pool = base_win.ThreadPool.instance()
-        pool.start()
-        def lda():
-            self.timelineWin.load(code, day)
-        def ldb():
-            self.pankouWin.load(code, day)
-        pool.addTaskOnThread(1, 'TLa', lda)
-        pool.addTask('TLb', ldb)
+    # day = str | int
+    def load(self, code, day):
+        self.timelineWin.load(code, day)
+        self.timelineWin.loadRef(code)
+        self.pankouWin.load(code, day)
 
-    def loadRefZS(self, zsCode):
-        def lda():
-            self.timelineWin.addRefZS(zsCode)
-        pool = base_win.ThreadPool.instance()
-        pool.addTaskOnThread(1, 'TLa-r', lda)
-    
 if __name__ == '__main__':
     base_win.ThreadPool.instance().start()
-    win = TimelineWindow()
-    win.createWindow(None, (0, 0, 1000, 600), win32con.WS_OVERLAPPEDWINDOW)
-    win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
-    #win.load('002085', None)
-    win.load('301016', None) # cls82437 sh000001 ; 300390  600611
-    win.loadRef('885876')  # 885876  cls82545
+    win = TimelinePanKouWindow()
+    win.createWindow(None, (0, 0, 1000, 600), win32con.WS_OVERLAPPEDWINDOW| win32con.WS_VISIBLE)
+    win.load('301016', 20250403) # cls82437 sh000001 ; 300390  600611
+
     win32gui.PumpMessages()

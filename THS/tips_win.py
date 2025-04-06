@@ -6,7 +6,7 @@ import types
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download import datafile, henxin, cls
 from THS import hot_utils
-from common import base_win, ext_win, dialog
+from common import base_win, dialog
 from orm import tck_orm, ths_orm, tck_def_orm, cls_orm
 
 #-----------------------------------------------------------
@@ -1502,7 +1502,7 @@ class BkGnWindow(base_win.BaseWindow):
         self.thsGntc = None
         self.clsGntc = None
         self.defHotGns = []
-        self.richRender = ext_win.RichTextRender(17)
+        self.richRender = base_win.RichTextRender(17)
         self.clsHotGns = []
         self.limitDaysNum = self._getLimitDaysNum()
         self.lastDay = None

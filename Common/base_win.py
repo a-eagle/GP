@@ -3344,6 +3344,61 @@ class ComboBox(Editor):
             # no return
         return super().winProc(hwnd, msg, wParam, lParam)
 
+class RichTextRender:
+    def __init__(self, lineHeight = 20) -> None:
+        self.specs = []
+        self.lineHeight = lineHeight
+    
+    # text: str | function(args)
+    # color: int | function(args)
+    # bgColor: int | function(args)
+    # fontSize: int
+    # args: any param, used for function
+    def addText(self, text, color = None, bgColor = None, fontSize = 12, args = None):
+        self.specs.append({'text': text, 'color': color, 'bgColor': bgColor, 'fontSize': fontSize, 'args': args})
+
+    def _getAttr(self, spec, attr):
+        val = None
+        if callable(spec[attr]):
+            val = spec[attr](spec['args'])
+        else:
+            val = spec[attr]
+        return val
+
+    def _calcSpecsRect(self, hdc, drawer : base_win.Drawer, rect):
+        SX, SY = rect[0], rect[1]
+        EX, EY = rect[2], rect[3]
+        x, y = SX, SY
+        for item in self.specs:
+            text = self._getAttr(item, 'text')
+            fnt = drawer.getFont(fontSize = item['fontSize'])
+            drawer.use(hdc, fnt)
+            sw, *_ = win32gui.GetTextExtentPoint32(hdc, text)
+            if sw + x <= EX:
+                item['rect'] = (x, y, x + sw, y + self.lineHeight)
+            else:
+                x = SX
+                y += self.lineHeight
+                item['rect'] = (x, y, x + sw, y + self.lineHeight)
+            x += sw
+
+    def draw(self, hdc, drawer : base_win.Drawer, rect):
+        sdc = win32gui.SaveDC(hdc)
+        W, H = rect[2] - rect[0], rect[3] - rect[1]
+        EY = rect[3]
+        self._calcSpecsRect(hdc, drawer, rect)
+        for item in self.specs:
+            rc = item['rect']
+            if rc[1] >= EY: #or rc[3] > EY
+                continue
+            fnt = drawer.getFont(fontSize = self._getAttr(item, 'fontSize'))
+            drawer.use(hdc, fnt)
+            bg = self._getAttr(item, 'bgColor')
+            if type(bg) == int:
+                drawer.fillRect(hdc, rc, bg)
+            drawer.drawText(hdc, self._getAttr(item, 'text'), rc, color = self._getAttr(item, 'color'), align = win32con.DT_LEFT | win32con.DT_SINGLELINE | win32con.DT_VCENTER)
+        win32gui.RestoreDC(hdc, sdc)
+
 class ThsShareMemory:
     POS_CODE = 0
     POS_SEL_DAY = 1

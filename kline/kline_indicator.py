@@ -7,7 +7,7 @@ from download.datafile import *
 from common.base_win import *
 
 from THS import hot_utils
-from download import henxin, cls
+from download import cls
 from orm import speed_orm, ths_orm, tck_orm, lhb_orm, cls_orm
 
 def getTypeByCode(code):

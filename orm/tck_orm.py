@@ -4,27 +4,6 @@ import sys, datetime
 path = __file__[0 : __file__.upper().index('GP')]
 db_tck = pw.SqliteDatabase(f'{path}GP/db/TCK.db') # 题材库
 
-class KPL_ZT(pw.Model):
-    code = pw.CharField()
-    name = pw.CharField(null = True)
-    day = pw.CharField() # YYYY-MM-DD
-    ztTime = pw.CharField(null = True, column_name='涨停时间')
-    status = pw.CharField(null = True, column_name='状态')
-    ztReason = pw.CharField(null = True, column_name='涨停原因')
-    ztNum = pw.IntegerField(null=True, column_name='涨停数量')
-    remark = pw.CharField(null=True, column_name='备注')
-
-    class Meta:
-        database = db_tck
-
-# 开盘啦市场情绪
-class KPL_SCQX(pw.Model):
-    day = pw.CharField()
-    zhqd = pw.IntegerField(column_name='综合强度')
-
-    class Meta:
-        database = db_tck
-
 # 同花顺涨停
 class THS_ZT(pw.Model):
     code = pw.CharField()
@@ -105,21 +84,6 @@ class CLS_HotTc(pw.Model):
 
     class Meta:
         database = db_tck
-
-# 财联社同花顺题材
-class CLS_THS_Tc(pw.Model):
-    clsName = pw.CharField()
-    thsName = pw.CharField() # 对应多个时用逗号分隔
-
-    class Meta:
-        database = db_tck
-
-def getClsThsNames():
-    rs = {}
-    for it in CLS_THS_Tc.select():
-        if it.clsName and it.thsName:
-            rs[it.clsName.strip()] = it.thsName.strip()
-    return rs
         
 #db_tck.drop_tables([CLS_SCQX_Time])
-db_tck.create_tables([THS_ZT, CLS_ZT, KPL_ZT, KPL_SCQX, CLS_SCQX, CLS_HotTc, CLS_THS_Tc, CLS_SCQX_Time, ZT_PanKou, CLS_UpDown])
+db_tck.create_tables([THS_ZT, CLS_ZT, CLS_SCQX, CLS_HotTc, CLS_SCQX_Time, ZT_PanKou, CLS_UpDown])
