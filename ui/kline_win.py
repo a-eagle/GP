@@ -484,6 +484,7 @@ class TextLineManager:
                 return self.onMouseMove(x, y)
             if msg == win32con.WM_LBUTTONDBLCLK:
                 return self.onDblClick(x, y)
+            return self.captureMouse
         return False
 
 class RangeSelectorManager:
@@ -505,6 +506,7 @@ class RangeSelectorManager:
                 return self.onLButtonUp(x, y)
             if msg == win32con.WM_MOUSEMOVE:
                 return self.onMouseMove(x, y)
+            return self.captureMouse
         return False
 
 class KLineWindow(base_win.BaseWindow):
