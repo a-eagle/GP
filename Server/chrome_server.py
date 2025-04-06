@@ -49,7 +49,7 @@ class Server:
         win.changeCode(code)
         if params:
             js = json.loads(params.decode())
-            win.klineWin.setMarkDay(js.get('day'), None)
+            win.klineWin.marksMgr.setMarkDay(js.get('day'), None)
             cs : list = js.get('codes', [])
             idx = cs.index(code) if code in cs else -1
             win.setCodeList(cs, idx)
@@ -105,7 +105,7 @@ class Server:
                'lhb': lhb_orm.db_lhb,
                'def': def_orm.db_def,
                'ths_gntc': ths_orm.db_gntc, 'hot': ths_orm.db_hot, 'hot_zh': ths_orm.db_hot_zh, 'ths_zs': ths_orm.db_thszs,
-               'speed': speed_orm.zsdb, 'chrome': chrome_orm.db_chrome}
+               'speed': speed_orm.zsdb, 'chrome': chrome_orm.db_chrome, 'cls': cls_orm.db_cls}
         return dbs
 
     def queryBySql(self, dbName):
@@ -172,7 +172,6 @@ class Server:
         return 'ok'
 
     def getTradeDays(self):
-        
         days = ths_iwencai.getTradeDays(180)
         rs = []
         for d in days:
@@ -214,14 +213,15 @@ class Server:
                 rs['pre'] = data['pre']
                 rs['line'] = data['line']
         else:
-            df = datafile.DataFile(code, datafile.DataFile.DT_MINLINE)
-            df.loadDataByDay(day)
-            rs['pre'] = getattr(df, 'pre', df.data[0].price)
+            df = datafile.T_DataModel(code)
+            df.loadLocalData(day)
+            rs['pre'] = df.pre
             rs['line'] = df.data
         rsd = []
+        KS = ('day', 'time', 'price', 'avgPrice', 'amount', 'vol')
         for ln in rs['line']:
             item = {}
-            for k in datafile.ItemData.MLS2: 
+            for k in KS: 
                 item[k] = getattr(ln, k)
             rsd.append(item)
         rs['line'] = rsd

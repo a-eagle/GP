@@ -148,7 +148,7 @@ class GlobalMgr {
 		let fday = formatDay(date);
 		let sql = "select day, 综合强度 as degree, substr(day, 6) as sday, fb from CLS_SCQX where day >= '" + fday + "' and day <= '" + eday + "'";
 		$.ajax({
-			url: 'http://localhost:5665/query-by-sql/tck',
+			url: 'http://localhost:5665/query-by-sql/cls',
 			data: {'sql': sql},
 			success: function(resp) {
 				let ds = thiz._getDays(fday, eday);
@@ -432,7 +432,7 @@ class ZdfbMgr {
 		let thiz =  this;
 		let sql = `select day, 综合强度 as degree, substr(day, 6) as sday, fb from CLS_SCQX where day = '${day}'`;
 		$.ajax({
-			url: 'http://localhost:5665/query-by-sql/tck',
+			url: 'http://localhost:5665/query-by-sql/cls',
 			data: {'sql': sql},
 			success: function(resp) {
 				let ds = JSON.parse(resp[0].fb);
@@ -789,7 +789,7 @@ class TabNaviMgr {
 			else if (name == '炸板池') sql += ' and limit_up_days = 0 and is_down = 0';
 			else sql += ' and is_down = 1';
 			$.ajax({
-				url : 'http://localhost:5665/query-by-sql/tck',
+				url : 'http://localhost:5665/query-by-sql/cls',
 				data: {'sql': sql},
 				success: function(resp) {
 					thiz.updateTabNavi(name, resp);

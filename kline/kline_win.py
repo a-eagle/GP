@@ -1,11 +1,10 @@
 import os, sys, functools, copy, datetime, json, time, traceback
 import win32gui, win32con, win32api
 
-from utils import gn_utils
-
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import def_orm
 from common import base_win, dialog
+from utils import gn_utils
 from kline.kline_indicator import *
 
 class MarksMgr:
@@ -564,6 +563,9 @@ class KLineWindow(base_win.BaseWindow):
             self.onMouseClick(x, y)
             return True
         if msg == win32con.WM_LBUTTONDBLCLK:
+            if self.selIdx > 0:
+                data = self.klineIndicator.data[self.selIdx]
+                self.notifyListener(self.Event('DbClick', self, code = self.klineIndicator.code, idx = self.selIdx, data = data))
             return True
         if msg == win32con.WM_RBUTTONUP:
             x, y = lParam & 0xffff, (lParam >> 16) & 0xffff

@@ -541,14 +541,14 @@ class HotCardView(CardView):
             hot['detail'] = [d.__data__ for d in info]
         self.tipInfo['detail'] = hot['detail']
 
-class KPLCardView(CardView):
+class ZTCardView(CardView):
     def __init__(self, cardWindow):
         super().__init__(cardWindow)
         self.kplZTData = None
         self.ROW_HEIGHT = 18
         self.selectDay = 0
-        self.ormClazz = z_orm.KPL_ZT
-        self.emptyLine = '\n\n无开盘啦涨停信息'
+        self.ormClazz = None
+        self.emptyLine = '\n\n无涨停信息'
         self.fontSize = 12
         self.code = None
         self.visibleRange = None
@@ -617,7 +617,7 @@ class KPLCardView(CardView):
             x = (idx // MAX_ROWS) * COL_WIDTH
             self.drawLine(hdc, kpl, (x, y, x + COL_WIDTH, y + H))
 
-class THS_ZTCardView(KPLCardView):
+class THS_ZTCardView(ZTCardView):
     def __init__(self, cardWindow):
         super().__init__(cardWindow)
         self.ormClazz = ths_orm.THS_ZT
@@ -673,7 +673,7 @@ class THS_ZTCardView(KPLCardView):
             return True
         return False
     
-class Cls_ZTCardView(KPLCardView):
+class Cls_ZTCardView(ZTCardView):
     def __init__(self, cardWindow):
         super().__init__(cardWindow)
         self.ormClazz = cls_orm.CLS_ZT

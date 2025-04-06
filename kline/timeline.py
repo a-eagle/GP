@@ -587,13 +587,14 @@ class TimelinePanKouWindow(base_win.BaseWindow):
     # day = str | int
     def load(self, code, day):
         self.timelineWin.load(code, day)
-        self.timelineWin.loadRef(code)
         self.pankouWin.load(code, day)
 
+    def loadRef(self, code):
+        self.timelineWin.loadRef(code)
+
 if __name__ == '__main__':
-    base_win.ThreadPool.instance().start()
     win = TimelinePanKouWindow()
     win.createWindow(None, (0, 0, 1000, 600), win32con.WS_OVERLAPPEDWINDOW| win32con.WS_VISIBLE)
     win.load('301016', 20250403) # cls82437 sh000001 ; 300390  600611
-
+    win.loadRef('cls82437') 
     win32gui.PumpMessages()

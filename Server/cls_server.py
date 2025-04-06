@@ -315,6 +315,7 @@ class Server:
                 if not pk:
                     full = False
                     continue
+                pk = json.dumps(pk)
                 z_orm.ZT_PanKou.create(code = r['code'], day = r['day'], info = pk)
             if full:
                 self._lastLoadZT_PanKou = time.time()

@@ -333,6 +333,7 @@ class ThreadPool:
         return self._taskId
 
     def addTask(self, taskId, func, *args):
+        self.start()
         th = None
         for t in self.threads:
             if th is None or len(t.tasks) < len(th.tasks):
@@ -343,6 +344,7 @@ class ThreadPool:
         self.addTask(self.nextTaskId(), func, *args)
 
     def addTaskOnThread(self, threadIdx, taskId, func, *args):
+        self.start()
         if threadIdx >= 0 and threadIdx < len(self.threads):
             self.threads[threadIdx].addTask(taskId, func, *args)
 

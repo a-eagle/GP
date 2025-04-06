@@ -80,9 +80,9 @@ def openKlineMinutes_Simple(evt, parent : base_win.BaseWindow):
     win.load(evt.code, day)
     if isinstance(parent, kline_win.KLineCodeWindow):
         p : kline_win.KLineCodeWindow = parent
-        zs = p.klineWin.klineIndicator.refZSDrawer.model
+        zs = p.klineWin.refIndicator.model
         if zs:
-            win.loadRefZS(zs.code)
+            win.loadRef(zs.code)
     return win
 
 def openInThsWindow(data):
@@ -97,3 +97,8 @@ def openInThsWindow(data):
     pyautogui.typewrite(data['code'], 0.1)
     time.sleep(0.2)
     pyautogui.press('enter')
+
+if __name__ == '__main__':
+    openInCurWindow_Code(None, {'code': '002165'})
+    win32gui.PumpMessages()
+    pass
