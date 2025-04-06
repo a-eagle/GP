@@ -181,6 +181,7 @@ class TextLineManager:
 
     def __init__(self, win) -> None:
         self.win : KLineWindow = win
+        self.captureMouse = False
         self._reset()
 
     def _reset(self):
@@ -354,6 +355,7 @@ class TextLineManager:
         return None
 
     def onLButtonDown(self, x, y):
+        self.captureMouse = False
         if self.curLine and self.isDrawing: # is drawing line
             kl = self.win.klineIndicator
             if self.curLine.kind == 'line':
@@ -363,6 +365,7 @@ class TextLineManager:
                     return False
                 pos.dx = 0 # modify line dx to 0
                 self.curLine.startPos = pos
+                self.captureMouse = True
                 return True
         else: #click on text
             old = self.selTextLine
@@ -370,6 +373,8 @@ class TextLineManager:
             if old != self.selTextLine:
                 self.save(old)
                 self.win.invalidWindow()
+            if self.selTextLine:
+                self.captureMouse = True
             return self.selTextLine != None
         return False
     
@@ -381,6 +386,7 @@ class TextLineManager:
             self.cancel()
 
     def onLButtonUp(self, x, y):
+        self.captureMouse = False
         if not self.isDrawing or not self.curLine:
             return False
         kl = self.win.klineIndicator
@@ -413,14 +419,14 @@ class TextLineManager:
                self.curLine.startPos and self.curLine.startPos.day > 0
 
     def onMouseMove(self, x, y):
-        if not self.isStartDrawLine():
-            return False
-        pos = self.getPosByXY(x, y)
-        if pos:
-            self.curLine.endPos = pos
-            self.curLine.endPos.dx = 0 # modify dx to 0
-        self.win.invalidWindow()
-        return True
+        if self.isStartDrawLine():
+            pos = self.getPosByXY(x, y)
+            if pos:
+                self.curLine.endPos = pos
+                self.curLine.endPos.dx = 0 # modify dx to 0
+            self.win.invalidWindow()
+            return True
+        return self.captureMouse
 
     def onDblClick(self, x, y):
         self.selTextLine = self.getTextByXY(x, y)
@@ -478,6 +484,27 @@ class TextLineManager:
                 return self.onMouseMove(x, y)
             if msg == win32con.WM_LBUTTONDBLCLK:
                 return self.onDblClick(x, y)
+        return False
+
+class RangeSelectorManager:
+    def __init__(self, win) -> None:
+        self.win = win
+    
+    def winProc(self, hwnd, msg, wParam, lParam):
+        if msg >= win32con.WM_MOUSEFIRST and msg <= win32con.WM_MOUSELAST:
+            kl = self.win.klineIndicator
+            x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
+            x -= kl.x
+            y -= kl.y
+            isInK = x >= 0 and x < kl.width and y >= 0 and y < kl.height
+            if not isInK or not kl.visibleRange:
+                return False
+            if msg == win32con.WM_LBUTTONDOWN:
+                return self.onLButtonDown(x, y)
+            if msg == win32con.WM_LBUTTONUP:
+                return self.onLButtonUp(x, y)
+            if msg == win32con.WM_MOUSEMOVE:
+                return self.onMouseMove(x, y)
         return False
 
 class KLineWindow(base_win.BaseWindow):
