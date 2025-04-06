@@ -3,10 +3,11 @@ import threading, time, datetime, sys, os, threading, copy, traceback
 import sys, pyautogui
 import peewee as pw
 import types
+
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download import datafile, henxin, cls
 from utils import hot_utils
-from common import base_win, dialog
+from ui import dialog, base_win
 from orm import d_orm, def_orm, ths_orm, cls_orm
 
 #-----------------------------------------------------------

@@ -4,8 +4,7 @@ import requests, peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download.datafile import *
-from common.base_win import *
-
+from ui.base_win import *
 from utils import hot_utils, gn_utils
 from download import cls
 from orm import d_orm, ths_orm, lhb_orm, cls_orm

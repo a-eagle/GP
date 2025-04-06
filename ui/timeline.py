@@ -5,9 +5,8 @@ import win32gui, win32con
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download import datafile, cls, ths_iwencai
-from common import base_win
 from orm import d_orm, ths_orm, cls_orm
-from kline import fx
+from ui import fx, base_win
 
 def getTypeByCode(code):
     if not code:

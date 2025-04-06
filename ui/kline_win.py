@@ -3,9 +3,9 @@ import win32gui, win32con, win32api
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import def_orm
-from common import base_win, dialog
+from ui import base_win, dialog
 from utils import gn_utils
-from kline.kline_indicator import *
+from ui.kline_indicator import *
 
 class MarksMgr:
     def __init__(self, win) -> None:

@@ -7,7 +7,7 @@ import system_hotkey
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from THS import ths_win, ths_ocr, tips_win
-from common import base_win
+from ui import base_win
 
 curCode = None
 thsWindow = ths_win.ThsWindow()

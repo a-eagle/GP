@@ -1,6 +1,6 @@
 import sys, win32con, win32gui, win32api
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from common import base_win
+from ui import base_win
 
 class Dialog(base_win.BaseWindow):
     def __init__(self) -> None:

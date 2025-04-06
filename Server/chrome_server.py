@@ -3,7 +3,7 @@ import flask, flask_cors
 import win32con, win32gui, peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from common import base_win
+from ui import base_win
 from download import ths_iwencai, datafile, ths_iwencai, henxin, cls
 from orm import d_orm, def_orm, cls_orm, chrome_orm, lhb_orm, ths_orm
 from utils import hot_utils, gn_utils
