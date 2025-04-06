@@ -4,7 +4,7 @@ import requests, json, logging
 import peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import cls_orm, z_orm, ths_orm
+from orm import cls_orm, d_orm, ths_orm
 from download import console, cls, ths_iwencai
 
 class Server:
@@ -308,7 +308,7 @@ class Server:
             rs = self._downloadClsZT()
             full = True
             for r in rs:
-                obj = z_orm.ZT_PanKou.get_or_none(day = r['day'], code = r['code'])
+                obj = d_orm.ZT_PanKou.get_or_none(day = r['day'], code = r['code'])
                 if obj:
                     continue
                 pk = cls.ClsUrl().loadPanKou5(r['code'])
@@ -316,7 +316,7 @@ class Server:
                     full = False
                     continue
                 pk = json.dumps(pk)
-                z_orm.ZT_PanKou.create(code = r['code'], day = r['day'], info = pk)
+                d_orm.ZT_PanKou.create(code = r['code'], day = r['day'], info = pk)
             if full:
                 self._lastLoadZT_PanKou = time.time()
                 console.writeln_1(console.CYAN, f'[Cls-ZT-PanKou] {tag} {self.formatNowTime(True)} ')

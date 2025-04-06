@@ -2,15 +2,13 @@ import os, sys, functools, copy, datetime, json, time, traceback
 import win32gui, win32con
 import requests, peewee as pw
 
-from utils import gn_utils
-
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download.datafile import *
 from common.base_win import *
 
-from utils import hot_utils
+from utils import hot_utils, gn_utils
 from download import cls
-from orm import speed_orm, ths_orm, lhb_orm, cls_orm
+from orm import d_orm, ths_orm, lhb_orm, cls_orm
 
 def getTypeByCode(code):
     if not code:
@@ -1051,7 +1049,7 @@ class ZhangSuIndicator(CustomIndicator):
         super()._changeCode()
         if len(self.code) != 6:
             return
-        qr = speed_orm.LocalSpeedModel.select().where(speed_orm.LocalSpeedModel.code == self.code).dicts()
+        qr = d_orm.LocalSpeedModel.select().where(d_orm.LocalSpeedModel.code == self.code).dicts()
         maps = {}
         for d in qr:
             day = d['day']

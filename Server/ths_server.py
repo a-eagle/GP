@@ -5,7 +5,7 @@ import datetime, time, sys, os, re
 
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import ths_orm, cls_orm, z_orm
+from orm import d_orm, ths_orm, cls_orm
 from download import henxin, console, ths_iwencai
 from utils import hot_utils
 
@@ -178,10 +178,10 @@ class Server:
             if not rs:
                 return False
             day = rs[0]['day']
-            obj = z_orm.HotVol.get_or_none(z_orm.HotVol.day == day)
+            obj = d_orm.HotVol.get_or_none(d_orm.HotVol.day == day)
             if not obj:
                 vols = [d['vol'] for d in rs]
-                item = z_orm.HotVol()
+                item = d_orm.HotVol()
                 item.day = day
                 for i in (1, 10, 20, 50, 100):
                     setattr(item, f'p{i}', int(vols[i - 1]))

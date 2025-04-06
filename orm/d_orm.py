@@ -30,6 +30,21 @@ class HotVol(pw.Model):
 
     class Meta:
         database = db_hotvol
-      
+
+db_zhangsu = pw.SqliteDatabase(f'{path}GP/db/ZhangSu.db')
+# Local涨速
+class LocalSpeedModel(pw.Model):
+    day = pw.IntegerField() # 日期
+    code = pw.CharField() #股票代码
+    fromMinute = pw.IntegerField()
+    endMinute  = pw.IntegerField()
+    minuts =  pw.IntegerField() # 时间
+    zf = pw.FloatField() #涨幅
+
+    class Meta:
+        database = db_zhangsu
+        table_name = 'LocalZS'        
+
 db_pankou.create_tables([ZT_PanKou])
 db_hotvol.create_tables([HotVol])
+db_zhangsu.create_tables([LocalSpeedModel])

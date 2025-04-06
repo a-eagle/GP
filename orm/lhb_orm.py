@@ -5,7 +5,6 @@ path = sys.argv[0]
 path = path[0 : path.index('GP') ]
 
 db_lhb = pw.SqliteDatabase(f'{path}/GP/db/LHB.db')
-#db_ths = pw.SqliteDatabase(f'{path}GP/db/THS_F10.db')
 
 class TdxLHB(pw.Model):
     day = pw.CharField(column_name = '日期' ) # YYYY-MM-DD

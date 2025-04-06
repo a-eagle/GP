@@ -454,5 +454,5 @@ def download_vol_top100(day = None):
     return rs
 
 if __name__ == '__main__':
-    from orm import z_orm
+    from orm import d_orm
     ds = download_vol_top100()

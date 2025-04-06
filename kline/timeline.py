@@ -6,7 +6,7 @@ import win32gui, win32con
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download import datafile, cls, ths_iwencai
 from common import base_win
-from orm import ths_orm, cls_orm, z_orm
+from orm import d_orm, ths_orm, cls_orm
 from kline import fx
 
 def getTypeByCode(code):
@@ -527,7 +527,7 @@ class PanKouWindow(base_win.BaseWindow):
             url = cls.ClsUrl()
             self.data = url.loadPanKou5(code)
         else:
-            obj = z_orm.ZT_PanKou.get_or_none(day = day, code = code)
+            obj = d_orm.ZT_PanKou.get_or_none(day = day, code = code)
             if obj and obj.info:
                 self.data = json.loads(obj.info)
         self.invalidWindow()

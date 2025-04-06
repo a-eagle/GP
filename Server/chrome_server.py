@@ -5,7 +5,7 @@ import win32con, win32gui, peewee as pw
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from common import base_win
 from download import ths_iwencai, datafile, ths_iwencai, henxin, cls
-from orm import def_orm, z_orm, cls_orm, chrome_orm, lhb_orm, ths_orm, speed_orm
+from orm import d_orm, def_orm, cls_orm, chrome_orm, lhb_orm, ths_orm
 from utils import hot_utils, gn_utils
 
 class Server:
@@ -101,11 +101,9 @@ class Server:
         return rs
     
     def _getDBs(self):
-        dbs = {'cls_gntc': cls_orm.db_gntc, 
-               'lhb': lhb_orm.db_lhb,
-               'def': def_orm.db_def,
-               'ths_gntc': ths_orm.db_gntc, 'hot': ths_orm.db_hot, 'hot_zh': ths_orm.db_hot_zh, 'ths_zs': ths_orm.db_thszs,
-               'speed': speed_orm.zsdb, 'chrome': chrome_orm.db_chrome, 'cls': cls_orm.db_cls}
+        dbs = {'cls_gntc': cls_orm.db_gntc,  'lhb': lhb_orm.db_lhb, 'def': def_orm.db_def,
+               'ths_gntc': ths_orm.db_gntc, 'hot': ths_orm.db_hot, 'hot_zh': ths_orm.db_hot_zh,
+               'ths_zs': ths_orm.db_thszs, 'chrome': chrome_orm.db_chrome, 'cls': cls_orm.db_cls}
         return dbs
 
     def queryBySql(self, dbName):

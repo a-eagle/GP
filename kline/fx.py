@@ -7,7 +7,7 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
 from download.datafile import *
 from download import console
-from orm import speed_orm
+from orm import d_orm
 
 class FenXiCode:
     def __init__(self, code) -> None:
@@ -107,7 +107,7 @@ class FenXiLoader:
         if not rs:
             return
         lrs = {}
-        q = speed_orm.LocalSpeedModel.select().where(speed_orm.LocalSpeedModel.code == code, speed_orm.LocalSpeedModel.day >= rs[0]['day'])
+        q = d_orm.LocalSpeedModel.select().where(d_orm.LocalSpeedModel.code == code, d_orm.LocalSpeedModel.day >= rs[0]['day'])
         for it in q:
             key = f"{it.day}-{it.fromMinute}"
             lrs[key] = it
@@ -115,7 +115,7 @@ class FenXiLoader:
             key = f"{r['day']}-{r['fromMinute']}"
             obj = lrs.get(key, None)
             if not obj:
-                speed_orm.LocalSpeedModel.create(day = r['day'], code = code, fromMinute = r['fromMinute'], 
+                d_orm.LocalSpeedModel.create(day = r['day'], code = code, fromMinute = r['fromMinute'], 
                         endMinute = r['endMinute'], minuts = r['minuts'], zf = r['zf'])
             elif obj.endMinute != r['endMinute']:
                 obj.endMinute = r['endMinute']

@@ -7,7 +7,7 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download import datafile, henxin, cls
 from utils import hot_utils
 from common import base_win, dialog
-from orm import def_orm, ths_orm, cls_orm, z_orm
+from orm import d_orm, def_orm, ths_orm, cls_orm
 
 #-----------------------------------------------------------
 class ThsSortQuery:
@@ -1087,7 +1087,7 @@ class KPL_AllCardView(ListView):
         super().__init__(hwnd)
         self.windowTitle = 'KPL-ZT'
         self.curSelDay = 0
-        day = z_orm.KPL_ZT.select(pw.fn.max(z_orm.KPL_ZT.day)).scalar()
+        day = d_orm.KPL_ZT.select(pw.fn.max(d_orm.KPL_ZT.day)).scalar()
         self.updateData(day)
 
     def getFont(self):
@@ -1116,7 +1116,7 @@ class KPL_AllCardView(ListView):
         if day == self.curSelDay:
             return
         if not day:
-            day = z_orm.KPL_ZT.select(pw.fn.max(z_orm.KPL_ZT.day)).scalar()
+            day = d_orm.KPL_ZT.select(pw.fn.max(d_orm.KPL_ZT.day)).scalar()
         if not day:
             day = '0000-00-00'
         if type(day) == int:
@@ -1124,7 +1124,7 @@ class KPL_AllCardView(ListView):
         if len(day) == 8:
             day = day[0 : 4] + '-' + day[4 : 6] + '-' + day[6 : 8]
         self.curSelDay = int(day.replace('-', ''))
-        qr = z_orm.KPL_ZT.select().where(z_orm.KPL_ZT.day == day)
+        qr = d_orm.KPL_ZT.select().where(d_orm.KPL_ZT.day == day)
         self.data = [d.__data__ for d in qr]
         self.pageIdx = 0
         self.selIdx = -1
