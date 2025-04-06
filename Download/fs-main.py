@@ -4,7 +4,7 @@ import time, os, platform, sys, struct
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download import datafile, cls, henxin, console
 from orm import ths_orm, cls_orm
-from kline import fx
+from ui import fx
 
 def acceptTime():
     now = datetime.datetime.now()
