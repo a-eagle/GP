@@ -2,10 +2,11 @@ import threading, sys, traceback, datetime, json
 import flask, flask_cors
 import win32con, win32gui, peewee as pw
 
-from orm import def_orm, z_orm
-
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from common import base_win
+from download import ths_iwencai, datafile, ths_iwencai, henxin, cls
+from orm import def_orm, z_orm, cls_orm, chrome_orm, lhb_orm, ths_orm, speed_orm
+from utils import hot_utils, gn_utils
 
 class Server:
     def __init__(self) -> None:
@@ -67,8 +68,6 @@ class Server:
     
     def getHots(self):
         day = flask.request.args.get('day', None)
-        from utils import hot_utils
-        from Tck import utils
         hz = hot_utils.DynamicHotZH.instance()
         if day and len(day) >= 8:
             rs = hz.getHotsZH(day)
@@ -81,12 +80,11 @@ class Server:
             obj = rs[k]
             code = f'{k :06d}'
             it = m[code] = {'code': code, 'hots': obj['zhHotOrder']}
-            it['name'] = utils.get_THS_GNTC_Attr(code, 'name')
+            it['name'] = gn_utils.get_THS_GNTC_Attr(code, 'name')
         return m
     
     # day = YYYY-MM-DD
     def getTimeDegree(self):
-        from orm import z_orm
         day = flask.request.args.get('day', None)
         if not day:
             qr = cls_orm.CLS_SCQX_Time.select(pw.fn.max(cls_orm.CLS_SCQX_Time.day)).tuples()
@@ -103,11 +101,9 @@ class Server:
         return rs
     
     def _getDBs(self):
-        from orm import cls_orm, lhb_orm, ths_orm, chrome_orm, speed_orm
         dbs = {'cls_gntc': cls_orm.db_gntc, 
                'lhb': lhb_orm.db_lhb,
-               'tck_def': def_orm.db_def,
-               'tck': z_orm.db_pankou,
+               'def': def_orm.db_def,
                'ths_gntc': ths_orm.db_gntc, 'hot': ths_orm.db_hot, 'hot_zh': ths_orm.db_hot_zh, 'ths_zs': ths_orm.db_thszs,
                'speed': speed_orm.zsdb, 'chrome': chrome_orm.db_chrome}
         return dbs
@@ -134,7 +130,6 @@ class Server:
     
     # params = {op: 'save | get', data?: {code, secu_code?, name, color, day}  }
     def markColor(self):
-        from orm import chrome_orm
         params = flask.request.data
         js = json.loads(params.decode())
         mrs = {}
@@ -164,7 +159,6 @@ class Server:
     
     # params = {op: 'save | get', name: xxx, cnt?: xxx}
     def myNote(self):
-        from orm import chrome_orm
         params = flask.request.data
         js = json.loads(params.decode())
         obj = chrome_orm.MyNote.get_or_none(chrome_orm.MyNote.tag == js['name'])
@@ -178,7 +172,7 @@ class Server:
         return 'ok'
 
     def getTradeDays(self):
-        from Download import ths_iwencai
+        
         days = ths_iwencai.getTradeDays(180)
         rs = []
         for d in days:
@@ -187,7 +181,6 @@ class Server:
 
     def queryIWenCai(self):
         try:
-            from Download import ths_iwencai
             q = flask.request.args.get('q', None)
             if not q:
                 return None
@@ -201,7 +194,6 @@ class Server:
         return None
     
     def getFenShi(self, code):
-        from Download import datafile, ths_iwencai, cls, henxin
         day = flask.request.args.get('day', None)
         lastTradeDay = ths_iwencai.getTradeDays()[-1]
         today = datetime.date.today().strftime('%Y%m%d')
@@ -248,7 +240,6 @@ class Server:
     # {cols?:[ztReason, hots:[yyyy-mm-dd] ], codes:[]}
     def queryCodesInfo(self):
         from utils import hot_utils
-        from Tck import utils
         params = flask.request.data
         js = json.loads(params.decode())
         cols = js.get('cols', ['ztReason', 'hots'])
@@ -271,8 +262,8 @@ class Server:
         for code in ncodes:
             it = {'code': code, 'secu_code': self._getSecuCode(code)}
             rs[it['secu_code']] = it
-            cl = utils.cls_gntc_s.get(code, None) or {}
-            th = utils.ths_gntc_s.get(code, None) or {}
+            cl = gn_utils.cls_gntc_s.get(code, None) or {}
+            th = gn_utils.ths_gntc_s.get(code, None) or {}
             it['name'] = cl.get('name', '') or th.get('name', '')
             it['cls_hy'] = cl.get('hy', '')
             it['ths_hy'] = th.get('hy', '')
@@ -285,7 +276,7 @@ class Server:
                 hc = hh.get(int(code), None) if hh else None
                 it['hots'] = 0 if not hc else hc['zhHotOrder']
             if 'ztReason' in mcols:
-                zt = utils.get_CLS_THS_ZT_Reason(code)
+                zt = gn_utils.get_CLS_THS_ZT_Reason(code)
                 it['ths_ztReason'] = zt['ths_ztReason'] if zt else ''
                 it['cls_ztReason'] = zt['cls_ztReason'] if zt else ''
         return rs

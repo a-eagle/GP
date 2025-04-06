@@ -4,7 +4,7 @@ import requests, json, logging
 import peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import cls_orm
+from orm import cls_orm, z_orm, ths_orm
 from download import console, cls, ths_iwencai
 
 class Server:
@@ -114,7 +114,7 @@ class Server:
         try:
             now = datetime.datetime.now()
             today = now.strftime('%Y-%m-%d')
-            obj = tck_orm.CLS_SCQX.get_or_none(day = today)
+            obj = cls_orm.CLS_SCQX.get_or_none(day = today)
             if obj:
                 return True
             url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
@@ -125,10 +125,10 @@ class Server:
             degree = js['data']['market_degree']
             degree = int(float(degree) * 100)
             fb = cls.ClsUrl().getZDFenBu()
-            obj = tck_orm.CLS_SCQX.get_or_none(day = day)
+            obj = cls_orm.CLS_SCQX.get_or_none(day = day)
             if not obj:
                 fb = json.dumps(fb)
-                tck_orm.CLS_SCQX.create(day = day, zhqd = degree, fb = fb)
+                cls_orm.CLS_SCQX.create(day = day, zhqd = degree, fb = fb)
                 console.write_1(console.CYAN, f'[cls-degree] {tag} ')
                 print(' load degree: ', day, ' -> ', degree)
             return True
@@ -137,9 +137,9 @@ class Server:
         return False
 
     def saveDegreeTime(self, day, time, degree):
-        obj = tck_orm.CLS_SCQX_Time.get_or_none(day = day, time = time)
+        obj = cls_orm.CLS_SCQX_Time.get_or_none(day = day, time = time)
         if not obj:
-            tck_orm.CLS_SCQX_Time.create(day = day, time = time, zhqd = degree)
+            cls_orm.CLS_SCQX_Time.create(day = day, time = time, zhqd = degree)
     
     def loadOneTime(self):
         if time.time() - self._lastLoadTime < 5 * 60:
@@ -195,7 +195,7 @@ class Server:
             days = ths_iwencai.getTradeDays(daysNum)
             if not days:
                 return
-            maxDay = tck_orm.CLS_HotTc.select(pw.fn.max(tck_orm.CLS_HotTc.day)).scalar()
+            maxDay = cls_orm.CLS_HotTc.select(pw.fn.max(cls_orm.CLS_HotTc.day)).scalar()
             if not maxDay:
                 maxDay = days[- min(daysNum, len(days))]
             maxDay = maxDay.replace('-', '')
@@ -213,7 +213,7 @@ class Server:
             return
         cday = ds[0]['c_time'].split(' ')[0]
         exists = {}
-        qr = tck_orm.CLS_HotTc.select().where(tck_orm.CLS_HotTc.day == cday)
+        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day == cday)
         for it in qr:
             key = it.name + ' ' + it.ctime
             exists[key] = it
@@ -227,14 +227,13 @@ class Server:
                     ex.code = d['symbol_code']
                     ex.save()
             else:
-                tck_orm.CLS_HotTc.create(day = day, code = d['symbol_code'], name = d['symbol_name'], up = d['float'] == 'up', ctime = ctime)
+                cls_orm.CLS_HotTc.create(day = day, code = d['symbol_code'], name = d['symbol_name'], up = d['float'] == 'up', ctime = ctime)
 
     # 指数（板块概念）
     def downloadZS(self, tag):
         try:
             rs = cls.ClsUrl().loadAllZS()
             ex = {}
-            from orm import cls_orm
             qt = cls_orm.CLS_ZS.select()
             u, i = 0, 0
             for it in qt:
@@ -261,7 +260,6 @@ class Server:
             st = datetime.datetime.now().strftime('%H:%M')
             if st < '17:00' or st > '18:00':
                 return
-            from orm import cls_orm
             qt = cls_orm.CLS_ZS.select()
             u, i = 0, 0
             for it in qt:
@@ -275,7 +273,6 @@ class Server:
     def downloadBkGn(self, tag):
         try:
             console.writeln_1(console.CYAN, f'[CLS-HyGn] {self.formatNowTime(True)} begin...')
-            from orm import ths_orm, cls_orm
             qr = ths_orm.THS_GNTC.select().dicts()
             zs = {}
             def diff(old, new, names):
@@ -311,14 +308,14 @@ class Server:
             rs = self._downloadClsZT()
             full = True
             for r in rs:
-                obj = tck_orm.ZT_PanKou.get_or_none(day = r['day'], code = r['code'])
+                obj = z_orm.ZT_PanKou.get_or_none(day = r['day'], code = r['code'])
                 if obj:
                     continue
                 pk = cls.ClsUrl().loadPanKou5(r['code'])
                 if not pk:
                     full = False
                     continue
-                tck_orm.ZT_PanKou.create(code = r['code'], day = r['day'], info = pk)
+                z_orm.ZT_PanKou.create(code = r['code'], day = r['day'], info = pk)
             if full:
                 self._lastLoadZT_PanKou = time.time()
                 console.writeln_1(console.CYAN, f'[Cls-ZT-PanKou] {tag} {self.formatNowTime(True)} ')
@@ -343,9 +340,9 @@ class Server:
                         continue
                     d['day'] = d['time'][0 : 10]
                     d['time'] = d['time'][11 : ]
-                    ex = tck_orm.CLS_UpDown.get_or_none(secu_code = d['secu_code'], day = d['day'])
+                    ex = cls_orm.CLS_UpDown.get_or_none(secu_code = d['secu_code'], day = d['day'])
                     if not ex:
-                        obj = tck_orm.CLS_UpDown(**d)
+                        obj = cls_orm.CLS_UpDown(**d)
                         if 'type=down_pool' in url:
                             obj.is_down = 1
                         obj.save()

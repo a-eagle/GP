@@ -306,7 +306,7 @@ class Server:
 if __name__ == '__main__':
     #autoLoadHistory(20240708)
     #downloadOneDay(20240702)
-
-    Server().downloadSaveVolTop100('[4]', 20250402)
-    Server().downloadSaveVolTop100('[4]', 20250403)
-    Server().downloadSaveVolTop100('[4]')
+    s = Server()
+    s.downloadSaveVolTop100('[4]', 20250402)
+    s.downloadSaveVolTop100('[4]', 20250403)
+    s.downloadSaveVolTop100('[4]')

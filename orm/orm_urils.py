@@ -50,7 +50,7 @@ def move_ths():
 
 def move_def():
     import def_orm
-    db = pw.SqliteDatabase(f'{path}GP/db/def_tck.db')
+    db = pw.SqliteDatabase(f'{path}GP/db/TCK_def.db')
     move_table_data(db, def_orm.MySettings)
 
 def move_z():
@@ -59,8 +59,4 @@ def move_z():
     move_table_data(db, z_orm.ZT_PanKou)
 
 if __name__ == '__main__':
-    move_cls()
-    move_ths()
-    move_def()
-    move_z()
     pass
