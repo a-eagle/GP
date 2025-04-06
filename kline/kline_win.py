@@ -2,7 +2,7 @@ import os, sys, functools, copy, datetime, json, time, traceback
 import win32gui, win32con, win32api
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import tck_def_orm
+from orm import def_orm, utils
 from common import base_win, dialog
 from kline.kline_indicator import *
 
@@ -192,7 +192,7 @@ class TextLineManager:
     def changeCode(self, code):
         self._reset()
         self.code = code
-        q = tck_def_orm.TextLine.select().where(tck_def_orm.TextLine.code == code)
+        q = def_orm.TextLine.select().where(def_orm.TextLine.code == code)
         for row in q:
             row.startPos = self.Pos(pos = row._startPos)
             row.endPos = self.Pos(pos = row._endPos)
@@ -205,7 +205,7 @@ class TextLineManager:
     # kind = 'text' | 'line'
     def beginNew(self, kind):
         self.isDrawing = True
-        self.curLine = tck_def_orm.TextLine(code = self.code, kind = kind)
+        self.curLine = def_orm.TextLine(code = self.code, kind = kind)
         self.curLine.startPos = self.Pos()
         self.curLine.endPos = self.Pos()
     
@@ -518,7 +518,6 @@ class KLineWindow(base_win.BaseWindow):
             code = code[2 : ]
         for it in self.indicators:
             it.changeCode(code, period)
-        from Tck import utils
         rs = utils.get_THS_GNTC(code)
         if rs and rs.get('hy_2_code', None):
             self.refIndicator.changeCode(rs['hy_2_code'], period)
@@ -872,7 +871,7 @@ class CodeWindow(BaseWindow):
         self.invalidWindow()
 
 class KLineCodeWindow(base_win.BaseWindow):
-    def __init__(self, tag) -> None:
+    def __init__(self, tag = 'default') -> None:
         super().__init__()
         self.css['bgColor'] = 0x101010
         self.layout = None

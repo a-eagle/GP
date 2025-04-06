@@ -213,7 +213,7 @@ class ClsUrl:
         return ts
     
     def _toStdKl(self, d):
-        from Download import datafile
+        from download import datafile
         if not d:
             return None
         ts = datafile.ItemData()

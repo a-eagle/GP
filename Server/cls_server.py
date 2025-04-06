@@ -4,7 +4,7 @@ import requests, json, logging
 import peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import tck_orm
+from orm import cls_orm
 from download import console, cls, ths_iwencai
 
 class Server:
@@ -29,7 +29,7 @@ class Server:
 
     def saveCls_ZT_One(self, it):
         insertNum, updateNum = 0, 0
-        obj = tck_orm.CLS_ZT.get_or_none(code = it['code'], day = it['day'])
+        obj = cls_orm.CLS_ZT.get_or_none(code = it['code'], day = it['day'])
         if obj:
             if obj.ztReason != it['ztReason'] or obj.detail != it['detail']:
                 obj.ztReason = it['ztReason']
@@ -38,7 +38,7 @@ class Server:
                 obj.save()
         else:
             insertNum += 1
-            tck_orm.CLS_ZT.create(**it)
+            cls_orm.CLS_ZT.create(**it)
         return insertNum, updateNum
 
     def saveCls_ZT_List(self, its):
@@ -358,7 +358,7 @@ class Server:
         return ok
 
 def do_reason():
-    qr = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.day >= '2024-07-26')
+    qr = cls_orm.CLS_ZT.select().where(cls_orm.CLS_ZT.day >= '2024-07-26')
     for it in qr:
         if it.ztReason or not it.detail:
             continue

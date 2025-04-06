@@ -3365,7 +3365,7 @@ class RichTextRender:
             val = spec[attr]
         return val
 
-    def _calcSpecsRect(self, hdc, drawer : base_win.Drawer, rect):
+    def _calcSpecsRect(self, hdc, drawer, rect):
         SX, SY = rect[0], rect[1]
         EX, EY = rect[2], rect[3]
         x, y = SX, SY
@@ -3382,7 +3382,7 @@ class RichTextRender:
                 item['rect'] = (x, y, x + sw, y + self.lineHeight)
             x += sw
 
-    def draw(self, hdc, drawer : base_win.Drawer, rect):
+    def draw(self, hdc, drawer, rect):
         sdc = win32gui.SaveDC(hdc)
         W, H = rect[2] - rect[0], rect[3] - rect[1]
         EY = rect[3]

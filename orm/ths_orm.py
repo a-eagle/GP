@@ -80,45 +80,25 @@ class THS_ZS_ZD(pw.Model):
         database = db_thszs
         table_name = '同花顺指数涨跌信息'
 
-#db_zt = pw.SqliteDatabase(f'{path}GP/db/THS_ZT.db')
+db_ths = pw.SqliteDatabase(f'{path}GP/db/THS.db')
+# 同花顺涨停
 class THS_ZT(pw.Model):
+    code = pw.CharField()
+    name = pw.CharField(null = True)
     day = pw.CharField() # YYYY-MM-DD
-    code = pw.CharField() #指数代码
-    name = pw.CharField(null = True) #指数代码
-
-    tag = pw.CharField(null = True) # 涨停 | 炸板
-    lbs = pw.CharField(null = True) # 几天几板
-    lastZtTime = pw.CharField(null = True) # 最终涨停时间
-    firstZtTime = pw.CharField(null = True) # 首次涨停时间
-    ztMoney = pw.FloatField(default = 0) # 涨停封单额 (亿元)
+    ztTime = pw.CharField(null = True, column_name='涨停时间')
+    status = pw.CharField(null = True, column_name='状态')
+    ztReason = pw.CharField(null = True, column_name='涨停原因')
+    #ztNum = pw.IntegerField(null=True, column_name='涨停数量')
 
     class Meta:
-        #database = db_zt
-        table_name = 'ths_zt'
-
-db_vol = pw.SqliteDatabase(f'{path}GP/db/HotVol.db')
-#热度股成交量前100信息
-class HotVol(pw.Model):
-    day = pw.CharField() # YYYY-MM-DD
-    p1 = pw.IntegerField() # 第一  亿元
-    p10 = pw.IntegerField() # 第20
-    p20 = pw.IntegerField() # 第20
-    p50 = pw.IntegerField() # 第50
-    p100 = pw.IntegerField() # 第100
-
-    avg0_10 = pw.IntegerField() # 亿元 前10平均
-    avg10_20 = pw.IntegerField() # 前11 ~ 20平均
-    avg20_50 = pw.IntegerField() # 前21 ~ 50平均
-    avg50_100 = pw.IntegerField() # 前51 ~ 100平均
-
-    class Meta:
-        database = db_vol
+        database = db_ths
 
 db_hot.create_tables([THS_Hot])
 db_hot_zh.create_tables([THS_HotZH])
 db_thszs.create_tables([THS_ZS_ZD])
 db_gntc.create_tables([THS_GNTC])
-db_vol.create_tables([HotVol])
+db_ths.create_tables([THS_ZT])
 
 
 if __name__ == '__main__':

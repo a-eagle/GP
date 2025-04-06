@@ -50,11 +50,16 @@ class DataModel:
     def _getName(self):
         from orm import ths_orm, cls_orm
         if self.code[0] in ('0', '3', '6'):
-            self.name = ths_orm.THS_GNTC.select(ths_orm.THS_GNTC.name.distinct()).where(ths_orm.THS_GNTC.code == self.code).scalar()
+            q = ths_orm.THS_GNTC.select(ths_orm.THS_GNTC.name.distinct()).where(ths_orm.THS_GNTC.code == self.code)
         elif self.code[0 : 2] == '88':
-            self.name = ths_orm.THS_ZS.select(ths_orm.THS_ZS.name.distinct()).where(ths_orm.THS_ZS.code == self.code).scalar()
+            q = ths_orm.THS_ZS.select(ths_orm.THS_ZS.name.distinct()).where(ths_orm.THS_ZS.code == self.code)
         elif self.code[0 : 3] == 'cls':
-            self.name = cls_orm.CLS_ZS.select(cls_orm.CLS_ZS.name.distinct()).where(cls_orm.CLS_ZS.code == self.code).scalar()
+            q = cls_orm.CLS_ZS.select(cls_orm.CLS_ZS.name.distinct()).where(cls_orm.CLS_ZS.code == self.code)
+        else:
+            return
+        for it in q.tuples():
+            return it[0]
+        return None
 
     def getItemIdx(self, day):
         if not self.data or not day:
@@ -262,7 +267,6 @@ class Ths_K_DataModel(K_DataModel):
     # period = 'day' | 'week' | 'month'
     def loadNetData(self, period):
         from download import henxin
-        from kline import utils
         hx = henxin.HexinUrl()
         if period == 'day':
             url = hx.getKLineUrl(self.code)
@@ -353,6 +357,9 @@ class Cls_T_DataModel(T_DataModel):
 
 
 if __name__ == '__main__':
+    from orm import cls_orm
+    name = cls_orm.CLS_ZS.select(cls_orm.CLS_ZS.name.distinct()).where(cls_orm.CLS_ZS.code == 'cls80115').scalar()
+    print(name)
     df = Cls_T_DataModel('300260')
     df.loadData(20250403)
     print(df)

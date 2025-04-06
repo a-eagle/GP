@@ -4,7 +4,7 @@ from multiprocessing import Process
 from PIL import Image  # pip install pillow
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import ths_orm, tdx_orm, lhb_orm, tck_orm
+from orm import ths_orm, tdx_orm, lhb_orm, z_orm
 from common import base_win
 from THS import hot_utils
 
@@ -294,7 +294,7 @@ class HotWindow(base_win.BaseWindow):
 
     def updateLSInfoData(self, code):
         zsDatas = tdx_orm.TdxLSModel.select().dicts()
-        qxDatas = tck_orm.CLS_SCQX.select()
+        qxDatas = cls_orm.CLS_SCQX.select()
         cs = {}
         for c in qxDatas:
             cs[c.day] = c.zhqd

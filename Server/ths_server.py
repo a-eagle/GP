@@ -5,7 +5,7 @@ import datetime, time, sys, os, re
 
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import tck_orm, ths_orm
+from orm import ths_orm, cls_orm, z_orm
 from download import henxin, console, ths_iwencai
 from THS import hot_utils
 
@@ -111,10 +111,10 @@ class Server:
             it = datas[k]
             if not it['ztReason'] or it['ztReason'] == '其它':
                 continue
-            obj = tck_orm.THS_ZT.get_or_none(day = it['day'], code=it['code'])
+            obj = ths_orm.THS_ZT.get_or_none(day = it['day'], code=it['code'])
             if not obj:
                 it['name'] = it['name'].replace(' ', '')
-                tck_orm.THS_ZT.create(**it)
+                ths_orm.THS_ZT.create(**it)
                 insertNum += 1
                 continue
             if obj.status != it['status'] or obj.ztReason != it['ztReason']:
@@ -178,10 +178,10 @@ class Server:
             if not rs:
                 return False
             day = rs[0]['day']
-            obj = ths_orm.HotVol.get_or_none(ths_orm.HotVol.day == day)
+            obj = z_orm.HotVol.get_or_none(z_orm.HotVol.day == day)
             if not obj:
                 vols = [d['vol'] for d in rs]
-                item = ths_orm.HotVol()
+                item = z_orm.HotVol()
                 item.day = day
                 for i in (1, 10, 20, 50, 100):
                     setattr(item, f'p{i}', int(vols[i - 1]))
@@ -241,7 +241,7 @@ class Server:
             for d in datas:
                 if not d['is_down']:
                     continue
-                obj = tck_orm.CLS_UpDown.get_or_none(tck_orm.CLS_UpDown.secu_code == d['secu_code'], tck_orm.CLS_UpDown.day == d['day'])
+                obj = cls_orm.CLS_UpDown.get_or_none(cls_orm.CLS_UpDown.secu_code == d['secu_code'], cls_orm.CLS_UpDown.day == d['day'])
                 if obj:
                     obj.up_reason = d['up_reason']
                     obj.save()

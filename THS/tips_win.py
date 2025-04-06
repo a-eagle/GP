@@ -7,7 +7,7 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download import datafile, henxin, cls
 from THS import hot_utils
 from common import base_win, dialog
-from orm import tck_orm, ths_orm, tck_def_orm, cls_orm
+from orm import def_orm, ths_orm, cls_orm, z_orm
 
 #-----------------------------------------------------------
 class ThsSortQuery:
@@ -547,7 +547,7 @@ class KPLCardView(CardView):
         self.kplZTData = None
         self.ROW_HEIGHT = 18
         self.selectDay = 0
-        self.ormClazz = tck_orm.KPL_ZT
+        self.ormClazz = z_orm.KPL_ZT
         self.emptyLine = '\n\n无开盘啦涨停信息'
         self.fontSize = 12
         self.code = None
@@ -620,7 +620,7 @@ class KPLCardView(CardView):
 class THS_ZTCardView(KPLCardView):
     def __init__(self, cardWindow):
         super().__init__(cardWindow)
-        self.ormClazz = tck_orm.THS_ZT
+        self.ormClazz = ths_orm.THS_ZT
         self.emptyLine = '\n\n无同花顺涨停信息'
         self.fontSize = 12
         self.ROW_HEIGHT = 16
@@ -676,7 +676,7 @@ class THS_ZTCardView(KPLCardView):
 class Cls_ZTCardView(KPLCardView):
     def __init__(self, cardWindow):
         super().__init__(cardWindow)
-        self.ormClazz = tck_orm.CLS_ZT
+        self.ormClazz = cls_orm.CLS_ZT
         self.emptyLine = '\n\n无财联社涨停信息'
         self.fontSize = 12
         self.ROW_HEIGHT = 18
@@ -1087,7 +1087,7 @@ class KPL_AllCardView(ListView):
         super().__init__(hwnd)
         self.windowTitle = 'KPL-ZT'
         self.curSelDay = 0
-        day = tck_orm.KPL_ZT.select(pw.fn.max(tck_orm.KPL_ZT.day)).scalar()
+        day = z_orm.KPL_ZT.select(pw.fn.max(z_orm.KPL_ZT.day)).scalar()
         self.updateData(day)
 
     def getFont(self):
@@ -1116,7 +1116,7 @@ class KPL_AllCardView(ListView):
         if day == self.curSelDay:
             return
         if not day:
-            day = tck_orm.KPL_ZT.select(pw.fn.max(tck_orm.KPL_ZT.day)).scalar()
+            day = z_orm.KPL_ZT.select(pw.fn.max(z_orm.KPL_ZT.day)).scalar()
         if not day:
             day = '0000-00-00'
         if type(day) == int:
@@ -1124,7 +1124,7 @@ class KPL_AllCardView(ListView):
         if len(day) == 8:
             day = day[0 : 4] + '-' + day[4 : 6] + '-' + day[6 : 8]
         self.curSelDay = int(day.replace('-', ''))
-        qr = tck_orm.KPL_ZT.select().where(tck_orm.KPL_ZT.day == day)
+        qr = z_orm.KPL_ZT.select().where(z_orm.KPL_ZT.day == day)
         self.data = [d.__data__ for d in qr]
         self.pageIdx = 0
         self.selIdx = -1
@@ -1413,8 +1413,8 @@ class RecordWindow(base_win.BaseWindow):
         self.rebindWinProc()
 
     def initContent(self):
-        self.swdtObj, *_ = tck_def_orm.MyNote.get_or_create(tag = 'Tips-GP-SWDT')
-        self.recObj, *_ = tck_def_orm.MyNote.get_or_create(tag = 'Tips-Record')
+        self.swdtObj, *_ = def_orm.MyNote.get_or_create(tag = 'Tips-GP-SWDT')
+        self.recObj, *_ = def_orm.MyNote.get_or_create(tag = 'Tips-Record')
         self.editorWin.setText(self.recObj.info)
         self.swdtWin.loads(self.swdtObj.info)
 
@@ -1570,7 +1570,7 @@ class BkGnWindow(base_win.BaseWindow):
 
         def loadData_2(self, endDay, daysNum, tcName):
             tradeDays = []
-            qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.day.distinct()).where(tck_orm.CLS_HotTc.day <= endDay).order_by(tck_orm.CLS_HotTc.day.desc()).tuples()
+            qr = cls_orm.CLS_HotTc.select(cls_orm.CLS_HotTc.day.distinct()).where(cls_orm.CLS_HotTc.day <= endDay).order_by(cls_orm.CLS_HotTc.day.desc()).tuples()
             for it in qr:
                 tradeDays.append(it[0])
                 if len(tradeDays) >= daysNum:
@@ -1580,10 +1580,10 @@ class BkGnWindow(base_win.BaseWindow):
 
         def loadData(self, fromDay, endDay, tcName):
             tradeDays = []
-            qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.day.distinct()).where(tck_orm.CLS_HotTc.day >= fromDay, tck_orm.CLS_HotTc.day <= endDay).order_by(tck_orm.CLS_HotTc.day.asc()).tuples()
+            qr = cls_orm.CLS_HotTc.select(cls_orm.CLS_HotTc.day.distinct()).where(cls_orm.CLS_HotTc.day >= fromDay, cls_orm.CLS_HotTc.day <= endDay).order_by(cls_orm.CLS_HotTc.day.asc()).tuples()
             for it in qr:
                 tradeDays.append(it[0])
-            qr = tck_orm.CLS_HotTc.select().where(tck_orm.CLS_HotTc.name == tcName, tck_orm.CLS_HotTc.day >= fromDay, tck_orm.CLS_HotTc.day <= endDay)
+            qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.name == tcName, cls_orm.CLS_HotTc.day >= fromDay, cls_orm.CLS_HotTc.day <= endDay)
             model = []
             for it in qr:
                 model.append(it)
@@ -1697,7 +1697,7 @@ class BkGnWindow(base_win.BaseWindow):
         return super().winProc(hwnd, msg, wParam, lParam)
     
     def _getLimitDaysNum(self):
-        obj, _ = tck_def_orm.MySettings.get_or_create(mainKey = 'HotTc_N_Days')
+        obj, _ = def_orm.MySettings.get_or_create(mainKey = 'HotTc_N_Days')
         if not obj.val:
             obj.val = '5'
             obj.save()
@@ -1731,7 +1731,7 @@ class BkGnWindow(base_win.BaseWindow):
             if self.limitDaysNum == ndays:
                 return
             self.limitDaysNum = ndays
-            obj, _ = tck_def_orm.MySettings.get_or_create(mainKey = 'HotTc_N_Days')
+            obj, _ = def_orm.MySettings.get_or_create(mainKey = 'HotTc_N_Days')
             obj.val = str(self.limitDaysNum)
             obj.save()
             self.changeLimitDaysNum()
@@ -1784,8 +1784,8 @@ class BkGnWindow(base_win.BaseWindow):
         self.hotGnObj.save()
 
     def _loadDefHotGn(self):
-        from orm import tck_def_orm
-        qr = tck_def_orm.MyHotGn.select()
+        from orm import def_orm
+        qr = def_orm.MyHotGn.select()
         self.hotGnObj = None
         self.defHotGns = []
         for obj in qr:
@@ -1796,13 +1796,13 @@ class BkGnWindow(base_win.BaseWindow):
                     if s.strip(): self.defHotGns.append(s.strip())
             break
         if not self.hotGnObj:
-            self.hotGnObj = tck_def_orm.MyHotGn.create(info = '')
+            self.hotGnObj = def_orm.MyHotGn.create(info = '')
 
     # lastDay = None(newest day) | int | str
     # return [(cls-name, num), ...]
     def _loadClsHotGn(self, lastDay):
         self.hotDaysRange = None
-        qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.day.distinct()).order_by(tck_orm.CLS_HotTc.day.desc()).tuples()
+        qr = cls_orm.CLS_HotTc.select(cls_orm.CLS_HotTc.day.distinct()).order_by(cls_orm.CLS_HotTc.day.desc()).tuples()
         days = []
         for it in qr:
             if (lastDay is None) or (it[0] <= lastDay):
@@ -1817,7 +1817,7 @@ class BkGnWindow(base_win.BaseWindow):
         endDay = days[0]
         self.hotDaysRange = (fromDay, endDay)
         rs = []
-        qr = tck_orm.CLS_HotTc.select(tck_orm.CLS_HotTc.name, pw.fn.count()).where(tck_orm.CLS_HotTc.day >= fromDay, tck_orm.CLS_HotTc.day <= endDay, tck_orm.CLS_HotTc.up == True).group_by(tck_orm.CLS_HotTc.name).tuples()
+        qr = cls_orm.CLS_HotTc.select(cls_orm.CLS_HotTc.name, pw.fn.count()).where(cls_orm.CLS_HotTc.day >= fromDay, cls_orm.CLS_HotTc.day <= endDay, cls_orm.CLS_HotTc.up == True).group_by(cls_orm.CLS_HotTc.name).tuples()
         for it in qr:
             clsName, num = it
             rs.append((clsName.strip(), num))

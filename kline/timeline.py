@@ -6,7 +6,7 @@ import win32gui, win32con
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download import datafile, cls, ths_iwencai
 from common import base_win
-from orm import ths_orm, cls_orm, tck_orm
+from orm import ths_orm, cls_orm, z_orm
 from kline import fx
 
 def getTypeByCode(code):
@@ -64,7 +64,7 @@ class TimelineModel:
         if len(day) == 8:
             day = day[0 : 4] + '-' + day[4 : 6] + '-' + day[6 : 8]
         rs = []
-        qr = tck_orm.CLS_HotTc.select().where(tck_orm.CLS_HotTc.name == self.refDataModel.name, tck_orm.CLS_HotTc.day == day)
+        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.name == self.refDataModel.name, cls_orm.CLS_HotTc.day == day)
         for q in qr:
             rs.append(q.__data__)
         self.clsHotTcList = rs
@@ -527,7 +527,7 @@ class PanKouWindow(base_win.BaseWindow):
             url = cls.ClsUrl()
             self.data = url.loadPanKou5(code)
         else:
-            obj = tck_orm.ZT_PanKou.get_or_none(day = day, code = code)
+            obj = z_orm.ZT_PanKou.get_or_none(day = day, code = code)
             if obj and obj.info:
                 self.data = json.loads(obj.info)
         self.invalidWindow()

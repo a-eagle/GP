@@ -2,6 +2,8 @@ import threading, sys, traceback, datetime, json
 import flask, flask_cors
 import win32con, win32gui, peewee as pw
 
+from orm import def_orm, z_orm
+
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from common import base_win
 
@@ -84,16 +86,16 @@ class Server:
     
     # day = YYYY-MM-DD
     def getTimeDegree(self):
-        from orm import tck_orm
+        from orm import z_orm
         day = flask.request.args.get('day', None)
         if not day:
-            qr = tck_orm.CLS_SCQX_Time.select(pw.fn.max(tck_orm.CLS_SCQX_Time.day)).tuples()
+            qr = cls_orm.CLS_SCQX_Time.select(pw.fn.max(cls_orm.CLS_SCQX_Time.day)).tuples()
             for q in qr:
                 day = q[0]
                 break
         if len(day) == 8:
             day = day[0 : 4] + '-' + day[4 : 6] + '-' + day[6 : 8]
-        qr = tck_orm.CLS_SCQX_Time.select().where(tck_orm.CLS_SCQX_Time.day == day).dicts()
+        qr = cls_orm.CLS_SCQX_Time.select().where(cls_orm.CLS_SCQX_Time.day == day).dicts()
         rs = []
         for q in qr:
             q['degree'] = q['zhqd']
@@ -101,11 +103,11 @@ class Server:
         return rs
     
     def _getDBs(self):
-        from orm import cls_orm, lhb_orm, tck_def_orm, tck_orm, ths_orm, chrome_orm, speed_orm
+        from orm import cls_orm, lhb_orm, ths_orm, chrome_orm, speed_orm
         dbs = {'cls_gntc': cls_orm.db_gntc, 
                'lhb': lhb_orm.db_lhb,
-               'tck_def': tck_def_orm.db_tck_def,
-               'tck': tck_orm.db_tck,
+               'tck_def': def_orm.db_def,
+               'tck': z_orm.db_pankou,
                'ths_gntc': ths_orm.db_gntc, 'hot': ths_orm.db_hot, 'hot_zh': ths_orm.db_hot_zh, 'ths_zs': ths_orm.db_thszs,
                'speed': speed_orm.zsdb, 'chrome': chrome_orm.db_chrome}
         return dbs

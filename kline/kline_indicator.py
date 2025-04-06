@@ -8,7 +8,7 @@ from common.base_win import *
 
 from THS import hot_utils
 from download import cls
-from orm import speed_orm, ths_orm, tck_orm, lhb_orm, cls_orm
+from orm import speed_orm, ths_orm, lhb_orm, cls_orm, utils
 
 def getTypeByCode(code):
     if not code:
@@ -33,7 +33,6 @@ def getNameByCode(code):
     if code[0 : 2] in ('sz', 'sh'):
         code = code[2 : ]
     if code[0] in ('0', '3', '6'):
-        from Tck import utils
         obj = utils.get_THS_GNTC(code)
         return obj['name'] if obj else ''
     elif code[0 : 3] == 'cls':
@@ -803,7 +802,7 @@ class ScqxIndicator(CustomIndicator):
 
     def _changeCode(self):
         super()._changeCode()
-        datas = tck_orm.CLS_SCQX.select().dicts()
+        datas = cls_orm.CLS_SCQX.select().dicts()
         maps = {}
         for d in datas:
             day = d['day'].replace('-', '')
@@ -899,7 +898,7 @@ class ThsZT_Indicator(CustomIndicator):
         if len(self.code) != 6:
             return
         maps = {}
-        datas = tck_orm.THS_ZT.select().where(tck_orm.THS_ZT.code == self.code).dicts()
+        datas = ths_orm.THS_ZT.select().where(ths_orm.THS_ZT.code == self.code).dicts()
         for d in datas:
             day = int(d['day'].replace('-', ''))
             maps[day] = d
@@ -929,7 +928,7 @@ class ClsZT_Indicator(CustomIndicator):
         if len(self.code) != 6:
             return
         maps = {}
-        datas = tck_orm.CLS_ZT.select().where(tck_orm.CLS_ZT.code == self.code).dicts()
+        datas = cls_orm.CLS_ZT.select().where(cls_orm.CLS_ZT.code == self.code).dicts()
         for d in datas:
             day = int(d['day'].replace('-', ''))
             maps[day] = d
@@ -989,7 +988,7 @@ class GnLdIndicator(CustomIndicator):
         self.curGntc = gntc or ''
         self.config['title'] = f'[联动-{self.curGntc}]'
 
-        qr = tck_orm.CLS_HotTc.select().where(tck_orm.CLS_HotTc.name == self.curGntc).dicts()
+        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.name == self.curGntc).dicts()
         maps = {}
         for d in qr:
             day = int(d['day'].replace('-', ''))
