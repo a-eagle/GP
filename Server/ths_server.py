@@ -307,7 +307,6 @@ if __name__ == '__main__':
     #autoLoadHistory(20240708)
     #downloadOneDay(20240702)
 
-    days = ths_iwencai.getTradeDays()
-    for d in days:
-        Server().downloadSaveVolTop100('[4]', d)
-    pass
+    Server().downloadSaveVolTop100('[4]', 20250402)
+    Server().downloadSaveVolTop100('[4]', 20250403)
+    Server().downloadSaveVolTop100('[4]')

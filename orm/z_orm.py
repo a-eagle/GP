@@ -29,7 +29,7 @@ class HotVol(pw.Model):
     avg50_100 = pw.IntegerField() # 前51 ~ 100平均
 
     class Meta:
-        database = db_pankou
+        database = db_hotvol
       
 db_pankou.create_tables([ZT_PanKou])
 db_hotvol.create_tables([HotVol])
