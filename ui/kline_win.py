@@ -507,10 +507,9 @@ class RangeSelectorManager:
         return None
 
     def onLButtonUp(self, x, y):
-        old = self.captureMouse
-        self.captureMouse = False
-        if old and self.startPos:
-            self.endPos = self._adjustXY(x, y)
+        endPos = self._adjustXY(x, y)
+        if self.captureMouse and self.startPos and endPos:
+            self.endPos = endPos
             kl = self.win.klineIndicator
             idx = kl.getIdxAtX(self.startPos[0])
             eidx = kl.getIdxAtX(self.endPos[0])
@@ -521,7 +520,7 @@ class RangeSelectorManager:
             self.win.notifyListener(self.win.Event('range-selector-changed', self.win, data = data))
         else:
             self.startPos = self.endPos = None
-        return old
+        return self.captureMouse
     
     def onMouseMove(self, x, y):
         isBtnDown = (win32api.GetAsyncKeyState(win32con.VK_LBUTTON) & 0xff00) > 0
