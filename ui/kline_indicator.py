@@ -173,6 +173,10 @@ class Indicator:
         return (fromIdx, endIdx)
     
     def onMouseClick(self, x, y):
+        si = self.getIdxAtX(x)
+        if si >= 0 and self.win.selIdx != si:
+            self.win.setSelIdx(si)
+            return True
         return False
 
     def onContextMenu(self, x, y):
@@ -365,11 +369,6 @@ class KLineIndicator(Indicator):
                     moveToFlag = True
                 continue
             win32gui.LineTo(hdc, self.getCenterX(i), self.getYAtValue(getattr(self.data[i], ma)))
-    
-    def onMouseClick(self, x, y):
-        si = self.getIdxAtX(x)
-        self.win.setSelIdx(si)
-        return True
 
     def onMouseMove(self, x, y):
         old = self.win.mouseXY
@@ -529,12 +528,6 @@ class AttrIndicator(Indicator):
         rc = (0, 2, 100, 20)
         drawer.fillRect(hdc, rc, 0x0)
         drawer.drawText(hdc, title, rc, 0xab34de, win32con.DT_LEFT)
-
-    def onMouseClick(self, x, y):
-        si = self.getIdxAtX(x)
-        if si >= 0:
-            self.win.setSelIdx(si)
-        return True
 
     def onMouseMove(self, x, y):
         old = self.win.mouseXY
@@ -729,12 +722,6 @@ class CustomIndicator(Indicator):
     def onMouseMove(self, x, y):
         return True
 
-    def onMouseClick(self, x, y):
-        si = self.getIdxAtX(x)
-        if si >= 0:
-            self.win.setSelIdx(si)
-        return True
-
     def getItemWidth(self):
         return self.config['itemWidth']
 
@@ -853,10 +840,9 @@ class LsAmountIndicator(CustomIndicator):
         drawer.drawText(hdc,f"{self.cdata[day] :.02f}", rc, 0xcccccc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
     def onMouseClick(self, x, y):
+        if super().onMouseClick(x, y):
+            return True
         si = self.getIdxAtX(x)
-        if si != self.win.selIdx:
-            super().onMouseClick(x, y)
-            return
         if si < 0:
             return True
         # draw tip
@@ -884,7 +870,7 @@ class LsAmountIndicator(CustomIndicator):
         win32gui.SetBkMode(hdc, win32con.TRANSPARENT)
         drawer.use(hdc, drawer.getFont())
         self.drawHotValInfo(hdc, rc, itemData)
-        drawer.drawRect(hdc, rc, 0xf0a0a0)
+        drawer.drawRect(hdc, rc, 0xa0f0a0)
         win32gui.ReleaseDC(self.win.hwnd, hdc)
 
     def drawHotValInfo(self, hdc, rc, itemData):
@@ -1005,6 +991,34 @@ class ClsZT_Indicator(CustomIndicator):
         drawer.use(hdc, drawer.getFont(fontSize = 12))
         drawer.drawText(hdc,txt, rc, 0xcccccc, win32con.DT_WORDBREAK | win32con.DT_VCENTER)
 
+    def onMouseClick(self, x, y):
+        if super().onMouseClick(x, y):
+            return True
+        si = self.getIdxAtX(x)
+        if si < 0:
+            return True
+        # draw tip
+        day = self.data[si].day
+        if not self.cdata or day not in self.cdata:
+            return
+        detail = self.cdata[day]['detail']
+        self.drawDetail(detail)
+        return True
+    
+    def drawDetail(self, detail):
+        hdc = win32gui.GetDC(self.win.hwnd)
+        drawer : Drawer = self.win.drawer
+        W, H = int(0.5 * self.width), 60
+        x = (self.width - W) // 2
+        y = self.y - H
+        rc = (x, y, x + W, y + H)
+        drawer.fillRect(hdc, rc, 0x101010)
+        win32gui.SetBkMode(hdc, win32con.TRANSPARENT)
+        drawer.use(hdc, drawer.getFont())
+        drawer.drawText(hdc, detail, rc, 0xcccccc, win32con.DT_WORDBREAK | win32con.DT_VCENTER)
+        drawer.drawRect(hdc, rc, 0xa0f0a0)
+        win32gui.ReleaseDC(self.win.hwnd, hdc)
+    
 class GnLdIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
@@ -1193,10 +1207,9 @@ class LhbIndicator(CustomIndicator):
         return yyb
     
     def onMouseClick(self, x, y):
+        if super().onMouseClick(x, y):
+            return True
         si = self.getIdxAtX(x)
-        if si != self.win.selIdx:
-            super().onMouseClick(x, y)
-            return
         if si < 0:
             return True
         # draw tip
