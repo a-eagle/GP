@@ -289,10 +289,6 @@ class HotCardView(CardView):
             day = str(hot['day'])[4 : ]
             day = day[0 : 2] + '.' + day[2 : 4]
             zhHotOrder = '' if hot['zhHotOrder'] == 0 else f"{hot['zhHotOrder'] :>3d}"
-            avgHotOrder = f"{hot['avgHotOrder'] :.1f}"
-            avgHotOrder = avgHotOrder[0 : 3]
-            avgHotVal = int(hot['avgHotValue'])
-            #line = f"{day} {hot['minOrder'] :>3d}->{hot['maxOrder'] :<3d} {avgHotVal :>3d}万 {zhHotOrder}"
             line = f"{day}   {zhHotOrder}"
             idx = i - fromIdx
             col = idx // MAX_ROWS
@@ -347,32 +343,13 @@ class HotCardView(CardView):
             code = int(code)
         self.code = code
         # load hot data
-        qq = ths_orm.THS_Hot.select(ths_orm.THS_Hot.day, pw.fn.min(ths_orm.THS_Hot.hotOrder).alias('minOrder'), pw.fn.max(ths_orm.THS_Hot.hotOrder).alias('maxOrder')).where(ths_orm.THS_Hot.code == code).group_by(ths_orm.THS_Hot.day) #.order_by(orm.THS_Hot.day.desc())
-        #print(qq.sql())
-        self.hotData = [d for d in qq.dicts()]
-        qq2 = ths_orm.THS_HotZH.select(ths_orm.THS_HotZH.day, ths_orm.THS_HotZH.zhHotOrder, ths_orm.THS_HotZH.avgHotOrder, ths_orm.THS_HotZH.avgHotValue).where(ths_orm.THS_HotZH.code == code)
-        qdata = {}
-        for d in qq2.tuples():
-            qdata[d[0]] = d[1 : ]
-        for d in self.hotData:
-            day = d['day']
-            if day in qdata:
-                d['zhHotOrder'] = qdata[day][0]
-                d['avgHotOrder'] = qdata[day][1]
-                d['avgHotValue'] = qdata[day][2]
-            else:
-                d['zhHotOrder'] = 0
-                d['avgHotOrder'] = 0
-                d['avgHotValue'] = 0
-
-        if self.hotData and len(self.hotData) > 0:
-            last = self.hotData[-1]
-            if last['zhHotOrder'] == 0:
-                rd = hot_utils.calcHotZHOnDayCode(last['day'], code)
-                if rd:
-                    last['zhHotOrder'] = rd['zhHotOrder']
-                    last['avgHotOrder'] = rd['avgHotOrder']
-                    last['avgHotValue'] = rd['avgHotValue']
+        qq2 = ths_orm.THS_HotZH.select(ths_orm.THS_HotZH.day, ths_orm.THS_HotZH.zhHotOrder).where(ths_orm.THS_HotZH.code == code).dicts()
+        self.hotData = [d for d in qq2]
+        newest = hot_utils.DynamicHotZH.instance().getNewestHotZH()
+        if code in newest:
+            data = newest[code]
+            if not self.hotData or self.hotData[-1]['day'] != data['day']:
+                self.hotData.append(data)
         win32gui.SetWindowText(self.hwnd, self.getWindowTitle())
 
     def getWindowTitle(self):
