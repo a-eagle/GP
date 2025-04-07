@@ -357,9 +357,6 @@ class Cls_T_DataModel(T_DataModel):
 
 
 if __name__ == '__main__':
-    from orm import cls_orm
-    name = cls_orm.CLS_ZS.select(cls_orm.CLS_ZS.name.distinct()).where(cls_orm.CLS_ZS.code == 'cls80115').scalar()
-    print(name)
     df = Cls_T_DataModel('300260')
     df.loadData(20250403)
     print(df)

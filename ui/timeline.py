@@ -100,7 +100,7 @@ class TimelineModel:
             return None
         if rg2 and rg2[2] > rg1[2]: # 指数涨幅较大
             ds = self.dataModel.pre * rg2[2]
-            rg1 = (self.dataModel.pre + ds, self.dataModel.pre - ds)
+            rg1 = (self.dataModel.pre - ds, self.dataModel.pre + ds)
         self.priceRange = (rg1[0], rg1[1], self.dataModel.pre)
         return self.priceRange
 

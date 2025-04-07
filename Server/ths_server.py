@@ -190,7 +190,7 @@ class Server:
                     avg = sum(vols[r[1] : r[2]]) / (r[2] - r[1])
                     setattr(item, f'avg{r[1]}_{r[2]}', int(avg))
                 item.save()
-            console.write_1(console.GREEN, f'[Vol-Top100] {tag} {self.formatNowTime(False)}')
+            console.writeln_1(console.GREEN, f'[Vol-Top100] {tag} {self.formatNowTime(False)}')
             return True
         except Exception as e:
             traceback.print_exc()

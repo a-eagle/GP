@@ -297,7 +297,8 @@ class HexinUrl(Henxin):
         ma = cp.match(url)
         code = ma.group(1)
         # find in cache
-        data = memcache.cache.getCache(f'ths-{code}')
+        baseUrl = url[0 : url.index('?')] if '?' in url else url
+        data = memcache.cache.getCache(baseUrl)
         if data:
             return data
         try:
@@ -324,7 +325,7 @@ class HexinUrl(Henxin):
             rs = self.parseFenShiData(txt)
         if rs:
             rs['code'] = code
-        memcache.cache.saveCache(f'ths-{code}', rs, 60)
+        memcache.cache.saveCache(baseUrl, rs, 60)
         return rs
     
     def loadKLineData(self, code):

@@ -335,6 +335,8 @@ def main():
         ld.fxAll(loader.newestDay)
 
 if __name__ == '__main__':
+    # ld = fx.FenXiLoader()
+    # ld.fxAll(20250407)
     try:
         main()
     except Exception as e:

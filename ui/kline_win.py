@@ -1151,5 +1151,5 @@ if __name__ == '__main__':
     win.createWindow(None, (0, 0, 1300, 700), win32con.WS_OVERLAPPEDWINDOW)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
 
-    win.changeCode('000737', 'day') # 000737  002261
+    win.changeCode('300033', 'day') # 000737  002261
     win32gui.PumpMessages()

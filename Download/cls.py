@@ -65,7 +65,7 @@ class ClsUrl:
         return None # error params
     
     def loadFenShi(self, code):
-        item = memcache.cache.getCache(f'cls:{code}')
+        item = memcache.cache.getCache(f'cls-fs:{code}')
         if item:
             return item
         url = 'https://x-quote.cls.cn/quote/stock/tline?'
@@ -79,7 +79,7 @@ class ClsUrl:
         data['code'] = code
         if data and 'line' in data:
             data['line'] = self._toStds(data['line'], False)
-        memcache.cache.saveCache(f'cls:{code}', data, 60)
+        memcache.cache.saveCache(f'cls-fs:{code}', data, 60)
         return data
     
     # day = None : 当日分时 只能用于指数
@@ -466,4 +466,5 @@ if __name__ == '__main__':
     #ClsUrl().loadDegree()
     pass
     #cu.loadHotTC(20241104)
-    cu.loadFenShi('603678')
+    rs = cu.loadHotTC('20250407')
+    print(rs)
