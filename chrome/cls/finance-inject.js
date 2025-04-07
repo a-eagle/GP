@@ -740,8 +740,9 @@ class TabNaviMgr {
 
 	_initUI() {
 		let thiz = this;
-		this.navi = $('<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div> <div >热度榜</div> <div>笔记</div> <div>标记</div> </div>');
+		this.navi = $('<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div> <div >热度榜</div> <div >成交额</div> <div>笔记</div> <div>标记</div> </div>');
 		$('div[name="tab-nav-item"]').append(this.navi);
+		this.navi.width('110px');
 		$('div[name="tab-nav-item"] > div').click(function() {
 			if (! $(this).hasClass('toggle-nav-active')) {
 				$('div[name="tab-nav-item"] > .toggle-nav-active').removeClass('toggle-nav-active');
@@ -765,6 +766,10 @@ class TabNaviMgr {
 		}
 		if (name == '标记') {
 			this.loadMarkNavi(name);
+			return;
+		}
+		if (name == '成交额') {
+			this.loadAmountNavi(name);
 			return;
 		}
 		if (model.curDay == model.lastTradeDay) {
@@ -804,6 +809,20 @@ class TabNaviMgr {
 			url: 'http://localhost:5665/mark-color',
 			contentType: 'application/json',
 			type: 'POST',
+			data: JSON.stringify({op: 'get'}),
+			success: function(resp) {
+				thiz.updateTabNavi(name, resp);
+			}
+		});
+	}
+
+	loadAmountNavi(name) {
+		let thiz = this;
+		let day = this.vue.data.curDay;
+		$.ajax({
+			url: `http://localhost:5665/top100-vol?day=${day}`,
+			contentType: 'application/json',
+			type: 'GET',
 			data: JSON.stringify({op: 'get'}),
 			success: function(resp) {
 				thiz.updateTabNavi(name, resp);
@@ -875,11 +894,11 @@ class TabNaviMgr {
 		}
 		let hd = null, ops = null;
 		function amountRender(idx, rowData, header, tdObj) {
-			if (! rowData.amount) {
+			if (! rowData[header.name]) {
 				tdObj.text('');
 				return;
 			}
-			let v = String(parseInt(rowData.amount)) + ' 亿';
+			let v = String(parseInt(rowData[header.name])) + ' 亿';
 			tdObj.html(v);
 		}
 		function amountIdxRender(idx, rowData, header, tdObj) {
@@ -936,6 +955,20 @@ class TabNaviMgr {
 				{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
 				{text: '成交额', 'name': 'amount', width: 50, sortable: true, cellRender : amountRender, defined: true},
 				{text: '成交额<br/>排名', 'name': 'amountIdx', width: 50, sortable: false, cellRender : amountIdxRender, defined: true},
+				{text: '热度', 'name': 'hots', width: 50, sortable: true},
+				{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
+				{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
+				{text: '分时图', 'name': 'fs', width: 300},
+			];
+		} else if ( name == '成交额') {
+			hd = [
+				{text: ' ', 'name': 'mark_color', width: 40, sortable: true, defined: true},
+				{text: '股票/代码', 'name': 'code', width: 80},
+				{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
+				{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
+				{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
+				{text: '成交额', 'name': 'vol', width: 50, sortable: true, cellRender : amountRender},
+				{text: '成交额<br/>排名', 'name': 'pm', width: 50, sortable: true},
 				{text: '热度', 'name': 'hots', width: 50, sortable: true},
 				{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
 				{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},

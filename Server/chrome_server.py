@@ -29,6 +29,7 @@ class Server:
         self.app.add_url_rule('/query-by-sql/<dbName>', view_func = self.queryBySql)
         self.app.add_url_rule('/get-trade-days', view_func = self.getTradeDays)
         self.app.add_url_rule('/iwencai', view_func = self.queryIWenCai)
+        self.app.add_url_rule('/top100-vol', view_func = self.getTop100Vol)
         self.app.add_url_rule('/get-fenshi/<code>', view_func = self.getFenShi)
         self.app.add_url_rule('/query-codes-info', view_func = self.queryCodesInfo, methods = ['POST'])
         self.app.add_url_rule('/mark-color', view_func = self.markColor, methods = ['POST'])
@@ -187,7 +188,16 @@ class Server:
         except Exception as e:
             traceback.print_exc()
         return None
-    
+
+    def getTop100Vol(self):
+        try:
+            day = flask.request.args.get('day', None)
+            data = ths_iwencai.download_vol_top100(day)
+            return data
+        except Exception as e:
+            traceback.print_exc()
+        return None
+
     def getFenShi(self, code):
         day = flask.request.args.get('day', None)
         lastTradeDay = ths_iwencai.getTradeDays()[-1]

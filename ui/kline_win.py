@@ -632,6 +632,7 @@ class KLineWindow(base_win.BaseWindow):
         return None
 
     def changeCode(self, code, period):
+        self.selIdx = -1
         if type(code) == int:
             code = f'{code :06d}'
         if len(code) == 8 and code[0] == 's':
@@ -771,7 +772,9 @@ class KLineWindow(base_win.BaseWindow):
         elif keyCode == 28:
             ks = ('day', 'week', 'month')
             idx = (ks.index(self.klineIndicator.period) + 1) % len(ks)
-            self.changeCode(ks[idx])
+            peroid = ks[idx]
+            if self.klineIndicator.code:
+                self.changeCode(self.klineIndicator.code, peroid)
 
     def makeVisible(self, idx):
         self.calcIndicatorsRect()
