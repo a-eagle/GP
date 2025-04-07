@@ -3,7 +3,7 @@ import flask, flask_cors
 import win32con, win32gui, peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from ui import base_win
+from ui import base_win, timeline, kline_utils, kline_win
 from download import ths_iwencai, datafile, ths_iwencai, henxin, cls
 from orm import d_orm, def_orm, cls_orm, chrome_orm, lhb_orm, ths_orm
 from utils import hot_utils, gn_utils
@@ -36,7 +36,6 @@ class Server:
         self.app.run('localhost', 5665, use_reloader = False, debug = False)
 
     def openUI_Timeline(self, code, day):
-        from kline import timeline
         win = timeline.TimelinePanKouWindow()
         win.createWindow(None, (0, 0, 1200, 600), win32con.WS_OVERLAPPEDWINDOW)
         win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
@@ -44,7 +43,6 @@ class Server:
         win32gui.PumpMessages()
 
     def openUI_Kline(self, code, params):
-        from kline import kline_utils
         win = kline_utils.createKLineWindow(None)
         win.changeCode(code)
         if params:

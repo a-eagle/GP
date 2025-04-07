@@ -490,6 +490,64 @@ class TextLineManager:
 class RangeSelectorManager:
     def __init__(self, win) -> None:
         self.win = win
+        self.startPos = None
+        self.endPos = None
+        self.captureMouse = False
+
+    def onLButtonDown(self, x, y):
+        self.captureMouse = False
+        self.startPos = self._adjustXY(x, y)
+        return False
+    
+    def _adjustXY(self, x, y):
+        kl = self.win.klineIndicator
+        idx = kl.getIdxAtX(x)
+        if idx >= 0:
+            return (kl.getCenterX(idx), y)
+        return None
+
+    def onLButtonUp(self, x, y):
+        old = self.captureMouse
+        self.captureMouse = False
+        if old and self.startPos:
+            self.endPos = self._adjustXY(x, y)
+            kl = self.win.klineIndicator
+            idx = kl.getIdxAtX(self.startPos[0])
+            eidx = kl.getIdxAtX(self.endPos[0])
+            if idx > eidx:
+                idx, eidx = eidx, idx
+            pre = kl.data[idx - 1].close if idx > 0 else kl.data[idx].open
+            data = {'startIdx': idx, 'endIdx': eidx + 1, 'pre': pre, 'datas': kl.data[idx : eidx + 1]}
+            self.win.notifyListener(self.win.Event('range-selector-changed', self.win, data = data))
+        else:
+            self.startPos = self.endPos = None
+        return old
+    
+    def onMouseMove(self, x, y):
+        isBtnDown = (win32api.GetAsyncKeyState(win32con.VK_LBUTTON) & 0xff00) > 0
+        if not isBtnDown or not self.startPos:
+            self.startPos = self.endPos = None
+            self.captureMouse = False
+            return False
+        self.captureMouse = True
+        self.endPos = self._adjustXY(x, y)
+        self.win.invalidWindow()
+        return True
+    
+    def onDraw(self, hdc):
+        if not self.captureMouse or not self.startPos or not self.endPos:
+            return
+        sdc = win32gui.SaveDC(hdc)
+        kl = self.win.klineIndicator
+        rc = (self.startPos[0] + kl.x, self.startPos[1] + kl.y, self.endPos[0] + kl.x, self.endPos[1] + kl.y)
+        drawer : base_win.Drawer = self.win.drawer
+        drawer.use(hdc, drawer.getPen(0x77ff77, win32con.PS_DOT))
+        win32gui.MoveToEx(hdc, rc[0], rc[1])
+        win32gui.LineTo(hdc, rc[2], rc[1])
+        win32gui.LineTo(hdc, rc[2], rc[3])
+        win32gui.LineTo(hdc, rc[0], rc[3])
+        win32gui.LineTo(hdc, rc[0], rc[1])
+        win32gui.RestoreDC(hdc, sdc)
     
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg >= win32con.WM_MOUSEFIRST and msg <= win32con.WM_MOUSELAST:
@@ -529,6 +587,7 @@ class KLineWindow(base_win.BaseWindow):
         self.marksMgr = MarksMgr(self)
         self.contextMenuMgr = ContextMenuMgr(self)
         self.lineMgr = TextLineManager(self)
+        self.rangeSelMgr = RangeSelectorManager(self)
 
     def addIndicator(self, indicator : Indicator):
         self.indicators.append(indicator)
@@ -584,6 +643,7 @@ class KLineWindow(base_win.BaseWindow):
             self.refIndicator.changeCode(rs['hy_2_code'], period)
         self.lineMgr.changeCode(code)
         self.makeVisible(-1)
+        self.hygnWin.changeCode(code)
         self.invalidWindow()
 
     def onContextMenu(self, x, y):
@@ -600,10 +660,14 @@ class KLineWindow(base_win.BaseWindow):
 
     def onSize(self):
         self.makeVisible(self.selIdx)
+        W, H = self.getClientSize()
+        self.hygnWin.rect = (0, 0, int(W * 0.7), 80)
 
     # @return True: 已处理事件,  False:未处理事件
     def winProc(self, hwnd, msg, wParam, lParam):
         if self.lineMgr.winProc(hwnd, msg, wParam, lParam):
+            return True
+        if self.rangeSelMgr.winProc(hwnd, msg, wParam, lParam):
             return True
         if msg == win32con.WM_SIZE and wParam != win32con.SIZE_MINIMIZED:
             self.onSize()
@@ -673,6 +737,7 @@ class KLineWindow(base_win.BaseWindow):
         item = idt.getItemData(idx)
         if not item:
             return
+        self.hygnWin.changeLastDay(item.day)
         self.notifyListener(Listener.Event('selIdx-Changed', self, idx = idx, day = item.day, data = item, datas = self.klineIndicator.data))
         self.invalidWindow()
 
@@ -732,7 +797,6 @@ class KLineWindow(base_win.BaseWindow):
             pw = 2 if i == 0 else 1
             self.drawer.drawLine(hdc, 0, y, w, y, 0x0000aa, width = pw)
             win32gui.RestoreDC(hdc, sdc)
-
         # draw Hilights
         for i, idt in enumerate(self.indicators):
             sdc = win32gui.SaveDC(hdc)
@@ -741,7 +805,7 @@ class KLineWindow(base_win.BaseWindow):
             if idt == self.klineIndicator:
                 self.marksMgr.onDraw(hdc, self.drawer) # draw marks
             win32gui.RestoreDC(hdc, sdc)
-
+        self.hygnWin.onDrawRect(hdc, self.hygnWin.rect)
         # draw content
         if self.refIndicatorVisible:
             sdc = win32gui.SaveDC(hdc)
@@ -753,22 +817,24 @@ class KLineWindow(base_win.BaseWindow):
             win32gui.SetViewportOrgEx(hdc, idt.x, idt.y)
             idt.draw(hdc, self.drawer)
             win32gui.RestoreDC(hdc, sdc)
-
+        # draw lines
         sdc = win32gui.SaveDC(hdc)
         win32gui.SetViewportOrgEx(hdc, self.klineIndicator.x, self.klineIndicator.y)
         self.lineMgr.onDraw(hdc)
         win32gui.RestoreDC(hdc, sdc)
-
         # draw mouse
         if self.mouseXY:
             mx, my = self.mouseXY
             idt = self.getIndicatorByPoint(*self.mouseXY)
-            sdc = win32gui.SaveDC(hdc)
-            win32gui.SetViewportOrgEx(hdc, idt.x, idt.y)
-            idt.drawMouse(hdc, self.drawer, mx - idt.x, my - idt.y)
+            if idt:
+                sdc = win32gui.SaveDC(hdc)
+                win32gui.SetViewportOrgEx(hdc, idt.x, idt.y)
+                idt.drawMouse(hdc, self.drawer, mx - idt.x, my - idt.y)
             win32gui.RestoreDC(hdc, sdc)
         self.drawHeaderTip(hdc)
         self.drawer.drawLine(hdc, w - self.RIGHT_MARGIN + 10, 0, w - self.RIGHT_MARGIN + 10, h, 0x0000aa)
+        # draw select range
+        self.rangeSelMgr.onDraw(hdc)
 
     def drawHeaderTip(self, hdc):
         if self.selIdx < 0 or not self.klineIndicator.data:
@@ -833,8 +899,10 @@ class CodeWindow(BaseWindow):
         self.curCode = None
         self.basicData = None
         self.selData = None
+        self.rangeSelData = None
         self.klineWin = klineWin
         klineWin.addNamedListener('selIdx-Changed', self.onSelIdxChanged)
+        klineWin.addNamedListener('range-selector-changed', self.onRangeSelectorChanged)
         self.V_CENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER
 
     def onDraw(self, hdc):
@@ -906,6 +974,34 @@ class CodeWindow(BaseWindow):
         rz = self.getModelAttr(klineModel, 'rate')
         if rz is not None:
             self.drawer.drawText(hdc, f'{int(rz)} %', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        if not self.rangeSelData:
+            return
+        y += RH
+        self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
+        y += 3
+        self.drawer.drawText(hdc, '区间统计', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER | win32con.DT_CENTER)
+        y += RH
+        sdatas = self.rangeSelData['datas']
+        pre = self.rangeSelData['pre']
+        self.drawer.drawText(hdc, '日期数', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        self.drawer.drawText(hdc, f'{len(sdatas)} 日', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        y += RH
+        self.drawer.drawText(hdc, '涨幅', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        zf = (sdatas[-1].close -  pre) / pre * 100
+        # color = 0x0000E6 if zf >= 0 else 0x00E600
+        self.drawer.drawText(hdc, f'{int(zf)} %', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        y += RH
+        self.drawer.drawText(hdc, '最大涨幅', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        maxVal, minVal = 0, 10000000
+        for it in sdatas:
+            maxVal = max(maxVal, it.high)
+            minVal = min(minVal, it.low)
+        if zf > 0:
+            mzf = (maxVal -  pre) / pre * 100
+        else:
+            mzf = (minVal -  pre) / pre * 100
+        # color = 0x0000E6 if zf >= 0 else 0x00E600
+        self.drawer.drawText(hdc, f'{int(mzf)} %', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
 
     def getModelAttr(self, model, attrName):
         if not self.selData or not model:
@@ -932,6 +1028,11 @@ class CodeWindow(BaseWindow):
 
     def onSelIdxChanged(self, evt, args):
         self.selData = evt.data
+        self.rangeSelData = None
+        self.invalidWindow()
+
+    def onRangeSelectorChanged(self, evt, args):
+        self.rangeSelData = evt.data
         self.invalidWindow()
 
 class KLineCodeWindow(base_win.BaseWindow):
@@ -957,7 +1058,7 @@ class KLineCodeWindow(base_win.BaseWindow):
         self.layout.setContent(0, 0, self.klineWin)
 
         rightLayout = base_win.FlowLayout()
-        self.codeWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 310))
+        self.codeWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 425))
         rightLayout.addContent(self.codeWin, {'margins': (0, 5, 0, 5)})
         btn = base_win.Button({'title': '<<', 'name': 'LEFT'})
         btn.createWindow(self.hwnd, (0, 0, 40, 30))

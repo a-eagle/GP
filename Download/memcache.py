@@ -51,7 +51,7 @@ class MemCache:
         return True
     
     def _cleanTimeout(self):
-        for k in self.datas.keys():
+        for k in list(self.datas.keys()):
             item = self.datas[k]
             if self._checkTime(item, item.timeout):
                 self.datas.pop(k)
