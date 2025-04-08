@@ -533,12 +533,14 @@ class AnchorsMgr {
 
 	_loadNewestAnchor() {
 		let model = this.vue.data;
+		let thiz = this;
 		this.anchorView.loadData(model.lastTradeDay, function(data) {
 			if (! data)
 				return;
 			if (! model.newestAnchor || model.newestAnchor.length != data.length) {
 				model.newestAnchor = data;
 			}
+			thiz.updateAnchorName(data);
 		});
 	}
 

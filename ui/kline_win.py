@@ -995,15 +995,20 @@ class CodeWindow(BaseWindow):
         y += RH
         self.drawer.drawText(hdc, '最大涨幅', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         maxVal, minVal = 0, 10000000
+        totalRate = 0
         for it in sdatas:
             maxVal = max(maxVal, it.high)
             minVal = min(minVal, it.low)
+            totalRate += it.rate
         if zf > 0:
             mzf = (maxVal -  pre) / pre * 100
         else:
             mzf = (minVal -  pre) / pre * 100
         # color = 0x0000E6 if zf >= 0 else 0x00E600
         self.drawer.drawText(hdc, f'{int(mzf)} %', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        y += RH
+        self.drawer.drawText(hdc, '总换手率', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        self.drawer.drawText(hdc, f'{int(totalRate)} %', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
 
     def getModelAttr(self, model, attrName):
         if not self.selData or not model:
@@ -1060,7 +1065,7 @@ class KLineCodeWindow(base_win.BaseWindow):
         self.layout.setContent(0, 0, self.klineWin)
 
         rightLayout = base_win.FlowLayout()
-        self.codeWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 425))
+        self.codeWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 450))
         rightLayout.addContent(self.codeWin, {'margins': (0, 5, 0, 5)})
         btn = base_win.Button({'title': '<<', 'name': 'LEFT'})
         btn.createWindow(self.hwnd, (0, 0, 40, 30))
