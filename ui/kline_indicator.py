@@ -847,7 +847,6 @@ class LsAmountIndicator(CustomIndicator):
             return True
         # draw tip
         day = self.data[si].day
-
         fday = f'{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}'
         itemData = d_orm.HotVol.get_or_none(d_orm.HotVol.day == fday)
         if not itemData:
@@ -857,7 +856,7 @@ class LsAmountIndicator(CustomIndicator):
         
     def drawHotVal(self, itemData, idx):
         hdc = win32gui.GetDC(self.win.hwnd)
-        W, H = 220, 150
+        W, H = 250, 150
         ix = (idx - self.visibleRange[0]) * (self.getItemWidth() + self.getItemSpace())
         drawer : Drawer = self.win.drawer
         if ix + W <= self.width:
@@ -869,11 +868,11 @@ class LsAmountIndicator(CustomIndicator):
         drawer.fillRect(hdc, rc, 0x101010)
         win32gui.SetBkMode(hdc, win32con.TRANSPARENT)
         drawer.use(hdc, drawer.getFont())
-        self.drawHotValInfo(hdc, rc, itemData)
-        drawer.drawRect(hdc, rc, 0xa0f0a0)
+        self.drawHotValInfo(hdc, rc, itemData, idx)
+        drawer.drawRect(hdc, rc, 0xa0f0b0)
         win32gui.ReleaseDC(self.win.hwnd, hdc)
 
-    def drawHotValInfo(self, hdc, rc, itemData):
+    def drawHotValInfo(self, hdc, rc, itemData, idx):
         drawer : Drawer = self.win.drawer
         VCENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER
         W, H = rc[2] - rc[0], rc[3] - rc[1]
@@ -881,8 +880,10 @@ class LsAmountIndicator(CustomIndicator):
         drawer.fillRect(hdc, (rc[0], rc[1], rc[2], rc[1] + int(IH)), 0x202020)
         for i, title in enumerate(('', '成交额', '', '平均额')):
             drawer.drawText(hdc, title, (rc[0] + int(IW * i), rc[1], rc[0] + int(IW + IW * i), int(rc[1] + IH)), 0xcccccc, align = VCENTER)
+        kdata = self.data[idx]
+        amount = int(getattr(kdata, 'amount') / 100000000)
         lns = [('第 1', 'p1', '前1-10', 'avg0_10'), ('第10', 'p10', '前10-20', 'avg10_20'),
-                ('第20', 'p20', '前20-50', 'avg20_50'), ('第50', 'p50', '前50-100', 'avg50_100'), ('第100', 'p100', '', '')]
+                ('第20', 'p20', '前20-50', 'avg20_50'), ('第50', 'p50', '前50-100', 'avg50_100'), ('第100', 'p100', '个股', 'A')]
         for idx, ln in enumerate(lns):
             for cidx, k in enumerate(ln):
                 drawer.drawLine(hdc, rc[0], int(rc[1] + IH + IH * idx), rc[2], int(rc[1] + IH + IH * idx), 0xf0a0a0)
@@ -892,8 +893,8 @@ class LsAmountIndicator(CustomIndicator):
                     drawer.fillRect(hdc, irc, 0x202020)
                     drawer.drawText(hdc, k, irc, 0xcccccc, align = VCENTER)
                 else:
-                    if k:
-                        drawer.drawText(hdc, getattr(itemData, k), irc, 0xcccccc, align = VCENTER)
+                    val = getattr(itemData, k, 0) if k[0] == 'p' or k[0] == 'a' else amount
+                    drawer.drawText(hdc, f'{val} 亿', irc, 0xcccccc, align = VCENTER)
 
 class HotIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
@@ -1000,7 +1001,7 @@ class ClsZT_Indicator(CustomIndicator):
         # draw tip
         day = self.data[si].day
         if not self.cdata or day not in self.cdata:
-            return
+            return True
         detail = self.cdata[day]['detail']
         self.drawDetail(detail)
         return True
