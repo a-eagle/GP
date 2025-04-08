@@ -466,5 +466,5 @@ if __name__ == '__main__':
     #ClsUrl().loadDegree()
     pass
     #cu.loadHotTC(20241104)
-    rs = cu.loadHotTC('20250407')
+    rs = cu.loadHotTC('20250408')
     print(rs)

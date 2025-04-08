@@ -190,7 +190,7 @@ class Server:
             if time.time() - self._lastLoadHotTcTime < 30:
                 return
             st = datetime.datetime.now().strftime('%H:%M')
-            if st < '09:30' or st > '15:00':
+            if st < '09:30' or st > '15:30':
                 return
             days = ths_iwencai.getTradeDays(daysNum)
             if not days:
@@ -375,6 +375,6 @@ if __name__ == '__main__':
     #days = ths_iwencai.getTradeDays(100)
     #for day in days:
     #    svr._loadHotTcOfDay(day)
-    svr._downloadClsZT()
+    svr.loadHotTc(1)
     pass
     #do_reason()
