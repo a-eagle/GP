@@ -174,8 +174,10 @@ class GlobalMgr {
 			rs.push(item);
 			if (item && item.fb && typeof(item.fb) == 'string')
 				item.fb = JSON.parse(item.fb);
-			let am = this.zsInfos.sh000001[day].amount + this.zsInfos.sz399001[day].amount;
-			item.amount = am.toFixed(2);
+			if (this.zsInfos.sh000001[day] && this.zsInfos.sz399001[day]) {
+				let am = this.zsInfos.sh000001[day].amount + this.zsInfos.sz399001[day].amount;
+				item.amount = am.toFixed(2);
+			}
 		}
 		this.zsInfos.data = rs;
 	}

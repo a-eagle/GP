@@ -256,6 +256,10 @@ class KLineIndicator(Indicator):
         return {'value': val, 'fmtVal': fval, 'valType': 'Price'}
 
     def getColor(self, idx, data):
+        if self.period.upper() != 'DAY':
+            if data.close >= data.open:
+                return 0x0000ff
+            return 0xfcfc54
         if self.code[0 : 2] == '88' and idx > 0: # 指数
             zdfd = abs((self.data[idx].close - self.data[idx - 1].close) / self.data[idx - 1].close * 100)
             mdfd = abs((max(self.data[idx].high, self.data[idx - 1].close)- self.data[idx].low) / self.data[idx - 1].close * 100)
