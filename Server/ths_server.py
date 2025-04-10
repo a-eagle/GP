@@ -307,6 +307,14 @@ if __name__ == '__main__':
     #autoLoadHistory(20240708)
     #downloadOneDay(20240702)
     s = Server()
-    s.downloadSaveVolTop100('[4]', 20250402)
-    s.downloadSaveVolTop100('[4]', 20250403)
-    s.downloadSaveVolTop100('[4]')
+    # s.downloadSaveVolTop100('[4]', 20250402)
+    ex = []
+    for d in d_orm.HotVol.select():
+        ex.append(d.day.replace('-', ''))
+    tds = ths_iwencai.getTradeDays(200)
+    for d in tds:
+        if d in ex:
+            continue
+        time.sleep(1)
+        s.downloadSaveVolTop100(d, d)
+

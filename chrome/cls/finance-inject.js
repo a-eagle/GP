@@ -524,9 +524,8 @@ class AnchorsMgr {
 		let thiz = this;
 		this._loadNewestAnchor();
 		setInterval(function() {
-			let today = formatDay(new Date());
 			let curTime = formatTime(new Date());
-			if (curTime < '09:25' || curTime > '15:05') {
+			if (curTime < '09:25' || curTime > '15:05' || model.curDay != model.lastTradeDay) {
 				return;
 			}
 			thiz._loadNewestAnchor();
@@ -536,13 +535,16 @@ class AnchorsMgr {
 	_loadNewestAnchor() {
 		let model = this.vue.data;
 		let thiz = this;
+		if (model.curDay != model.lastTradeDay)
+			return;
 		this.anchorView.loadData(model.lastTradeDay, function(data) {
 			if (! data)
 				return;
 			if (! model.newestAnchor || model.newestAnchor.length != data.length) {
 				model.newestAnchor = data;
 			}
-			thiz.updateAnchorName(data);
+			if (model.lastTradeDay == model.curDay)
+				thiz.updateAnchorName(data);
 		});
 	}
 

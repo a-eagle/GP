@@ -122,11 +122,11 @@ class KLineView extends Listener {
             if (! this.line[i]) {
                 continue;
             }
-            var barVal = this.line[i].high;
+            let barVal = this.line[i].high;
             if (barVal > kMaxValue) {
                 kMaxValue = barVal;
             }
-            var barVal2 = this.line[i].low;
+            let barVal2 = this.line[i].low;
             if (barVal2 < kMinValue) {
                 kMinValue = barVal2;
             }
@@ -480,6 +480,7 @@ class TimeLineView extends Listener {
         this.updateTime = 0; // load timeline data time mili-seconds
         this.code = null; // 股票代码
         this.zf = null; //涨幅
+        this.amount = 0; //成交额
 
         this.SPEED_PEROID = 10; //  时速周期 5 / 10 /15
         this.MIN_ZHANG_SU = 5; // 最小涨速
@@ -514,6 +515,7 @@ class TimeLineView extends Listener {
         data.close = ln[ln.length - 1].price;
         this.code = data.code;
         this.fx();
+        this.calcAmount();
     }
 
     fx() {
@@ -574,11 +576,11 @@ class TimeLineView extends Listener {
         //算最大值，最小值
         let maxPrice = 0;
         let minPrice = 9999999;
-        for (var i = 0; i < this.data.line.length; i++) {
+        for (let i = 0; i < this.data.line.length; i++) {
             if (! this.data.line[i]) {
                 continue;
             }
-            var price = this.data.line[i].price;
+            let price = this.data.line[i].price;
             if (price > maxPrice) {
                 maxPrice = price;
             }
@@ -588,6 +590,18 @@ class TimeLineView extends Listener {
         }
         this.maxPrice = maxPrice;
         this.minPrice = minPrice;
+    }
+
+    calcAmount() {
+        let a = 0;
+        for (let i = 0; i < this.data.line.length; i++) {
+            if (! this.data.line[i]) {
+                continue;
+            }
+            if (typeof(this.data.line[i].amount) == 'number' )
+                a += this.data.line[i].amount;
+        }
+        this.amount = a;
     }
 
     getLineColor(tag) {
@@ -1125,12 +1139,12 @@ class AnchrosView extends Listener {
         //算最大值，最小值
         let maxPrice = 0;
         let minPrice = 0;
-        for (var i = 0; i < this.sh000001.line.length; i++) {
+        for (let i = 0; i < this.sh000001.line.length; i++) {
             let item = this.sh000001.line[i]
             if (! item) {
                 continue;
             }
-            var price = item.last_px;
+            let price = item.last_px;
             if (i == 0) {
                 maxPrice = minPrice = item.preclose_px; // 昨日收盘价
             }

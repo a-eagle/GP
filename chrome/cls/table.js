@@ -410,6 +410,13 @@ class StockTable {
                 let val = rowData[head.name];
                 if (val) tdObj.append($(`<span style="width: 20px; height: 20px; display: inline-block; background-color:${val}; vertical-align: middle; "> </span>`));
             }
+        } else if (k == 'amount') {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
+                let m = rowData.amount / 100000000;
+                if (m < 1) m = m.toFixed(1);
+                else m = parseInt(m);
+                tdObj.text(`${m}亿`);
+            }
         } else {
             header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 let val = rowData[head.name];
@@ -624,6 +631,7 @@ class StockTable {
         let sd = this.datasMap[view.key];
         sd.zf = view.zf;
         sd.zs = maxZs ? maxZs.zf : 0;
+        sd.amount = view.amount;
     }
 
     getAttrType(list, name) {
@@ -733,19 +741,6 @@ class StockTable {
             return code;
         }
         return null;
-    }
-
-    buildUI_hotsZH(row) {
-        let val = row.hots ? row.hots : '';
-        return '<td>' + val + '</td>';
-    }
-
-    buildUI_zf(row) {
-        let val = row.change;
-        val = (val * 100).toFixed(2);
-        if (row.change >= 0)
-            return '<td style="color:#de0422;">' + val + '%</td>';
-        return '<td style="color:#52C2A3;">' + val + '%</td>';
     }
 
     buildUI_elipse(s) {
@@ -869,6 +864,20 @@ class IndustryTable extends StockTable {
         let rs = [];
         for (let k in this.datasMap) {
             if (k.indexOf(code) >= 0) rs.push(this.datasMap[k]);
+        }
+        return rs;
+    }
+
+    getCodeList() {
+        if (! this.datas)
+            return [];
+        let rs = [];
+        for (let k of this.datas) {
+            let its = k.stocks;
+            for (let m of its) {
+                if (m.secu_code.length == 8)
+                    rs.push(m.secu_code.substring(2));
+            }
         }
         return rs;
     }

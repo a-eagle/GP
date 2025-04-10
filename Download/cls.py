@@ -322,7 +322,6 @@ class ClsUrl:
     # 热度题材
     def loadHotTC(self, day):
         today = datetime.date.today().strftime('%Y-%m-%d')
-        KIND = 'cls-hot-tc'
         if isinstance(day, datetime.date):
             cday = day.strftime('%Y-%m-%d')
         elif isinstance(day, str):
@@ -332,9 +331,6 @@ class ClsUrl:
                 cday = day
         elif isinstance(day, int):
             cday = f'{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}'
-        cc = memcache.cache.getCache(f'hot-tc-{cday}')
-        if cc:
-            return cc
         params = {
             'app': 'CailianpressWeb',
             'cdate': cday,
@@ -347,7 +343,6 @@ class ClsUrl:
         js = json.loads(txt)
         data = js['data']
         #print(data)
-        memcache.cache.saveCache(f'hot-tc-{cday}', data, 60)
         return data
 
     # 市场情绪 {day: YYYY-MM-DD, degree: int}
