@@ -13,7 +13,7 @@ class MyNote(pw.Model):
     class Meta:
         database = db_chrome
 
-# 
+# 颜色标记
 class MyMarkColor(pw.Model):
     code = pw.CharField() #
     secu_code = pw.CharField() #

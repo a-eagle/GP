@@ -2,7 +2,7 @@ import os, sys, functools, copy, datetime, json, time, traceback
 import win32gui, win32con, win32api
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from orm import def_orm
+from orm import def_orm, chrome_orm
 from ui import base_win, dialog
 from utils import gn_utils
 from ui.kline_indicator import *
@@ -67,8 +67,39 @@ class ContextMenuMgr:
               {'title': '画线(直线)', 'name': 'draw-line'},
               {'title': '画线(文本)', 'name': 'draw-text'},
               {'title': '删除直线', 'name': 'del-draw-line', 'day': selDay},
+              {'title': 'LINE'},
+              {'title': '标记', 'name': 'mark-color', 'sub-menu': self.getMarkColors},
               ]
         return mm
+    
+    def getMarkColors(self, it):
+        def render(menu, hdc, rect, menuItem):
+            W, H = rect[2] - rect[0], rect[3] - rect[1]
+            BW, BH = 50, 15
+            sx = rect[0] + 20
+            sy = (H - BH) // 2 + rect[1]
+            rc = (sx, sy, sx + BW, sy + BH)
+            drawer = Drawer.instance()
+            if menuItem['rcolor'] is None:
+                drawer.drawRect(hdc, rc, 0x999999)
+            else:
+                drawer.fillRect(hdc, rc, menuItem['rcolor'])
+                if menuItem['cur']:
+                    drawer.drawText(hdc, '[*]', rect, color = 0, align = win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+
+        code = self.win.klineIndicator.model.code
+        obj = chrome_orm.MyMarkColor.get_or_none(chrome_orm.MyMarkColor.code == code)
+        scolor = None
+        if obj:
+            scolor = obj.color
+        cs = [
+            {'rcolor': None, 'render': render, 'scolor': None}, {'rcolor': 0x0000ff, 'render': render, 'scolor': '#f00'},
+            {'rcolor': 0x00ff00, 'render': render, 'scolor': '#0f0'}, {'rcolor': 0xff0000, 'render': render, 'scolor': '#00f'},
+            {'rcolor': 0x9314FF, 'render': render, 'scolor': '#FF1493'}, {'rcolor': 0xCD329A, 'render': render, 'scolor': '#9A32CD'}
+        ]
+        for c in cs:
+            c['cur'] = c['scolor'] == scolor
+        return cs
 
     def getThsZsList(self, item):
         from orm import ths_orm
@@ -133,7 +164,7 @@ class ContextMenuMgr:
             self.win.refIndicatorVisible = evt.item['checked']
             self.win.invalidWindow()
         elif name == 'open-ref-zs':
-            from kline import kline_utils
+            from ui import kline_utils
             dt = {'code': evt.item['code'], 'day': None}
             kline_utils.openInCurWindow_ZS(self, dt)
         elif name == 'open-ref-clszs':
@@ -151,7 +182,24 @@ class ContextMenuMgr:
             pass
         elif name == 'del-draw-line':
             self.win.lineMgr.delLine(evt.item['day'])
-            pass
+        elif name == 'mark-color':
+            self.markColor(evt.item)
+
+    def markColor(self, item):
+        code = self.win.klineIndicator.model.code
+        name = self.win.klineIndicator.model.name
+        scode = ('sh' if code[0] == '6' else 'sz') + code
+        obj = chrome_orm.MyMarkColor.get_or_none(chrome_orm.MyMarkColor.code == code)
+        scolor = item['scolor']
+        if scolor is None:
+            if obj: obj.delete_instance()
+            return
+        if not obj:
+            today = datetime.date.today().strftime('%Y-%m-%d')
+            chrome_orm.MyMarkColor.create(code = code, secu_code = scode, name = name, color = scolor, day = today)
+        else:
+            obj.color = scolor
+            obj.save()
 
 class TextLineManager:
     class Pos:
