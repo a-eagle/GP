@@ -9,7 +9,7 @@ from download import console, cls, ths_iwencai
 
 class Server:
     def __init__(self) -> None:
-        self.downloadInfos = {'ignore': '2025-03-18'}
+        self.downloadInfos = {'ignore': '2025-04-10'}
         self._lastLoadTime = 0
         self._lastLoadHotTcTime = 0
         self._lastLoadZSTime = 0
@@ -156,20 +156,23 @@ class Server:
         if self.downloadInfos.get('ignore', None) == day:
             return
         if curTime > '15:30' and (not self.downloadInfos.get(f'scqx-{day}', False)):
-            rs = self.downloadScqx('[1]')
+            rs = self.downloadScqx('[1/6]')
             self.downloadInfos[f'scqx-{day}'] = rs
         if curTime >= '15:30' and (not self.downloadInfos.get(f'updown-{day}', False)):
-            ok = self.downloadUpDown('[2]')
+            ok = self.downloadUpDown('[2/6]')
             self.downloadInfos[f'updown-{day}'] = ok
         if curTime >= '15:30' and (not self.downloadInfos.get(f'zs-{day}', False)):
             self.downloadInfos[f'zs-{day}'] = True
-            self.downloadZS('[3]')
+            self.downloadZS('[3/6]')
         if curTime >= '15:30' and (not self.downloadInfos.get(f'bkgn-{day}', False)):
             self.downloadInfos[f'bkgn-{day}'] = True
-            self.downloadBkGn('[4]')
+            self.downloadBkGn('[4/6]')
         if curTime >= '15:30' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
             self.downloadInfos[f'ztpk-{day}'] = True
-            self.downloadZT_PanKou('[5]')
+            self.downloadZT_PanKou('[5/6]')
+        if curTime >= '15:30' and (not self.downloadInfos.get(f'hot-tc-{day}', False)):
+            self.downloadInfos[f'hot-tc-{day}'] = True
+            self.downloadZT_PanKou('[6/6]')
 
     def loadTimeDegree(self):
         now = datetime.datetime.now()

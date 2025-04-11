@@ -344,10 +344,10 @@ def download_zt_dt(day = None, tag  = None):
         qs = day + ' 跌停,非st,成交额,收盘价,涨跌幅'
         datas2 = iwencai_load_list(qs) or []
     datas.extend(datas2)
-    if not datas:
-        return None
-    # find day
     rs = []
+    if not datas:
+        return rs
+    # find day
     fday = day[0 : 4] + '-' + day[4 : 6] + '-' +  day[6 : 8]
     for it in datas:
         code = it['code']
