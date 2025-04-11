@@ -348,6 +348,10 @@ def download_zt_dt(day = None, tag  = None):
     if not datas:
         return rs
     # find day
+    fday = None
+    for k in datas[0]:
+        if '连续涨停天数[' in k or '连续跌停天数[' in k:
+            day = k[k.index('[') + 1 : k.index(']')]
     fday = day[0 : 4] + '-' + day[4 : 6] + '-' +  day[6 : 8]
     for it in datas:
         code = it['code']
@@ -455,4 +459,5 @@ def download_vol_top100(day = None):
 
 if __name__ == '__main__':
     from orm import d_orm
-    ds = download_vol_top100()
+    ds = download_zt_dt()
+    print(ds)

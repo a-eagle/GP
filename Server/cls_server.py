@@ -9,7 +9,7 @@ from download import console, cls, ths_iwencai
 
 class Server:
     def __init__(self) -> None:
-        self.downloadInfos = {'ignore': '2025-04-10'}
+        self.downloadInfos = {'ignore': '2025-04-11'}
         self._lastLoadTime = 0
         self._lastLoadHotTcTime = 0
         self._lastLoadZSTime = 0
@@ -171,8 +171,8 @@ class Server:
             self.downloadInfos[f'ztpk-{day}'] = True
             self.downloadZT_PanKou('[5/6]')
         if curTime >= '15:30' and (not self.downloadInfos.get(f'hot-tc-{day}', False)):
-            self.downloadInfos[f'hot-tc-{day}'] = True
-            self.downloadZT_PanKou('[6/6]')
+            flag = self.downloadHotTcOfLastDay('[6/6]')
+            self.downloadInfos[f'hot-tc-{day}'] = flag
 
     def loadTimeDegree(self):
         now = datetime.datetime.now()
@@ -190,7 +190,7 @@ class Server:
 
     def loadHotTc(self, daysNum = 10):
         try:
-            if time.time() - self._lastLoadHotTcTime < 30:
+            if time.time() - self._lastLoadHotTcTime < 600:
                 return
             st = datetime.datetime.now().strftime('%H:%M')
             if st < '09:30' or st > '15:30':
@@ -213,7 +213,7 @@ class Server:
         url = cls.ClsUrl()
         ds = url.loadHotTC(day)
         if not ds:
-            return
+            return 0
         cday = ds[0]['c_time'].split(' ')[0]
         exists = {}
         qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day == cday)
@@ -231,6 +231,18 @@ class Server:
                     ex.save()
             else:
                 cls_orm.CLS_HotTc.create(day = day, code = d['symbol_code'], name = d['symbol_name'], up = d['float'] == 'up', ctime = ctime)
+        return len(ds)
+
+    def downloadHotTcOfLastDay(self, tag):
+        try:
+            days = ths_iwencai.getTradeDays()
+            if not days:
+                return False
+            num = self._loadHotTcOfDay(days[-1])
+            console.writeln_1(console.CYAN, f'[Cls-HotTc] {tag} {self.formatNowTime(True)} num {num}')
+            return num > 0
+        except Exception as e:
+            traceback.print_exc()
 
     # 指数（板块概念）
     def downloadZS(self, tag):

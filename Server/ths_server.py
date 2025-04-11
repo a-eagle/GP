@@ -16,7 +16,7 @@ class Server:
         self.last_dde_time = 0
         self.last_hot_time = 0
         self.last_hotzh_time = 0
-        self.downloadInfos = {'ignore': '2025-03-18'}
+        self.downloadInfos = {'ignore': '2025-04-11'}
         
     def formatZtTime(self, ds):
         if not ds:
@@ -234,9 +234,9 @@ class Server:
             traceback.print_exc()
         return False
 
-    def download_dt(self, tag):
+    def download_dt(self, tag, day = None):
         try:
-            datas = ths_iwencai.download_zt_dt(None, 'dt')
+            datas = ths_iwencai.download_zt_dt(day, 'dt')
             unum = 0
             for d in datas:
                 if not d['is_down']:
@@ -255,6 +255,7 @@ class Server:
     def loadOneTime(self):
         now = datetime.datetime.now()
         day = now.strftime('%Y%m%d')
+        fday = now.strftime('%Y-%m-%d')
         if not self.acceptDay(now):
             return
         curTime = now.strftime('%H:%M')
@@ -265,14 +266,13 @@ class Server:
                 self.downloadSaveOneDayTry(day)
                 self.last_zt_time = time.time()
 
+        if self.downloadInfos.get('ignore', None) == fday:
+            return
         # 计算热度综合排名
         if curTime >= '15:05' and (not self.downloadInfos.get(f'zh-hots-{day}', False)):
             self.downloadInfos[f'zh-hots-{day}'] = True
             hot_utils.calcAllHotZHAndSave()
             console.writeln_1(console.GREEN, f'[THS-ZH-hot] [1/5] {self.formatNowTime(False)}', ' calc hot ZH success')
-
-        if self.downloadInfos.get('ignore', None) == day:
-            return
         # 下载成交量前100信息
         if curTime >= '15:05' and not self.downloadInfos.get(f'vol-top100-{day}', False):
             self.downloadInfos[f'vol-top100-{day}'] = True
@@ -308,13 +308,14 @@ if __name__ == '__main__':
     #downloadOneDay(20240702)
     s = Server()
     # s.downloadSaveVolTop100('[4]', 20250402)
-    ex = []
-    for d in d_orm.HotVol.select():
-        ex.append(d.day.replace('-', ''))
-    tds = ths_iwencai.getTradeDays(200)
-    for d in tds:
-        if d in ex:
-            continue
-        time.sleep(1)
-        s.downloadSaveVolTop100(d, d)
+    # ex = []
+    # for d in d_orm.HotVol.select():
+    #     ex.append(d.day.replace('-', ''))
+    # tds = ths_iwencai.getTradeDays(200)
+    # for d in tds:
+    #     if d in ex:
+    #         continue
+    #     time.sleep(1)
+    #     s.downloadSaveVolTop100(d, d)
+    s.download_dt('a', '2025-04-11')
 

@@ -108,6 +108,8 @@ class Indicator:
         x = self.getCenterX(idx)
         sx = x - self.getItemWidth() // 2 #- self.getItemSpace()
         ex = x + self.getItemWidth() // 2 #+ self.getItemSpace()
+        if ex <= sx:
+            ex = sx + 2
         rc = (sx, 1, ex, self.height + self.getMargins(1))
         drawer.fillRect(hdc, rc, 0x202020)
 

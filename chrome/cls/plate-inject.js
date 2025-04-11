@@ -133,7 +133,7 @@ function loadUI() {
 	}
 	if (! window[tag + '_StockTable']) {
         let hd = [
-            {text: '标记', 'name': 'mark_color', width: 40, defined: true},
+            {text: '标记', 'name': 'mark_color', width: 40, defined: true, sortable: true},
             {text: '股票/代码', 'name': 'code', width: 80},
             {text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
             {text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
