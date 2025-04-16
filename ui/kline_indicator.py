@@ -431,6 +431,7 @@ class RefIndicator(Indicator):
         self.mdata = {}
         for d in self.model.data:
             self.mdata[d.day] = d
+        self.win.notifyListener(Listener.Event('Ref-Model-Changed', self, data = self.data, model = model, code = self.code))
 
     def calcVisibleRange(self, idx):
         self.persent = 0
@@ -985,6 +986,14 @@ class ClsZT_Indicator(CustomIndicator):
         for d in datas:
             day = int(d['day'].replace('-', ''))
             maps[day] = d
+        scode = ('sh' if self.code[0] == '6' else 'sz') + self.code
+        qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.secu_code == scode).dicts()
+        for d in qr:
+            day = int(d['day'].replace('-', ''))
+            d['ztReason'] = d['up_reason']
+            d['detail'] = ''
+            if day not in maps:
+                maps[day] = d
         self.cdata = maps
 
     def drawItem(self, hdc, drawer, idx, x):
@@ -1035,6 +1044,13 @@ class GnLdIndicator(CustomIndicator):
         self.config['title'] = '[联动]'
         self.clsGntc = None
         self.curGntc = ''
+        self.win.addNamedListener('Ref-Model-Changed', self.onRefChanged)
+
+    def onRefChanged(self, evt, args):
+        if not evt.code or evt.code[0 : 3] != 'cls' or not evt.model:
+            return
+        name = evt.model.name
+        self.changeGntc(name)
 
     def _changeCode(self):
         super()._changeCode()

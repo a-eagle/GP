@@ -66,8 +66,17 @@ class InitMgr {
 	_initUI() {
 		let thiz = this;
 		if ($('.watch-content-left > div').length < 7) {
-			setTimeout(function() {thiz._initUI()}, 500);
-			return;
+			let isReady = $('.watch-content-left > div').length == 6 && $('.watch-content-left > div:last').text() == '暂无相关数据';
+			if (isReady) {
+				if (! this._waitTime) this._waitTime = new Date().getTime();
+				if (new Date().getTime() - this._waitTime < 5000) {
+					isReady = false;
+				}
+			}
+			if (! isReady) {
+				setTimeout(function() {thiz._initUI()}, 500);
+				return;
+			}
 		}
 		let style = document.createElement('style');
 		let css = ".my-info-item {border-bottom: solid 1px #222; padding-bottom: 10px; padding-top: 5px; width: 100%; } \n\
@@ -995,13 +1004,21 @@ class TabNaviMgr {
 			];
 		}
 
+		if (name == '涨停池') {
+			for (let i = data.length - 1; i >= 0; i--) {
+				if (data[i].limit_up_days != 1)
+					data.splice(i, 1);
+			}
+			data.sort((a, b) => a.time.localeCompare(b.time));
+		}
+
 		let st = new StockTable(hd);
 		window.st = st;
 		st.setDay(model.curDay);
 		st.setTradeDays(model.tradeDays);
 		st.setData(data);
 		if (name == '涨停池') {
-			st.sortHeader('limit_up_days', 'asc');
+			//st.sortHeader('limit_up_days', 'asc');
 		} else if (name == '连板池') {
 			st.sortHeader('limit_up_days', 'desc');
 		}
