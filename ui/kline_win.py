@@ -170,7 +170,7 @@ class ContextMenuMgr:
         elif name == 'open-ref-clszs':
             code = evt.item['code']
             day = evt.item["day"]
-            win32api.ShellExecute(None, 'open', f'https://www.cls.cn/plate?code={code}&day={day}', '', '', True)
+            self.openRefClsZs(code, day)
         elif name == 'add-ref-zs':
             code = evt.item['code']
             self.win.refIndicator.changeCode(code, self.win.refIndicator.period)
@@ -201,6 +201,12 @@ class ContextMenuMgr:
         else:
             obj.color = scolor
             obj.save()
+
+    def openRefClsZs(self, code, day):
+        url = f'https://www.cls.cn/plate?code={code}&day={day}'
+        win32api.ShellExecute(None, 'open', url, '--incognito', '', True)
+        # cmd = f"C:/Program Files (x86)/Microsoft/Edge/Application/miedge.exe -ArgumentList @( '-incognito', '{url}')"
+        # os.system(cmd)
 
 class TextLineManager:
     class Pos:
@@ -1211,5 +1217,5 @@ if __name__ == '__main__':
     win.createWindow(None, (0, 0, 1300, 700), win32con.WS_OVERLAPPEDWINDOW)
     win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
 
-    win.changeCode('300033', 'day') # 000737  002261
+    win.changeCode('000737', 'day') # 000737  002261
     win32gui.PumpMessages()

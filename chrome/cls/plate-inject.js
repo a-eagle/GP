@@ -8,7 +8,8 @@ function createTimeLineView(code, width, height) {
     height = height || 60;
     let view = new TimeLineView(width, height);
     //tlMgr.add(view);
-    view.loadData(code);
+    let day = getLocationParams('day');
+    view.loadData(code, day);
     return view;
 }
 
@@ -64,19 +65,40 @@ function initPlatePage() {
         return;
     }
 
-    let lh = window.location.href;
-    let TAG = 'https://www.cls.cn/plate?code=';
-    let code = lh.substring(TAG.length);
+    let code = getLocationParams('code');
     let view = createTimeLineView(code);
     let ui = $(view.canvas);
     ui.css('margin-left', '50px').css('background-color', '#f8f8f8');
     ui.insertAfter('.stock-detail > span:eq(1)');
-    let btn = $('<button > 打开链接 </button>');
+    let btn = $('<button > 打开K线图-Win </button>');
     btn.click(function() {
-        let url = "https://www.cls.cn/stock?code=" + code;
-        window.open(url, '_blank');
+        // let url = "https://www.cls.cn/stock?code=" + code;
+        // window.open(url, '_blank');
+        $.get('http://localhost:5665/openui/kline/' + code);
     });
     btn.insertAfter(ui);
+
+    let picker = $('<button style="margin-left:30px;" >选择日期 </button>');
+    let day = getLocationParams('day');
+    if (day) {
+        let mday = day.replaceAll('-', '');
+        let fday = mday.substring(0, 4) + '-' + mday.substring(4, 6) + '-' + mday.substring(6, 8);
+        let dd = new Date(fday);
+        let ss = '日一二三四五六';
+        picker.text(fday.substring(5) + ' 星期' + ss.charAt(dd.getDay()));
+    }
+    picker.click(function() {
+        if (! window.dpFS) {
+            window.dpFS = new TradeDatePicker();
+        }
+        window.dpFS.removeListener('select')
+        window.dpFS.addListener('select', function(evt) {
+            let url = `https://www.cls.cn/plate?code=${code}&day=${evt.date}`;
+            window.location.href = url;
+        });
+        window.dpFS.openFor(this);
+    });
+    picker.insertAfter(btn);
     //let txt = span.text();
     //span.html('<a href="https://www.cls.cn/stock?code=' + code + '" target=_blank>' + txt + ' </a> ');
 
@@ -131,11 +153,17 @@ function loadUI() {
 		return;
 	}
 	if (! window[tag + '_StockTable']) {
+        let hyzsRender = function(rowIdx, rowData, head, tdObj) {
+            let val = rowData[head.name] || 0;
+            if (val) val += ' C';
+            else val = '';
+            tdObj.text(val);
+        }
         let hd = [
             {text: '标记', 'name': 'mark_color', width: 40, defined: true, sortable: true},
             {text: '股票/代码', 'name': 'code', width: 80},
             {text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
-            {text: '活跃指数', 'name': '_snum_', width: 70, sortable: true},
+            {text: '活跃指数', 'name': '_snum_', width: 70, sortable: true, cellRender: hyzsRender},
             {text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
             {text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
             {text: '成交额', 'name': 'amount', width: 50, sortable: true, defined: true},
@@ -158,8 +186,8 @@ function loadUI() {
     window.st = st;
 }
 
-function getLocationParams(url = null) {
-    if (! url) url = window.location.href;
+function getLocationParams(name = null) {
+    let url = window.location.href;
     let params = {};
     if (url.indexOf('#') > 0)
         url = url.substring(0, url.indexOf('#'));
@@ -169,6 +197,9 @@ function getLocationParams(url = null) {
     for (let it of ps.split('&')) {
         let ks = it.split('=');
         params[ks[0]] = ks[1];
+    }
+    if (name) {
+        return params[name];
     }
     return params;
 }

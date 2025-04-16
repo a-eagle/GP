@@ -38,14 +38,14 @@ class Server:
         self.app.add_url_rule('/industry/<code>', view_func = self.getIndustry)
         self.app.run('localhost', 5665, use_reloader = False, debug = False)
 
-    def openUI_Timeline(self, code, day):
+    def _openUI_Timeline(self, code, day):
         win = timeline.TimelinePanKouWindow()
         win.createWindow(None, (0, 0, 1200, 600), win32con.WS_OVERLAPPEDWINDOW)
         win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
         win.load(code, day)
         win32gui.PumpMessages()
 
-    def openUI_Kline(self, code, params):
+    def _openUI_Kline(self, code, params):
         win = kline_utils.createKLineWindow(None)
         win.changeCode(code)
         if params:
@@ -58,11 +58,15 @@ class Server:
         win32gui.PumpMessages()
 
     def openUI(self, type_, code):
+        def run(func, *args):
+            func(*args)
         if type_ == 'timeline':
             day = flask.request.args.get('day', None)
-            self.uiThread.addTask(code, self.openUI_Timeline, code, day)
+            thread = threading.Thread(target = run, args = (self._openUI_Timeline, code, day), daemon = True)
+            thread.start()
         elif type_ == 'kline':
-            self.uiThread.addTask(code, self.openUI_Kline, code, flask.request.data)
+            thread = threading.Thread(target = run, args = (self._openUI_Kline, code, flask.request.data), daemon = True)
+            thread.start()
         else:
             return {'code': 2, 'msg': f'Type Error: {type_}'}
         return {'code': 0, 'msg': 'OK'}

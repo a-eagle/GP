@@ -136,7 +136,7 @@ class ClsUrl:
         data = js['data']
         rt = {}
         rt['pre'] = self.getVal(data, 'preclose_px', float, 0) # 昨日收盘价
-        rt['code'] = data['secu_code'][2 : ]
+        rt['code'] = data['secu_code'][2 : ] if data['secu_code'][0] == 's' else data['secu_code']
         rt['name'] = data['secu_name']
         rt['vol'] = self.getVal(data, 'business_amount', int, 0) # int 股
         rt['amount'] = self.getVal(data, 'business_balance', int, 0) # int 元
