@@ -18,7 +18,6 @@ function extendWidth(obj, aw) {
     obj.css('width', '' + w + 'px');
 }
 
-
 function openKLineDialog_chrome(code) {
     if (! klineDialog) {
         klineDialog = $('<dialog class="kline">  </dialog>');
@@ -147,6 +146,8 @@ function loadUI() {
         ];
 		let st = window[tag + '_StockTable'] = tag == 'Stock' ? new StockTable(hd) : new IndustryTable(hd);
 		st.initStyle();
+        let ps = getLocationParams();
+        if (ps.day) st.setDay(ps.day);
 		st.setData(data);
 		st.buildUI();
 	}
@@ -156,9 +157,47 @@ function loadUI() {
     window.st = st;
 }
 
+function getLocationParams(url = null) {
+    if (! url) url = window.location.href;
+    let params = {};
+    if (url.indexOf('#') > 0)
+        url = url.substring(0, url.indexOf('#'));
+    let q = url.indexOf('?');
+    if (q < 0) return params;
+    let ps = url.substring(q + 1);
+    for (let it of ps.split('&')) {
+        let ks = it.split('=');
+        params[ks[0]] = ks[1];
+    }
+    return params;
+}
+
+function loadStoks() {
+    let params = getLocationParams();
+    let code = params.code;
+    let day = params.day || '';
+    let url = `http://localhost:5665/plate/${code}?day=${day}`;
+    $.ajax({
+        url: url, type: 'GET',
+        success: function(resp) {
+            let sd = resp;
+            window['StockData'] = sd;
+        }
+    });
+    url = `http://localhost:5665/industry/${code}?day=${day}`;
+    $.ajax({
+        url: url, type: 'GET',
+        success: function(resp) {
+            let sd = resp;
+            window['IndustryData'] = sd;
+        }
+    });
+}
+
 initPlatePage();
-loadStoksData();
-loadIndustryData();
+// loadStoksData();
+// loadIndustryData();
+loadStoks();
 setInterval(function() {
 	loadUI();
 }, 1 * 1000);

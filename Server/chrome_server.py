@@ -1,10 +1,10 @@
-import threading, sys, traceback, datetime, json
+import threading, sys, traceback, datetime, json, requests
 import flask, flask_cors
 import win32con, win32gui, peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from ui import base_win, timeline, kline_utils, kline_win
-from download import ths_iwencai, datafile, ths_iwencai, henxin, cls
+from download import ths_iwencai, datafile, ths_iwencai, henxin, cls, memcache
 from orm import d_orm, def_orm, cls_orm, chrome_orm, lhb_orm, ths_orm
 from utils import hot_utils, gn_utils
 
@@ -34,6 +34,8 @@ class Server:
         self.app.add_url_rule('/query-codes-info', view_func = self.queryCodesInfo, methods = ['POST'])
         self.app.add_url_rule('/mark-color', view_func = self.markColor, methods = ['POST'])
         self.app.add_url_rule('/mynote', view_func = self.myNote, methods = [ 'POST'])
+        self.app.add_url_rule('/plate//<code>', view_func = self.getPlate)
+        self.app.add_url_rule('/industry/<code>', view_func = self.getIndustry)
         self.app.run('localhost', 5665, use_reloader = False, debug = False)
 
     def openUI_Timeline(self, code, day):
@@ -287,10 +289,114 @@ class Server:
                 it['cls_ztReason'] = zt['cls_ztReason'] if zt else ''
         return rs
 
+    # _type = 'stocks' | 'industry'
+    def getPlate(self, code):
+        try:
+            day = flask.request.args.get('day', None)
+            params = f'app=CailianpressWeb&os=web&rever=1&secu_code={code}&sv=8.4.6&way=last_px'
+            url = 'https://x-quote.cls.cn/web_quote/plate/stocks?' + cls.ClsUrl().signParams(params)
+            data = memcache.cache.getCache(url)
+            if not data:
+                resp = requests.get(url)
+                if resp.status_code != 200:
+                    return []
+                js = json.loads(resp.content.decode())
+                data = js['data']['stocks']
+                memcache.cache.saveCache(url, data, 60 * 60 * 2)
+            self._subPlate(data, day)
+            return data
+        except Exception as e:
+            traceback.print_exc()
+        return []
+    
+    def _subPlate(self, stocks : list, day):
+        if not day or len(day) < 8:
+            day = datetime.date.today()
+        else:
+            day = int(day.replace('-', ''))
+            day = datetime.date(day // 10000, day // 100 % 100, day % 100)
+        # check hots
+        cs = {s['secu_code'][2 : ] : 0 for s in stocks if len(s['secu_code']) == 8 and s['secu_code'][2] in ('0', '3', '6')}
+        # scode = ('sh' if code[0] == '6' else 'sz') + code
+        self._subPlateByHots(cs, day)
+        self._subPlateByZS(cs, day)
+        self._subPlateByZT(cs, day)
+        for i in range(len(stocks) - 1, -1, -1):
+            code = stocks[i]['secu_code'][2 : ]
+            name = stocks[i]['secu_name']
+            snum = cs.get(code, 0)
+            stocks[i]['_snum_'] = snum
+            if snum < 2 or len(code) != 6 or 'st' in name or 'ST' in name:
+                stocks.pop(i)
+        stocks.sort(key = lambda a: a['_snum_'], reverse = True)
+
+    def _subPlateByHots(self, stocks : dict, day):
+        fromDay : datetime.date = day - datetime.timedelta(days = 30) # 前45天 ~ day
+        fromDayInt = int(fromDay.strftime('%Y%m%d'))
+        endDayInt = int(day.strftime('%Y%m%d'))
+        qr = ths_orm.THS_HotZH.select(ths_orm.THS_HotZH.code, pw.fn.count()).where(ths_orm.THS_HotZH.day >= fromDayInt, ths_orm.THS_HotZH.day <= endDayInt).group_by(ths_orm.THS_HotZH.code).tuples()
+        for it in qr:
+            code = f'{it[0] :06d}'
+            if code in stocks:
+                stocks[code] += it[1]
+        lastDay = hot_utils.getLastTradeDay()
+        if endDayInt < lastDay or fromDayInt > lastDay:
+            return
+        hz = hot_utils.DynamicHotZH.instance().getNewestHotZH()
+        for it in hz:
+            code = f'{it :06d}'
+            if code in stocks:
+                stocks[code] += 1
+
+    def _subPlateByZS(self, stocks : dict, day):
+        fromDay : datetime.date = day - datetime.timedelta(days = 30) # 前45天 ~ day
+        fromDayInt = int(fromDay.strftime('%Y%m%d'))
+        endDayInt = int(day.strftime('%Y%m%d'))
+        qr = d_orm.LocalSpeedModel.select(d_orm.LocalSpeedModel.code, pw.fn.count()).where(d_orm.LocalSpeedModel.day >= fromDayInt, d_orm.LocalSpeedModel.day <= endDayInt).group_by(d_orm.LocalSpeedModel.code).tuples()
+        for it in qr:
+            code = it[0]
+            if code in stocks:
+                stocks[code] += it[1]
+
+    def _subPlateByZT(self, stocks : dict, day):
+        fromDay : datetime.date = day - datetime.timedelta(days = 30) # 前45天 ~ day
+        fromDayStr = fromDay.strftime('%Y-%m-%d')
+        endDayStr = day.strftime('%Y-%m-%d')
+        qr = ths_orm.THS_ZT.select(ths_orm.THS_ZT.code, pw.fn.count()).where(ths_orm.THS_ZT.day >= fromDayStr, ths_orm.THS_ZT.day <= endDayStr).group_by(ths_orm.THS_ZT.code).tuples()
+        for it in qr:
+            code = it[0]
+            if code in stocks:
+                stocks[code] += it[1]
+    
+    def getIndustry(self, code):
+        try:
+            day = flask.request.args.get('day', None)
+            params = f'app=CailianpressWeb&os=web&rever=1&secu_code={code}&sv=8.4.6&way=last_px'
+            url = 'https://x-quote.cls.cn/web_quote/plate/industry?' + cls.ClsUrl().signParams(params)
+            data = memcache.cache.getCache(url)
+            if not data:
+                resp = requests.get(url)
+                if resp.status_code != 200:
+                    return []
+                js = json.loads(resp.content.decode())
+                data = js['data']
+                memcache.cache.saveCache(url, data, 60 * 60 * 2)
+            if not data:
+                return []
+            for d in data:
+                self._subPlate(d['stocks'], day)
+            return data
+        except Exception as e:
+            traceback.print_exc()
+        return []
 
 if __name__ == '__main__':
     svr = Server()
     svr.start()
-    #s.queryBySql('hot_zh', 'select *  from 个股热度综合排名 where 日期 >= 20250415')
-    #s.getTimeDegree()
+    # ds = svr.getIndustry('cls80147')
+    # for it in ds:
+    #     for idx, d in enumerate(it['stocks']):
+    #         print(idx, d['secu_code'])
+    # s.queryBySql('hot_zh', 'select *  from 个股热度综合排名 where 日期 >= 20250415')
+    # s.getTimeDegree()
     

@@ -58,8 +58,8 @@ class ContextMenuMgr:
               {'title': '显示叠加指数', 'name': 'show-ref-zs', 'checked': self.win.refIndicatorVisible},
               {'title': '叠加指数 THS', 'name': 'add-ref-zs', 'sub-menu': self.getThsZsList},
             #   {'title': '打开指数 THS', 'name': 'open-ref-zs', 'sub-menu': self.getThsZsList},
-              {'title': '叠加指数 CLS', 'name': 'add-ref-zs', 'sub-menu': self.getClsZsList},
-              {'title': '打开板块 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList},
+              {'title': '叠加指数 CLS', 'name': 'add-ref-zs', 'sub-menu': self.getClsZsList(selDay)},
+              {'title': '打开板块 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList(selDay)},
               {'title': 'LINE'},
               {'title': '标记日期 +', 'name': 'mark-day', 'enable': selDay > 0, 'day': selDay},
               {'title': '标记日期 -', 'name': 'cancel-mark-day', 'enable': selDay > 0, 'day': selDay},
@@ -121,7 +121,7 @@ class ContextMenuMgr:
                 model.append({'title': gn_names[i], 'code': gn_codes[i].strip()})
         return model
     
-    def getClsZsList(self, item):
+    def getClsZsList(self, day):
         from orm import cls_orm
         model = []
         code = self.win.klineIndicator.code
@@ -132,13 +132,13 @@ class ContextMenuMgr:
             hys = zip(obj.hy.split(';'), obj.hy_code.split(';'))
             for hy in hys:
                 if hy[0].strip() and hy[1].strip():
-                    model.append({'title': hy[0], 'code': hy[1].strip()})
+                    model.append({'title': hy[0], 'code': hy[1].strip(), 'day': day})
         model.append({'title': 'LINE'})
         if obj.gn and obj.gn_code:
             gns = zip(obj.gn.split(';'), obj.gn_code.split(';'))
             for gn in gns:
                 if gn[0].strip() and gn[1].strip():
-                    model.append({'title': gn[0], 'code': gn[1].strip()})
+                    model.append({'title': gn[0], 'code': gn[1].strip(), 'day': day})
         return model
 
     def show(self, x, y):
@@ -169,7 +169,8 @@ class ContextMenuMgr:
             kline_utils.openInCurWindow_ZS(self, dt)
         elif name == 'open-ref-clszs':
             code = evt.item['code']
-            win32api.ShellExecute(None, 'open', f'https://www.cls.cn/plate?code={code}', '', '', True)
+            day = evt.item["day"]
+            win32api.ShellExecute(None, 'open', f'https://www.cls.cn/plate?code={code}&day={day}', '', '', True)
         elif name == 'add-ref-zs':
             code = evt.item['code']
             self.win.refIndicator.changeCode(code, self.win.refIndicator.period)

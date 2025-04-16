@@ -412,6 +412,9 @@ class StockTable {
             }
         } else if (k == 'amount') {
             header.cellRender = function(rowIdx, rowData, head, tdObj) {
+                if (typeof(rowData.amount) != 'number') {
+                    return;
+                }
                 let m = rowData.amount / 100000000;
                 if (m < 1) m = m.toFixed(1);
                 else m = parseInt(m);
@@ -807,7 +810,11 @@ class IndustryTable extends StockTable {
                 items[i].__rowIdx__ = i;
             }
         }
-        this.datas = data;
+        this.lastSortHeader = null;
+        this.trs = {};
+        this.tlMgr = new TimeLineUIManager();
+        this.srcDatas = data;
+        this.datas = data.slice();
         this.datasMap = mdata;
         this._defineProterties()
         this.loadMarkColors();
@@ -880,6 +887,27 @@ class IndustryTable extends StockTable {
             }
         }
         return rs;
+    }
+
+    _defineProterties() {
+        if (! this.headers || !this.datas)
+            return;
+        let hds = [];
+        for (let i = 0; i < this.headers.length; i++) {
+            if (this.headers[i].defined)
+                hds.push(this.headers[i]);
+        }
+        if (! hds.length)
+            return;
+        for (let i = 0; i < this.datas.length; i++) {
+            let ids = this.datas[i];
+            for (let cur of ids.stocks) {
+                for (let j = 0; j < hds.length; j++) {
+                    if (! cur) continue;
+                    this._defineAttr(cur, hds[j], cur[hds[j].name]);
+                }
+            }
+        }
     }
 }
 
