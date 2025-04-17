@@ -3,11 +3,11 @@ import threading, time, datetime, sys, os, copy, pyautogui
 import os, sys, requests, traceback
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from ui import timeline, kline_win, base_win
+from ui import timeline, kline_win, base_win, kline_indicator
 from THS import ths_win
 
-def createKLineWindow(parent, rect = None, style = None):
-    win = kline_win.KLineCodeWindow('default')
+def createKLineWindow(parent = None, rect = None, style = None):
+    win = kline_win.KLineCodeWindow()
     dw = win32api.GetSystemMetrics (win32con.SM_CXSCREEN)
     dh = win32api.GetSystemMetrics (win32con.SM_CYSCREEN) - 35
     if not rect:
@@ -25,13 +25,28 @@ def createKLineWindow(parent, rect = None, style = None):
     win.klineWin.addNamedListener('DbClick', openKlineMinutes_Simple, win)
     return win
 
-def openInCurWindow_Code(parent : base_win.BaseWindow, data):
-    hwnd = parent.hwnd if parent else None
-    win = createKLineWindow(hwnd)
-    win.changeCode(data['code'])
-    win.klineWin.marksMgr.setMarkDay(data.get('day', None))
-    win.klineWin.makeVisible(-1)
+def createKLineWindow_ZS(parent = None, rect = None, style = None):
+    win = createKLineWindow(parent, rect, style)
+    win.klineWin.indicators.clear()
+    win.klineWin.addIndicator(win.klineWin.klineIndicator)
+    win.klineWin.addIndicator(kline_indicator.AmountIndicator(win.klineWin, {'height': 60, 'margins': (10, 2)}))
+    win.klineWin.addIndicator(kline_indicator.DayIndicator(win.klineWin))
+    win.klineWin.addIndicator(kline_indicator.ScqxIndicator(win.klineWin))
+    win.klineWin.addIndicator(kline_indicator.LsAmountIndicator(win.klineWin))
+    win.klineWin.calcIndicatorsRect()
     return win
+
+def createKLineWindowByCode(code, parent = None, rect = None, style = None):
+    if type(code) == int:
+        code = f'{code :06d}'
+    code = code.strip()
+    if len(code) == 8 and code[0] == 's':
+        code = code[2 : ]
+    if code[0] in ('0', '3', '6'):
+        return createKLineWindow(parent, rect, style)
+    if code[0] == '8' or code[0 : 3] == 'cls':
+        return createKLineWindow_ZS(parent, rect, style)
+    return None
 
 def openInCurWindow_ZS(parent : base_win.BaseWindow, data):
     win = kline_win.KLineCodeWindow()
@@ -48,16 +63,6 @@ def openInCurWindow_ZS(parent : base_win.BaseWindow, data):
     win.klineWin.addNamedListener('DbClick', openKlineMinutes_Simple, win)
     win.klineWin.makeVisible(-1)
     return win
-
-def openInCurWindow(parent : base_win.BaseWindow, data):
-    try:
-        code = data['code']
-        if code[0] == '8':
-            return openInCurWindow_ZS(parent, data)
-        else:
-            return openInCurWindow_Code(parent, data)
-    except Exception as e:
-        traceback.print_exc()
 
 def openKlineMinutes_Simple(evt, parent : base_win.BaseWindow):
     win = timeline.TimelinePanKouWindow()
@@ -98,6 +103,6 @@ def openInThsWindow(data):
     pyautogui.press('enter')
 
 if __name__ == '__main__':
-    openInCurWindow_Code(None, {'code': '603011'})
+    # openInCurWindow_Code(None, {'code': '603011'})
     win32gui.PumpMessages()
     pass

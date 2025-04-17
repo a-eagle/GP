@@ -950,7 +950,7 @@ class KLineWindow(base_win.BaseWindow):
         win.addIndicator(RateIndicator(win, {'height': 60, 'margins': (15, 2)}))
         win.addIndicator(AmountIndicator(win, {'height': 60, 'margins': (10, 2)}))
         return win
-
+    
 class CodeWindow(BaseWindow):
     def __init__(self, klineWin) -> None:
         super().__init__()
@@ -1099,14 +1099,11 @@ class CodeWindow(BaseWindow):
         self.invalidWindow()
 
 class KLineCodeWindow(base_win.BaseWindow):
-    def __init__(self, tag = 'default') -> None:
+    def __init__(self) -> None:
         super().__init__()
         self.css['bgColor'] = 0x101010
         self.layout = None
-        if tag == 'simple':
-            self.klineWin = KLineWindow.createSimple()
-        else:
-            self.klineWin = KLineWindow.createDefault()
+        self.klineWin = KLineWindow.createDefault()
         self.codeWin = CodeWindow(self.klineWin)
         self.codeList = None
         self.code = None
@@ -1214,9 +1211,12 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     base_win.ThreadPool.instance().start()
-    win = KLineCodeWindow()
-    win.createWindow(None, (0, 0, 1300, 700), win32con.WS_OVERLAPPEDWINDOW)
-    win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
+    # win = KLineCodeWindow()
+    # win.createWindow(None, (0, 0, 1300, 700), win32con.WS_OVERLAPPEDWINDOW)
+    # win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
+    # win.changeCode('cls80353', 'day') # 000737  002261
 
-    win.changeCode('000737', 'day') # 000737  002261
+    import kline_utils
+    win = kline_utils.createKLineWindow_ZS()
+    win.changeCode('cls80353')
     win32gui.PumpMessages()

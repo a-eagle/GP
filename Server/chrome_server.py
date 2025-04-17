@@ -46,7 +46,7 @@ class Server:
         win32gui.PumpMessages()
 
     def _openUI_Kline(self, code, params):
-        win = kline_utils.createKLineWindow(None)
+        win = kline_utils.createKLineWindowByCode(code)
         win.changeCode(code)
         if params:
             js = json.loads(params.decode())

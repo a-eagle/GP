@@ -25,7 +25,7 @@ function initPlatePage() {
     let day = params.day || '';
     let period = params.period;
     if (! period) {
-        window.location.href = `https://www.cls.cn/plate?code=${code}&day=${day}&period=30`;
+        window.location.href = `https://www.cls.cn/plate?code=${code}&day=${day}&period=10`;
         return;
     }
 
