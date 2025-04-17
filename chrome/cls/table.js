@@ -1102,7 +1102,7 @@ class TradeDatePicker extends UIListener {
         let css = " \
             .datepicker-popup {z-index: 81100; display: none;  position: fixed; padding: 0; outline: 0; left:0px; top: 0px;width:100%;height:100%;}\n\
             .datepicker-popup tr {width: 300px; height: 25px;} \n\
-            .datepicker-popup table {position:absolute; color: #383838; font-size: 14px; border-collapse: collapse; border: 1px solid #aaa; text-align: center; background-color: #fcfcfc; } \n\
+            .datepicker-popup table {position:absolute; color: #383838; font-size: 14px; border-collapse: collapse; border: solid 2px #6600CC; text-align: center; background-color: #fcfcfc; } \n\
             .datepicker-popup th {width: 30px; height: 30px; border: solid 1px #ddd; background-color:#ECECEC;vertical-align: middle;} \n\
             .datepicker-popup td {height: 30px; border: solid 1px #ddd;vertical-align: middle;} \n\
             .datepicker-popup .no-able {background-color:#f0f0f0; } \n\

@@ -43,6 +43,7 @@ class Server:
         win.createWindow(None, (0, 0, 1200, 600), win32con.WS_OVERLAPPEDWINDOW)
         win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
         win.load(code, day)
+        win32gui.SetWindowPos(win.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
         win32gui.PumpMessages()
 
     def _openUI_Kline(self, code, params):
@@ -55,6 +56,7 @@ class Server:
             idx = cs.index(code) if code in cs else -1
             win.setCodeList(cs, idx)
         win.klineWin.makeVisible(-1)
+        win32gui.SetWindowPos(win.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
         win32gui.PumpMessages()
 
     def openUI(self, type_, code):
@@ -297,6 +299,7 @@ class Server:
     def getPlate(self, code):
         try:
             day = flask.request.args.get('day', None)
+            period = flask.request.args.get('period', 30)
             params = f'app=CailianpressWeb&os=web&rever=1&secu_code={code}&sv=8.4.6&way=last_px'
             url = 'https://x-quote.cls.cn/web_quote/plate/stocks?' + cls.ClsUrl().signParams(params)
             data = memcache.cache.getCache(url)
@@ -307,13 +310,14 @@ class Server:
                 js = json.loads(resp.content.decode())
                 data = js['data']['stocks']
                 memcache.cache.saveCache(url, data, 60 * 60 * 2)
-            self._subPlate(data, day)
+            self._subPlate(data, day, period)
             return data
         except Exception as e:
             traceback.print_exc()
         return []
     
-    def _subPlate(self, stocks : list, day):
+    def _subPlate(self, stocks : list, day, period):
+        period = int(period)
         if not day or len(day) < 8:
             day = datetime.date.today()
         else:
@@ -322,9 +326,20 @@ class Server:
         # check hots
         cs = {s['secu_code'][2 : ] : 0 for s in stocks if len(s['secu_code']) == 8 and s['secu_code'][2] in ('0', '3', '6')}
         # scode = ('sh' if code[0] == '6' else 'sz') + code
-        self._subPlateByHots(cs, day)
-        self._subPlateByZS(cs, day)
-        self._subPlateByZT(cs, day)
+        endDayInt = int(day.strftime('%Y%m%d'))
+        tradeDays = ths_iwencai.getTradeDays(500)
+        if endDayInt > int(tradeDays[-1]):
+            endDayInt = int(tradeDays[i])
+        for i in range(len(tradeDays) - 1, -1, -1):
+            if endDayInt <= int(tradeDays[i]):
+                endDayInt = int(tradeDays[i])
+                break
+        si = i - period + 1
+        fromDayInt = int(tradeDays[si])
+
+        self._subPlateByHots(cs, fromDayInt, endDayInt)
+        self._subPlateByZS(cs, fromDayInt, endDayInt)
+        self._subPlateByZT(cs, fromDayInt, endDayInt)
         for i in range(len(stocks) - 1, -1, -1):
             code = stocks[i]['secu_code'][2 : ]
             name = stocks[i]['secu_name']
@@ -334,10 +349,7 @@ class Server:
                 stocks.pop(i)
         stocks.sort(key = lambda a: a['_snum_'], reverse = True)
 
-    def _subPlateByHots(self, stocks : dict, day):
-        fromDay : datetime.date = day - datetime.timedelta(days = 30) # 前45天 ~ day
-        fromDayInt = int(fromDay.strftime('%Y%m%d'))
-        endDayInt = int(day.strftime('%Y%m%d'))
+    def _subPlateByHots(self, stocks : dict, fromDayInt, endDayInt):
         qr = ths_orm.THS_HotZH.select(ths_orm.THS_HotZH.code, pw.fn.count()).where(ths_orm.THS_HotZH.day >= fromDayInt, ths_orm.THS_HotZH.day <= endDayInt).group_by(ths_orm.THS_HotZH.code).tuples()
         for it in qr:
             code = f'{it[0] :06d}'
@@ -352,20 +364,16 @@ class Server:
             if code in stocks:
                 stocks[code] += 1
 
-    def _subPlateByZS(self, stocks : dict, day):
-        fromDay : datetime.date = day - datetime.timedelta(days = 30) # 前45天 ~ day
-        fromDayInt = int(fromDay.strftime('%Y%m%d'))
-        endDayInt = int(day.strftime('%Y%m%d'))
+    def _subPlateByZS(self, stocks : dict, fromDayInt, endDayInt):
         qr = d_orm.LocalSpeedModel.select(d_orm.LocalSpeedModel.code, pw.fn.count()).where(d_orm.LocalSpeedModel.day >= fromDayInt, d_orm.LocalSpeedModel.day <= endDayInt).group_by(d_orm.LocalSpeedModel.code).tuples()
         for it in qr:
             code = it[0]
             if code in stocks:
                 stocks[code] += it[1]
 
-    def _subPlateByZT(self, stocks : dict, day):
-        fromDay : datetime.date = day - datetime.timedelta(days = 30) # 前45天 ~ day
-        fromDayStr = fromDay.strftime('%Y-%m-%d')
-        endDayStr = day.strftime('%Y-%m-%d')
+    def _subPlateByZT(self, stocks : dict, fromDayInt, endDayInt):
+        fromDayStr = f"{fromDayInt // 10000}-{fromDayInt // 100 % 100 :02d}-{fromDayInt % 100 :02d}"
+        endDayStr = f"{endDayInt // 10000}-{endDayInt // 100 % 100 :02d}-{endDayInt % 100 :02d}"
         qr = ths_orm.THS_ZT.select(ths_orm.THS_ZT.code, pw.fn.count()).where(ths_orm.THS_ZT.day >= fromDayStr, ths_orm.THS_ZT.day <= endDayStr).group_by(ths_orm.THS_ZT.code).tuples()
         for it in qr:
             code = it[0]
@@ -375,6 +383,7 @@ class Server:
     def getIndustry(self, code):
         try:
             day = flask.request.args.get('day', None)
+            period = flask.request.args.get('period', 30)
             params = f'app=CailianpressWeb&os=web&rever=1&secu_code={code}&sv=8.4.6&way=last_px'
             url = 'https://x-quote.cls.cn/web_quote/plate/industry?' + cls.ClsUrl().signParams(params)
             data = memcache.cache.getCache(url)
@@ -388,7 +397,7 @@ class Server:
             if not data:
                 return []
             for d in data:
-                self._subPlate(d['stocks'], day)
+                self._subPlate(d['stocks'], day, period)
             return data
         except Exception as e:
             traceback.print_exc()
