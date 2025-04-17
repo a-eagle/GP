@@ -43,7 +43,6 @@ class Server:
         win.createWindow(None, (0, 0, 1200, 600), win32con.WS_OVERLAPPEDWINDOW)
         win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
         win.load(code, day)
-        win32gui.SetWindowPos(win.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
         win32gui.PumpMessages()
 
     def _openUI_Kline(self, code, params):
@@ -57,6 +56,7 @@ class Server:
             win.setCodeList(cs, idx)
         win.klineWin.makeVisible(-1)
         win32gui.SetWindowPos(win.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+        win32gui.SetWindowPos(win.hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
         win32gui.PumpMessages()
 
     def openUI(self, type_, code):

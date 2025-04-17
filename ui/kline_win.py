@@ -7,7 +7,7 @@ from ui import base_win, dialog
 from utils import gn_utils
 from ui.kline_indicator import *
 
-class MarksMgr:
+class MarksManager:
     def __init__(self, win) -> None:
         self.win = win
         self.data = {} # int items
@@ -44,7 +44,7 @@ class MarksMgr:
             if idx >= vr[0] and idx < vr[1]:
                 kl.drawIdxHilight(hdc, drawer, idx)
 
-class ContextMenuMgr:
+class ContextMenuManager:
     def __init__(self, win) -> None:
         self.win = win
 
@@ -56,6 +56,7 @@ class ContextMenuMgr:
         mm = [
               {'title': '点击时选中K线', 'name': 'sel-idx-on-click', 'checked': self.win.selIdxOnClick},
               {'title': '显示叠加指数', 'name': 'show-ref-zs', 'checked': self.win.refIndicatorVisible},
+              {'title': 'LINE'},
               {'title': '叠加指数 THS', 'name': 'add-ref-zs', 'sub-menu': self.getThsZsList},
             #   {'title': '打开指数 THS', 'name': 'open-ref-zs', 'sub-menu': self.getThsZsList},
               {'title': '叠加指数 CLS', 'name': 'add-ref-zs', 'sub-menu': self.getClsZsList(selDay)},
@@ -638,8 +639,8 @@ class KLineWindow(base_win.BaseWindow):
         self.indicators.append(self.klineIndicator)
         from THS import tips_win
         self.hygnWin = tips_win.BkGnWindow()
-        self.marksMgr = MarksMgr(self)
-        self.contextMenuMgr = ContextMenuMgr(self)
+        self.marksMgr = MarksManager(self)
+        self.contextMenuMgr = ContextMenuManager(self)
         self.lineMgr = TextLineManager(self)
         self.rangeSelMgr = RangeSelectorManager(self)
 
@@ -887,7 +888,7 @@ class KLineWindow(base_win.BaseWindow):
                 sdc = win32gui.SaveDC(hdc)
                 win32gui.SetViewportOrgEx(hdc, idt.x, idt.y)
                 idt.drawMouse(hdc, self.drawer, mx - idt.x, my - idt.y)
-            win32gui.RestoreDC(hdc, sdc)
+                win32gui.RestoreDC(hdc, sdc)
         self.drawHeaderTip(hdc)
         self.drawer.drawLine(hdc, w - self.RIGHT_MARGIN + 10, 0, w - self.RIGHT_MARGIN + 10, h, 0x0000aa)
         # draw select range
