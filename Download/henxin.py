@@ -228,7 +228,7 @@ class HexinUrl(Henxin):
         # 600xxx -> 17;  300xxx 000xxx 002xxx -> 33;   88xxxx -> 48
         if code[0 : 2] == '88': #指数
             return '48'
-        if code[0] == '6':
+        if code[0] == '6' or code == '1A0001':
             return '17'
         if code[0] == '0' or code[0] == '3':
             return '33'
@@ -293,7 +293,7 @@ class HexinUrl(Henxin):
     def loadUrlData(self, url):
         if not url:
             return None
-        cp = re.compile(r'.*?/\d{2}_(\d{6})/.*')
+        cp = re.compile(r'.*?/\d{2}_(\w{6})/.*')
         ma = cp.match(url)
         code = ma.group(1)
         # find in cache
@@ -446,11 +446,8 @@ class HexinUrl(Henxin):
 
 if __name__ == '__main__':
     hx = HexinUrl()
-    #url = hx.getKLineUrl('002456')
-    url = hx.getTodayKLineUrl('002456')
+    url = hx.getKLineUrl('1A0001')  #   1A0001
     rs = hx.loadUrlData(url)
-    #url = hx.getKLineUrl('002456')
-    #rs = hx.loadKLineData('002456')
     print(rs)
 
 

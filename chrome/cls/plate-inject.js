@@ -10,6 +10,7 @@ function createTimeLineView(code, width, height) {
     //tlMgr.add(view);
     let day = getLocationParams('day');
     view.loadData(code, day);
+    window.myview = view;
     return view;
 }
 
@@ -21,11 +22,12 @@ function extendWidth(obj, aw) {
 
 function initPlatePage() {
     let params = getLocationParams();
-    let code = params.code;
+    let code = params.refThsCode || params.code;
     let day = params.day || '';
     let period = params.period;
     if (! period) {
-        window.location.href = `https://www.cls.cn/plate?code=${code}&day=${day}&period=10`;
+        params.period = 10;
+        window.location.href = paramsToUrl(params);
         return;
     }
 
@@ -60,7 +62,8 @@ function initPlatePage() {
         }
         window.dpFS.removeListener('select');
         window.dpFS.addListener('select', function(evt) {
-            window.location.href = `https://www.cls.cn/plate?code=${code}&day=${evt.date}&period=${period}`;
+            params.day = evt.date;
+            window.location.href = paramsToUrl(params);
         });
         window.dpFS.openFor(this);
     });
@@ -73,45 +76,14 @@ function initPlatePage() {
     wrap.children('button:gt(0)').css('margin-left', '10px').css('height', '25px');
     wrap.children('button[name=period]').click(function() {
         let period = $(this).attr('val');
-        window.location.href = `https://www.cls.cn/plate?code=${code}&day=${day}&period=${period}`;
+        params.period = period;
+        window.location.href = paramsToUrl(params);
     });
     wrap.find(`button[val=${period}]`).css({'color-': '#f00', 'border-color': 'green'})
 
     extendWidth($('div.w-1200'), ADD_WIDTH);
     extendWidth($('div.content-main-box div.watch-content-left'), ADD_WIDTH);
     $('.top-ad').remove();
-}
-
-function loadStoksData() {
-    let lh = window.location.href;
-    let TAG = 'https://www.cls.cn/plate?code=';
-    let code = lh.substring(TAG.length);
-    let params = 'app=CailianpressWeb&os=web&rever=1&secu_code=' + code + '&sv=8.4.6&way=last_px';
-    params = new ClsUrl().signParams(params);
-    let url = 'https://x-quote.cls.cn/web_quote/plate/stocks?' + params;
-    $.ajax({
-        url: url, type: 'GET',
-        success: function(resp) {
-            let sd = resp.data.stocks;
-            window['StockData'] = sd;
-        }
-    });
-}
-
-function loadIndustryData() {
-    let lh = window.location.href;
-    let TAG = 'https://www.cls.cn/plate?code=';
-    let code = lh.substring(TAG.length);
-    let params = 'app=CailianpressWeb&os=web&rever=1&secu_code=' + code + '&sv=8.4.6&way=last_px';
-    params = new ClsUrl().signParams(params);
-    let url = 'https://x-quote.cls.cn/web_quote/plate/industry?' + params;
-    $.ajax({
-        url: url, type: 'GET',
-        success: function(resp) {
-            let sd = resp.data;
-            window['IndustryData'] = sd;
-        }
-    });
 }
 
 function loadUI() {
@@ -142,12 +114,16 @@ function loadUI() {
             {text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
             {text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
             {text: '成交额', 'name': 'amount', width: 50, sortable: true, defined: true},
-            {text: '领涨次数', 'name': 'head_num', width: 70, sortable: true},
             {text: '流通市值', 'name': 'cmc', width: 70, sortable: true},
-            {text: '资金流向', 'name': 'fundflow', width: 90, sortable: true},
-            {text: '简介', 'name': 'assoc_desc', width: 250},
-            {text: '分时图', 'name': 'fs', width: 300},
         ];
+        if (getLocationParams('refThsCode')) {
+            hd.push({text: '行业', 'name': 'hy', width: 150, sortable: true});
+        } else {
+            hd.push({text: '领涨次数', 'name': 'head_num', width: 70, sortable: true});
+            // hd.append({text: '资金流向', 'name': 'fundflow', width: 90, sortable: true});
+            hd.push({text: '简介', 'name': 'assoc_desc', width: 250});
+        }
+        hd.push({text: '分时图', 'name': 'fs', width: 300});
 		let st = window[tag + '_StockTable'] = tag == 'Stock' ? new StockTable(hd) : new IndustryTable(hd);
 		st.initStyle();
         let ps = getLocationParams();
@@ -156,7 +132,9 @@ function loadUI() {
 		st.buildUI();
 	}
 	let st = window[tag + '_StockTable'];
-    cnt.find('.watch-table').replaceWith(st.table);
+    cnt.empty();
+    cnt.append(st.table);
+    // cnt.find('.watch-table').replaceWith(st.table);
     cnt.attr('name', tag);
     window.st = st;
 }
@@ -179,9 +157,19 @@ function getLocationParams(name = null) {
     return params;
 }
 
+function paramsToUrl(params) {
+    let url = 'https://www.cls.cn/plate?'; //code=cls80079&day=&period=10
+    let p = '';
+    for (let k in params) {
+        if (p) p += '&';
+        p += k + '=' + params[k];
+    }
+    return url + p;
+}
+
 function loadStoks() {
     let params = getLocationParams();
-    let code = params.code;
+    let code = params.refThsCode || params.code;
     let day = params.day || '';
     let period = params.period;
     if (! period) {

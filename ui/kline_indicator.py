@@ -393,7 +393,7 @@ class KLineIndicator(Indicator):
         return False
 
 class RefIndicator(Indicator):
-    def __init__(self, win, config=None) -> None:
+    def __init__(self, win, config = None) -> None:
         super().__init__(win, config)
         self.model = None
         self.mdata = None

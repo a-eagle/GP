@@ -34,7 +34,7 @@ class Server:
         self.app.add_url_rule('/query-codes-info', view_func = self.queryCodesInfo, methods = ['POST'])
         self.app.add_url_rule('/mark-color', view_func = self.markColor, methods = ['POST'])
         self.app.add_url_rule('/mynote', view_func = self.myNote, methods = [ 'POST'])
-        self.app.add_url_rule('/plate//<code>', view_func = self.getPlate)
+        self.app.add_url_rule('/plate/<code>', view_func = self.getPlate)
         self.app.add_url_rule('/industry/<code>', view_func = self.getIndustry)
         self.app.run('localhost', 5665, use_reloader = False, debug = False)
 
@@ -295,8 +295,25 @@ class Server:
                 it['cls_ztReason'] = zt['cls_ztReason'] if zt else ''
         return rs
 
-    # _type = 'stocks' | 'industry'
     def getPlate(self, code):
+        try:
+            if code[0 : 3] == 'cls':
+                return self.getPlateCls(code)
+            if code[0 : 2] == '88':
+                return self.getPlateThs(code)
+        except Exception as e:
+            traceback.print_exc()
+        return []
+    
+    def getIndustry(self, code):
+        try:
+            if code[0 : 3] == 'cls':
+                return self.getIndustryCls(code)
+        except Exception as e:
+            traceback.print_exc()
+        return []
+    
+    def getPlateCls(self, code):
         try:
             day = flask.request.args.get('day', None)
             period = flask.request.args.get('period', 30)
@@ -315,6 +332,20 @@ class Server:
         except Exception as e:
             traceback.print_exc()
         return []
+    
+    def getPlateThs(self, code):
+        day = flask.request.args.get('day', None)
+        period = flask.request.args.get('period', 30)
+        data = []
+        for c in gn_utils.ths_gntc_s:
+            info = gn_utils.ths_gntc_s[c]
+            if code in info['gn_code'] or code == info['hy_2_code'] or code == info['hy_3_code']:
+                info['cmc'] = info['ltsz'] * 100000000
+                info['secu_code'] = ('sh'if info['code'][0] == '6' else 'sz') + info['code']
+                info['secu_name'] = info['name']
+                data.append(info)
+        self._subPlate(data, day, period)
+        return data
     
     def _subPlate(self, stocks : list, day, period):
         period = int(period)
@@ -342,7 +373,7 @@ class Server:
         self._subPlateByZT(cs, fromDayInt, endDayInt)
         for i in range(len(stocks) - 1, -1, -1):
             code = stocks[i]['secu_code'][2 : ]
-            name = stocks[i]['secu_name']
+            name = stocks[i].get('secu_name', '')
             snum = cs.get(code, 0)
             stocks[i]['_snum_'] = snum
             if snum < 2 or len(code) != 6 or 'st' in name or 'ST' in name:
@@ -380,7 +411,7 @@ class Server:
             if code in stocks:
                 stocks[code] += it[1]
     
-    def getIndustry(self, code):
+    def getIndustryCls(self, code):
         try:
             day = flask.request.args.get('day', None)
             period = flask.request.args.get('period', 30)

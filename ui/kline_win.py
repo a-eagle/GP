@@ -53,14 +53,23 @@ class ContextMenuManager:
         if not data or self.win.selIdx < 0:
             return None
         selDay = data[self.win.selIdx].day
+        code = self.win.klineIndicator.code
         mm = [
               {'title': '点击时选中K线', 'name': 'sel-idx-on-click', 'checked': self.win.selIdxOnClick},
               {'title': '显示叠加指数', 'name': 'show-ref-zs', 'checked': self.win.refIndicatorVisible},
               {'title': 'LINE'},
-              {'title': '叠加指数 THS', 'name': 'add-ref-zs', 'sub-menu': self.getThsZsList},
-            #   {'title': '打开指数 THS', 'name': 'open-ref-zs', 'sub-menu': self.getThsZsList},
+              {'name': 'add-ref-zs', 'title': '叠加上证指数', 'code': '1A0001'}
+        ]
+        isZS = code[0 : 2] == '88' or code == '1A0001' or code[0 : 3] == 'cls'
+        if not isZS:
+            mm.extend([
+              {'title': '叠加指数 THS', 'name': 'add-ref-zs', 'sub-menu': self.getThsZsList(selDay)},
               {'title': '叠加指数 CLS', 'name': 'add-ref-zs', 'sub-menu': self.getClsZsList(selDay)},
+              {'title': 'LINE'},
+              {'title': '打开指数 THS', 'name': 'open-ref-thszs', 'sub-menu': self.getThsZsList(selDay)},
               {'title': '打开板块 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList(selDay)},
+            ])
+        mm.extend([
               {'title': 'LINE'},
               {'title': '标记日期 +', 'name': 'mark-day', 'enable': selDay > 0, 'day': selDay},
               {'title': '标记日期 -', 'name': 'cancel-mark-day', 'enable': selDay > 0, 'day': selDay},
@@ -70,7 +79,7 @@ class ContextMenuManager:
               {'title': '删除直线', 'name': 'del-draw-line', 'day': selDay},
               {'title': 'LINE'},
               {'title': '标记', 'name': 'mark-color', 'sub-menu': self.getMarkColors},
-              ]
+        ])
         return mm
     
     def getMarkColors(self, it):
@@ -102,16 +111,16 @@ class ContextMenuManager:
             c['cur'] = c['scolor'] == scolor
         return cs
 
-    def getThsZsList(self, item):
+    def getThsZsList(self, day):
         from orm import ths_orm
         code = self.win.klineIndicator.code
         obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
         model = []
         if not obj:
             return model
-        model.append({'title': '上证指数', 'code': 'sh000001'})
-        if obj.hy_2_code: model.append({'title': obj.hy_2_name, 'code': obj.hy_2_code})
-        if obj.hy_3_code: model.append({'title': obj.hy_3_name, 'code': obj.hy_3_code})
+        model.append({'title': 'LINE'})
+        if obj.hy_2_code: model.append({'title': obj.hy_2_name, 'code': obj.hy_2_code, 'day': day})
+        if obj.hy_3_code: model.append({'title': obj.hy_3_name, 'code': obj.hy_3_code, 'day': day})
         model.append({'title': 'LINE'})
         if not obj.gn_code:
             return model
@@ -119,7 +128,7 @@ class ContextMenuManager:
         gn_names = obj.gn.split(';')
         for i in range(len(gn_codes)):
             if gn_codes[i].strip():
-                model.append({'title': gn_names[i], 'code': gn_codes[i].strip()})
+                model.append({'title': gn_names[i], 'code': gn_codes[i].strip(), 'day': day})
         return model
     
     def getClsZsList(self, day):
@@ -164,16 +173,17 @@ class ContextMenuManager:
         elif name == 'show-ref-zs':
             self.win.refIndicatorVisible = evt.item['checked']
             self.win.invalidWindow()
-        elif name == 'open-ref-zs':
-            from ui import kline_utils
-            dt = {'code': evt.item['code'], 'day': None}
+        elif name == 'open-ref-thszs':
+            code = evt.item['code']
+            day = evt.item["day"]
+            self.openRefThsZs(code, day)
         elif name == 'open-ref-clszs':
             code = evt.item['code']
             day = evt.item["day"]
             self.openRefClsZs(code, day)
         elif name == 'add-ref-zs':
             code = evt.item['code']
-            self.win.refIndicator.changeCode(code, self.win.refIndicator.period)
+            self.win.refIndicator.changeCode(code, self.win.klineIndicator.period)
             self.win.invalidWindow()
         elif name == 'draw-line':
             self.win.lineMgr.beginNew('line')
@@ -204,9 +214,13 @@ class ContextMenuManager:
 
     def openRefClsZs(self, code, day):
         url = f'https://www.cls.cn/plate?code={code}&day={day}'
-        win32api.ShellExecute(None, 'open', url, '--incognito', '', True)
-        # cmd = f"C:/Program Files (x86)/Microsoft/Edge/Application/miedge.exe -ArgumentList @( '-incognito', '{url}')"
-        # os.system(cmd)
+        win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
+
+    def openRefThsZs(self, code, day):
+        obj = ths_orm.THS_ZS.get_or_none(ths_orm.THS_ZS.code == code)
+        name = obj.name if obj else ''
+        url = f'https://www.cls.cn/plate?code=0&day={day}&refThsCode={code}&refThsName={name}'
+        win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
 
 class TextLineManager:
     class Pos:
@@ -1209,13 +1223,13 @@ class KLineCodeWindow(base_win.BaseWindow):
         return super().winProc(hwnd, msg, wParam, lParam)
 
 if __name__ == '__main__':
-    base_win.ThreadPool.instance().start()
+    # base_win.ThreadPool.instance().start()
     # win = KLineCodeWindow()
     # win.createWindow(None, (0, 0, 1300, 700), win32con.WS_OVERLAPPEDWINDOW)
     # win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
     # win.changeCode('cls80353', 'day') # 000737  002261
 
     import kline_utils
-    win = kline_utils.createKLineWindow_ZS()
-    win.changeCode('cls80353')
+    win = kline_utils.createKLineWindowByCode('000737')  # 000737  002261  cls80353
+    win.changeCode('002261') # 
     win32gui.PumpMessages()

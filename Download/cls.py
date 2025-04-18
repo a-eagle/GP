@@ -459,7 +459,5 @@ if __name__ == '__main__':
     #ds = cu.loadBkGnOfCode('688041')
     #print(ds.__data__)
     #ClsUrl().loadDegree()
-    pass
-    #cu.loadHotTC(20241104)
-    rs = cu.loadHotTC('20250408')
-    print(rs)
+    k = cu.loadKline('sh000001', 10)
+    print(k)
