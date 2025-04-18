@@ -20,6 +20,17 @@ function extendWidth(obj, aw) {
     obj.css('width', '' + w + 'px');
 }
 
+function loadRefThsCode(view, params) {
+    let onLoadEnd = function(evt) {
+        let zf = evt.src.zf;
+        let span = $('.stock-detail > span:eq(1)');
+        span.html('<label style="color:' + (zf > 0 ? 'red' : zf < 0 ? 'green' : '#000') + '">' + zf.toFixed(2) + '%' + '<label>');
+    };
+    view.addListener('LoadDataEnd', onLoadEnd);
+    let span = $('.stock-detail > span:eq(0)');
+    span.text('【' + params.refThsCode + ' ' + decodeURIComponent(params.refThsName || '') + '】');
+}
+
 function initPlatePage() {
     let params = getLocationParams();
     let code = params.refThsCode || params.code;
@@ -36,16 +47,20 @@ function initPlatePage() {
         setTimeout(initPlatePage, 1000);
         return;
     }
-
     let view = createTimeLineView(code);
+    if (params.refThsCode) {
+        loadRefThsCode(view, params);
+    }
     let ui = $(view.canvas);
     ui.css('margin-left', '50px').css('background-color', '#f8f8f8').css('border', 'solid 1px #a0c0a0');
     let pdiv = $('.stock-detail');
     let btn = $('<button style="margin-left: 30px;"> 打开K线图-Win </button>');
     btn.click(function() {
-        // let url = "https://www.cls.cn/stock?code=" + code;
-        // window.open(url, '_blank');
-        $.get('http://localhost:5665/openui/kline/' + code);
+        $.ajax({
+            url: 'http://localhost:5665/openui/kline/' + code, 
+            type: 'POST', contentType: 'application/json',
+            data: JSON.stringify({day: day}),
+        });
     });
 
     let picker = $('<button style="margin-left:30px;" >选择日期 </button>');
@@ -117,7 +132,7 @@ function loadUI() {
             {text: '流通市值', 'name': 'cmc', width: 70, sortable: true},
         ];
         if (getLocationParams('refThsCode')) {
-            hd.push({text: '行业', 'name': 'hy', width: 150, sortable: true});
+            hd.push({text: '行业', 'name': 'hy', width: 250, sortable: true});
         } else {
             hd.push({text: '领涨次数', 'name': 'head_num', width: 70, sortable: true});
             // hd.append({text: '资金流向', 'name': 'fundflow', width: 90, sortable: true});

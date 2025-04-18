@@ -16,6 +16,8 @@ class MarksManager:
         self.data.clear()
 
     def setMarkDay(self, day, tip = None):
+        if not day:
+            return
         if type(day) == str:
             day = int(day.replace('-', ''))
         elif isinstance(day, datetime.date):
@@ -1089,9 +1091,13 @@ class CodeWindow(BaseWindow):
         return None
 
     def loadCodeBasic(self, code):
-        from download import cls
-        url = cls.ClsUrl()
-        self.basicData = url.loadBasic(code)
+        if code[0 : 2] == '88':
+            obj = ths_orm.THS_ZS.get_or_none(ths_orm.THS_ZS.code == code)
+            if obj : self.basicData = obj.__data__
+        else:
+            from download import cls
+            url = cls.ClsUrl()
+            self.basicData = url.loadBasic(code)
         self.invalidWindow()
 
     def changeCode(self, code):

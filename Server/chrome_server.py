@@ -340,7 +340,7 @@ class Server:
         for c in gn_utils.ths_gntc_s:
             info = gn_utils.ths_gntc_s[c]
             if code in info['gn_code'] or code == info['hy_2_code'] or code == info['hy_3_code']:
-                info['cmc'] = info['ltsz'] * 100000000
+                info['cmc'] = (info.get('ltsz', 0) or 0)* 100000000
                 info['secu_code'] = ('sh'if info['code'][0] == '6' else 'sz') + info['code']
                 info['secu_name'] = info['name']
                 data.append(info)
