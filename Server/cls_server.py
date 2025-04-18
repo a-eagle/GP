@@ -287,7 +287,8 @@ class Server:
     # 个股概念板块
     def downloadBkGn(self, tag):
         try:
-            console.writeln_1(console.CYAN, f'[CLS-HyGn] {self.formatNowTime(True)} begin...')
+            # console.writeln_1(console.CYAN, f'[CLS-HyGn] {self.formatNowTime(True)} begin...')
+            st = time.time()
             qr = ths_orm.THS_GNTC.select().dicts()
             zs = {}
             def diff(old, new, names):
@@ -314,7 +315,9 @@ class Server:
                 else:
                     info.save() # create new
                     i += 1
-            console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} {self.formatNowTime(True)} update {u}, insert {i}')
+            t = time.time() - st
+            t /= 60
+            console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} {self.formatNowTime(True)} update {u}, insert {i}, use time: {t :.1f} minutes')
         except Exception as e:
             traceback.print_exc()
 

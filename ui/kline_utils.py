@@ -22,7 +22,7 @@ def createKLineWindow(parent = None, rect = None, style = None):
         else:
             style = win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW
     win.createWindow(parent, rect, style)
-    win.klineWin.addNamedListener('DbClick', openKlineMinutes_Simple, win)
+    win.klineWin.addNamedListener('DbClick', openTimeLineWindow, win)
     return win
 
 def createKLineWindow_ZS(parent = None, rect = None, style = None):
@@ -48,23 +48,7 @@ def createKLineWindowByCode(code, parent = None, rect = None, style = None):
         return createKLineWindow_ZS(parent, rect, style)
     return None
 
-def openInCurWindow_ZS(parent : base_win.BaseWindow, data):
-    win = kline_win.KLineCodeWindow()
-    win.addIndicator(kline_win.DayIndicator({}))
-    win.addIndicator(kline_win.ThsZsPMIndicator({}))
-    dw = win32api.GetSystemMetrics (win32con.SM_CXSCREEN)
-    dh = win32api.GetSystemMetrics (win32con.SM_CYSCREEN) - 35
-    W, H = int(dw * 1), int(dh * 0.8)
-    x = (dw - W) // 2
-    y = (dh - H) // 2
-    win.createWindow(parent.hwnd, (0, y, W, H), win32con.WS_VISIBLE | win32con.WS_POPUPWINDOW | win32con.WS_CAPTION)
-    win.changeCode(data['code'])
-    win.klineWin.marksMgr.setMarkDay(data['day'])
-    win.klineWin.addNamedListener('DbClick', openKlineMinutes_Simple, win)
-    win.klineWin.makeVisible(-1)
-    return win
-
-def openKlineMinutes_Simple(evt, parent : base_win.BaseWindow):
+def openTimeLineWindow(evt, parent : base_win.BaseWindow):
     win = timeline.TimelinePanKouWindow()
     #rc = win32gui.GetWindowRect(parent.hwnd)
     #rc2 = (rc[0], rc[1], rc[2] - rc[0], rc[3] - rc[1])
@@ -101,6 +85,14 @@ def openInThsWindow(data):
     pyautogui.typewrite(data['code'], 0.1)
     time.sleep(0.2)
     pyautogui.press('enter')
+
+def openInCurWindow(parent, data):
+    parent = parent.hwnd if isinstance(parent, base_win.BaseWindow) else parent
+    win = createKLineWindowByCode(data['code'], parent)
+    win.changeCode(data['code'])
+    win.klineWin.marksMgr.setMarkDay(data.get('day', None))
+    win.klineWin.makeVisible(-1)
+    return win
 
 if __name__ == '__main__':
     # openInCurWindow_Code(None, {'code': '603011'})

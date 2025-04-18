@@ -66,7 +66,7 @@ class InitMgr {
 	_initUI() {
 		let thiz = this;
 		if ($('.watch-content-left > div').length < 7) {
-			let isReady = $('.watch-content-left > div').length == 6 && $('.watch-content-left > div:last').text() == '暂无相关数据';
+			let isReady = $('.watch-content-left > div').length == 6; // && $('.watch-content-left > div:last').text() == '暂无相关数据';
 			if (isReady) {
 				if (! this._waitTime) this._waitTime = new Date().getTime();
 				if (new Date().getTime() - this._waitTime < 5000) {

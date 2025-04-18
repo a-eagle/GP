@@ -167,7 +167,6 @@ class ContextMenuManager:
         elif name == 'open-ref-zs':
             from ui import kline_utils
             dt = {'code': evt.item['code'], 'day': None}
-            kline_utils.openInCurWindow_ZS(self, dt)
         elif name == 'open-ref-clszs':
             code = evt.item['code']
             day = evt.item["day"]
