@@ -210,8 +210,11 @@ class Server:
         day = flask.request.args.get('day', None)
         lastTradeDay = ths_iwencai.getTradeDays()[-1]
         today = datetime.date.today().strftime('%Y%m%d')
+        if not day:
+            day = lastTradeDay
+        day = day.replace('-', '')
         rs = {'code': code, 'pre': 0, 'line': None}
-        if today == lastTradeDay and (not day or day.replace('-', '') == today): # load from server
+        if today == lastTradeDay and day == today: # load from server
             if (code[0 : 3] == 'cls'):
                 data = cls.ClsUrl().loadHistory5FenShi(code)
                 lines = data['line']
@@ -360,12 +363,12 @@ class Server:
         endDayInt = int(day.strftime('%Y%m%d'))
         tradeDays = ths_iwencai.getTradeDays(500)
         if endDayInt > int(tradeDays[-1]):
-            endDayInt = int(tradeDays[i])
+            endDayInt = int(tradeDays[-1])
         for i in range(len(tradeDays) - 1, -1, -1):
             if endDayInt <= int(tradeDays[i]):
                 endDayInt = int(tradeDays[i])
                 break
-        si = i - period + 1
+        si = i - period
         fromDayInt = int(tradeDays[si])
 
         self._subPlateByHots(cs, fromDayInt, endDayInt)
@@ -386,8 +389,12 @@ class Server:
             code = f'{it[0] :06d}'
             if code in stocks:
                 stocks[code] += it[1]
-        lastDay = hot_utils.getLastTradeDay()
-        if endDayInt < lastDay or fromDayInt > lastDay:
+        qr = ths_orm.THS_HotZH.select(pw.fn.max(ths_orm.THS_HotZH.day)).tuples()
+        hotMaxZHDay = 0
+        for d in qr:
+            hotMaxZHDay = d[0]
+            break
+        if fromDayInt <= hotMaxZHDay and hotMaxZHDay <= endDayInt:
             return
         hz = hot_utils.DynamicHotZH.instance().getNewestHotZH()
         for it in hz:

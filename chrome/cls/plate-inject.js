@@ -1,7 +1,99 @@
-let pageInfo = { tableColNum : 0 };
-let thread = new Thread();
+let pageInfo = { tableColNum : 0 , groupsMgr : null};
 const ADD_WIDTH = 300;
-var zsView = null;
+
+class GroupsManager {
+    constructor() {
+        this.groups = [
+            ['cls80573 商业零售', '881158 零售', 'cls80032 食品饮料', 'cls80041 乳业奶粉', 'cls80039 休闲食品'], //大消费类 2025.04.18
+            ['cls80353 跨境电商', '885642 跨境电商'],
+            ['cls82542 统一大市场', 'cls80087 东盟自贸区'],
+        ];
+    }
+
+    isCode(code) {
+        if (! code) return false;
+        code = code.trim();
+        if (code.length == 8 && code.substring(0, 3) == 'cls')
+            return true;
+        if (code.length == 8 && (code.substring(0, 2) == 'sz' || code.substring(0, 2) == 'sh'))
+            return true;
+        if (code.length == 6 && (code.charAt(0) == '0' || code.charAt(0) == '3' || code.charAt(0) == '6'))
+            return true;
+        if (code.length == 6 && code.substring(0, 2) == '88')
+            return true;
+        return false;
+    }
+
+    getCodeInfo(info) {
+        info = info.trim();
+        if (! info) return null;
+        let its = info.split(' ');
+        let rs = {code: null, name: null};
+        for (let it of its) {
+            if (! it) continue;
+            if (! rs.code && this.isCode(it)) rs.code = it;
+            else rs.name = it;
+        }
+        if (! rs.code)
+            return null;
+        return rs;
+    }
+
+    getItemUI(code) {
+        if (! this.items) return null;
+        for (let it of this.items) {
+            if (it.code == code)
+                return it.ui;
+        }
+        return it;
+    }
+
+    create(code, day) {
+        let gps = null;
+        for (let gp of this.groups) {
+            for (let it of gp) {
+                if (it.indexOf(code) >= 0) {
+                    gps = gp;
+                    break;
+                }
+            }
+        }
+        if (! gps) {
+            return null;
+        }
+        this.items = [];
+        let thiz = this;
+        let div = $('<div style="max-width:750px;"> </div>');
+        for (let it of gps) {
+            let cc = this.getCodeInfo(it);
+            if (! cc) continue;
+            let cv = new CodeView(cc.code, cc.name, day);
+            div.append(cv.ui);
+            cv.ui.css({'margin-left': '10px'});
+            if (cc.code == code) {
+                cv.ui.css({'border' : 'solid 2px #0c0'});
+            }
+            this.items.push(cv);
+            cv.ui.click(function() {thiz.onClick(this);})
+        }
+        return div;
+    }
+
+    onClick(elem) {
+        let code = $(elem).attr('code');
+        let name = $(elem).attr('name');
+        let params = getLocationParams();
+        if (code.substring(0, 3) == 'cls') {
+            params.code = code;
+            delete params.refThsCode;
+            delete params.refThsName;
+        } else {
+            params.refThsCode = code;
+            params.refThsName = name;
+        }
+        window.location.href = paramsToUrl(params);
+    }
+}
 
 function createTimeLineView(code, width, height) {
     width = width || ADD_WIDTH;
@@ -28,7 +120,9 @@ function loadRefThsCode(view, params) {
     };
     view.addListener('LoadDataEnd', onLoadEnd);
     let span = $('.stock-detail > span:eq(0)');
-    span.text('【' + params.refThsCode + ' ' + decodeURIComponent(params.refThsName || '') + '】');
+    let title = '【' + params.refThsCode + ' ' + decodeURIComponent(params.refThsName || '') + '】';
+    span.text(title);
+    document.title = title;
 }
 
 function initPlatePage() {
@@ -62,11 +156,15 @@ function initPlatePage() {
             data: JSON.stringify({day: day}),
         });
     });
+    pdiv.append(ui).append(btn);
+    pdiv.css('background-color', 'rgb(250, 250, 250)');
+
 
     let picker = $('<button style="margin-left:30px;" >选择日期 </button>');
+    let fday = null;
     if (day) {
         let mday = day.replaceAll('-', '');
-        let fday = mday.substring(0, 4) + '-' + mday.substring(4, 6) + '-' + mday.substring(6, 8);
+        fday = mday.substring(0, 4) + '-' + mday.substring(4, 6) + '-' + mday.substring(6, 8);
         let dd = new Date(fday);
         let ss = '日一二三四五六';
         picker.text('选择日期 ' + fday.substring(5) + ' 星期' + ss.charAt(dd.getDay()));
@@ -75,6 +173,7 @@ function initPlatePage() {
         if (! window.dpFS) {
             window.dpFS = new TradeDatePicker();
         }
+        window.dpFS.curSelDate = fday;
         window.dpFS.removeListener('select');
         window.dpFS.addListener('select', function(evt) {
             params.day = evt.date;
@@ -82,19 +181,22 @@ function initPlatePage() {
         });
         window.dpFS.openFor(this);
     });
-    pdiv.append(ui).append(btn);
-    pdiv.css('background-color', 'rgb(250, 250, 250)');
-    let wrap = $('<div style="height: 50px; background-color: #d0d0d0; padding-top: 10px;"> </div>');
-    let wp = $('<button val="5" name="period">活跃周期(5日) </button> <button val="10" name="period">活跃周期(10日) </button>  <button val="20" name="period">活跃周期(20日) </button> <button val="30" name="period">活跃周期(30日) </button>');
-    wrap.append(picker).append(wp);
+    let wrap = $('<div style="height: 80px; background-color: #d0d0d0; margin-bottom: 5px;"> </div>');
+    let wp = $('<button val="5" name="period">活跃周期(5&nbsp;&nbsp;日) </button> <button val="10" name="period">活跃周期(10日) </button> <br/> <button val="20" name="period">活跃周期(20日) </button> <button val="30" name="period">活跃周期(30日) </button>');
+    wrap.append($('<div style="float:left; border-right: solid 2px #999; height: 100%; padding-right:10px;"> </div>').append(picker));
+    wrap.append($('<div style="float:left; height: 100%; border-right: solid 2px #999; padding: 0 5px;"> </div>').append(wp));
     wrap.insertAfter('.plate-up-list');
-    wrap.children('button:gt(0)').css('margin-left', '10px').css('height', '25px');
+    wrap.children('button:gt(0)').css('margin-left', '10px').css('height', '30px');
     wrap.children('button[name=period]').click(function() {
         let period = $(this).attr('val');
         params.period = period;
         window.location.href = paramsToUrl(params);
     });
-    wrap.find(`button[val=${period}]`).css({'color-': '#f00', 'border-color': 'green'})
+    wrap.find(`button[val=${period}]`).css({'color-': '#f00', 'border-color': 'green'});
+    pageInfo.groupsMgr = new GroupsManager();
+    let vv = pageInfo.groupsMgr.create(code, day);
+    if (vv) vv.css({'float': 'left'});
+    wrap.append(vv);
 
     extendWidth($('div.w-1200'), ADD_WIDTH);
     extendWidth($('div.content-main-box div.watch-content-left'), ADD_WIDTH);

@@ -1642,3 +1642,79 @@ class Vuex extends UIListener {
         func(elem, bindName, obj, attr);
     }
 }
+
+class CodeView extends UIListener {
+    constructor(code, name, day) {
+        super();
+        this.ui = null;
+        this.code = code;
+        this.day = day;
+        this.name = name;
+        this.zf = '';
+        this.updateTime = 0;
+        this.buildUI();
+    }
+
+    buildUI() {
+        let cc = this.name;
+        if (this.code.length == 6 && this.code.substring(0, 2) == '88') {
+            if (this.code[2] == '1') cc = `【${this.name}】`;
+            else cc = `[${this.name}]`;
+        }
+        this.ui = $(`<span code="${this.code}" name="${this.name}" style="display:inline-block; padding: 2px 5px; font-size:16px; font-weight:bold-; background-color:#d0d0d0; border: solid 1px #a0a0a0; min-width: 50px;"> <label name="code">${cc}</label>  <label name="zf"> </label>  </span>`);
+        this._loadData();
+    }
+
+    _onLoadEnd(data) {
+        let label = this.ui.find('*[name=zf]');
+        if (! data || ! data.line || ! data.pre) 
+            return;
+        let last = data.line[data.line.length - 1].price;
+        let zf = this.zf = (last - data.pre) / data.pre * 100;
+        label.css('color', (zf > 0 ? 'red' : zf < 0 ? 'green' : '#000'));
+        label.text(zf.toFixed(2) + '%');
+    };
+
+    _loadData() {
+        let day = this.day || '';
+        let thiz = this;
+        $.ajax({
+            url: `http://localhost:5665/get-fenshi/${this.code}?day=${day}`,
+            success: function(resp) {
+                if (! resp) {
+                    return;
+                }
+                let ds = resp;
+                if (resp.line) ds.date = resp.line[0].day;
+                else ds.date = null;
+                thiz.updateTime = Date.now();
+                thiz._onLoadEnd(ds);
+            }
+        });
+    }
+
+    isToday(day) {
+        let today = new Date();
+        if (today.getDay() == 0 || today.getDay() == 7) {
+            return false;
+        }
+        if (! day) {
+            return true;
+        }
+        day = day.replaceAll('-', '');
+        let m = today.getMonth() + 1;
+        let fday = String(today.getFullYear() * 10000 + m * 100 + today.getDate());
+        return day == fday;
+    }
+
+    isTradeTime() {
+        let today = new Date();
+        let h = today.getHours();
+        let m = today.getMinutes();
+        let ftime  = String(h * 100 + m);
+        let sw = ftime >= '925' && ftime <= '1130';
+        let xw = ftime >= '1300' && ftime <= '1500';
+        return sw || xw;
+    }
+
+}
