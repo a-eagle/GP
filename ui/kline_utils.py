@@ -33,6 +33,7 @@ def createKLineWindow_ZS(parent = None, rect = None, style = None):
     win.klineWin.addIndicator(kline_indicator.DayIndicator(win.klineWin))
     win.klineWin.addIndicator(kline_indicator.ScqxIndicator(win.klineWin))
     win.klineWin.addIndicator(kline_indicator.LsAmountIndicator(win.klineWin))
+    win.klineWin.addIndicator(kline_indicator.ThsZsPmIndicator(win.klineWin))
     win.klineWin.calcIndicatorsRect()
     return win
 
@@ -95,6 +96,6 @@ def openInCurWindow(parent, data):
     return win
 
 if __name__ == '__main__':
-    # openInCurWindow_Code(None, {'code': '603011'})
+    openInCurWindow(None, {'code': '601086'})
     win32gui.PumpMessages()
     pass

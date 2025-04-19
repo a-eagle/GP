@@ -838,7 +838,7 @@ class TabNaviMgr {
 			url: `http://localhost:5665/top100-vol?day=${day}`,
 			contentType: 'application/json',
 			type: 'GET',
-			data: JSON.stringify({op: 'get'}),
+			// data: JSON.stringify({op: 'get'}),
 			success: function(resp) {
 				thiz.updateTabNavi(name, resp);
 			}

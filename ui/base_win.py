@@ -1909,6 +1909,8 @@ class PopupMenu(NoActivePopupWindow):
 
     def setModel(self, model):
         self.model = model
+        self.startIdx = 0
+        self.selIdx = -1
 
     def show(self, x = None, y = None):
         if not self.hwnd:

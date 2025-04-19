@@ -67,6 +67,7 @@ class ContextMenuManager:
             mm.extend([
               {'title': '叠加指数 THS', 'name': 'add-ref-zs', 'sub-menu': self.getThsZsList(selDay)},
               {'title': '叠加指数 CLS', 'name': 'add-ref-zs', 'sub-menu': self.getClsZsList(selDay)},
+              {'title': '打开叠加指数', 'name': 'open-cur-ref-zs'},
               {'title': 'LINE'},
               {'title': '打开指数 THS', 'name': 'open-ref-thszs', 'sub-menu': self.getThsZsList(selDay)},
               {'title': '打开板块 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList(selDay)},
@@ -158,6 +159,7 @@ class ContextMenuManager:
         if not mm:
             return
         menu = base_win.PopupMenu.create(self.win.hwnd, mm)
+        menu.VISIBLE_MAX_ITEM = 20
         x, y = win32gui.GetCursorPos()
         menu.addNamedListener('Select', self.onMemuItem)
         menu.show(x, y)
@@ -175,6 +177,14 @@ class ContextMenuManager:
         elif name == 'show-ref-zs':
             self.win.refIndicatorVisible = evt.item['checked']
             self.win.invalidWindow()
+        elif name == 'open-cur-ref-zs':
+            code = self.win.refIndicator.code
+            mk = self.win.marksMgr.data
+            from ui import kline_utils
+            data = {'code': code}
+            zsWin = kline_utils.openInCurWindow(self.win.hwnd, data)
+            for d in mk:
+                zsWin.klineWin.marksMgr.setMarkDay(d, mk[d])
         elif name == 'open-ref-thszs':
             code = evt.item['code']
             day = evt.item["day"]

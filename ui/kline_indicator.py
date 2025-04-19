@@ -1309,6 +1309,37 @@ class LhbIndicator(CustomIndicator):
             drawer.drawText(hdc, sumInfo[i], (sx + 2, int(sy), rect[2], int(sy + IH)), color = 0xd0d0d0, align = VCENTER)
             sy += IH
 
+class ThsZsPmIndicator(CustomIndicator):
+    def __init__(self, win, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 50
+        super().__init__(win, config)
+        self.config['title'] = '[同花顺指数排名]'
+    
+    def _changeCode(self):
+        super()._changeCode()
+        if len(self.code) != 6 or self.code[0 : 2] != '88':
+            return
+        maps = {}
+        qr = ths_orm.THS_ZS_ZD.select().where(ths_orm.THS_ZS_ZD.code == self.code).dicts()
+        for d in qr:
+            day = int(d['day'].replace('-', ''))
+            maps[day] = d
+        self.cdata = maps
+
+    def drawItem(self, hdc, drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        iw = self.config['itemWidth']
+        day = self.data[idx].day
+        if not self.cdata or day not in self.cdata:
+            return
+        rc1 = (x + 1, 1, x + iw, self.height // 2)
+        rc2 = (x + 1, self.height // 2, x + iw, self.height)
+        item = self.cdata[day]
+        drawer.drawText(hdc, item['zdf_topLevelPM'], rc1, 0xcccccc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+        drawer.drawText(hdc, item['zdf_PM'], rc2, 0xcccccc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+
 
 if __name__ == '__main__':
     #base_win.ThreadPool.instance().start()
