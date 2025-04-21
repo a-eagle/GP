@@ -3400,8 +3400,14 @@ class RichTextRender:
             bg = self._getAttr(item, 'bgColor')
             if type(bg) == int:
                 drawer.fillRect(hdc, rc, bg)
-            drawer.drawText(hdc, self._getAttr(item, 'text'), rc, color = self._getAttr(item, 'color'), align = win32con.DT_LEFT | win32con.DT_SINGLELINE | win32con.DT_VCENTER)
+            self.drawItem(drawer, hdc, rc, item)
         win32gui.RestoreDC(hdc, sdc)
+
+    def drawItem(self, drawer, hdc, rc, item):
+        text = self._getAttr(item, 'text')
+        color = self._getAttr(item, 'color')
+        align = win32con.DT_LEFT | win32con.DT_SINGLELINE | win32con.DT_VCENTER
+        drawer.drawText(hdc, text, rc, color = color, align = align)
 
 class ThsShareMemory:
     POS_CODE = 0

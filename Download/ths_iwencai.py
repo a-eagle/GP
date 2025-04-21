@@ -400,7 +400,7 @@ def download_zt_lianban(day = None):
         traceback.print_exc()
     return None
 
-def getTradeDays(prev = 60):
+def getTradeDays(prev = 600):
     try:
         key = f'TradeDays-{prev}'
         item = memcache.cache.getCache(key)

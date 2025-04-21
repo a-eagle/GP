@@ -6,6 +6,7 @@ from orm import def_orm, chrome_orm
 from ui import base_win, dialog
 from utils import gn_utils
 from ui.kline_indicator import *
+from ui import bkgn_view
 
 class MarksManager:
     def __init__(self, win) -> None:
@@ -59,6 +60,7 @@ class ContextMenuManager:
         mm = [
               {'title': '点击时选中K线', 'name': 'sel-idx-on-click', 'checked': self.win.selIdxOnClick},
               {'title': '显示叠加指数', 'name': 'show-ref-zs', 'checked': self.win.refIndicatorVisible},
+              {'title': '显示K线', 'name': 'show-kline', 'checked': self.win.klineIndicatorVisible},
               {'title': 'LINE'},
               {'name': 'add-ref-zs', 'title': '叠加上证指数', 'code': '1A0001'}
         ]
@@ -176,6 +178,9 @@ class ContextMenuManager:
             self.win.invalidWindow()
         elif name == 'show-ref-zs':
             self.win.refIndicatorVisible = evt.item['checked']
+            self.win.invalidWindow()
+        elif name == 'show-kline':
+            self.win.klineIndicatorVisible = evt.item['checked']
             self.win.invalidWindow()
         elif name == 'open-cur-ref-zs':
             code = self.win.refIndicator.code
@@ -659,11 +664,11 @@ class KLineWindow(base_win.BaseWindow):
         self.selIdx = -1
         self.selIdxOnClick = False
         self.refIndicatorVisible = True
+        self.klineIndicatorVisible = True
         self.refIndicator = RefIndicator(self)
         self.klineIndicator = KLineIndicator(self, {'height': -1, 'margins': (30, 20)})
         self.indicators.append(self.klineIndicator)
-        from THS import tips_win
-        self.hygnWin = tips_win.BkGnWindow()
+        self.bkgnView = bkgn_view.BkGnView()
         self.marksMgr = MarksManager(self)
         self.contextMenuMgr = ContextMenuManager(self)
         self.lineMgr = TextLineManager(self)
@@ -724,7 +729,7 @@ class KLineWindow(base_win.BaseWindow):
             self.refIndicator.changeCode(rs['hy_2_code'], period)
         self.lineMgr.changeCode(code)
         self.makeVisible(-1)
-        self.hygnWin.changeCode(code)
+        self.bkgnView.changeCode(code)
         self.invalidWindow()
 
     def onContextMenu(self, x, y):
@@ -737,12 +742,13 @@ class KLineWindow(base_win.BaseWindow):
     def createWindow(self, parentWnd, rect, style = win32con.WS_VISIBLE | win32con.WS_CHILD, className = 'STATIC', title = ''):
         super().createWindow(parentWnd, rect, style, className, title)
         self.calcIndicatorsRect()
-        self.hygnWin.DEF_COLOR = 0x22cc22
+        self.bkgnView.DEF_COLOR = 0x22cc22
+        self.bkgnView.hwnd = self.hwnd
 
     def onSize(self):
         self.makeVisible(self.selIdx)
         W, H = self.getClientSize()
-        self.hygnWin.rect = (0, 0, int(W * 0.7), 80)
+        self.bkgnView.rect = (0, 0, int(W * 0.7), 80)
 
     # @return True: 已处理事件,  False:未处理事件
     def winProc(self, hwnd, msg, wParam, lParam):
@@ -795,12 +801,10 @@ class KLineWindow(base_win.BaseWindow):
         self.invalidWindow()
 
     def onMouseClick(self, x, y):
-        hygnRect = getattr(self.hygnWin, 'rect', None)
+        hygnRect = getattr(self.bkgnView, 'rect', None)
         if hygnRect and x >= hygnRect[0] and x < hygnRect[2] and y >= hygnRect[1] and y < hygnRect[3]:
-            self.hygnWin.hwnd = self.hwnd
-            self.hygnWin.onClick(x, y)
+            self.bkgnView.onClick(x, y)
             return
-        
         it = self.getIndicatorByPoint(x, y)
         if it:
             it.onMouseClick(x - it.x, y - it.y)
@@ -818,7 +822,7 @@ class KLineWindow(base_win.BaseWindow):
         item = idt.getItemData(idx)
         if not item:
             return
-        self.hygnWin.changeLastDay(item.day)
+        self.bkgnView.changeLastDay(item.day)
         self.notifyListener(Listener.Event('selIdx-Changed', self, idx = idx, day = item.day, data = item, datas = self.klineIndicator.data))
         self.invalidWindow()
 
@@ -888,7 +892,7 @@ class KLineWindow(base_win.BaseWindow):
             if idt == self.klineIndicator:
                 self.marksMgr.onDraw(hdc, self.drawer) # draw marks
             win32gui.RestoreDC(hdc, sdc)
-        self.hygnWin.onDrawRect(hdc, self.hygnWin.rect)
+        self.bkgnView.onDrawRect(hdc, self.bkgnView.rect)
         # draw content
         if self.refIndicatorVisible:
             sdc = win32gui.SaveDC(hdc)
@@ -896,6 +900,8 @@ class KLineWindow(base_win.BaseWindow):
             self.refIndicator.draw(hdc, self.drawer)
             win32gui.RestoreDC(hdc, sdc)
         for i, idt in enumerate(self.indicators):
+            if idt == self.klineIndicator and not self.klineIndicatorVisible:
+                continue
             sdc = win32gui.SaveDC(hdc)
             win32gui.SetViewportOrgEx(hdc, idt.x, idt.y)
             idt.draw(hdc, self.drawer)

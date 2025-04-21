@@ -7,7 +7,7 @@ import types
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download import datafile, henxin, cls
 from utils import hot_utils
-from ui import dialog, base_win, kline_utils
+from ui import bkgn_view, dialog, base_win, kline_utils
 from orm import d_orm, def_orm, ths_orm, cls_orm
 
 # param days (int): [YYYYMMDD, ....]
@@ -1163,33 +1163,24 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
 class BkGnWindow(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.TITLE_HEIGHT = 15
-        self.DEF_COLOR = 0xa0a0a0
-        self.HOT_DEF_COLOR = 0xff3399
-        self.HOT_CLS_COLOR = 0x14698B
         self.css['bgColor'] = 0x050505
         self.css['borderColor'] = 0x22dddd
         self.css['enableBorder'] = True
         self.MAX_SIZE = (950, 70)
         self.MIN_SIZE = (60, 30)
+        self.TITLE_HEIGHT = 15
         self.maxMode = True
+        self.view = bkgn_view.BkGnView()
 
-        self.curCode = None
-        self.hotGnObj = None
-        self.thsGntc = None
-        self.clsGntc = None
-        self.defHotGns = []
-        self.richRender = base_win.RichTextRender(17)
-        self.clsHotGns = []
-        self.limitDaysNum = self._getLimitDaysNum()
-        self.lastDay = None
-        self.hotDaysRange = None
+    def changeCode(self, code):
+        self.view.changeCode(code)
 
     def createWindow(self, parentWnd, rect = None, style = win32con.WS_POPUP, className='STATIC', title=''):
         if not rect:
             sz =  self.MAX_SIZE if self.maxMode else self.MIN_SIZE
             rect = (0, 0, *sz)
         super().createWindow(parentWnd, rect, style, className, title)
+        self.view.hwnd = self.hwnd
 
     def getWindowState(self):
         rc = win32gui.GetWindowRect(self.hwnd)
@@ -1205,148 +1196,6 @@ class BkGnWindow(base_win.BaseWindow):
             win32gui.SetWindowPos(self.hwnd, 0, x, y, *self.MAX_SIZE, win32con.SWP_NOZORDER)
         else:
             win32gui.SetWindowPos(self.hwnd, 0, x, y, *self.MIN_SIZE, win32con.SWP_NOZORDER)
-
-    def onClick(self, x, y):
-        sp = None
-        for it in self.richRender.specs:
-            rc = it.get('rect', None)
-            if not rc: break
-            if x >= rc[0] and x < rc[2] and y >= rc[1] and y < rc[3]:
-                sp = it
-                break
-        if not sp or not sp['args']:
-            return
-        gnNum, gn = sp['args']
-        if gnNum <= 0:
-            return
-        if not self.hotDaysRange:
-            return
-        tcView = self.HotTcView()
-        #tcView.loadData(*self.hotDaysRange, gn)
-        TRADE_DAYS_NUM = 20
-        tcView.loadData_2(self.hotDaysRange[1], TRADE_DAYS_NUM, gn)
-        tcView.createWindow(self.hwnd)
-        tcView.show(*win32gui.GetCursorPos())
-        tcView.msgLoop()
-
-    class HotTcView(base_win.NoActivePopupWindow):
-        def __init__(self) -> None:
-            super().__init__()
-            self.css['fontSize'] = 12
-            self.css['bgColor'] = 0xfcfcfc
-            self.datas = None
-        
-        def createWindow(self, parentWnd, rect = None, style = win32con.WS_POPUP, className='STATIC', title=''):
-            IW = 30
-            LL = 10
-            if self.datas:
-                LL = len(self.datas)
-            W = max(LL * IW, 200)
-            rect = (0, 0, W, 200)
-            super().createWindow(parentWnd, rect, style, className, title)
-
-        def loadData_2(self, endDay, daysNum, tcName):
-            tradeDays = []
-            qr = cls_orm.CLS_HotTc.select(cls_orm.CLS_HotTc.day.distinct()).where(cls_orm.CLS_HotTc.day <= endDay).order_by(cls_orm.CLS_HotTc.day.desc()).tuples()
-            for it in qr:
-                tradeDays.append(it[0])
-                if len(tradeDays) >= daysNum:
-                    break
-            fromDay = tradeDays[-1]
-            self.loadData(fromDay, endDay, tcName)
-
-        def loadData(self, fromDay, endDay, tcName):
-            tradeDays = []
-            qr = cls_orm.CLS_HotTc.select(cls_orm.CLS_HotTc.day.distinct()).where(cls_orm.CLS_HotTc.day >= fromDay, cls_orm.CLS_HotTc.day <= endDay).order_by(cls_orm.CLS_HotTc.day.asc()).tuples()
-            for it in qr:
-                tradeDays.append(it[0])
-            qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.name == tcName, cls_orm.CLS_HotTc.day >= fromDay, cls_orm.CLS_HotTc.day <= endDay)
-            model = []
-            for it in qr:
-                model.append(it)
-            datas = []
-            for i, d in enumerate(tradeDays):
-                td = {'day': d, 'up': [], 'down': [], 'sumUpNum': 0, 'sumDownNum': 0}
-                datas.append(td)
-                for m in model:
-                    if m.day == d:
-                        if m.up: td['up'].append(m)
-                        else: td['down'].append(m)
-                td['sumUpNum'] = len(td['up'])
-                td['sumDownNum'] = len(td['down'])
-                if i > 0:
-                    td['sumUpNum'] += datas[i - 1]['sumUpNum']
-                    td['sumDownNum'] += datas[i - 1]['sumDownNum']
-            self.datas = datas
-        
-        def onDraw(self, hdc):
-            if not self.datas or len(self.datas) == 1:
-                return
-            MAX_NUM = max(self.datas[-1]['sumUpNum'], self.datas[-1]['sumDownNum'])
-            STEP_VAL = 2 if MAX_NUM > 8 else 1
-            STEP_NUM = max((MAX_NUM + STEP_VAL - 1) // STEP_VAL, 4)
-            LEFT_X, RIGHT_X = 30, 20
-            TOP_Y, BOTTOM_Y = 20, 30
-            W, H = self.getClientSize()
-            STEP_Y = (H - TOP_Y - BOTTOM_Y) / STEP_NUM
-            STEP_X = (W - LEFT_X - RIGHT_X) / (len(self.datas) - 1)
-
-            LINE_COLOR, TXT_COLOR, TXT_COLOR_HILIGHT  = 0xE2E2E2, 0x777777, 0xFF007F
-            # vertical line
-            preMonth = None
-            for i in range(len(self.datas)):
-                sx = int(LEFT_X + i * STEP_X)
-                ey = H - BOTTOM_Y + 5
-                self.drawer.drawLine(hdc, sx, TOP_Y, sx, ey, LINE_COLOR)
-                day = self.datas[i]['day'][5 : ]
-                month = day[0 : 2]
-                c = TXT_COLOR_HILIGHT
-                if preMonth == month:
-                    day = day[3 : 5]
-                    c = TXT_COLOR
-                preMonth = month
-                self.drawer.drawText(hdc, day.replace('-', '/'), (sx - 30, ey + 5, sx + 30, ey + 20), c)
-            # horizontal line
-            for i in range(STEP_NUM + 1):
-                sy = int(H - BOTTOM_Y - STEP_Y * i)
-                self.drawer.drawLine(hdc, LEFT_X - 5, sy, W - RIGHT_X, sy, LINE_COLOR)
-                val = str(i * STEP_VAL)
-                rc = (0, sy - 10, LEFT_X - 10, sy + 10)
-                if STEP_NUM < 10 or i % 2 == 0:
-                    self.drawer.drawText(hdc, val, rc, TXT_COLOR, win32con.DT_RIGHT | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
-            
-            RED, GREEN, GRAY = 0x3333ff, 0x33ff33, 0xCACACA
-            # draw up datas
-            for i, dt in enumerate(self.datas):
-                sx = int(LEFT_X + i * STEP_X)
-                sy = int(H - BOTTOM_Y - dt['sumUpNum'] / STEP_VAL * STEP_Y)
-                self.drawer.fillRect(hdc, (sx - 3, sy - 3, sx + 3, sy + 3), RED)
-                if i != len(self.datas) - 1: # not last
-                    nsx = int(LEFT_X + (i + 1) * STEP_X)
-                    nsy = int(H - BOTTOM_Y - self.datas[i + 1]['sumUpNum'] / STEP_VAL * STEP_Y)
-                    if dt['sumUpNum'] != self.datas[i + 1]['sumUpNum']:
-                        self.drawer.drawLine(hdc, sx, sy, nsx, nsy, RED, style = win32con.PS_SOLID, width = 2)
-                    else:
-                        self.drawer.drawLine(hdc, sx, sy, nsx, nsy, GRAY, style = win32con.PS_DOT, width = 1)
-
-                sy = int(H - BOTTOM_Y - dt['sumDownNum'] / STEP_VAL * STEP_Y)
-                self.drawer.fillRect(hdc, (sx - 3, sy - 3, sx + 3, sy + 3), GREEN)
-                if i != len(self.datas) - 1: # not last
-                    nsx = int(LEFT_X + (i + 1) * STEP_X)
-                    nsy = int(H - BOTTOM_Y - self.datas[i + 1]['sumDownNum'] / STEP_VAL * STEP_Y)
-                    if dt['sumDownNum'] != self.datas[i + 1]['sumDownNum']:
-                        self.drawer.drawLine(hdc, sx, sy, nsx, nsy, GREEN, style = win32con.PS_SOLID, width = 2)
-                    else:
-                        self.drawer.drawLine(hdc, sx, sy, nsx, nsy, GRAY, style = win32con.PS_DOT, width = 1)
-
-        # x, y is screen pos
-        def show(self, x, y):
-            rc = win32gui.GetWindowRect(self.hwnd)
-            W, H = rc[2] - rc[0], rc[3] - rc[1]
-            SW, SH = win32api.GetSystemMetrics(win32con.SM_CXSCREEN), win32api.GetSystemMetrics(win32con.SM_CYSCREEN) - 40
-            if x + W > SW: x = SW - W
-            if y + H > SH: y = SH - H
-            super().show(x, y)
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_NCHITTEST:
@@ -1366,245 +1215,18 @@ class BkGnWindow(base_win.BaseWindow):
             return True
         elif msg == win32con.WM_LBUTTONUP:
             x, y = (lParam & 0xffff), (lParam >> 16) & 0xffff
-            self.onClick(x, y)
+            self.view.onClick(x, y)
             return True
         elif msg == win32con.WM_MBUTTONUP:
-            self.onShowSettings()
+            self.view.onShowSettings()
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
     
-    def _getLimitDaysNum(self):
-        obj, _ = def_orm.MySettings.get_or_create(mainKey = 'HotTc_N_Days')
-        if not obj.val:
-            obj.val = '5'
-            obj.save()
-        return int(obj.val)
-
-    def onShowSettings(self):
-        model = [{'title': '设置热点概念', 'name': 'hot'},
-                 {'title': '设置热点概念-5日', 'name': 'HotTc_5', 'checked': self.limitDaysNum == 5},
-                 {'title': '设置热点概念-10日', 'name': 'HotTc_10', 'checked': self.limitDaysNum == 10}
-                ]
-        menu = base_win.PopupMenu.create(self.hwnd, model)
-        menu.addNamedListener('Select', self.onSettings)
-        menu.show(*win32gui.GetCursorPos())
-
-    def onSettings(self, evt, args):
-        if evt.item['name'] == 'hot':
-            dlg = dialog.MultiInputDialog()
-            dlg.setText(self.hotGnObj.info or '')
-            prc = win32gui.GetWindowRect(self.hwnd)
-            def onInputEnd(evt, args):
-                if not evt.ok:
-                    return
-                self.saveDefHotGn(evt.text)
-                self._buildBkgn()
-                self.invalidWindow()
-            dlg.addNamedListener('InputEnd', onInputEnd)
-            dlg.createWindow(win32gui.GetParent(self.hwnd), (prc[0], prc[1], 450, 200), title = '设置热点概念')
-            dlg.showCenter()
-        elif 'HotTc_' in evt.item['name']:
-            ndays = int(evt.item['name'][len('HotTc_') : ])
-            if self.limitDaysNum == ndays:
-                return
-            self.limitDaysNum = ndays
-            obj, _ = def_orm.MySettings.get_or_create(mainKey = 'HotTc_N_Days')
-            obj.val = str(self.limitDaysNum)
-            obj.save()
-            self.changeLimitDaysNum()
-    
     def onDraw(self, hdc):
         W, H = self.getClientSize()
-        self.onDrawRect(hdc, (0, 0, W, H))
-    
-    def onDrawRect(self, hdc, rc):
-        self.drawer.fillRect(hdc, (rc[0] + 2, rc[1] + 2, rc[0] + 10, rc[1] + self.TITLE_HEIGHT), 0x0A550A)
-        self.richRender.draw(hdc, self.drawer, (rc[0] + 3, rc[1] + 2, rc[2] - 3, rc[3]))
-    
-    def setLimitDaysNum(self, daysNum):
-        self.limitDaysNum = daysNum
+        self.drawer.fillRect(hdc, (2, 2, 10, self.TITLE_HEIGHT), 0x0A550A)
+        self.view.onDrawRect(hdc, (0, 0, W, H))
 
-    def changeCode(self, code):
-        if (self.curCode == code) or (not code):
-            return
-        self.lastDay = None
-        scode = f'{code :06d}' if type(code) == int else code
-        if scode[0 : 2] in ('sz', 'sh'):
-            scode = scode[2 : ]
-        self.curCode = scode
-        # load code info
-        self._loadDefHotGn()
-        self._loadThsClsTcgn()
-        self._loadClsHotGn(None)
-        self._buildBkgn()
-        self.invalidWindow()
-
-    def changeLastDay(self, lastDay):
-        if type(lastDay) == int:
-            lastDay = str(lastDay)
-        if type(lastDay) == str and len(lastDay) == 8:
-            lastDay = lastDay[0 : 4] + '-' + lastDay[4 : 6] + '-' + lastDay[6 : 8]
-        if self.lastDay == lastDay:
-            return
-        self.lastDay = lastDay
-        self._loadClsHotGn(self.lastDay)
-        self._buildBkgn()
-        self.invalidWindow()
-
-    def changeLimitDaysNum(self):
-        self._loadClsHotGn(self.lastDay)
-        self._buildBkgn()
-        self.invalidWindow()
-
-    def saveDefHotGn(self, txt):
-        self.hotGnObj.info = txt or ''
-        self.hotGnObj.save()
-
-    def _loadDefHotGn(self):
-        from orm import def_orm
-        qr = def_orm.MyHotGn.select()
-        self.hotGnObj = None
-        self.defHotGns = []
-        for obj in qr:
-            self.hotGnObj = obj
-            if obj.info:
-                sx = obj.info.replace('\n', ' ').split(' ')
-                for s in sx:
-                    if s.strip(): self.defHotGns.append(s.strip())
-            break
-        if not self.hotGnObj:
-            self.hotGnObj = def_orm.MyHotGn.create(info = '')
-
-    # lastDay = None(newest day) | int | str
-    # return [(cls-name, num), ...]
-    def _loadClsHotGn(self, lastDay):
-        self.hotDaysRange = None
-        qr = cls_orm.CLS_HotTc.select(cls_orm.CLS_HotTc.day.distinct()).order_by(cls_orm.CLS_HotTc.day.desc()).tuples()
-        days = []
-        for it in qr:
-            if (lastDay is None) or (it[0] <= lastDay):
-                days.append(it[0])
-            if len(days) >= self.limitDaysNum: # 仅显示近N天的热点概念
-                break
-        if not days:
-            self.hotDaysRange = None
-            self.clsHotGns = []
-            return
-        fromDay = days[-1]
-        endDay = days[0]
-        self.hotDaysRange = (fromDay, endDay)
-        rs = []
-        qr = cls_orm.CLS_HotTc.select(cls_orm.CLS_HotTc.name, pw.fn.count()).where(cls_orm.CLS_HotTc.day >= fromDay, cls_orm.CLS_HotTc.day <= endDay, cls_orm.CLS_HotTc.up == True).group_by(cls_orm.CLS_HotTc.name).tuples()
-        for it in qr:
-            clsName, num = it
-            rs.append((clsName.strip(), num))
-        self.clsHotGns = rs
-
-    def _loadThsClsTcgn(self):
-        self.thsGntc = ths_orm.THS_GNTC.get_or_none(code = self.curCode) or ths_orm.THS_GNTC()
-        self.clsGntc = cls_orm.CLS_GNTC.get_or_none(code = self.curCode) or cls_orm.CLS_GNTC()
-
-    def _buildBkgn(self):
-        self.richRender.specs.clear()
-        defHotGns = self.defHotGns[ : ]
-        clsHotGns = self.clsHotGns[ : ]
-        hy1 = ''
-        if self.thsGntc.hy_2_name: hy1 = self.thsGntc.hy_2_name + ';'
-        if self.thsGntc.hy_3_name: hy1 += self.thsGntc.hy_3_name
-        hys = self._buildBkInfos(hy1, self.clsGntc.hy, defHotGns, clsHotGns)
-        self.richRender.addText(' 【', self.DEF_COLOR)
-        for idx, h in enumerate(hys):
-            if idx != 0:
-                self.richRender.addText(' | ', self.DEF_COLOR)
-            self.richRender.addText(h[1], h[2], args = (h[3], h[4]))
-        self.richRender.addText('】 ', self.DEF_COLOR)
-        
-        lastGns = self._buildBkInfos(self.thsGntc.gn, self.clsGntc.gn, defHotGns, clsHotGns)
-        lastGns.sort(key = lambda d: d[0])
-        for i, h in enumerate(lastGns):
-            self.richRender.addText(h[1], h[2], args = (h[3], h[4]))
-            if i != len(lastGns) - 1:
-                self.richRender.addText(' | ', self.DEF_COLOR)
-        #for h in self.defHotGns:
-        #    self.richRender.addText(h + ' ', 0x404040)
-
-    # return (no, gn-name, color, type, num, org-gn-name)
-    def _buildBkInfos(self, thsGn, clsGn, defHotGns, clsHotGns):
-        thsGn = thsGn or ''
-        clsGn = clsGn or '' 
-        gns = [] # item of {gn: xx, type: xx, same:xx}
-        gnsMap = {} # gn: obj
-        for g in thsGn.split(';'):
-            g = g.strip()
-            if not g: 
-                continue
-            item = {'gn': g, 'type': 'THS'}
-            gns.append(item)
-            gnsMap[g] = item
-        for g in clsGn.split(';'):
-            g = g.strip()
-            if not g: 
-                continue
-            if g in gnsMap:
-                item = gnsMap[g]
-                item['type'] = 'THS+CLS'
-            else:
-                item = {'gn': g, 'type': 'CLS'}
-                gns.append(item)
-        lastGns = []
-        for item in gns:
-            if item['type'] == 'THS':
-                info = self._getTypeNameAndColor_THS(item['gn'], True, defHotGns)
-            elif item['type'] == 'CLS':
-                info = self._getTypeNameAndColor_CLS(item['gn'], True, clsHotGns)
-                info = info[0], '#' + info[1], info[2], info[3]
-            else: # THS+CLS
-                info1 = self._getTypeNameAndColor_THS(item['gn'], True, defHotGns)
-                info2 = self._getTypeNameAndColor_CLS(item['gn'], True, clsHotGns)
-                no = min(info1[0], info2[0])
-                color = info1[2] if no == info1[0] else info2[2]
-                info = (no, '*' + info2[1], color, info2[3])
-            info = *info, item['gn']
-            lastGns.append(info)
-        return lastGns
-
-    def _getTypeNameAndColor_THS(self, bk, remove, defHotGns):
-        idx = self._getDefHotIndex(bk, defHotGns)
-        if idx >= 0:
-            if remove: defHotGns.pop(idx)
-            return 20, bk, self.HOT_DEF_COLOR, 0
-        return 1000, bk, self.DEF_COLOR, 0
-    
-    def _getTypeNameAndColor_CLS(self, bk, remove, clsHotGns):
-        idx = self._getClsHotIndex(bk, clsHotGns)
-        if idx >= 0:
-            clsName, num = clsHotGns[idx]
-            if remove:
-                clsHotGns.pop(idx)
-            name = f'{bk}（{num}）'
-            return 100 - num, name, self.HOT_CLS_COLOR, num
-        return 2000, bk, self.DEF_COLOR, 0
-
-    def _getDefHotIndex(self, bk, defHotGns):
-        for i, h in enumerate(defHotGns):
-            if h == bk: # h in bk or bk in h
-                return i
-        return -1
-
-    def _getClsHotIndex(self, bk, clsHotGns):
-        for i, it in enumerate(clsHotGns):
-            clsName, num = it
-            if bk == clsName:
-                return i
-        return -1
-    
-    def removeDefHotGn(self, hotGns : list, gn):
-        for i, h in enumerate(hotGns):
-            if h in gn:
-                hotGns.pop(i)
-
-        #return ('半导体', '鸿蒙概念', '低空经济', '消费电子')
-    
     def setVisible(self, visible : bool):
         if not win32gui.IsWindow(self.hwnd):
             return

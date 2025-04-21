@@ -174,8 +174,10 @@ class DataFileLoader:
             traceback.print_exc()
         print('-----end download--------\n')
 
-    def downloadAndMergeAllMililine(self, internalTime):
-        self._downloadAndMergeAllMililine(self.getCodes(), internalTime, '')
+    def downloadAndMergeCodesMililine(self, internalTime):
+        self._downloadAndMergeAllMililine(self.getCodes(), internalTime, 'Code')
+    
+    def downloadAndMergeAllZsMililine(self, internalTime):
         self._downloadAndMergeAllMililine(self.getClsCodes(), internalTime, 'Cls ZS')
         self._downloadAndMergeAllMililine(self.getThsCodes(), internalTime, 'Ths ZS')
         self._downloadAndMergeAllMililine(['399001', '399006', '999999'], internalTime, 'SH & SZ ZS')
@@ -329,10 +331,10 @@ def main():
             cache[today] = True
             time.sleep(60 * 5)
             continue
-        loader.downloadAndMergeAllMililine(0.1)
-        
+        loader.downloadAndMergeCodesMililine(0.1)
         ld = fx.FenXiLoader()
         ld.fxAll(loader.newestDay)
+        loader.downloadAndMergeAllZsMililine(0.1)
 
 if __name__ == '__main__':
     # ld = fx.FenXiLoader()

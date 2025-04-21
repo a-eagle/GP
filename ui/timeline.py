@@ -45,7 +45,6 @@ class TimelineModel:
         else:
             self.dataModel = datafile.Ths_T_DataModel(code)
         self.dataModel.loadData(day)
-        self.loadClsHotTc(day)
 
     def loadRef(self, code, day):
         if type(code) == int:
@@ -55,6 +54,7 @@ class TimelineModel:
         else:
             self.refDataModel = datafile.Ths_T_DataModel(code)
         self.refDataModel.loadData(day)
+        self.loadClsHotTc(day)
 
     def loadClsHotTc(self, day):
         if not self.refDataModel or not self.refDataModel.name:
@@ -593,7 +593,7 @@ class TimelinePanKouWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     win = TimelinePanKouWindow()
-    win.createWindow(None, (0, 0, 1000, 600), win32con.WS_OVERLAPPEDWINDOW| win32con.WS_VISIBLE)
+    win.createWindow(None, (0, 0, 1000, 600), win32con.WS_OVERLAPPEDWINDOW | win32con.WS_VISIBLE)
     win.load('301016', 20250403) # cls82437 sh000001 ; 300390  600611
     win.loadRef('cls82437') 
     win32gui.PumpMessages()
