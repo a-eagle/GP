@@ -70,12 +70,15 @@ class ContextMenuManager:
               {'title': '叠加指数 THS', 'name': 'add-ref-zs', 'sub-menu': self.getThsZsList(selDay)},
               {'title': '叠加指数 CLS', 'name': 'add-ref-zs', 'sub-menu': self.getClsZsList(selDay)},
               {'title': '打开叠加指数', 'name': 'open-cur-ref-zs'},
+              {'title': 'LINE'},
+              {'title': '查看板块个股 THS', 'name': 'open-ref-thszs', 'sub-menu': self.getThsZsList(selDay)},
+              {'title': '查看板块个股 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList(selDay)},
             ])
-        mm.extend([
-            {'title': 'LINE'},
-            {'title': '查看板块 THS', 'name': 'open-ref-thszs', 'sub-menu': self.getThsZsList(selDay)},
-            {'title': '查看板块 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList(selDay)},
-        ])
+        else:
+            mm.extend([
+                {'title': 'LINE'},
+                {'title': '查看板块个股', 'name': 'open-cur-zs', 'day': selDay},
+            ])
         mm.extend([
               {'title': 'LINE'},
               {'title': '标记日期 +', 'name': 'mark-day', 'enable': selDay > 0, 'day': selDay},
@@ -200,6 +203,13 @@ class ContextMenuManager:
             code = evt.item['code']
             day = evt.item["day"]
             self.openRefClsZs(code, day)
+        elif name == 'open-cur-zs':
+            code = self.win.klineIndicator.code
+            day = evt.item["day"]
+            if code[0 : 2] == '88':
+                self.openRefThsZs(code, day)
+            else:
+                self.openRefClsZs(code, day)
         elif name == 'add-ref-zs':
             code = evt.item['code']
             self.win.refIndicator.changeCode(code, self.win.klineIndicator.period)
