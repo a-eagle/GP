@@ -1090,12 +1090,15 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
     def onDayChanged(self, evt, args):
         if evt.name != 'Select':
             return
-        
+    
     def loadCodeBasic(self, code):
-        url = cls.ClsUrl()
-        data = url.loadBasic(code)
-        self.cacheData[code] = data
-        self._useCacheData(code)
+        if code[0 : 2] == '88':
+            pass
+        else:
+            url = cls.ClsUrl()
+            data = url.loadBasic(code)
+            self.cacheData[code] = data
+            self._useCacheData(code)
 
     def _useCacheData(self, code):
         if code != self.curCode or code not in self.cacheData:
@@ -1144,6 +1147,15 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.wbData = newWb
         self.invalidWindow()
 
+    def onOpenKLine(self):
+        if self.curCode and self.curCode[0 : 2] == '88':
+            data = {'code': self.curCode, 'day': None}
+            kline_utils.openInCurWindow(self, data)
+            return
+        if self.data and 'code' in self.data and self.data['code']:
+            data = {'code': self.data['code'], 'day': None}
+            kline_utils.openInCurWindow(self, data)
+
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_NCHITTEST:
             x, y = (lParam & 0xffff), (lParam >> 16) & 0xffff
@@ -1154,9 +1166,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         if msg == win32con.WM_NCLBUTTONDBLCLK:
             return True
         if msg == win32con.WM_LBUTTONDBLCLK:
-            if self.data and 'code' in self.data and self.data['code']:
-                data = {'code': self.data['code'], 'day': None}
-                kline_utils.openInCurWindow(self, data)
+            self.onOpenKLine()
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
 

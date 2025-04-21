@@ -368,7 +368,7 @@ class Server:
             if endDayInt <= int(tradeDays[i]):
                 endDayInt = int(tradeDays[i])
                 break
-        si = i - period
+        si = i - period + 1
         fromDayInt = int(tradeDays[si])
 
         self._subPlateByHots(cs, fromDayInt, endDayInt)
@@ -389,12 +389,9 @@ class Server:
             code = f'{it[0] :06d}'
             if code in stocks:
                 stocks[code] += it[1]
-        qr = ths_orm.THS_HotZH.select(pw.fn.max(ths_orm.THS_HotZH.day)).tuples()
-        hotMaxZHDay = 0
-        for d in qr:
-            hotMaxZHDay = d[0]
-            break
-        if fromDayInt <= hotMaxZHDay and hotMaxZHDay <= endDayInt:
+        hotMaxZHDay = ths_orm.THS_HotZH.select(pw.fn.max(ths_orm.THS_HotZH.day)).scalar()
+        lastTradeDay = hot_utils.getLastTradeDay()
+        if lastTradeDay == hotMaxZHDay or fromDayInt > lastTradeDay or lastTradeDay > endDayInt:
             return
         hz = hot_utils.DynamicHotZH.instance().getNewestHotZH()
         for it in hz:

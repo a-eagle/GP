@@ -70,10 +70,12 @@ class ContextMenuManager:
               {'title': '叠加指数 THS', 'name': 'add-ref-zs', 'sub-menu': self.getThsZsList(selDay)},
               {'title': '叠加指数 CLS', 'name': 'add-ref-zs', 'sub-menu': self.getClsZsList(selDay)},
               {'title': '打开叠加指数', 'name': 'open-cur-ref-zs'},
-              {'title': 'LINE'},
-              {'title': '打开指数 THS', 'name': 'open-ref-thszs', 'sub-menu': self.getThsZsList(selDay)},
-              {'title': '打开板块 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList(selDay)},
             ])
+        mm.extend([
+            {'title': 'LINE'},
+            {'title': '查看板块 THS', 'name': 'open-ref-thszs', 'sub-menu': self.getThsZsList(selDay)},
+            {'title': '查看板块 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList(selDay)},
+        ])
         mm.extend([
               {'title': 'LINE'},
               {'title': '标记日期 +', 'name': 'mark-day', 'enable': selDay > 0, 'day': selDay},

@@ -182,21 +182,24 @@ function initPlatePage() {
         window.dpFS.openFor(this);
     });
     let wrap = $('<div style="height: 80px; background-color: #d0d0d0; margin-bottom: 5px;"> </div>');
-    let wp = $('<button val="5" name="period">活跃周期(5&nbsp;&nbsp;日) </button> <button val="10" name="period">活跃周期(10日) </button> <br/> <button val="20" name="period">活跃周期(20日) </button> <button val="30" name="period">活跃周期(30日) </button>');
-    wrap.append($('<div style="float:left; border-right: solid 2px #999; height: 100%; padding-right:10px;"> </div>').append(picker));
-    wrap.append($('<div style="float:left; height: 100%; border-right: solid 2px #999; padding: 0 5px;"> </div>').append(wp));
-    wrap.insertAfter('.plate-up-list');
-    wrap.children('button:gt(0)').css('margin-left', '10px').css('height', '30px');
-    wrap.children('button[name=period]').click(function() {
+    let w1 = $('<div style="float:left; border-right: solid 2px #999; height: 100%; padding-right:10px;"> </div>');
+    w1.append(picker);
+    let w2 = $('<div style="float:left; height: 100%; border-right: solid 2px #999; padding: 0 5px;"> </div>');
+    let ps = $('<button val="5" name="period">活跃周期(5&nbsp;&nbsp;日) </button> <button val="10" name="period">活跃周期(10日) </button> <br/> <button val="20" name="period">活跃周期(20日) </button> <button val="30" name="period">活跃周期(30日) </button>');
+    w2.append(ps);
+    w2.children('button').css('margin-left', '10px').css('height', '30px');
+    w2.children('button').click(function() {
         let period = $(this).attr('val');
         params.period = period;
         window.location.href = paramsToUrl(params);
     });
-    wrap.find(`button[val=${period}]`).css({'color-': '#f00', 'border-color': 'green'});
+    w2.find(`button[val=${period}]`).css({'color-': '#f00', 'border-color': 'green'});
+
     pageInfo.groupsMgr = new GroupsManager();
-    let vv = pageInfo.groupsMgr.create(code, day);
-    if (vv) vv.css({'float': 'left'});
-    wrap.append(vv);
+    let w3 = pageInfo.groupsMgr.create(code, day);
+    if (w3) w3.css({'float': 'left'});
+    wrap.insertAfter('.plate-up-list');
+    wrap.append(w1).append(w2).append(w3);
 
     extendWidth($('div.w-1200'), ADD_WIDTH);
     extendWidth($('div.content-main-box div.watch-content-left'), ADD_WIDTH);
