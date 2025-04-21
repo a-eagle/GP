@@ -198,7 +198,7 @@ class TimelineWindow(base_win.BaseWindow):
         self.volRect = None
         self.bottomTipRect = None
         self.hilights = []
-        self.cttMenuMgr = ContextMenuMgr(self)
+        self.ctxMenuMgr = ContextMenuMgr(self)
 
     def load(self, code, day = None):
         self.model = TimelineModel()
@@ -376,7 +376,8 @@ class TimelineWindow(base_win.BaseWindow):
         self.drawer.drawText(hdc, tips, rc, 0xf06050)
         # draw time
         ts = f'{md.time // 100}:{md.time % 100 :02d}'
-        rc = (x - 30, self.timeTipRect[1] + 5, x + 30, self.timeTipRect[3])
+        tw, th = win32gui.GetTextExtentPoint32(hdc, ts)
+        rc = (x - tw // 2, self.timeTipRect[1] + 5, x + tw // 2, self.timeTipRect[1] + 5 + th)
         self.drawer.fillRect(hdc, rc, self.css['bgColor'])
         self.drawer.drawText(hdc, ts, rc, color = 0xf06050, align = win32con.DT_CENTER)
         # horizontal line
@@ -388,6 +389,8 @@ class TimelineWindow(base_win.BaseWindow):
         rc = (self.priceRect[2] + 5, y - 10, W, y + 10)
         self.drawer.fillRect(hdc, rc, 0)
         self.drawer.drawText(hdc, f'{zf :.2f}%', rc, 0xf06050, win32con.DT_LEFT)
+        lrc = (0, y - 10, self.priceRect[0] - 3, y + 10)
+        self.drawer.drawText(hdc, f"{price :.02f}", lrc, color = 0xf06050, align = win32con.DT_RIGHT | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
     def drawMinites(self, hdc):
         if not self.model or not self.model.dataModel or not self.model.dataModel.data:
@@ -481,7 +484,7 @@ class TimelineWindow(base_win.BaseWindow):
         self.drawRefClsHotTc(hdc)
 
     def onContextMenu(self, x, y):
-        self.cttMenuMgr.onContextMenu()
+        self.ctxMenuMgr.onContextMenu()
 
     def onSize(self):
         W, H = self.getClientSize()
