@@ -1034,26 +1034,25 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         if not self.data:
             return
         self.drawer.use(hdc, self.drawer.getFont(fontSize = 14, weight=1000))
-        y1 = 22
+        y1, y2 = 22, 45
         rc = (LR, y1, LW // 2 - PD, y1 + 20)
         v = self.data["流通市值"] // 100000000 #亿
         cs1 =  f'{v :d} 亿'
         self.drawer.drawText(hdc, '流通值', rc, 0xcccccc, align=win32con.DT_LEFT)
         self.drawer.drawText(hdc, cs1, rc, 0xF4E202, align=win32con.DT_RIGHT)
-        rc = (LW // 2 + PD, y1, LW - LR, y1 + 20)
+        rc = (LR, y2, LW // 2 - PD, y2 + 20)
         v = self.data["总市值"] // 100000000 #亿
         cs1 =  f'{v :d} 亿'
         self.drawer.drawText(hdc, '总市值', rc, 0xcccccc, align=win32con.DT_LEFT)
         self.drawer.drawText(hdc, cs1, rc, 0xF4E202, align=win32con.DT_RIGHT)
 
-        y2 = 45
-        rc = (LR, y2, LW // 2 - PD, y2 + 20)
+        rc = (LW // 2 + PD, y1, LW - LR, y1 + 20)
         self.drawer.drawText(hdc, '市盈_静', rc, 0xcccccc, align=win32con.DT_LEFT)
         v = self.data['市盈率_静']
         if v == None:
             cs1 = '--'
         else:
-            cs1 = '亏损' if v < 0 else f'{int(v)}'
+            cs1 = f'{int(v)}'
         self.drawer.drawText(hdc, cs1, rc, 0xF4E202, align=win32con.DT_RIGHT)
         rc = (LW // 2 + PD, y2, LW - LR, y2 + 20)
         self.drawer.drawText(hdc, '市盈_TTM', rc, 0xcccccc, align=win32con.DT_LEFT)
@@ -1061,7 +1060,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         if v == None:
             cs1 = '--'
         else:
-            cs1 = '亏损' if v < 0 else f'{int(v)}'
+            cs1 = f'{int(v)}'
         self.drawer.drawText(hdc, cs1, rc, 0xF4E202, align=win32con.DT_RIGHT)
 
         x = LW + 20

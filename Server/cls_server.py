@@ -155,24 +155,26 @@ class Server:
         
         if self.downloadInfos.get('ignore', None) == day:
             return
-        if curTime > '15:30' and (not self.downloadInfos.get(f'scqx-{day}', False)):
-            rs = self.downloadScqx('[1/6]')
+        if curTime > '15:10' and (not self.downloadInfos.get(f'scqx-{day}', False)):
+            rs = self.downloadScqx('[1/7]')
             self.downloadInfos[f'scqx-{day}'] = rs
-        if curTime >= '15:30' and (not self.downloadInfos.get(f'updown-{day}', False)):
-            ok = self.downloadUpDown('[2/6]')
+        if curTime >= '15:10' and (not self.downloadInfos.get(f'updown-{day}', False)):
+            ok = self.downloadUpDown('[2/7]')
             self.downloadInfos[f'updown-{day}'] = ok
-        if curTime >= '15:30' and (not self.downloadInfos.get(f'zs-{day}', False)):
+        if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-{day}', False)):
             self.downloadInfos[f'zs-{day}'] = True
-            self.downloadZS('[3/6]')
-        if curTime >= '15:30' and (not self.downloadInfos.get(f'bkgn-{day}', False)):
+            self.downloadZS('[3/7]')
+        if curTime >= '15:10' and (not self.downloadInfos.get(f'bkgn-{day}', False)):
             self.downloadInfos[f'bkgn-{day}'] = True
-            self.downloadBkGn('[4/6]')
-        if curTime >= '15:30' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
+            self.downloadBkGn('[4/7]')
+        if curTime >= '15:10' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
             self.downloadInfos[f'ztpk-{day}'] = True
-            self.downloadZT_PanKou('[5/6]')
-        if curTime >= '15:30' and (not self.downloadInfos.get(f'hot-tc-{day}', False)):
-            flag = self.downloadHotTcOfLastDay('[6/6]')
-            self.downloadInfos[f'hot-tc-{day}'] = flag
+            self.downloadZT_PanKou('[5/7]')
+        if curTime >= '15:10' and (not self.downloadInfos.get(f'hot-tc-{day}', False)):
+            flag = self.downloadHotTcOfLastDay('[6/7]')
+        if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-zd-{day}', False)):
+            flag = self.downloadZS_ZD('[7/7]')
+            self.downloadInfos[f'zs-zd-{day}'] = flag
 
     def loadTimeDegree(self):
         now = datetime.datetime.now()
@@ -266,6 +268,31 @@ class Server:
             console.writeln_1(console.CYAN, f'[CLS-ZS] {tag} {self.formatNowTime(True)} insert={i} update={u}')
         except Exception as e:
             traceback.print_exc()
+
+    def downloadZS_ZD(self, tag):
+        try:
+            rs = cls.ClsUrl().loadAllZS_ZD()
+            lastDay = ths_iwencai.getTradeDays()[-1]
+            today = datetime.date.today().strftime('%Y%m%d')
+            if today == lastDay:
+                hm = datetime.datetime.now().strftime('%H:%M')
+                if hm <= '15:00':
+                    return False
+            fday = lastDay[0 : 4] + '-' + lastDay[4 : 6] + '-' + lastDay[6 : 8]
+            existsNum = cls_orm.CLS_ZS_ZD.select(pw.fn.count()).where(cls_orm.CLS_ZS_ZD.day == fday).scalar()
+            if existsNum > 0:
+                return True
+            irs = []
+            for d in rs:
+                m = cls_orm.CLS_ZS_ZD(**d)
+                m.day = fday
+                irs.append(m)
+            cls_orm.CLS_ZS_ZD.bulk_create(irs, 100)
+            console.writeln_1(console.CYAN, f'[CLS-ZS-ZD] {tag} {self.formatNowTime(True)} insert num={len(rs)}')
+            return True
+        except Exception as e:
+            traceback.print_exc()
+        return False
 
     # 指数分时
     def downloadZSTimeline(self):
@@ -393,6 +420,7 @@ if __name__ == '__main__':
     #days = ths_iwencai.getTradeDays(100)
     #for day in days:
     #    svr._loadHotTcOfDay(day)
-    svr.loadHotTc(1)
+    # svr.loadHotTc(1)
+    svr.downloadZS_ZD('d')
     pass
     #do_reason()

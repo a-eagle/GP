@@ -1,11 +1,11 @@
 let pageInfo = { tableColNum : 0 , groupsMgr : null};
 const ADD_WIDTH = 300;
 
-class GroupsManager {
+class ZsRelatedManager {
     constructor() {
         this.groups = [
             ['cls80573 商业零售', '881158 零售', 'cls80032 食品饮料', 'cls80041 乳业奶粉', 'cls80039 休闲食品'], //大消费类 2025.04.18
-            ['cls80353 跨境电商', '885642 跨境电商'],
+            ['cls80353 跨境电商', '885642 跨境电商', 'cls80551 跨境支付', '885966 跨境支付'],
             ['cls82542 统一大市场', 'cls80087 东盟自贸区'],
         ];
     }
@@ -71,7 +71,7 @@ class GroupsManager {
             div.append(cv.ui);
             cv.ui.css({'margin-left': '10px'});
             if (cc.code == code) {
-                cv.ui.css({'border' : 'solid 2px #0c0'});
+                cv.ui.css({'border' : 'solid 2px #006633'});
             }
             this.items.push(cv);
             cv.ui.click(function() {thiz.onClick(this);})
@@ -187,7 +187,7 @@ function initPlatePage() {
     let w2 = $('<div style="float:left; height: 100%; border-right: solid 2px #999; padding: 0 5px;"> </div>');
     let ps = $('<button val="5" name="period">活跃周期(5&nbsp;&nbsp;日) </button> <button val="10" name="period">活跃周期(10日) </button> <br/> <button val="20" name="period">活跃周期(20日) </button> <button val="30" name="period">活跃周期(30日) </button>');
     w2.append(ps);
-    w2.children('button').css('margin-left', '10px').css('height', '30px');
+    w2.children('button').css('margin-left', '10px');
     w2.children('button').click(function() {
         let period = $(this).attr('val');
         params.period = period;
@@ -195,7 +195,7 @@ function initPlatePage() {
     });
     w2.find(`button[val=${period}]`).css({'color-': '#f00', 'border-color': 'green'});
 
-    pageInfo.groupsMgr = new GroupsManager();
+    pageInfo.groupsMgr = new ZsRelatedManager();
     let w3 = pageInfo.groupsMgr.create(code, day);
     if (w3) w3.css({'float': 'left'});
     wrap.insertAfter('.plate-up-list');

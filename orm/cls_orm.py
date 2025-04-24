@@ -21,7 +21,7 @@ class CLS_GNTC(pw.Model):
 class CLS_ZS(pw.Model):
     code = pw.CharField() #指数代码
     name = pw.CharField() #指数名称
-    type_ = pw.CharField() #指数名称 HY | GN
+    type_ = pw.CharField() #指数类型 HY | GN
 
     class Meta:
         database = db_gntc
@@ -83,5 +83,18 @@ class CLS_HotTc(pw.Model):
     class Meta:
         database = db_cls
 
+# 材联社--指数涨跌(板块、概念)
+class CLS_ZS_ZD(pw.Model):
+    code = pw.CharField() #指数代码
+    name = pw.CharField(default = '') #指数名称
+    type_ = pw.CharField() #指数类型 HY | GN
+    day = pw.CharField() # YYYY-MM-DD
+    zf = pw.FloatField(default = 0) # 涨幅
+    fund = pw.FloatField(default = 0) #资金流向 (亿)
+    pm = pw.IntegerField() # 涨跌排名
+
+    class Meta:
+        database = db_cls
+
 db_gntc.create_tables([CLS_GNTC, CLS_ZS])
-db_cls.create_tables([CLS_UpDown, CLS_SCQX, CLS_SCQX_Time, CLS_HotTc, CLS_ZT])
+db_cls.create_tables([CLS_UpDown, CLS_SCQX, CLS_SCQX_Time, CLS_HotTc, CLS_ZT, CLS_ZS_ZD])

@@ -1309,20 +1309,25 @@ class LhbIndicator(CustomIndicator):
             drawer.drawText(hdc, sumInfo[i], (sx + 2, int(sy), rect[2], int(sy + IH)), color = 0xd0d0d0, align = VCENTER)
             sy += IH
 
-class ThsZsPmIndicator(CustomIndicator):
+# 指数涨跌排名
+class ZsZdPmIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
             config['height'] = 50
         super().__init__(win, config)
-        self.config['title'] = '[同花顺指数排名]'
+        self.config['title'] = '[指数涨跌排名]'
     
     def _changeCode(self):
         super()._changeCode()
-        if len(self.code) != 6 or self.code[0 : 2] != '88':
-            return
         maps = {}
-        qr = ths_orm.THS_ZS_ZD.select().where(ths_orm.THS_ZS_ZD.code == self.code).dicts()
+        qr = None
+        if len(self.code) == 6 and self.code[0 : 2] != '88':
+            qr = ths_orm.THS_ZS_ZD.select().where(ths_orm.THS_ZS_ZD.code == self.code).dicts()
+        elif len(self.code) == 8 and self.code[0 : 3] == 'cls':
+            qr = cls_orm.CLS_ZS_ZD.select().where(cls_orm.CLS_ZS_ZD.code == self.code).dicts()
+        if not qr:
+            return
         for d in qr:
             day = int(d['day'].replace('-', ''))
             maps[day] = d

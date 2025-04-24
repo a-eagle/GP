@@ -1249,11 +1249,11 @@ class KLineCodeWindow(base_win.BaseWindow):
         self.updateCodeIdxView()
 
     def winProc(self, hwnd, msg, wParam, lParam):
-        # if msg == win32con.WM_ACTIVATE:
-            # ac = wParam & 0xffff
-            # if ac == win32con.WA_INACTIVE:
-                # win32gui.SetFocus(self.klineWin.hwnd)
-            # return True
+        if msg == win32con.WM_ACTIVATE and self.klineWin.hwnd:
+            ac = wParam & 0xffff
+            if ac == win32con.WA_INACTIVE:
+                win32gui.SetFocus(self.klineWin.hwnd)
+            return True
         return super().winProc(hwnd, msg, wParam, lParam)
 
 if __name__ == '__main__':

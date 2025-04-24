@@ -102,7 +102,7 @@ class ClsUrl:
         data = js['data']
         rs = {'code': code, 'date': []}
         rs['line'] = self._toStds(data, False)
-        if rs['line']: 
+        if rs['line']:
             rs['date'].append(rs['line'][0].day)
         elif day:
             rs['date'].append(day)
@@ -375,17 +375,36 @@ class ClsUrl:
         js = json.loads(txt)
         isAll = js['data']['is_all'] # 是否是全部数据
         data = js['data']['plate_data']
-        rs = []
         stype = 'HY' if type_ == 'industry' else 'GN'
         for d in data:
-            rs.append({'code': d['secu_code'], 'name': d['secu_name'], 'type_': stype})
-        return rs
+            d['code'] = d['secu_code']
+            d['name'] = d['secu_name']
+            d['type_'] = stype
+            d['zf'] = d['change'] * 100
+            d['fund'] = d['main_fund_diff'] / 100000000
+        return data
     
     # 所有的板块、概念
     def loadAllZS(self):
         rs = self._loadZS_TN('industry')
         rs2 = self._loadZS_TN('concept')
         rs.extend(rs2)
+        return rs
+    
+    # 所有的板块、概念 （当日涨跌）
+    def loadAllZS_ZD(self):
+        rs : list = self._loadZS_TN('industry')
+        rs2 : list  = self._loadZS_TN('concept')
+        def calcPM(ls):
+            num = len(ls)
+            for i in range(len(ls)):
+                if i <= num // 2:
+                    ls[i]['pm'] = i + 1
+                else:
+                    ls[i]['pm'] = i - num
+        rs.extend(rs2)
+        rs.sort(key = lambda it: it['change'], reverse = True)
+        calcPM(rs)
         return rs
 
     # zs set to {}
@@ -459,5 +478,5 @@ if __name__ == '__main__':
     #ds = cu.loadBkGnOfCode('688041')
     #print(ds.__data__)
     #ClsUrl().loadDegree()
-    k = cu.loadKline('sh000001', 10)
-    print(k)
+    # k = cu.loadKline('sh000001', 10)
+    cu.loadAllZS_ZD()

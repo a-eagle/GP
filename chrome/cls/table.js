@@ -1660,8 +1660,10 @@ class CodeView extends UIListener {
         if (this.code.length == 6 && this.code.substring(0, 2) == '88') {
             if (this.code[2] == '1') cc = `【${this.name}】`;
             else cc = `[${this.name}]`;
+        } else {
+            cc = `# ${this.name}`;
         }
-        this.ui = $(`<span code="${this.code}" name="${this.name}" style="display:inline-block; padding: 2px 5px; font-size:16px; font-weight:bold-; background-color:#d0d0d0; border: solid 1px #a0a0a0; min-width: 50px;"> <label name="code">${cc}</label>  <label name="zf"> </label>  </span>`);
+        this.ui = $(`<span code="${this.code}" name="${this.name}" style="display:inline-block; padding: 1px 5px; font-size:15px; font-weight:bold-; background-color:#d0d0d0; border: solid 1px #505050; min-width: 50px;"> <label name="code">${cc}</label>  <label name="zf"> </label>  </span>`);
         this._loadData();
     }
 
