@@ -577,18 +577,18 @@ class AnchorsMgr {
 	onCurAnchorUpdate(anchrosCP, oldVal) {
 		let arr = [];
 		for (let k in anchrosCP) {
-			arr.push(anchrosCP[k]);
+			if (k.indexOf('#up') > 0)
+				arr.push(anchrosCP[k]);
 		}
 		arr.sort(function(a, b) {return b.num - a.num});
 		this.table.empty();
 		let tr = null;
-		let ROW_NUM = 4, COL_NUM = 7;
-		let NUM = ROW_NUM * COL_NUM;
-		for (let i = 0; i < NUM && i < arr.length; i++) {
+		let COL_NUM = 7;
+		for (let i = 0; i < arr.length; i++) {
 			let item = arr[i];
+			if (item.num < 2)
+				break;
 			if (i % COL_NUM == 0) {
-				if (item.num <= 2)
-					break;
 				tr = $('<tr> </tr>');
 				this.table.append(tr);
 			}

@@ -116,6 +116,7 @@ class Server:
             today = now.strftime('%Y-%m-%d')
             obj = cls_orm.CLS_SCQX.get_or_none(day = today)
             if obj:
+                console.writeln_1(console.CYAN, f'[CLS-Degree] {tag}', day, 'skip')
                 return True
             url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
             resp = requests.get(url)
@@ -129,8 +130,7 @@ class Server:
             if not obj:
                 fb = json.dumps(fb)
                 cls_orm.CLS_SCQX.create(day = day, zhqd = degree, fb = fb)
-                console.write_1(console.CYAN, f'[cls-degree] {tag} ')
-                print(' load degree: ', day, ' -> ', degree)
+                console.writeln_1(console.CYAN, f'[CLS-Degree] {tag}', day, ' -> ', degree)
             return True
         except Exception as e:
             traceback.print_exc()
@@ -172,6 +172,7 @@ class Server:
             self.downloadZT_PanKou('[5/7]')
         if curTime >= '15:10' and (not self.downloadInfos.get(f'hot-tc-{day}', False)):
             flag = self.downloadHotTcOfLastDay('[6/7]')
+            self.downloadInfos[f'hot-tc-{day}'] = flag
         if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-zd-{day}', False)):
             flag = self.downloadZS_ZD('[7/7]')
             self.downloadInfos[f'zs-zd-{day}'] = flag
@@ -245,6 +246,7 @@ class Server:
             return num > 0
         except Exception as e:
             traceback.print_exc()
+        return False
 
     # 指数（板块概念）
     def downloadZS(self, tag):
@@ -281,6 +283,7 @@ class Server:
             fday = lastDay[0 : 4] + '-' + lastDay[4 : 6] + '-' + lastDay[6 : 8]
             existsNum = cls_orm.CLS_ZS_ZD.select(pw.fn.count()).where(cls_orm.CLS_ZS_ZD.day == fday).scalar()
             if existsNum > 0:
+                console.writeln_1(console.CYAN, f'[CLS-ZS-ZD] {tag} {self.formatNowTime(True)} skip')
                 return True
             irs = []
             for d in rs:

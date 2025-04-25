@@ -1322,7 +1322,7 @@ class ZsZdPmIndicator(CustomIndicator):
         super()._changeCode()
         maps = {}
         qr = None
-        if len(self.code) == 6 and self.code[0 : 2] != '88':
+        if len(self.code) == 6 and self.code[0 : 2] == '88':
             qr = ths_orm.THS_ZS_ZD.select().where(ths_orm.THS_ZS_ZD.code == self.code).dicts()
         elif len(self.code) == 8 and self.code[0 : 3] == 'cls':
             qr = cls_orm.CLS_ZS_ZD.select().where(cls_orm.CLS_ZS_ZD.code == self.code).dicts()
@@ -1341,9 +1341,14 @@ class ZsZdPmIndicator(CustomIndicator):
             return
         rc1 = (x + 1, 1, x + iw, self.height // 2)
         rc2 = (x + 1, self.height // 2, x + iw, self.height)
+        CENTER = win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE
         item = self.cdata[day]
-        drawer.drawText(hdc, item['zdf_topLevelPM'], rc1, 0xcccccc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
-        drawer.drawText(hdc, item['zdf_PM'], rc2, 0xcccccc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+        if 'zdf_topLevelPM' in item:
+            drawer.drawText(hdc, item['zdf_topLevelPM'], rc1, 0xcccccc, CENTER)
+            drawer.drawText(hdc, item['zdf_PM'], rc2, 0xcccccc, CENTER)
+        elif 'pm' in item:
+            drawer.drawText(hdc, f"{int(item['fund'])} 亿", rc1, 0xcccccc, CENTER)
+            drawer.drawText(hdc, item['pm'], rc2, 0xcccccc, CENTER)
 
 
 if __name__ == '__main__':

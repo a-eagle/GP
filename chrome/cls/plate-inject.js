@@ -95,14 +95,23 @@ class ZsRelatedManager {
     }
 }
 
-function createTimeLineView(code, width, height) {
-    width = width || ADD_WIDTH;
-    height = height || 60;
-    let view = new TimeLineView(width, height);
+function createTimeLineView(code, params) {
+    let view = new TimeLineView(ADD_WIDTH, 60);
     //tlMgr.add(view);
     let day = getLocationParams('day');
-    view.loadData(code, day);
     window.myview = view;
+
+    let onLoadEnd = function(evt) {
+        let zf = evt.src.zf;
+        let span = $('.stock-detail > span:eq(1)');
+        span.html('<label style="color:' + (zf > 0 ? 'red' : zf < 0 ? 'green' : '#000') + '">' + zf.toFixed(2) + '%' + '<label>');
+    };
+    view.addListener('LoadDataEnd', onLoadEnd);
+    view.loadData(code, day);
+
+    if (params.refThsCode) {
+        loadRefThsCode(view, params);
+    }
     return view;
 }
 
@@ -113,12 +122,6 @@ function extendWidth(obj, aw) {
 }
 
 function loadRefThsCode(view, params) {
-    let onLoadEnd = function(evt) {
-        let zf = evt.src.zf;
-        let span = $('.stock-detail > span:eq(1)');
-        span.html('<label style="color:' + (zf > 0 ? 'red' : zf < 0 ? 'green' : '#000') + '">' + zf.toFixed(2) + '%' + '<label>');
-    };
-    view.addListener('LoadDataEnd', onLoadEnd);
     let span = $('.stock-detail > span:eq(0)');
     let title = '【' + params.refThsCode + ' ' + decodeURIComponent(params.refThsName || '') + '】';
     span.text(title);
@@ -141,10 +144,7 @@ function initPlatePage() {
         setTimeout(initPlatePage, 1000);
         return;
     }
-    let view = createTimeLineView(code);
-    if (params.refThsCode) {
-        loadRefThsCode(view, params);
-    }
+    let view = createTimeLineView(code, params);
     let ui = $(view.canvas);
     ui.css('margin-left', '50px').css('background-color', '#f8f8f8').css('border', 'solid 1px #a0c0a0');
     let pdiv = $('.stock-detail');
