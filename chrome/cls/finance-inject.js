@@ -707,6 +707,13 @@ class AnchorsMgr {
 			}
 			return rs;
 		}
+		function pbc() {
+			let rs = [];
+			rs.push('#0000ff');
+			for (let i = 0; i < 4; i++)
+				rs.push(Chart.defaults.borderColor);
+			return rs;
+		}
 		
 		let cdata = {
 			labels: simpleDays(getDays()),
@@ -731,7 +738,10 @@ class AnchorsMgr {
 		canvas.width(ui.width());
 		canvas.height(ui.height());
 		canvas.attr('day', model.curDay);
-		new Chart(canvas.get(0), {type: 'line', data: cdata, options: {}});
+		new Chart(canvas.get(0), {type: 'line', data: cdata, options: {
+			plugins: {legend: {display: true, title: {display: false}}},
+			scales: {x: {grid : {color : pbc()}}}
+		}});
 	}
 }
 
