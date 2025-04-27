@@ -97,18 +97,19 @@ class HotTcView(base_win.NoActivePopupWindow):
 
         LINE_COLOR, TXT_COLOR, TXT_COLOR_HILIGHT  = 0xE2E2E2, 0x777777, 0xFF007F
         # vertical line
-        preMonth = None
         for i in range(len(self.datas)):
             sx = int(LEFT_X + i * STEP_X)
             ey = H - BOTTOM_Y + 5
-            self.drawer.drawLine(hdc, sx, TOP_Y, sx, ey, LINE_COLOR)
-            day = self.datas[i]['day'][5 : ]
-            month = day[0 : 2]
-            c = TXT_COLOR_HILIGHT
-            if preMonth == month:
-                day = day[3 : 5]
+            lc = LINE_COLOR
+            if i != 0 and i % 5 == 0:
+                lc = 0xff0000
+            self.drawer.drawLine(hdc, sx, TOP_Y, sx, ey, lc)
+            if i % 5 == 0:
+                day = self.datas[i]['day'][5 : ]
+                c = TXT_COLOR_HILIGHT
+            else:
+                day = self.datas[i]['day'][-2 : ]
                 c = TXT_COLOR
-            preMonth = month
             self.drawer.drawText(hdc, day.replace('-', '/'), (sx - 30, ey + 5, sx + 30, ey + 20), c)
         # horizontal line
         for i in range(STEP_NUM + 1):

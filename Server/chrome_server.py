@@ -379,7 +379,7 @@ class Server:
             name = stocks[i].get('secu_name', '')
             snum = cs.get(code, 0)
             stocks[i]['_snum_'] = snum
-            if snum < 2 or len(code) != 6 or 'st' in name or 'ST' in name:
+            if snum < 1 or len(code) != 6 or 'st' in name or 'ST' in name:
                 stocks.pop(i)
         stocks.sort(key = lambda a: a['_snum_'], reverse = True)
 

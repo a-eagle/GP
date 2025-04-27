@@ -106,12 +106,8 @@ class StockTable {
             if (data[i].secu_code) {
                 code = this.buildUI_stdCode(data[i].secu_code);
             }
-            if (!code || (code[0] != '0' && code[0] != '3' && code[0] != '6')) {
-                data.splice(i, 1);
-            } else {
-                data[i].code = code;
-                mdata[data[i].secu_code] = data[i];
-            }
+            data[i].code = code;
+            mdata[data[i].secu_code] = data[i];
             if (!data[i].secu_name && data[i].name) {
                 data[i].secu_name = data[i].name;
             }
@@ -735,15 +731,13 @@ class StockTable {
         let tag = code.substring(0, 2);
         if (tag == 'sz' || tag == 'sh') {
             code = code.substring(2);
-            if (code[0] == '0' || code[0] == '6' || code[0] == '3')
-                return code;
-            return null;
+            return code;
         }
         tag = code.substring(0, 3);
         if (tag == 'cls') {
             return code;
         }
-        return null;
+        return code;
     }
 
     buildUI_elipse(s) {

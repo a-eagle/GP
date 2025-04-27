@@ -765,7 +765,7 @@ class TabNaviMgr {
 
 	_initUI() {
 		let thiz = this;
-		this.navi = $('<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div> <div >热度榜</div> <div >成交额</div> <div>笔记</div> <div>标记</div> </div>');
+		this.navi = $('<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div> <div >热度榜</div> <div >成交额</div> <div >指数</div> <div>笔记</div> <div>标记</div> </div>');
 		$('div[name="tab-nav-item"]').append(this.navi);
 		this.navi.width('110px');
 		$('div[name="tab-nav-item"] > div').click(function() {
@@ -778,9 +778,7 @@ class TabNaviMgr {
 	}
 
 	loadTabNavi(name) {
-		let model = this.vue.data;
 		this.curTabName = name;
-		let thiz = this;
 		if (name == '热度榜') {
 			this.loadTopHotsNavi(name);
 			return;
@@ -797,6 +795,19 @@ class TabNaviMgr {
 			this.loadAmountNavi(name);
 			return;
 		}
+		if (name == '指数') {
+			this.loadZSNavi();
+			return;
+		}
+		if (name.indexOf('池') > 0) {
+			this.loadPoolNavi(name);
+			return;
+		}
+	}
+
+	loadPoolNavi(name) {
+		let model = this.vue.data;
+		let thiz = this;
 		if (model.curDay == model.lastTradeDay) {
 			let ks = {'涨停池': 'up_pool', '连板池': 'continuous_up_pool', '炸板池': 'up_open_pool', '跌停池': 'down_pool'};
 			let url = 'https://x-quote.cls.cn/quote/index/up_down_analysis?'
@@ -809,7 +820,7 @@ class TabNaviMgr {
 					for (let i = resp.data.length - 1; i >= 0; i--) {
 						if (resp.data[i].is_st) resp.data.splice(i, 1);
 					}
-					thiz.updateTabNavi(name, resp.data);
+					thiz.updateTabContentUI(name, resp.data);
 				}
 			});
 		} else {
@@ -822,7 +833,7 @@ class TabNaviMgr {
 				url : 'http://localhost:5665/query-by-sql/cls',
 				data: {'sql': sql},
 				success: function(resp) {
-					thiz.updateTabNavi(name, resp);
+					thiz.updateTabContentUI(name, resp);
 				}
 			});
 		}
@@ -836,7 +847,7 @@ class TabNaviMgr {
 			type: 'POST',
 			data: JSON.stringify({op: 'get'}),
 			success: function(resp) {
-				thiz.updateTabNavi(name, resp);
+				thiz.updateTabContentUI(name, resp);
 			}
 		});
 	}
@@ -850,7 +861,7 @@ class TabNaviMgr {
 			type: 'GET',
 			// data: JSON.stringify({op: 'get'}),
 			success: function(resp) {
-				thiz.updateTabNavi(name, resp);
+				thiz.updateTabContentUI(name, resp);
 			}
 		});
 	}
@@ -868,7 +879,7 @@ class TabNaviMgr {
 				}
 				rs.sort(function(a, b) {return a.hots - b.hots});
 				rs.splice(100, rs.length - 100);
-				thiz.updateTabNavi(name, rs);
+				thiz.updateTabContentUI(name, rs);
 				thiz.loadTopAmounts(name, rs);
 			}
 		});
@@ -910,14 +921,65 @@ class TabNaviMgr {
 		});
 	}
 
-	updateTabNavi(name, data) {
+	loadZSNavi(name) {
+		let thiz = this;
+		let day = this.vue.data.curDay;
+		let db = '';
+		let sql = '';
+		let headers = null;
+		function amountRender(idx, rowData, header, tdObj) {
+			if (! rowData[header.name]) {
+				tdObj.text('');
+				return;
+			}
+			let v = String(parseInt(rowData[header.name])) + ' 亿';
+			tdObj.html(v);
+		}
+		function topPmRender(idx, rowData, header, tdObj) {
+			if (! rowData[header.name]) {
+				tdObj.text('');
+				return;
+			}
+			tdObj.text(rowData[header.name]);
+		}
+		if (name == 'cls') {
+			db = 'cls';
+			sql = `select * from CLS_ZS_ZD where day = '${day}' and abs(pm) <= 50`;
+			headers = [{name: 'day', text: '日期'}, {name: 'code', text: '代码'},
+					{name: 'type_', text: '类型', sortable: true,}, {name: 'zf', text: '涨幅', sortable: true},
+					{name: 'fund', text: '净流入(亿)', sortable: true, cellRender : amountRender}, {name: 'pm', text:'全市排名', sortable: true}];
+		} else {
+			db = 'ths_zs';
+			sql = `select * from 同花顺指数涨跌信息 where day = '${day}' and abs(zdf_PM) <= 50`;
+			headers = [{name: 'day', text: '日期'}, {name: 'code', text: '代码'},
+					{name: 'money', text: '成交额(亿)', sortable: true, cellRender : amountRender}, {name: 'zf', text: '涨幅', sortable: true},
+					{name: 'zdf_topLevelPM', text: '一级排名', sortable: true, cellRender: topPmRender}, {name: 'zdf_PM', text: '全市排名', sortable: true}];
+		}
+		let opts = $('<button name="ths"> 同花顺指数 </button>  &nbsp; &nbsp; <button name="cls">财联社指数 </button>');
+		$.ajax({
+			url: 'http://localhost:5665/query-by-sql/' + db,
+			data: {'sql': sql},
+			success: function(resp) {
+				for (let d of resp) {
+					d.secu_code = d.code;
+					if (d.zdf != undefined) d.zf = d.zdf;
+				}
+				thiz.updateTabContentUI('指数', {data: resp, header: headers, ops : opts});
+			}
+		});
+		opts.click(function() {
+			thiz.loadZSNavi($(this).attr('name'));
+		})
+	}
+
+	updateTabContentUI(name, data) {
 		let wrap = $('div[name=tab-nav-cnt-item]');
 		wrap.empty();
 		let model = this.vue.data;
 		if (! data) {
 			return;
 		}
-		let hd = null, ops = null;
+		let hd = null, ops = null, exOps = null;
 		function amountRender(idx, rowData, header, tdObj) {
 			if (! rowData[header.name]) {
 				tdObj.text('');
@@ -1012,6 +1074,10 @@ class TabNaviMgr {
 				{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
 				{text: '分时图', 'name': 'fs', width: 300},
 			];
+		} else if (name == '指数') {
+			exOps = data.ops;
+			hd = data.header;
+			data = data.data;
 		}
 
 		if (name == '涨停池') {
@@ -1041,6 +1107,7 @@ class TabNaviMgr {
 				window.st.filter($(this).val().trim());
 			}
 		});
+		ops.append(exOps);
 		wrap.append(ops);
 		wrap.append(st.table);
 		if (name == '跌停池' && model.curDay == model.lastTradeDay) {
