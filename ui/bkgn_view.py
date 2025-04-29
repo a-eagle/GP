@@ -344,19 +344,19 @@ class BkGnView:
         for idx, h in enumerate(hys):
             if idx != 0:
                 self.richRender.addText(' | ', self.DEF_COLOR)
-            self.richRender.addText(h[1], h[2], args = (h[3], h[4]))
+            self.richRender.addText(h[1], h[2], args = {'num': h[3], 'gn': h[4]})
         self.richRender.addText('】 ', self.DEF_COLOR)
         
         lastGns = self._buildBkInfos(self.thsGntc.gn, self.clsGntc.gn, defHotGns, clsHotGns)
         lastGns.sort(key = lambda d: d[0])
         for i, h in enumerate(lastGns):
-            self.richRender.addText(h[1], h[2], args = (h[3], h[4]))
+            self.richRender.addText(h[1], h[2], args = {'num': h[3], 'gn': h[4]})
             if i != len(lastGns) - 1:
                 self.richRender.addText(' | ', self.DEF_COLOR)
         #for h in self.defHotGns:
         #    self.richRender.addText(h + ' ', 0x404040)
 
-    # return (no, gn-name, color, type, num, org-gn-name)
+    # return (no, gn-name, color, num, org-gn-name)
     def _buildBkInfos(self, thsGn, clsGn, defHotGns, clsHotGns):
         thsGn = thsGn or ''
         clsGn = clsGn or '' 
@@ -364,7 +364,7 @@ class BkGnView:
         gnsMap = {} # gn: obj
         for g in thsGn.split(';'):
             g = g.strip()
-            if not g: 
+            if not g:
                 continue
             item = {'gn': g, 'type': 'THS'}
             gns.append(item)
@@ -430,3 +430,10 @@ class BkGnView:
         for i, h in enumerate(hotGns):
             if h in gn:
                 hotGns.pop(i)
+
+    def getHotBkGn(self):
+        rs = []
+        for it in self.richRender.specs:
+            if it['args']:
+                rs.append(it['args'])
+        return rs

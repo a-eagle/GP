@@ -234,6 +234,31 @@ class Server:
             traceback.print_exc()
         return False
 
+    def download_codes(self, tag):
+        try:
+            ds = ths_iwencai.download_codes()
+            mds = {}
+            for d in ds:
+                mds[d['code']] = d
+            qr = ths_orm.CodesInfo.select().where(ths_orm.CodesInfo.day == '20250401')
+            updateNum = 0
+            for q in qr:
+                if q.code not in mds:
+                    continue
+                item = mds[q.code]
+                if item['close'] != q.close:
+                    q.__data__.update(item)
+                    q.save()
+                    updateNum += 1
+                mds.pop(q.code)
+            objs = [ths_orm.CodesInfo(**mds[k]) for k in mds]
+            ths_orm.CodesInfo.bulk_create(objs, 200)
+            console.writeln_1(console.GREEN, f'[THS-Code] {tag} {self.formatNowTime(True)} insert {len(objs)}  update {updateNum}')
+            return True
+        except Exception as e:
+            traceback.print_exc()
+        return False
+
     def download_dt(self, tag, day = None):
         try:
             datas = ths_iwencai.download_zt_dt(day, 'dt')
@@ -272,23 +297,27 @@ class Server:
         if curTime >= '15:05' and (not self.downloadInfos.get(f'zh-hots-{day}', False)):
             self.downloadInfos[f'zh-hots-{day}'] = True
             hot_utils.calcAllHotZHAndSave()
-            console.writeln_1(console.GREEN, f'[THS-ZH-hot] [1/5] {self.formatNowTime(False)}', ' calc hot ZH success')
+            console.writeln_1(console.GREEN, f'[THS-ZH-hot] [1/6] {self.formatNowTime(False)}', ' calc hot ZH success')
         # 下载成交量前100信息
         if curTime >= '15:05' and not self.downloadInfos.get(f'vol-top100-{day}', False):
             self.downloadInfos[f'vol-top100-{day}'] = True
-            self.downloadSaveVolTop100('[2/5]')
+            self.downloadSaveVolTop100('[2/6]')
         # 下载同花顺指数涨跌信息
         if curTime >= '15:05' and not self.downloadInfos.get(f'zs-{day}', False):
             self.downloadInfos[f'zs-{day}'] = True
-            self.downloadSaveZs('[3/5]')
+            self.downloadSaveZs('[3/56]')
         # 下载个股板块概念信息
         if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False):
             self.downloadInfos[f'hygn-{day}'] = True
-            self.download_hygn('[4/5]')
+            self.download_hygn('[4/6]')
+        # 下载个股信息
+        if (curTime >= '15:05') and not self.downloadInfos.get(f'code-{day}', False):
+            ok = self.download_codes('[5/6]')
+            self.downloadInfos[f'code-{day}'] = ok
         # 下载个股跌停
         if (curTime >= '22:00') and not self.downloadInfos.get(f'dt-{day}', False):
-            self.downloadInfos[f'dt-{day}'] = True
-            self.download_dt('[5/5]')
+            ok = self.download_dt('[6/6]')
+            self.downloadInfos[f'dt-{day}'] = ok
 
     def loadHotsOneTime(self):
         now = datetime.datetime.now()

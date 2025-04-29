@@ -457,7 +457,137 @@ def download_vol_top100(day = None):
         rs.append(obj)
     return rs
 
+class ThsColumns:
+    def __init__(self) -> None:
+        self.item = None
+        self.names = {}
+
+    def getColumnNames(self, item, partColumnName):
+        names = []
+        for k in item:
+            if partColumnName in k:
+                names.append(k)
+        return names
+    
+    def getColumnDay(self, columnName):
+        if '[' in columnName:
+            b = columnName.index('[')
+            e = columnName.index(']')
+            return columnName[b + 1 : e]
+        return ''
+    
+    def getItemColumnDay(self, item, baseColumnName):
+        for k in item:
+            if baseColumnName + '[' in k:
+                b = k.index('[')
+                e = k.index(']')
+                return k[b + 1 : e]
+        return ''
+    
+    def setItem(self, item):
+        self.item = item
+        self.names.clear()
+        for k in item:
+            if '[' in k:
+                bname = k[0 : k.index('[')]
+            else:
+                bname = k
+            if type(self.names.get(bname, None)) == list:
+                self.names[bname].append(k)
+            elif self.names.get(bname, None) != None:
+                old = self.names[bname]
+                self.names[bname] = [old, k]
+            else:
+                self.names[bname] = k
+
+    def cast(self, val, _type, defaultVal):
+        try:
+            return _type(val)
+        except Exception as e:
+            pass
+            # traceback.print_exc()
+            # print('[ths_iwencai.ThsColumns.cast] ', val)
+        return defaultVal
+
+    def getColumnValue(self, baseColumnName, _type, defaultVal = ''):
+        fullName = self.names.get(baseColumnName, None)
+        if not fullName:
+            return defaultVal
+        if type(fullName) == str:
+            val = self.cast(self.item[fullName], _type, defaultVal)
+            return val
+        if type(fullName) == list:
+            rs = []
+            fullName.sort()
+            for n in fullName:
+                val = self.cast(self.item[n], _type, defaultVal)
+                rs.append((n, val))
+            return rs
+        return defaultVal
+
+    def getColumnValue2(self, partColumnName, _type, defaultVal = ''):
+        name = None
+        num = 0
+        for k in self.item:
+            if partColumnName in k:
+                name = k
+                num += 1
+        if num > 1:
+            print('[ths_iwencai.ThsColumns.getColumnValue2] not unicode column name: ', partColumnName)
+            return defaultVal
+        if name and num == 1:
+            val = self.cast(self.item[name], _type, defaultVal)
+            return val
+        return defaultVal
+
+# 个股每日信息
+def download_codes(day = None):
+    if not day:
+        day = ''
+    if type(day) == int:
+        day = str(day)
+    day = day.replace('-', '')
+    # code 市盈率(pe)[20240708],  总股本[20240708]  所属概念  所属同花顺行业  最新涨跌幅  最新价 股票简称  总市值[20240717] a股市值(不含限售股)[20240717]
+    rs = iwencai_load_list(question = f'{day}个股成交额,成交量,总股本,流通a股,涨跌幅,换手率,市盈率,市盈率(ttm)')
+    if not rs:
+        return None
+    columns = ThsColumns()
+    day = columns.getItemColumnDay(rs[0], '开盘价:前复权')
+    rt = []
+    for item in rs:
+        obj = {}
+        columns.setItem(item)
+        obj['day'] = day
+        obj['code'] = columns.getColumnValue('code', str)
+        obj['name'] = columns.getColumnValue('股票简称', str)
+        obj['open'] = columns.getColumnValue('开盘价:前复权', float, 0)
+        obj['close'] = columns.getColumnValue('收盘价:前复权', float, 0)
+        obj['high'] = columns.getColumnValue('最高价:前复权', float, 0)
+        obj['low'] = columns.getColumnValue('最低价:前复权', float, 0)
+        obj['zf'] = columns.getColumnValue('涨跌幅:前复权', float, 0)
+        obj['zd'] = columns.getColumnValue('涨跌', float, 0)  # 涨跌价格（元）
+        obj['zhenfu'] = columns.getColumnValue('振幅', float, 0)
+        obj['vol'] = columns.getColumnValue('成交量', float, 0) # 股
+        obj['amount'] = columns.getColumnValue('成交额', float, 0) # 元
+        obj['rate'] = columns.getColumnValue('换手率', float, 0)
+        obj['zgb'] = columns.getColumnValue('总股本', float, 0) # 股
+        obj['ltag'] = columns.getColumnValue('流通a股', float, 0) # 股
+        obj['zsz'] = int(columns.getColumnValue('总市值', float, 0) / 100000000) # 亿元
+        obj['pe'] = columns.getColumnValue('市盈率(pe)', float, 0)
+        obj['peTTM'] = columns.getColumnValue('市盈率(pe,ttm)', float, 0)
+        pes = columns.getColumnValue('预测市盈率(pe,最新预测)', float, 0)
+        if type(pes) == list:
+            obj['ycPEs'] = ';'.join([columns.getColumnDay(d[0]) + ':' + str(d[1]) for d in pes])
+        else:
+            obj['ycPEs'] = ''
+        obj['jrl'] = columns.getColumnValue('归属母公司股东的净利润(ttm)', float, 0) # 净利润 (元)
+        # obj[''] = columns.getColumnValue('', float, 0)
+        rt.append(obj)
+
+    return rt
+
+
 if __name__ == '__main__':
-    from orm import d_orm
-    ds = download_zt_dt()
-    print(ds)
+    from orm import ths_orm
+    ds = download_codes(20250401)
+    

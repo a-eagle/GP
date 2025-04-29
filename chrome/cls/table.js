@@ -287,6 +287,8 @@ class StockTable {
             let fd = false;
             for (let hd of this.headers) {
                 let v = data[hd.name] || '';
+                if (hd.name == 'code')
+                    v += ' ' + (data['name'] || data['secu_name'])
                 if (typeof(v) == 'string') {
                     if (hd.name == 'up_reason' && v.indexOf('|') > 0) 
                         v = v.substring(0, v.indexOf('|'));

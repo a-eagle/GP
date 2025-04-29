@@ -675,6 +675,8 @@ class TimeLineView extends Listener {
         // 画最高、最低价
         this.drawZhangFu(true, this.maxPrice, this.width, 10);
         this.drawZhangFu(false, this.minPrice, this.width, this.height - 5);
+        let close = this.data.line[this.data.line.length - 1].price;
+        this.drawZhangFu(false, close, this.width, this.height / 2 + 3, '#000');
     }
 
     getZDTag() {
@@ -713,7 +715,7 @@ class TimeLineView extends Listener {
         }
     }
     
-    drawZhangFu(up, price, x, y) {
+    drawZhangFu(up, price, x, y, color) {
         let zf = (price - this.data.pre) * 100 / this.data.pre;
         let tag = this.getZDTag();
         if (up && (tag == 'ZT' || tag == 'ZTZB')) {
@@ -723,7 +725,7 @@ class TimeLineView extends Listener {
         } else {
             tag = zf >= 0 ? 'Z' : 'D';
         }
-        this.ctx.fillStyle = this.getLineColor(tag);
+        this.ctx.fillStyle = color || this.getLineColor(tag);
         zf = '' + zf;
         let pt = zf.indexOf('.');
         if (pt > 0) {

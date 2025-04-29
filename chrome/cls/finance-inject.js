@@ -1056,7 +1056,7 @@ class TabNaviMgr {
 				{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
 				{text: '成交额', 'name': 'vol', width: 50, sortable: true, cellRender : amountRender},
 				{text: '成交额<br/>排名', 'name': 'pm', width: 50, sortable: true},
-				{text: '热度', 'name': 'hots', width: 50, sortable: true},
+				{text: '热度', 'name': 'hots', width: 50, sortable: true, defined:true},
 				{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
 				{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
 				{text: '分时图', 'name': 'fs', width: 300},

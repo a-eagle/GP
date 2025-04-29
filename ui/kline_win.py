@@ -1,5 +1,5 @@
 import os, sys, functools, copy, datetime, json, time, traceback
-import win32gui, win32con, win32api
+import win32gui, win32con, win32api, pyperclip
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import def_orm, chrome_orm
@@ -121,28 +121,40 @@ class ContextMenuManager:
             c['cur'] = c['scolor'] == scolor
         return cs
 
+    def bkGnRender(self, menu, hdc, rect, menuItem):
+        drawer = Drawer.instance()
+        title = menuItem['title']
+        if menuItem['hotsNum']:
+            drawer.drawText(hdc, menuItem['hotsNum'], (0, rect[1], rect[0], rect[3]), 0x0000cc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+        drawer.drawText(hdc, title, rect, menu.css['textColor'], win32con.DT_LEFT | win32con.DT_VCENTER | win32con.DT_WORDBREAK)
+
     def getThsZsList(self, day):
         from orm import ths_orm
+        hots = self.win.bkgnView.getHotBkGn()
+        mhots = {h['gn'] : h['num'] for h in hots if h['num'] > 0}
         code = self.win.klineIndicator.code
         obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
         model = []
         if not obj:
             return model
-        model.append({'title': 'LINE'})
-        if obj.hy_2_code: model.append({'title': obj.hy_2_name, 'code': obj.hy_2_code, 'day': day})
-        if obj.hy_3_code: model.append({'title': obj.hy_3_name, 'code': obj.hy_3_code, 'day': day})
+        if obj.hy_2_code: model.append({'title': obj.hy_2_name, 'code': obj.hy_2_code, 'day': day, 'hotsNum': mhots.get(obj.hy_2_name, 0), 'render': self.bkGnRender})
+        if obj.hy_3_code: model.append({'title': obj.hy_3_name, 'code': obj.hy_3_code, 'day': day, 'hotsNum': mhots.get(obj.hy_3_name, 0), 'render': self.bkGnRender})
         model.append({'title': 'LINE'})
         if not obj.gn_code:
             return model
         gn_codes = obj.gn_code.split(';')
         gn_names = obj.gn.split(';')
+        model2 = []
         for i in range(len(gn_codes)):
             if gn_codes[i].strip():
-                model.append({'title': gn_names[i], 'code': gn_codes[i].strip(), 'day': day})
-        return model
+                model2.append({'title': gn_names[i], 'code': gn_codes[i].strip(), 'day': day, 'hotsNum': mhots.get(gn_names[i], 0), 'render': self.bkGnRender})
+        model2.sort(key = lambda d: d['hotsNum'], reverse = True)
+        return model + model2
     
     def getClsZsList(self, day):
         from orm import cls_orm
+        hots = self.win.bkgnView.getHotBkGn()
+        mhots = {h['gn'] : h['num'] for h in hots if h['num'] > 0}
         model = []
         code = self.win.klineIndicator.code
         obj : cls_orm.CLS_GNTC = cls_orm.CLS_GNTC.get_or_none(cls_orm.CLS_GNTC.code == code)
@@ -152,14 +164,16 @@ class ContextMenuManager:
             hys = zip(obj.hy.split(';'), obj.hy_code.split(';'))
             for hy in hys:
                 if hy[0].strip() and hy[1].strip():
-                    model.append({'title': hy[0], 'code': hy[1].strip(), 'day': day})
+                    model.append({'title': hy[0], 'code': hy[1].strip(), 'day': day, 'hotsNum': mhots.get(hy[0], 0), 'render': self.bkGnRender})
         model.append({'title': 'LINE'})
+        model2 = []
         if obj.gn and obj.gn_code:
             gns = zip(obj.gn.split(';'), obj.gn_code.split(';'))
             for gn in gns:
                 if gn[0].strip() and gn[1].strip():
-                    model.append({'title': gn[0], 'code': gn[1].strip(), 'day': day})
-        return model
+                    model2.append({'title': gn[0], 'code': gn[1].strip(), 'day': day, 'hotsNum': mhots.get(gn[0], 0), 'render': self.bkGnRender})
+        model2.sort(key = lambda d: d['hotsNum'], reverse = True)
+        return model + model2
 
     def show(self, x, y):
         mm = self.getMenuModel()
@@ -242,13 +256,16 @@ class ContextMenuManager:
             obj.save()
 
     def openRefClsZs(self, code, day):
+        # pip install websockets
         url = f'https://www.cls.cn/plate?code={code}&day={day}'
+        pyperclip.copy(url)
         win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
 
     def openRefThsZs(self, code, day):
         obj = ths_orm.THS_ZS.get_or_none(ths_orm.THS_ZS.code == code)
         name = obj.name if obj else ''
         url = f'https://www.cls.cn/plate?code=0&day={day}&refThsCode={code}&refThsName={name}'
+        pyperclip.copy(url)
         win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
 
 class TextLineManager:
@@ -1251,7 +1268,7 @@ class KLineCodeWindow(base_win.BaseWindow):
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_ACTIVATE and self.klineWin.hwnd:
             ac = wParam & 0xffff
-            if ac == win32con.WA_INACTIVE:
+            if ac == win32con.WA_INACTIVE and self.klineWin.hwnd:
                 win32gui.SetFocus(self.klineWin.hwnd)
             return True
         return super().winProc(hwnd, msg, wParam, lParam)

@@ -1350,6 +1350,42 @@ class ZsZdPmIndicator(CustomIndicator):
             drawer.drawText(hdc, f"{int(item['fund'])} 亿", rc1, 0xcccccc, CENTER)
             drawer.drawText(hdc, item['pm'], rc2, 0xcccccc, CENTER)
 
+class CLS_HotTcIndicator(CustomIndicator):
+    def __init__(self, win, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 30
+        super().__init__(win, config)
+        self.config['title'] = '[财联社热点]'
+
+    def _changeCode(self):
+        super()._changeCode()
+        if len(self.code) != 8 or self.code[0 : 3] != 'cls':
+            return
+        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.code == self.code).dicts()
+        maps = {}
+        for d in qr:
+            day = int(d['day'].replace('-', ''))
+            if day not in maps:
+                maps[day] = [d]
+            else:
+                maps[day].append(d)
+        self.cdata = maps
+
+    def drawItem(self, hdc, drawer : Drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        iw = self.config['itemWidth']
+        day = self.data[idx].day
+        if not self.cdata or day not in self.cdata or not self.cdata[day]:
+            return
+        items = self.cdata[day]
+        ITEM_W = 8
+        sx = (iw - len(items) * (ITEM_W + 1)) // 2 + x
+        for i, item in enumerate(items):
+            rc = (sx, 10, sx + ITEM_W, self.height)
+            color = 0x0000ff if item['up'] else 0x00ff00
+            drawer.fillRect(hdc, rc, color)
+            sx += ITEM_W + 1
 
 if __name__ == '__main__':
     #base_win.ThreadPool.instance().start()
