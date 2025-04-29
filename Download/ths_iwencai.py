@@ -435,7 +435,7 @@ def download_vol_top100(day = None):
     elif isinstance(day, int):
         day = str(day)
     qs = day + ' 成交额从大到小排名前100,且换手率大于5%,非北证'
-    datas = iwencai_load_list(qs) or []
+    datas = iwencai_load_list(qs)
     if not datas:
         return None
     # find day

@@ -73,6 +73,8 @@ def openTimeLineWindow(evt, parent : base_win.BaseWindow):
         zs = p.klineWin.refIndicator.model
         if zs:
             win.loadRef(zs.code)
+    if evt.code[0 : 3] == 'cls':
+            win.loadRef(evt.code)
     return win
 
 def openInThsWindow(data):
@@ -97,6 +99,6 @@ def openInCurWindow(parent, data):
     return win
 
 if __name__ == '__main__':
-    openInCurWindow(None, {'code': '601086'})
+    openInCurWindow(None, {'code': 'cls80353'}) # 601086
     win32gui.PumpMessages()
     pass

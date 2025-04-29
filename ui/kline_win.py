@@ -150,7 +150,7 @@ class ContextMenuManager:
                 model2.append({'title': gn_names[i], 'code': gn_codes[i].strip(), 'day': day, 'hotsNum': mhots.get(gn_names[i], 0), 'render': self.bkGnRender})
         model2.sort(key = lambda d: d['hotsNum'], reverse = True)
         return model + model2
-    
+
     def getClsZsList(self, day):
         from orm import cls_orm
         hots = self.win.bkgnView.getHotBkGn()
