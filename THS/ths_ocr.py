@@ -31,29 +31,40 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         rs['buy'] = buy # 万元
         rs['sell'] = sell # 万元
 
-    def dump_InHomePage(self, hwnd):
-        if (not hwnd) or (not win32gui.IsWindow(hwnd)) or (not win32gui.IsWindowVisible(hwnd)):
+    def dumpStockTitleWindow(self, thsMainWin):
+        if (not thsMainWin) or (not win32gui.IsWindow(thsMainWin)) or (not win32gui.IsWindowVisible(thsMainWin)):
             return None
+        hwnd = self.findWindow(thsMainWin, 'stock_title_page', '')
         rc = win32gui.GetWindowRect(hwnd)
         w, h = rc[2] - rc[0], rc[3] - rc[1]
-        WB_WIN_HEIGHT = 28
+        WB_WIN_HEIGHT = 30
         srcSize = w, h + WB_WIN_HEIGHT
-
         imgFull = self.dumpImg(hwnd, (0, 0, *srcSize))
         LEFT_PADDING = 20
         codeImg = imgFull.crop((LEFT_PADDING, 2, w - LEFT_PADDING, h // 2))
         priceImg = imgFull.crop((LEFT_PADDING, h // 2, w - LEFT_PADDING, h - 1))
-        #priceImg.save('D:/price.bmp')
-        #codeImg.save('D:/code.bmp')
-        #img_PIL.show()
 
         WB_TXT_WIDTH = 35
         r = max(srcSize[0] - 70, w * 0.6)
         wbImg = imgFull.crop((WB_TXT_WIDTH, srcSize[1] - WB_WIN_HEIGHT + 1, int(r), srcSize[1]))
+        wbEImg = number_ocr.EImage(wbImg)
+        y = wbEImg.findRowColorIs(0, wbImg.width, 255)
+        wbImg = wbImg.crop((0, 0, wbImg.width, y))
         #sign = bi.calcSign(wbImg)
         #wbImg = bi.expand(wbImg)
         #wbImg.save('D:/a.bmp')
         return codeImg, priceImg, wbImg
+    
+    def dumpStockUnitWindow(self, thsMainWin):
+        if (not thsMainWin) or (not win32gui.IsWindow(thsMainWin)) or (not win32gui.IsWindowVisible(thsMainWin)):
+            return None
+        hwnd = self.findWindow(thsMainWin, '#32770', '个股单元表')
+        rc = win32gui.GetWindowRect(hwnd)
+        w, h = rc[2] - rc[0], rc[3] - rc[1]
+        ROW_NUM = 4 # 一共4行
+        imgFull = self.dumpImg(hwnd, (0, 0, w, int(h / ROW_NUM)))
+        # imgFull.save('D:/price.bmp')
+        return imgFull
     
     def parseCodeName(self, img, rs):
         bmpBytes = io.BytesIO()
@@ -106,6 +117,7 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         if '.' not in price:
             price = price[0 : -2] + '.' + price[-2 : ]
         rs['price'] = float(price)
+        return True
         
         # zhang die & zhang fu
         rect[0] = rect[2]
@@ -122,6 +134,7 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         return True
 
     def parseWeiBi(self, wbImg, rs):
+        wbImg.save('D:/wb.bmp')
         wsstrs = self.wbOcr.match(wbImg)
         if not wsstrs:
             return False
@@ -133,34 +146,6 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         rs['diff'] = int(ma.group(2))
         return True
     
-    def findStockTitleHwnd(self, parentWnd, after):
-        if not parentWnd:
-            return
-        while True:
-            hwnd = win32gui.FindWindowEx(parentWnd, after, None, None)
-            if not hwnd:
-                break
-            cl = win32gui.GetClassName(hwnd)
-            if cl == 'stock_title_page':
-                self.titleHwnds.add(hwnd)
-            else:
-                self.findStockTitleHwnd(hwnd, None)
-            after = hwnd
-
-    def getCurStockTitleHwnd(self, thsMainWin):
-        rs = list(self.titleHwnds)
-        for hwnd in rs:
-            if not win32gui.IsWindow(hwnd):
-                self.titleHwnds.remove(hwnd)
-                continue
-            if win32gui.IsWindowVisible(hwnd):
-                return hwnd
-        self.findStockTitleHwnd(thsMainWin, None)
-        for hwnd in self.titleHwnds:
-            if win32gui.IsWindowVisible(hwnd):
-                return hwnd
-        return None
-
     def parseNumSign(self, rs : dict, img : Image, name):
         rc = rs[name + '_pos']
         y = (rc[1] + rc[3]) // 2
@@ -177,16 +162,68 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
                 gn += 1
             if rn >= MAX_PIX:
                 rs[name + '_sign'] = True
-                break
             elif gn >= MAX_PIX:
                 rs[name + '_sign'] = False
-                break
 
-    def runOcr_InHomePage(self, thsMainWin):
+    def findWindow(self, parentWnd, className, title):
+        if not parentWnd:
+            return None
+        hwnd = win32gui.GetWindow(parentWnd, win32con.GW_CHILD)
+        rs = None
+        while hwnd:
+            if not win32gui.IsWindowVisible(hwnd):
+                hwnd = win32gui.GetWindow(hwnd, win32con.GW_HWNDNEXT)
+                continue
+            cl = win32gui.GetClassName(hwnd)
+            t = win32gui.GetWindowText(hwnd)
+            if cl == className:
+                if type(title) == str and t == title:
+                    rs = hwnd
+                    break
+                elif isinstance(title, re.Pattern) and title.fullmatch(t):
+                    rs = hwnd
+                    break
+            if rs:
+                break
+            xrs = self.findWindow(hwnd, className, title)
+            if xrs:
+                rs = xrs
+                break
+            hwnd = win32gui.GetWindow(hwnd, win32con.GW_HWNDNEXT)
+        return rs
+
+    def parseNW_Pan(self, txt, name, rs):
+        W = 1
+        if '万' in txt:
+            W = 10000
+            txt = txt.replace('万', '')
+        p = int(float(txt) * W)
+        v = int(p * rs['price'] * 100) # 元
+        rs[name] = p
+        rs[name + 'Amount'] = v
+        if v >= 100000000:
+            rs[name + 'AmountFmt'] = f'{v / 100000000 :.1f}亿'
+        else:
+            rs[name + 'AmountFmt'] = f'{v // 10000}万'
+
+    def parseStockUnit(self, img, rs):
+        eimg = number_ocr.EImage(img)
+        img = eimg.expand()
+        bits = self.imgToBmpBytes(img)
+        result = self.ocr.readtext(bits, allowlist = '0123456789.万外盘内盘')
+        txt = ''
+        for r in result:
+            txt += r[1]
+        p = re.compile('^外盘(.*?)内盘(.*)')
+        rt = p.findall(txt)[0]
+        neiPan, waiPan = rt[0], rt[1]
+        self.parseNW_Pan(neiPan, 'waiPan', rs)
+        self.parseNW_Pan(waiPan, 'neiPan', rs)
+
+    def runOcr(self, thsMainWin):
         rs = {}
         try:
-            hwnd = self.getCurStockTitleHwnd(thsMainWin)
-            imgs = self.dump_InHomePage(hwnd)
+            imgs = self.dumpStockTitleWindow(thsMainWin)
             if not imgs:
                 return None
             codeImg, priceImg, wbImg = imgs
@@ -197,6 +234,8 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
             if not self.parseWeiBi(wbImg, rs):
                 return rs
             self.calcBS(rs)
+            # img = self.dumpStockUnitWindow(thsMainWin)
+            # self.parseStockUnit(img, rs)
             return rs
         except Exception as e:
             traceback.print_exc()
@@ -391,7 +430,7 @@ def test_wb_main1():
     ths.init()
     wb = ThsWbOcrUtils()
     while True:
-        rs = wb.runOcr_InHomePage(ths.mainHwnd)
+        rs = wb.runOcr(ths.mainHwnd)
         print(rs)
         #break
         time.sleep(10)
@@ -411,8 +450,13 @@ def test_zs_main2():
         break
 
 if __name__ == '__main__':
-    #test_wb_main1()
-    #test_zs_main2()
-    s = ThsZhangShuOcrUtils()
-    s.start()
-    time.sleep(100)
+    thsWin = ths_win.ThsWindow()
+    thsWin.init()
+
+    s = ThsWbOcrUtils()
+    # s.runOcr(thsWin.mainHwnd)
+    print(f'mainWin={thsWin.mainHwnd :X}')
+    while True:
+        s.runOcr(thsWin.mainHwnd)
+        time.sleep(3)
+    # time.sleep(100)

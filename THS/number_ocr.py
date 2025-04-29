@@ -7,7 +7,7 @@ _ecor = None
 def eocr():
     global _ecor
     if not _ecor:
-        _ecor = easyocr.Reader(['en'], download_enabled = True ) # ch_sim  en
+        _ecor = easyocr.Reader(['ch_sim'], download_enabled = True ) # ch_sim  en
     return _ecor
 
 class RGBImage:
@@ -54,7 +54,13 @@ class BaseEImage:
             if self.pixs[x, y] != color:
                 return False
         return True
-
+    
+    def findRowColorIs(self, sx, ex, color):
+        for y in range(self.bImg.width):
+            if self.rowColorIs(sx, ex, y, color):
+                return y
+        return -1
+    
     def colColorIs(self, sy, ey, x, color):
         for y in range(sy, min(ey, self.bImg.height)):
             ncolor = self.pixs[x, y]

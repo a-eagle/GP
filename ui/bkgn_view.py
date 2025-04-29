@@ -182,7 +182,7 @@ class BkGnView:
                 break
         if not sp or not sp['args']:
             return
-        gnNum, gn = sp['args']
+        gnNum, gn = sp['args']['num'], sp['args']['gn']
         if gnNum <= 0:
             return
         if not self.hotDaysRange:
