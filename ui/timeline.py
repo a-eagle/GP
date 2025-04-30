@@ -116,6 +116,12 @@ class TimelineModel:
         self.amountRange = self.calcAttrRange(self.dataModel, 'amount')
         return self.amountRange
 
+    # return int day
+    def getDay(self):
+        if not self.dataModel:
+            return None
+        return self.dataModel.day
+
 class ContextMenuMgr:
     def __init__(self, win) -> None:
         self.win = win
@@ -138,7 +144,7 @@ class ContextMenuMgr:
             self.win.invalidWindow()
 
     def getRefThsZsModel(self, item):
-        model = []
+        model, model2 = [], []
         if not self.win.model.dataModel:
             return model
         code = self.win.model.dataModel.code
@@ -156,11 +162,11 @@ class ContextMenuMgr:
         gn_names = obj.gn.split(';')
         for i in range(len(gn_codes)):
             if gn_codes[i].strip():
-                model.append({'title': gn_names[i], 'code': gn_codes[i].strip()})
-        return model
+                model2.append({'title': gn_names[i], 'code': gn_codes[i].strip()})
+        return self._adjustModel(model, model2)
     
     def getRefClsZsModel(self, item):
-        model = []
+        model, model2 = [], []
         if not self.win.model.dataModel:
             return model
         code = self.win.model.dataModel.code
@@ -182,8 +188,39 @@ class ContextMenuMgr:
         gn_names = obj.gn.split(';')
         for i in range(len(gn_codes)):
             if gn_codes[i].strip():
-                model.append({'title': gn_names[i], 'code': gn_codes[i].strip()})
-        return model
+                model2.append({'title': gn_names[i], 'code': gn_codes[i].strip()})
+        return self._adjustModel(model, model2)
+
+    def _adjustModel(self, hyModel, gnModel : list):
+        if not self.win.model:
+            return hyModel + gnModel
+        day = self.win.model.getDay() # int
+        day = f"{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}"
+        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day == day)
+        hots = {}
+        for q in qr:
+            if q.name not in hots:
+                hots[q.name] = {'up': 0, 'down': 0}
+            hots[q.name]['up' if q.up else 'down'] += 1
+        tmp = hyModel + gnModel
+        for m in tmp:
+            if m['title'] in hots:
+                m.update(hots[m['title']])
+                m['render'] = self.menuItemRender
+        gnModel.sort(key = lambda d: d.get('up', 0) + d.get('down', 0), reverse = True)
+        return hyModel + gnModel
+
+    def menuItemRender(self, menu, hdc, rect, menuItem):
+        ex = rect[0] - 3
+        drawer : base_win.Drawer = menu.drawer
+        if menuItem['up']:
+            sx = ex - menuItem['up'] * 2
+            drawer.fillRect(hdc, (sx, rect[1] + 5, ex, rect[3] - 5), 0x0000ff)
+            ex = sx
+        if menuItem['down']:
+            sx = ex - menuItem['down'] * 2
+            drawer.fillRect(hdc, (sx, rect[1] + 5, ex, rect[3] - 5), 0xff0000)
+        drawer.drawText(hdc, menuItem['title'], rect, menu.css['textColor'], win32con.DT_LEFT | win32con.DT_VCENTER | win32con.DT_WORDBREAK)
 
 class TimelineWindow(base_win.BaseWindow):
     ONE_DAY_LINES = 241
