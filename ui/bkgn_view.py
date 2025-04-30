@@ -22,7 +22,7 @@ class TextRender(base_win.RichTextRender):
         args = self._getAttr(item, 'args')
         if not args:
             return
-        num, gn = args
+        num, gn = args['num'], args['gn']
         if gn not in self.win.curClsHotGns:
             return
         cur = self.win.curClsHotGns[gn]

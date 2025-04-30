@@ -124,7 +124,11 @@ def _workThread(thsWin : ths_win.ThsWindow, fileName):
             continue
         showTipWins(True)
         updateWindowInfo(thsWin, stateMgr)
-        nowCode = thsWin.findCodeOfCurPage()
+        rs = wbOcr.runOcr(thsWin.mainHwnd)
+        codeBasicWindow.updateWeiBi(rs)
+        if not rs:
+            continue
+        nowCode = rs['code'] # thsWin.findCodeOfCurPage()
         if curCode != nowCode:
             updateCode(nowCode)
         selDay = thsWin.getSelectDay()
@@ -133,8 +137,6 @@ def _workThread(thsWin : ths_win.ThsWindow, fileName):
             simpleWindow.changeSelectDay(selDay)
             simpleWindow2.changeSelectDay(selDay)
             thsShareMem.writeSelDay(selDay)
-        rs = wbOcr.runOcr(thsWin.mainHwnd)
-        codeBasicWindow.updateWeiBi(rs)
         #thsSelDayWin.onTryMove(thsWin, nowCode)
 
 def onListen(evt, args):

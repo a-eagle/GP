@@ -1268,9 +1268,9 @@ class KLineCodeWindow(base_win.BaseWindow):
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_ACTIVATE and self.klineWin.hwnd:
             ac = wParam & 0xffff
-            if ac == win32con.WA_INACTIVE and self.klineWin.hwnd:
-                win32gui.SetFocus(self.klineWin.hwnd)
-            return True
+            # if ac == win32con.WA_INACTIVE and self.klineWin.hwnd:
+                # win32gui.SetFocus(self.klineWin.hwnd)
+            # return True
         return super().winProc(hwnd, msg, wParam, lParam)
 
 if __name__ == '__main__':

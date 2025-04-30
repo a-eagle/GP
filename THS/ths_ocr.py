@@ -134,7 +134,7 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         return True
 
     def parseWeiBi(self, wbImg, rs):
-        wbImg.save('D:/wb.bmp')
+        # wbImg.save('D:/wb.bmp')
         wsstrs = self.wbOcr.match(wbImg)
         if not wsstrs:
             return False
