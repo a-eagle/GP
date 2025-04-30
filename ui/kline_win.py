@@ -1211,6 +1211,11 @@ class KLineCodeWindow(base_win.BaseWindow):
             return f'{d :06d}'
         return d
 
+    def _getDay(self, d):
+        if type(d) == dict and 'day' in d:
+            return d['day']
+        return None
+
     def _findIdx(self):
         for idx, d in enumerate(self.codeList):
             if self._getCode(d) == self.code:
@@ -1232,6 +1237,10 @@ class KLineCodeWindow(base_win.BaseWindow):
         self.idxCodeList = idx
         cur = self.codeList[idx]
         self.changeCode(self._getCode(cur))
+        day = self._getDay(cur)
+        if day:
+            self.klineWin.marksMgr.clearMarkDay()
+            self.klineWin.marksMgr.setMarkDay(day)
         self.updateCodeIdxView()
 
     def changeCode(self, code, peroid = 'day'):
@@ -1255,7 +1264,7 @@ class KLineCodeWindow(base_win.BaseWindow):
             self.idxCodeWin.setText(f'{idx + 1} / {len(self.codeList)}')
 
     # codes = [ str, str, ... ]  |  [ int, int, ... ]
-    #         [ {'code':xxx, }, ... ]  | [ {'secu_code':xxx, }, ... ]
+    #         [ {'code':xxx, 'day': xx}, ... ]  | [ {'secu_code':xxx, }, ... ]
     def setCodeList(self, codes, curIdx = -1):
         if not codes:
             return

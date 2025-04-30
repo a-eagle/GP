@@ -1,9 +1,38 @@
+class UIListener {
+    constructor() {
+        this.listeners = {};
+    }
+    addListener(eventName, listener) {
+        let lsts = this.listeners[eventName];
+        if (! lsts) {
+            lsts = this.listeners[eventName] = [];
+        }
+        lsts.push(listener);
+    }
+
+    removeListener(eventName) {
+        delete this.listeners[eventName];
+    }
+
+    // event = {name: '', ..}
+    notify(event) {
+        let name = event.name;
+        let lsts = this.listeners[name];
+        if (! lsts) {
+            return;
+        }
+        for (let i in lsts) {
+            lsts[i](event);
+        }
+    }
+}
+
 /**
  *   st = new StockTable(headers);
  *   st.initStyle(); 
  *   st.buildUI();
  */
-class StockTable {
+class StockTable extends UIListener {
     // headers = [ {text: 'xxx', name: 'xx', width: 60, sortable: true,
     //              sortVal?: function(rowData), defined? : true,
     //              cellRender?: function(rowIdx, rowData, header, tdObj) },
@@ -13,6 +42,7 @@ class StockTable {
     // 必须有列：secu_code(如果有code, 会根据code自动生成), secu_name
     // {name: 'hots', full? : true}
     constructor(headers) {
+        super();
         this.headers = headers;
         this.lastSortHeader = null;
         this.datas = null;
@@ -435,7 +465,7 @@ class StockTable {
             tr.append(td);
             ff(idx, rowData, this.headers[i], td);
         }
-        tr.dblclick(function() {thiz.openKLineDialog($(this).attr('code'))});
+        tr.dblclick(function() {thiz.openKLineDialog(rowData)}); // $(this).attr('code')
         tr.on('contextmenu', function(event) {
             event.preventDefault();
             const x = event.clientX;
@@ -589,12 +619,15 @@ class StockTable {
         return rs;
     }
 
-    openKLineDialog(code) {
+    openKLineDialog(rowData) {
+        let code = rowData.secu_code;
         //console.log('[openKLineDialog]', code);
         if (code.substring(0, 2) == 'sz' || code.substring(0, 2) == 'sh') {
             code = code.substring(2);
         }
-        let data = JSON.stringify({ codes: this.getCodeList(), day: this.day});
+        let rdatas = { codes: this.getCodeList(), day: this.day};
+        this.notify({name: 'BeforeOpenKLine', src: this, data: rdatas, rowData});
+        let data = JSON.stringify(rdatas);
         $.post({
             url: 'http://localhost:5665/openui/kline/' + code,
             contentType: "application/json",
@@ -903,35 +936,6 @@ class IndustryTable extends StockTable {
                     this._defineAttr(cur, hds[j], cur[hds[j].name]);
                 }
             }
-        }
-    }
-}
-
-class UIListener {
-    constructor() {
-        this.listeners = {};
-    }
-    addListener(eventName, listener) {
-        let lsts = this.listeners[eventName];
-        if (! lsts) {
-            lsts = this.listeners[eventName] = [];
-        }
-        lsts.push(listener);
-    }
-
-    removeListener(eventName) {
-        delete this.listeners[eventName];
-    }
-
-    // event = {name: '', ..}
-    notify(event) {
-        let name = event.name;
-        let lsts = this.listeners[name];
-        if (! lsts) {
-            return;
-        }
-        for (let i in lsts) {
-            lsts[i](event);
         }
     }
 }

@@ -95,7 +95,7 @@ class InitMgr {
 		let group = $('<div id="my-group-items"> </div>');
 		let md1 = $('<div class="my-info-item p-r b-c-222" name="global-item"></div>');
 		let md2 = $('<div class="my-info-item p-r b-c-222" name="time-degree-item" > </div>');
-		let md3 = $('<div class="my-info-item p-r b-c-222" style="height: 70px;" name="zdfb-item"> </div>');
+		let md3 = $('<div class="my-info-item p-r b-c-222" style="height: 90px;" name="zdfb-item"> </div>');
 		let md4 = $('<div class="my-info-item p-r b-c-222" style="height: 400px;" name="anchor-fs-item" > </div>');
 		let md5 = $('<div class="my-info-item p-r m-b-20  b-c-222" name="anchor-list-item" ></div>');
 		let md6 = $('<div class="clearfix w-100p f-s-14 c-747474 toggle-nav-box finance-toggle-nav" name="tab-nav-item"> </div>');
@@ -354,7 +354,10 @@ class ZdfbMgr {
 		let r = function(elem, bindName, obj, attrName) {
 			thiz._render(elem, bindName, obj, attrName);
 		}
-		this.vue.data.zdfb = {day: null, zt:'', dt:'', up:'', down:'', up_8: '', down_8:'', degree:'', r: r}; // 涨跌分布
+		let czdFunc = function(elem, bindName, obj, attrName) {
+			thiz._render_czd(elem, bindName, obj, attrName);
+		}
+		this.vue.data.zdfb = {day: null, zt:'', dt:'', up:'', down:'', up_8: '', down_8:'', degree:'', zero: '', czd: '', r: r, czdFunc: czdFunc}; // 涨跌分布
 		this.vue.addWatch('curDay', function(a, b) {thiz._onChangeDay(a, b);});
 	}
 
@@ -378,7 +381,8 @@ class ZdfbMgr {
 			"<td :bind='zdfb.zt'> </td> <th> 涨幅>8% </th> <td :bind='zdfb.up_8'> </td> </tr>" +
 			"<tr class='green'> <th :bind='zdfb.day'> </th> <td :bind='zdfb.degree' :render='zdfb.r'> </td>  <th> 下跌数 </th> " +
 			"<td :bind='zdfb.down'> </td>  <th> 跌停 </th> <td :bind='zdfb.dt'> </td> <th> 跌幅>8% </th>" +
-			"<td :bind='zdfb.down_8'> </td> </tr> </table> ");
+			"<td :bind='zdfb.down_8'> </td> </tr>" +
+			" <tr style='height: 20px;'> <td></td> <td></td> <td></td> <td colspan=5 :bind='zdfb.czd' :render='zdfb.czdFunc'></td> </tr> </table> ");
 		this.table.find('td').css('width', '120px');
 		$('div[name="zdfb-item"]').append(this.table);
 		this.vue.mount(this.table);
@@ -420,6 +424,24 @@ class ZdfbMgr {
 		}
 	}
 
+	_render_czd(elem, bindName, data, attrName) {
+		elem = $(elem);
+		elem.empty();
+		let SPACE = 10;
+		let width = elem.width() - 10 - SPACE * 2;
+		if (typeof(data.up) != 'number' || typeof(data.zero) != 'number' || typeof(data.down) != 'number')
+			return;
+		let total = data.up + data.down + data.zero;
+		if (total == 0) return;
+		let upUI = $('<span style="background-color: #f00; height: 10px; display: inline-block;"> </span>');
+		let zeroUI = $(`<span style="background-color: #aaa; height: 10px; display: inline-block;margin-left: ${SPACE}px; margin-right: ${SPACE}px;; height: 10px;"> </span>`);
+		let downUI = $(`<span style="background-color: #0f0; display: inline-block; height: 10px;"> </span>`);
+		upUI.width(parseInt(data.up / total * width));
+		downUI.width(parseInt(data.down / total * width));
+		zeroUI.width(parseInt(data.zero / total * width));
+		elem.append(upUI).append(zeroUI).append(downUI);
+	}
+
 	// 涨跌分布
 	loadNewestData(cb) {
 		let thiz =  this;
@@ -433,6 +455,7 @@ class ZdfbMgr {
 				udd.down = udd.fall_num;
 				udd.zt = udd.up_num;
 				udd.dt = udd.down_num;
+				udd.zero = udd.flat_num;
 				udd.day = thiz.vue.data.lastTradeDay;
 				cb(udd);
 			}
@@ -455,13 +478,14 @@ class ZdfbMgr {
 	}
 
 	updateData(data) {
-		let a = ['day', 'zt', 'dt', 'up', 'down', 'up_8', 'down_8', 'degree'];
+		let a = ['day', 'zt', 'dt', 'zero', 'down', 'up', 'up_8', 'down_8', 'degree'];
 		let model = this.vue.data.zdfb;
 		for (let k of a) {
 			if (k == 'up_8') model[k] = data[k] + data['up_10'];
 			else if (k == 'down_8') model[k] = data[k] + data['down_10'];
 			else model[k] = data[k];
 		}
+		model.czd = data.up *100 + data.down * 10 + data.zero;
 	}
 }
 
@@ -1079,7 +1103,6 @@ class TabNaviMgr {
 			hd = data.header;
 			data = data.data;
 		}
-
 		if (name == '涨停池') {
 			for (let i = data.length - 1; i >= 0; i--) {
 				if (data[i].limit_up_days != 1)
@@ -1097,6 +1120,15 @@ class TabNaviMgr {
 			//st.sortHeader('limit_up_days', 'asc');
 		} else if (name == '连板池') {
 			st.sortHeader('limit_up_days', 'desc');
+		} else if (name == '标记') {
+			st.addListener('BeforeOpenKLine', function(evt) {
+				let cs = evt.data.codes;
+				cs.length = 0;
+				for (let d of evt.src.datas) {
+					cs.push({code: d.code, day: d.day});
+				}
+				evt.data.day = evt.rowData.day;
+			});
 		}
 		st.buildUI();
 		ops = $('<div style="text-align:center; "> \
