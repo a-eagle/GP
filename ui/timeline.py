@@ -211,7 +211,7 @@ class ContextMenuMgr:
         return hyModel + gnModel
 
     def menuItemRender(self, menu, hdc, rect, menuItem):
-        ex = rect[0] - 3
+        ex = rect[0] - 5
         drawer : base_win.Drawer = menu.drawer
         if menuItem['up']:
             sx = ex - menuItem['up'] * 2
