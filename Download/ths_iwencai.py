@@ -586,8 +586,13 @@ def download_codes(day = None):
 
     return rt
 
+def isTradeDay():
+    lastDay = getTradeDays()[-1]
+    today = datetime.date.today().strftime('%Y%m%d')
+    return lastDay == today
 
 if __name__ == '__main__':
     from orm import ths_orm
-    ds = download_codes(20250401)
+    # ds = download_codes(20250401)
+    print(isTradeDay())
     

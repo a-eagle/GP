@@ -90,16 +90,6 @@ class Server:
         except Exception as e:
             traceback.print_exc()
 
-    def acceptDay(self, day):
-        if type(day) == str:
-            day = day.replace('-', '')
-            day = int(day)
-        if type(day) == int:
-            day = datetime.date(day // 10000, day // 100 % 100, day % 100)
-        if day.weekday() >= 5:
-            return False
-        return True
-
     def downloadDegree(self):
         url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
         resp = requests.get(url)
@@ -146,7 +136,7 @@ class Server:
             return
         self._lastLoadTime = time.time()
         now = datetime.datetime.now()
-        if not self.acceptDay(now):
+        if not ths_iwencai.isTradeDay():
             return
         curTime = now.strftime('%H:%M')
         day = now.strftime('%Y-%m-%d')
@@ -179,7 +169,7 @@ class Server:
 
     def loadTimeDegree(self):
         now = datetime.datetime.now()
-        if not self.acceptDay(now):
+        if not ths_iwencai.isTradeDay():
             return
         curTime = now.strftime('%H:%M')
         if (curTime >= '09:30' and curTime <= '11:30') or (curTime >= '13:00' and curTime <= '15:00'):

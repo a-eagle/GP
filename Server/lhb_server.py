@@ -4,6 +4,7 @@ import datetime, time, sys, os
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import lhb_orm
+from download import ths_iwencai
 
 class Server:
     def __init__(self) -> None:
@@ -157,6 +158,9 @@ class Server:
 
     # yyyy-mm-dd
     def loadOneDayLHB(self, day):
+        tdays = ths_iwencai.getTradeDays()
+        if day.replace('-', '') not in tdays:
+            return True
         cc = lhb_orm.TdxLHB.select().where(lhb_orm.TdxLHB.day == day).count()
         result = []
         gps = self.loadOneDayTotal(day)
@@ -229,6 +233,6 @@ if __name__ == '__main__':
     svr = Server()
     svr.debug = True
     #svr.loadOneGP('000062', '2024-08-20', '深圳华强')
-    svr.loadTdxLHB(datetime.date(2023, 1, 1))
+    svr.loadTdxLHB(datetime.date(2025, 4, 30))
 
     

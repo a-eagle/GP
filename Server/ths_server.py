@@ -144,7 +144,11 @@ class Server:
             day = datetime.date(day // 10000, day // 100 % 100, day % 100)
         if day.weekday() >= 5:
             return False
-        return True
+        day = day.strftime('%Y%m%d')
+        tdays = ths_iwencai.getTradeDays()
+        if day in tdays:
+            return True
+        return False
 
     def autoLoadHistory(self, fromDay = 20230301):
         fromDay = datetime.date(fromDay // 10000, fromDay // 100 % 100, fromDay % 100)
