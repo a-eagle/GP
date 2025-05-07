@@ -622,7 +622,7 @@ class RangeSelectorManager:
         return None
 
     def onLButtonUp(self, x, y):
-        endPos = self._adjustXY(x, y)
+        endPos = self._adjustXY(x, y) or self.endPos
         if self.captureMouse and self.startPos and endPos:
             self.endPos = endPos
             kl = self.win.klineIndicator
@@ -639,12 +639,14 @@ class RangeSelectorManager:
     
     def onMouseMove(self, x, y):
         isBtnDown = (win32api.GetAsyncKeyState(win32con.VK_LBUTTON) & 0xff00) > 0
+        if not isBtnDown and self.startPos and self.endPos:
+            return True
         if not isBtnDown or not self.startPos:
             self.startPos = self.endPos = None
             self.captureMouse = False
             return False
         self.captureMouse = True
-        self.endPos = self._adjustXY(x, y)
+        self.endPos = self._adjustXY(x, y) or self.endPos
         self.win.invalidWindow()
         return True
     
@@ -670,7 +672,9 @@ class RangeSelectorManager:
             x -= kl.x
             y -= kl.y
             isInK = x >= 0 and x < kl.width and y >= 0 and y < kl.height
-            if not isInK or not kl.visibleRange:
+            if not kl.visibleRange:
+                return False
+            if not isInK and not self.captureMouse:
                 return False
             if msg == win32con.WM_LBUTTONDOWN:
                 return self.onLButtonDown(x, y)

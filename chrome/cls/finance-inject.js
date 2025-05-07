@@ -966,16 +966,32 @@ class TabNaviMgr {
 			}
 			tdObj.text(rowData[header.name]);
 		}
+		function codeRender(idx, rowData, header, tdObj) {
+			if (! rowData[header.name]) {
+				tdObj.text('');
+				return;
+			}
+			let params = '';
+			if (rowData.secu_code.substring(0, 3) == 'cls') {
+				params = `code=${rowData.secu_code}`;
+			} else {
+				params = `code=0&refThsCode=${rowData.secu_code}&refThsName=${rowData.name}`;
+			}
+			let a = $(`<span><a href="https://www.cls.cn/plate?${params}&period=10&day=${rowData.day}" target=_blank> ${rowData.name} </a></span>`);
+			let b = $(`<span style="color:#666;font-size:12px;"> ${rowData.secu_code} </span>`);
+			tdObj.append(a).append('<br/>').append(b);
+		}
+		
 		if (name == 'cls') {
 			db = 'cls';
 			sql = `select * from CLS_ZS_ZD where day = '${day}' and abs(pm) <= 50`;
-			headers = [{name: 'day', text: '日期'}, {name: 'code', text: '代码'},
+			headers = [{name: 'day', text: '日期'}, {name: 'code', text: '代码', cellRender: codeRender},
 					{name: 'type_', text: '类型', sortable: true,}, {name: 'zf', text: '涨幅', sortable: true},
 					{name: 'fund', text: '净流入(亿)', sortable: true, cellRender : amountRender}, {name: 'pm', text:'全市排名', sortable: true}];
 		} else {
 			db = 'ths_zs';
 			sql = `select * from 同花顺指数涨跌信息 where day = '${day}' and abs(zdf_PM) <= 50`;
-			headers = [{name: 'day', text: '日期'}, {name: 'code', text: '代码'},
+			headers = [{name: 'day', text: '日期'}, {name: 'code', text: '代码', cellRender: codeRender},
 					{name: 'money', text: '成交额(亿)', sortable: true, cellRender : amountRender}, {name: 'zf', text: '涨幅', sortable: true},
 					{name: 'zdf_topLevelPM', text: '一级排名', sortable: true, cellRender: topPmRender}, {name: 'zdf_PM', text: '全市排名', sortable: true}];
 		}

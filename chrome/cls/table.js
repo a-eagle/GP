@@ -776,6 +776,7 @@ class StockTable extends UIListener {
     }
 
     buildUI_elipse(s) {
+        s = s || '';
         if (s && s.length > this.config.elipseNum) {
             s = s.substring(0, this.config.elipseNum) + '...';
         }

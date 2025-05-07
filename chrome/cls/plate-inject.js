@@ -141,7 +141,7 @@ function initPlatePage() {
     }
 
     let span = $('.stock-detail > span');
-    if (span.length < 2) {
+    if (span.length < 2 && span.text() != '') {
         setTimeout(initPlatePage, 1000);
         return;
     }
