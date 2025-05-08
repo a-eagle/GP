@@ -288,6 +288,22 @@ function paramsToUrl(params) {
     return url + p;
 }
 
+function filterDatas(datas, stocks) {
+    if (! datas)
+        return;
+    if (! stocks) {
+        for (let d of datas) {
+            filterDatas(d.stocks, true);
+        }
+        return;
+    }
+    for (let d of datas) {
+        if (d.cmc && d.cmc >= 20) {
+            
+        }
+    }
+}
+
 function loadStoks() {
     let params = getLocationParams();
     let code = params.refThsCode || params.code;

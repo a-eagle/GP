@@ -32,6 +32,12 @@ document.documentElement.appendChild(temp);
 
 temp = document.createElement('script');
 temp.setAttribute('type','text/javascript');
+temp.src = chrome.extension.getURL('thread.js');
+temp.async = false;
+document.documentElement.appendChild(temp);
+
+temp = document.createElement('script');
+temp.setAttribute('type','text/javascript');
 temp.src = chrome.extension.getURL('kline.js');
 temp.async = false;
 document.documentElement.appendChild(temp);

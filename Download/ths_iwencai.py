@@ -594,5 +594,5 @@ def isTradeDay():
 if __name__ == '__main__':
     from orm import ths_orm
     # ds = download_codes(20250401)
-    print(isTradeDay())
+    iwencai_load_list('个股热度排名<=200且个股热度从大到小排名')
     

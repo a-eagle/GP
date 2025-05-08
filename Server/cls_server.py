@@ -106,7 +106,7 @@ class Server:
             today = now.strftime('%Y-%m-%d')
             obj = cls_orm.CLS_SCQX.get_or_none(day = today)
             if obj:
-                console.writeln_1(console.CYAN, f'[CLS-Degree] {tag}', day, 'skip')
+                console.writeln_1(console.CYAN, f'[CLS-Degree] {tag}', today, 'skip')
                 return True
             url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
             resp = requests.get(url)

@@ -459,7 +459,8 @@ class KLineView extends Listener {
 }
 
 class TimeLineView extends Listener {
-    
+    thread = null;
+
     constructor(width, height) {
         super();
         this.data = null;
@@ -776,7 +777,7 @@ class TimeLineView extends Listener {
         this.cb = cb;
         if (code.substring(0, 2) == 'sz' || code.substring(0, 2) == 'sh')
             code = code.substring(2)
-        this.loadData_2(code, day, function(rs) {
+        this.loadDataTask(code, day, function(rs) {
             thiz.setData(rs);
             thiz.draw();
             thiz.notify({name: 'LoadDataEnd', src: thiz});
@@ -788,7 +789,24 @@ class TimeLineView extends Listener {
         this.loadData(this.code, this.day);
     }
 
-    loadData_2(code, day, callback) {
+    loadDataTask(code, day, callback) {
+        if (! TimeLineView.thread) {
+            TimeLineView.thread = new ThreadPool();
+            TimeLineView.thread.start();
+        }
+        let thiz = this;
+        let run = function (task, resolve) {
+            if (! $(thiz.canvas).is(":visible")) {
+                resolve();
+                return;
+            }
+            thiz.loadData_2(code, day, callback, resolve);
+        };
+        let task = new Task(code, 0, run);
+        TimeLineView.thread.addTask(task);
+    }
+
+    loadData_2(code, day, callback, finish) {
         this.code = code;
         let thiz = this;
         day = day || ''
@@ -804,6 +822,9 @@ class TimeLineView extends Listener {
                 else ds.date = null;
                 thiz.updateTime = Date.now();
                 if (callback) callback(ds);
+            },
+            complete: function(resp) {
+                if (finish) finish();
             }
         });
     }

@@ -88,4 +88,25 @@ Thread.prototype.addUniqueTask = function(uniqueId, task) {
 	this.tasks.push(task);
 }
 
+class ThreadPool {
+	constructor(size = 10) {
+		this.pools = [];
+		this.tasks = [];
+		for (let i = 0; i < size; i++) {
+			this.pools.push(new Thread());
+			// share tasks queue
+			this.pools[i].tasks = this.tasks;
+		}
+	}
+
+	start() {
+		for (let t of this.pools) {
+			t.start();
+		}
+	}
+
+	addTask(task) {
+		this.tasks.push(task);
+	}
+}
 
