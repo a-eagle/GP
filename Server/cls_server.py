@@ -154,18 +154,19 @@ class Server:
         if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-{day}', False)):
             self.downloadInfos[f'zs-{day}'] = True
             self.downloadZS('[3/7]')
-        if curTime >= '15:10' and (not self.downloadInfos.get(f'bkgn-{day}', False)):
-            self.downloadInfos[f'bkgn-{day}'] = True
-            self.downloadBkGn('[4/7]')
+        if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-zd-{day}', False)):
+            flag = self.downloadZS_ZD('[4/7]')
+            self.downloadInfos[f'zs-zd-{day}'] = flag
         if curTime >= '15:10' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
             self.downloadInfos[f'ztpk-{day}'] = True
             self.downloadZT_PanKou('[5/7]')
         if curTime >= '15:10' and (not self.downloadInfos.get(f'hot-tc-{day}', False)):
             flag = self.downloadHotTcOfLastDay('[6/7]')
             self.downloadInfos[f'hot-tc-{day}'] = flag
-        if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-zd-{day}', False)):
-            flag = self.downloadZS_ZD('[7/7]')
-            self.downloadInfos[f'zs-zd-{day}'] = flag
+        if curTime >= '15:10' and (not self.downloadInfos.get(f'bkgn-{day}', False)) and self.downloadInfos[f'zs-zd-{day}']:
+            self.downloadInfos[f'bkgn-{day}'] = True
+            self.downloadBkGn('[7/7]')
+        
 
     def loadTimeDegree(self):
         now = datetime.datetime.now()
@@ -304,13 +305,19 @@ class Server:
         except Exception as e:
             traceback.print_exc()
 
-    # 个股概念板块
-    def downloadBkGn(self, tag):
+    # 个股概念板块，仅更新前后10名的概念指数关联的个股
+    def downloadBkGn(self, tag, day = None):
         try:
             # console.writeln_1(console.CYAN, f'[CLS-HyGn] {self.formatNowTime(True)} begin...')
             st = time.time()
-            qr = ths_orm.THS_GNTC.select().dicts()
             zs = {}
+            if not day:
+                ts = datetime.datetime.now()
+                day = ts.strftime('%Y-%m-%d')
+            if type(day) == int:
+                day = str(day)
+            if len(day) == 8:
+                day = f'{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}'
             def diff(old, new, names):
                 flag = False
                 for n in names:
@@ -318,16 +325,27 @@ class Server:
                         setattr(old, n, getattr(new, n, ''))
                         flag = True
                 return flag
-            attrs = ('name', 'gn', 'gn_code', 'hy', 'hy_code')
-            u, i = 0, 0
-            for it in qr:
-                code = it['code']
-                name = it['name']
+            attrs = ('gn', 'gn_code', 'hy', 'hy_code')
+            u, i, total = 0, 0, 0
+            qr = cls_orm.CLS_ZS_ZD.select().where(cls_orm.CLS_ZS_ZD.day == day).where(cls_orm.CLS_ZS_ZD.pm > 0, cls_orm.CLS_ZS_ZD.pm <= 10)
+            exzs = {}
+            for obj in qr:
+                exzs[obj.code] = obj
+            def existsGnBk(c):
+                if not c: return False
+                for cx in c.split(';'):
+                    if cx.strip() in exzs:
+                        return True
+                return False
+            qr = cls_orm.CLS_GNTC.select()
+            for obj in qr:
+                code = obj.code
+                if not existsGnBk(obj.hy_code) and not existsGnBk(obj.gn_code):
+                    continue
                 info = cls.ClsUrl().loadBkGnOfCode(code, zs)
+                total += 1
                 if not info:
                     continue
-                info.name = name
-                obj = cls_orm.CLS_GNTC.get_or_none(code = code)
                 if obj:
                     if diff(obj, info, attrs):
                         obj.save() # update
@@ -337,7 +355,7 @@ class Server:
                     i += 1
             t = time.time() - st
             t /= 60
-            console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} {self.formatNowTime(True)} update {u}, insert {i}, use time: {t :.1f} minutes')
+            console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} {self.formatNowTime(True)} check {total}, update {u}, insert {i}, use time: {t :.1f} minutes')
         except Exception as e:
             traceback.print_exc()
 
@@ -408,12 +426,12 @@ def do_reason():
 if __name__ == '__main__':
     svr = Server()
     #svr.downloadZS()
-    #svr.downloadBkGn()
+    svr.downloadBkGn('[4/7]', 20250508)
     #downloadClsZT()
     #days = ths_iwencai.getTradeDays(100)
     #for day in days:
     #    svr._loadHotTcOfDay(day)
     # svr.loadHotTc(1)
-    svr.downloadZS_ZD('d')
+    # svr.downloadZS_ZD('d')
     pass
     #do_reason()
