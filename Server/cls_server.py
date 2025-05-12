@@ -120,7 +120,11 @@ class Server:
             if not obj:
                 fb = json.dumps(fb)
                 cls_orm.CLS_SCQX.create(day = day, zhqd = degree, fb = fb)
-                console.writeln_1(console.CYAN, f'[CLS-Degree] {tag}', day, ' -> ', degree)
+            else:
+                obj.fb = json.dumps(fb)
+                obj.zhqd = degree
+                obj.save()
+            console.writeln_1(console.CYAN, f'[CLS-Degree] {tag}', day, ' -> ', degree)
             return True
         except Exception as e:
             traceback.print_exc()
@@ -146,28 +150,30 @@ class Server:
         if self.downloadInfos.get('ignore', None) == day:
             return
         if curTime > '15:10' and (not self.downloadInfos.get(f'scqx-{day}', False)):
-            rs = self.downloadScqx('[1/7]')
+            rs = self.downloadScqx('[1/8]')
             self.downloadInfos[f'scqx-{day}'] = rs
         if curTime >= '15:10' and (not self.downloadInfos.get(f'updown-{day}', False)):
-            ok = self.downloadUpDown('[2/7]')
+            ok = self.downloadUpDown('[2/8]')
             self.downloadInfos[f'updown-{day}'] = ok
         if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-{day}', False)):
             self.downloadInfos[f'zs-{day}'] = True
-            self.downloadZS('[3/7]')
+            self.downloadZS('[3/8]')
         if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-zd-{day}', False)):
-            flag = self.downloadZS_ZD('[4/7]')
+            flag = self.downloadZS_ZD('[4/8]')
             self.downloadInfos[f'zs-zd-{day}'] = flag
         if curTime >= '15:10' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
             self.downloadInfos[f'ztpk-{day}'] = True
-            self.downloadZT_PanKou('[5/7]')
+            self.downloadZT_PanKou('[5/8]')
         if curTime >= '15:10' and (not self.downloadInfos.get(f'hot-tc-{day}', False)):
-            flag = self.downloadHotTcOfLastDay('[6/7]')
+            flag = self.downloadHotTcOfLastDay('[6/8]')
             self.downloadInfos[f'hot-tc-{day}'] = flag
+        if curTime >= '15:10' and (not self.downloadInfos.get(f'eastmoney-fb-{day}', False)):
+            flag = self.downloadEastmoneyZdfb('[7/8]')
+            self.downloadInfos[f'eastmoney-fb-{day}'] = flag
         if curTime >= '15:10' and (not self.downloadInfos.get(f'bkgn-{day}', False)) and self.downloadInfos[f'zs-zd-{day}']:
             self.downloadInfos[f'bkgn-{day}'] = True
-            self.downloadBkGn('[7/7]')
+            self.downloadBkGn('[8/8]')
         
-
     def loadTimeDegree(self):
         now = datetime.datetime.now()
         if not ths_iwencai.isTradeDay():
@@ -410,6 +416,35 @@ class Server:
                 traceback.print_exc()
         console.writeln_1(console.CYAN, f'[Cls-UpDown] {tag} {self.formatNowTime(True)} ', ('Success' if ok else 'Fail'))
         return ok
+    
+    def downloadEastmoneyZdfb(self, tag):
+        try:
+            resp = requests.get('https://push2ex.eastmoney.com/getTopicZDFenBu?cb=callbackdata838226&ut=7eea3edcaed734bea9cbfc24409ed989&dpt=wz.ztzt')
+            text = resp.text
+            text = text[text.index('(') + 1 : text.index(')')]
+            rs = json.loads(text)
+            day = rs['data']['qdate']
+            fenbu = rs['data']['fenbu']
+            fb = {}
+            for it in fenbu:
+                for k in it:
+                    fb[k] = it[k]
+            if type(day) == int:
+                day = str(day)
+            if len(day) == 8:
+                day = day[0 : 4] + '-' + day[4 : 6] + '-' + day[6 : 8]
+            obj = cls_orm.CLS_SCQX.get_or_none(day = day)
+            fb = json.dumps(fb)
+            if not obj:
+                cls_orm.CLS_SCQX.create(day = day, zdfb = fb)
+            else:
+                obj.zdfb = fb
+                obj.save()
+            console.writeln_1(console.CYAN, f'[Cls-EastMoney-Zdfb] {tag}', day, ' -> ', fb)
+            return True
+        except Exception as e:
+            traceback.print_exc()
+        return False
 
 def do_reason():
     qr = cls_orm.CLS_ZT.select().where(cls_orm.CLS_ZT.day >= '2024-07-26')
@@ -426,12 +461,13 @@ def do_reason():
 if __name__ == '__main__':
     svr = Server()
     #svr.downloadZS()
-    svr.downloadBkGn('[4/7]', 20250508)
+    # svr.downloadBkGn('[4/7]', 20250508)
     #downloadClsZT()
     #days = ths_iwencai.getTradeDays(100)
     #for day in days:
     #    svr._loadHotTcOfDay(day)
     # svr.loadHotTc(1)
     # svr.downloadZS_ZD('d')
+    svr.downloadEastmoneyZdfb('[x]')
     pass
     #do_reason()

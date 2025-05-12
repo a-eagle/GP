@@ -1627,7 +1627,7 @@ class Vuex extends UIListener {
     _updateAttrUI(obj, attr, elem) {
         let render = elem.getAttribute(this.RENDER_ATTR);
         if (! render) {
-            elem.innerHTML = obj[attr] || '';
+            elem.innerHTML = obj[attr];
             return;
         }
         let rs = this.getObject(render);

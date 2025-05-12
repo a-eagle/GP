@@ -370,6 +370,9 @@ class ZdfbMgr {
 			this.loadNewestData(function(data) {
 				thiz.updateData(data);
 			});
+			this.loadNewestData_EC(function(data) {
+				thiz.updateData_EC(data);
+			});
 		} else {
 			this.loadHistoryData(newVal);
 		}
@@ -453,8 +456,8 @@ class ZdfbMgr {
 				let udd = resp.data.up_down_dis;
 				udd.up = udd.rise_num;
 				udd.down = udd.fall_num;
-				udd.zt = udd.up_num;
-				udd.dt = udd.down_num;
+				// udd.zt = udd.up_num;
+				// udd.dt = udd.down_num;
 				udd.zero = udd.flat_num;
 				udd.day = thiz.vue.data.lastTradeDay;
 				cb(udd);
@@ -462,9 +465,28 @@ class ZdfbMgr {
 		});
 	}
 
+	// 东财的数据
+	loadNewestData_EC(cb) {
+		$.ajax({
+			url: 'https://push2ex.eastmoney.com/getTopicZDFenBu?cb=callbackdata838226&ut=7eea3edcaed734bea9cbfc24409ed989&dpt=wz.ztzt',
+			success: function(text) {
+				text = text.substring(text.indexOf('(') + 1, text.indexOf(')'));
+				let fb = {};
+				let rs = JSON.parse(text);
+				if (rs) {
+					let fenbu = rs['data']['fenbu']
+					for (let it of fenbu) {
+						for (let k in it) fb[k] = it[k];
+					}
+				}
+				cb(fb);
+			}
+		});
+	}
+
 	loadHistoryData(day) {
 		let thiz =  this;
-		let sql = `select day, 综合强度 as degree, substr(day, 6) as sday, fb from CLS_SCQX where day = '${day}'`;
+		let sql = `select day, 综合强度 as degree, substr(day, 6) as sday, fb, zdfb from CLS_SCQX where day = '${day}'`;
 		$.ajax({
 			url: 'http://localhost:5665/query-by-sql/cls',
 			data: {'sql': sql},
@@ -472,13 +494,15 @@ class ZdfbMgr {
 				let ds = JSON.parse(resp[0].fb);
 				ds.day = day;
 				ds.degree = resp[0].degree;
+				let zdfb = resp[0].zdfb ? JSON.parse(resp[0].zdfb) : null;
 				thiz.updateData(ds);
+				thiz.updateData_EC(zdfb);
 			}
 		});
 	}
 
 	updateData(data) {
-		let a = ['day', 'zt', 'dt', 'zero', 'down', 'up', 'up_8', 'down_8', 'degree'];
+		let a = ['day', 'zero', 'down', 'up', 'up_8', 'down_8', 'degree']; // 'zt', 'dt'
 		let model = this.vue.data.zdfb;
 		for (let k of a) {
 			if (k == 'up_8') model[k] = data[k] + data['up_10'];
@@ -486,6 +510,17 @@ class ZdfbMgr {
 			else model[k] = data[k];
 		}
 		model.czd = data.up *100 + data.down * 10 + data.zero;
+	}
+
+	updateData_EC(zdfb) {
+		let model = this.vue.data.zdfb;
+		if (zdfb) {
+			model.zt = zdfb['11'];
+			model.dt = zdfb['-11'];
+		} else {
+			model.zt = '';
+			model.dt = '';
+		}
 	}
 }
 

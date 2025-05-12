@@ -57,8 +57,9 @@ class CLS_UpDown(pw.Model):
 # 综合强度
 class CLS_SCQX(pw.Model):
     day = pw.CharField() # YYYY-MM-DD
-    zhqd = pw.IntegerField(column_name='综合强度')
+    zhqd = pw.IntegerField(column_name='综合强度', null = True)
     fb = pw.CharField(null = True) # 涨跌分布
+    zdfb = pw.CharField(null = True) # 涨跌分布（东方财富数据）
 
     class Meta:
         database = db_cls
