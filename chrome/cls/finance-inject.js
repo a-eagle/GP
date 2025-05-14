@@ -939,12 +939,12 @@ class TabNaviMgr {
 				rs.sort(function(a, b) {return a.hots - b.hots});
 				rs.splice(100, rs.length - 100);
 				thiz.updateTabContentUI(name, rs);
-				thiz.loadTopAmounts(name, rs);
+				thiz.loadTopAmounts(name, rs, false);
 			}
 		});
 	}
 
-	loadTopAmounts(name, rs) {
+	loadTopAmounts(name, rs, setAmount) {
 		let thiz = this;
 		let day = this.vue.data.curDay;
 		day = day.replaceAll('-', '');
@@ -969,10 +969,12 @@ class TabNaviMgr {
 				for (let i = 0; i < rs.length; i++) {
 					let code = rs[i].code;
 					if (map[code]) {
-						rs[i].amount = map[code].amount;
+						if (setAmount)
+							rs[i].amount = map[code].amount;
 						rs[i].amountIdx = map[code].amountIdx;
 					} else {
-						rs[i].amount = 0;
+						if (setAmount)
+							rs[i].amount = 0;
 						rs[i].amountIdx = 0;
 					}
 				}

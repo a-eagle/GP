@@ -481,7 +481,7 @@ class TimeLineView extends Listener {
         this.updateTime = 0; // load timeline data time mili-seconds
         this.code = null; // 股票代码
         this.zf = null; //涨幅
-        this.amount = 0; //成交额
+        this.amount = 0; //成交额 亿元
 
         this.SPEED_PEROID = 10; //  时速周期 5 / 10 /15
         this.MIN_ZHANG_SU = 5; // 最小涨速
@@ -602,7 +602,7 @@ class TimeLineView extends Listener {
             if (typeof(this.data.line[i].amount) == 'number' )
                 a += this.data.line[i].amount;
         }
-        this.amount = a;
+        this.amount = a / 100000000;
     }
 
     getLineColor(tag) {

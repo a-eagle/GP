@@ -107,7 +107,7 @@ function createTimeLineView(code, params) {
         let span = $('.stock-detail > span:eq(1)');
         span.html('<label style="color:' + (zf > 0 ? 'red' : zf < 0 ? 'green' : '#000') + '">' + zf.toFixed(2) + '%' + '<label>');
     };
-    view.addListener('LoadDataEnd', onLoadEnd);
+    //view.addListener('LoadDataEnd', onLoadEnd);
     view.loadData(code, day);
 
     if (params.refThsCode) {
@@ -141,7 +141,8 @@ function initPlatePage() {
     }
 
     let span = $('.stock-detail > span');
-    if (span.length < 2 && span.text() != '') {
+    let ccx = $('.stock-detail').text().indexOf('--') > 0;
+    if (span.length == 0) { //  || (span.length.length == 1 && span.text() != '' && ccx)
         setTimeout(initPlatePage, 1000);
         return;
     }
