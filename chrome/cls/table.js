@@ -448,6 +448,16 @@ class StockTable extends UIListener {
                 else m = parseInt(m);
                 tdObj.text(`${m}亿`);
             }
+        } else if (k == 'amountY') {
+            header.cellRender = function(rowIdx, rowData, head, tdObj) {
+                if (typeof(rowData.amountY) != 'number') {
+                    return;
+                }
+                let m = rowData.amountY;
+                if (m < 1) m = m.toFixed(1);
+                else m = parseInt(m);
+                tdObj.text(`${m}亿`);
+            }
         } else {
             header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 let val = rowData[head.name];

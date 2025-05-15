@@ -19,6 +19,24 @@ function formatDay(date) {
 	return y + '-' + m + '-' + d;
 }
 
+function getLocationParams(name = null) {
+    let url = window.location.href;
+    let params = {};
+    if (url.indexOf('#') > 0)
+        url = url.substring(0, url.indexOf('#'));
+    let q = url.indexOf('?');
+    if (q < 0) return params;
+    let ps = url.substring(q + 1);
+    for (let it of ps.split('&')) {
+        let ks = it.split('=');
+        params[ks[0]] = ks[1];
+    }
+    if (name) {
+        return params[name];
+    }
+    return params;
+}
+
 class InitMgr {
 	constructor(vue) {
 		this.initUIEnd = false;
@@ -125,6 +143,10 @@ class GlobalMgr {
 		this._initUI();
 	}
 
+	isReady() {
+		return this.table != null;
+	}
+
 	_loadAmount() {
 		let thiz = this;
 		// 两市成交额
@@ -200,6 +222,25 @@ class GlobalMgr {
 		return rs;
 	}
 
+	changeDay(curDay) {
+		let datas = this.zsInfos.data;
+		if (! curDay) return;
+		if (curDay.length == 8) {
+			curDay = curDay.substring(0, 4) + '-' + curDay.substring(4, 6) + '-' + curDay.substring(6, 8);
+		}
+		let idx = -1;
+		for (let i = 0; i < datas.length; i++) {
+			if (datas[i].day == curDay) {
+				idx = i;
+				break;
+			}
+		}
+		if (idx < 0) return;
+		let td = this.table.find(`tr:eq(1) > td:eq(${idx})`);
+		this._inFunction(td);
+		this._onClick(td);
+	}
+
 	_initUI() {
 		let thiz = this;
 		let model = this.vue.data;
@@ -243,8 +284,8 @@ class GlobalMgr {
 		}
 		table.find('td, th').hover(function(){thiz._inFunction(this);}, function(){thiz._outFunction(this);});
 		table.find('td').click(function(){thiz._onClick(this);});
-		this.table = table;
 		$('div[name="global-item"]').append(table);
+		this.table = table;
 	}
 
 	_inFunction(elem) {
@@ -1117,7 +1158,7 @@ class TabNaviMgr {
 				{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
 				{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
 				{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
-				{text: '成交额', 'name': 'amount', width: 50, sortable: true, cellRender : amountRender, defined: true},
+				{text: '成交额', 'name': 'amount', width: 50, sortable: true, defined: true},
 				{text: '成交额<br/>排名', 'name': 'amountIdx', width: 50, sortable: false, cellRender : amountIdxRender, defined: true},
 				{text: '热度', 'name': 'hots', width: 50, sortable: true},
 				{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
@@ -1228,6 +1269,19 @@ class TabNaviMgr {
 	}
 }
 
+function changeCurDay(initMgr, globalMgr) {
+	let curDay = getLocationParams('day');
+	if (! curDay || curDay.length < 8)
+		return;
+	// if (curDay.length == 8) 
+	if (!initMgr.isReady() || !globalMgr.isReady()) {
+		setTimeout(() => {
+			changeCurDay(initMgr, globalMgr);
+		}, 500);
+		return;
+	}
+	globalMgr.changeDay(curDay);
+}
 
 (function() {
 	let model = {
@@ -1240,11 +1294,12 @@ class TabNaviMgr {
 		curDay: null, //当前选择的日期
 	};
 	let vue = new Vuex(model);
-	new InitMgr(vue);
-	new GlobalMgr(vue);
+	let initMgr = new InitMgr(vue);
+	let globalMgr = new GlobalMgr(vue);
 	new TimeDegreeMgr(vue);
 	new ZdfbMgr(vue);
 	new AnchorsMgr(vue);
 	new TabNaviMgr(vue);
 	window.vue = vue;
+	setTimeout(function() {changeCurDay(initMgr, globalMgr);}, 500);
 })();

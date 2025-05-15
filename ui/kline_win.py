@@ -73,6 +73,7 @@ class ContextMenuManager:
               {'title': 'LINE'},
               {'title': '查看板块个股 THS', 'name': 'open-ref-thszs', 'sub-menu': self.getThsZsList(selDay)},
               {'title': '查看板块个股 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList(selDay)},
+              {'title': '查看当日行情', 'name': 'open-ref-global', 'enable': selDay > 0, 'day': selDay},
             ])
         else:
             mm.extend([
@@ -217,6 +218,9 @@ class ContextMenuManager:
             code = evt.item['code']
             day = evt.item["day"]
             self.openRefClsZs(code, day)
+        elif name == 'open-ref-global':
+            day = evt.item["day"]
+            self.openRefGlobal(day)
         elif name == 'open-cur-zs':
             code = self.win.klineIndicator.code
             day = evt.item["day"]
@@ -265,6 +269,11 @@ class ContextMenuManager:
         obj = ths_orm.THS_ZS.get_or_none(ths_orm.THS_ZS.code == code)
         name = obj.name if obj else ''
         url = f'https://www.cls.cn/plate?code=0&day={day}&refThsCode={code}&refThsName={name}'
+        pyperclip.copy(url)
+        win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
+
+    def openRefGlobal(self, day):
+        url = f'https://www.cls.cn/finance?day={day}'
         pyperclip.copy(url)
         win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
 

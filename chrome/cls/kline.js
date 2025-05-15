@@ -602,7 +602,7 @@ class TimeLineView extends Listener {
             if (typeof(this.data.line[i].amount) == 'number' )
                 a += this.data.line[i].amount;
         }
-        this.amount = a / 100000000;
+        this.amount = a;
     }
 
     getLineColor(tag) {
