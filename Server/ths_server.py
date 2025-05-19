@@ -241,10 +241,13 @@ class Server:
     def download_codes(self, tag):
         try:
             ds = ths_iwencai.download_codes()
+            day = None
             mds = {}
             for d in ds:
                 mds[d['code']] = d
-            qr = ths_orm.CodesInfo.select().where(ths_orm.CodesInfo.day == '20250401')
+                if not day:
+                    day = d['day']
+            qr = ths_orm.CodesInfo.select().where(ths_orm.CodesInfo.day == day)
             updateNum = 0
             for q in qr:
                 if q.code not in mds:

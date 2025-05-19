@@ -458,9 +458,10 @@ def download_vol_top100(day = None):
     return rs
 
 class ThsColumns:
-    def __init__(self) -> None:
+    def __init__(self, item) -> None:
         self.item = None
         self.names = {}
+        self._setItem(item)
 
     def getColumnNames(self, item, partColumnName):
         names = []
@@ -476,6 +477,7 @@ class ThsColumns:
             return columnName[b + 1 : e]
         return ''
     
+    @staticmethod
     def getItemColumnDay(self, item, baseColumnName):
         for k in item:
             if baseColumnName + '[' in k:
@@ -484,7 +486,7 @@ class ThsColumns:
                 return k[b + 1 : e]
         return ''
     
-    def setItem(self, item):
+    def _setItem(self, item):
         self.item = item
         self.names.clear()
         for k in item:
@@ -551,12 +553,12 @@ def download_codes(day = None):
     rs = iwencai_load_list(question = f'{day}个股成交额,成交量,总股本,流通a股,涨跌幅,换手率,市盈率,市盈率(ttm)')
     if not rs:
         return None
-    columns = ThsColumns()
-    day = columns.getItemColumnDay(rs[0], '开盘价:前复权')
+    
+    day = ThsColumns.getItemColumnDay(rs[0], '开盘价:前复权')
     rt = []
     for item in rs:
         obj = {}
-        columns.setItem(item)
+        columns = ThsColumns(item)
         obj['day'] = day
         obj['code'] = columns.getColumnValue('code', str)
         obj['name'] = columns.getColumnValue('股票简称', str)

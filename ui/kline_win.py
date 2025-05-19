@@ -1304,5 +1304,5 @@ if __name__ == '__main__':
 
     import kline_utils
     win = kline_utils.createKLineWindowByCode('000737')  # 000737  002261  cls80353
-    win.changeCode('002261') # 
+    win.changeCode('002261') #
     win32gui.PumpMessages()
