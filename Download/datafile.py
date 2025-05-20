@@ -155,6 +155,30 @@ class K_DataModel(DataModel):
                 zhangFu = (cc - pc) / pc * 100
             setattr(self.data[i], 'zhangFu', zhangFu)
 
+    def loadLocalData(self):
+        self.data = None
+        path = self.getLocalPath('DAY')
+        if not os.path.exists(path):
+            return False
+        f = open(path, 'rb')
+        filesize = os.path.getsize(path)
+        if filesize == 0:
+            f.close()
+            return False
+        RL = 32
+        if filesize % RL != 0:
+            print('[K_DataModel.loadLocalData] invalid file size ', self.code, path)
+            return False
+        maxDays = filesize // RL
+        rs = []
+        for i in range(maxDays):
+            bs = f.read(RL)
+            item = struct.unpack('l5f2l', bs)
+            rs.append(ItemData(day = item[0], open = item[1], high = item[2], low = item[3], close = item[4], amount = item[5], vol = item[6]))
+        self.data = rs
+        f.close()
+        return len(rs) > 0
+    
 class T_DataModel(DataModel):
     def __init__(self, code):
         super().__init__(code)
