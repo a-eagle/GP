@@ -380,6 +380,7 @@ class ClsUrl:
             d['code'] = d['secu_code']
             d['name'] = d['secu_name']
             d['type_'] = stype
+            d['change'] = d['change'] or 0
             d['zf'] = d['change'] * 100
             d['fund'] = d['main_fund_diff'] / 100000000
         return data
