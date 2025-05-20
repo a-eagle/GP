@@ -204,7 +204,7 @@ function initPlatePage() {
     wrap.append(w1).append(w2).append(w3);
 
     extendWidth($('div.w-1200'), ADD_WIDTH);
-    extendWidth($('div.content-main-box div.watch-content-left'), ADD_WIDTH);
+    extendWidth($('div.f-l.w-890'), ADD_WIDTH);
     $('.top-ad').remove();
 }
 

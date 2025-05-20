@@ -83,8 +83,9 @@ class InitMgr {
 
 	_initUI() {
 		let thiz = this;
-		if ($('.watch-content-left > div').length < 7) {
-			let isReady = $('.watch-content-left > div').length == 6; // && $('.watch-content-left > div:last').text() == '暂无相关数据';
+		let LEFT_CNT = '.f-l.w-890';
+		if ($(`${LEFT_CNT} > div`).length < 7) {
+			let isReady = $(`${LEFT_CNT} > div`).length == 6;
 			if (isReady) {
 				if (! this._waitTime) this._waitTime = new Date().getTime();
 				if (new Date().getTime() - this._waitTime < 5000) {
@@ -97,7 +98,7 @@ class InitMgr {
 			}
 		}
 		let style = document.createElement('style');
-		let css = ".my-info-item {border-bottom: solid 1px #222; padding-bottom: 10px; padding-top: 5px; width: 100%; } \n\
+		let css = `.my-info-item {border-bottom: solid 1px #222; padding-bottom: 10px; padding-top: 5px; width: 100%; } \n\
 				.my-info-item table { border-collapse: collapse; border: 1px solid #ddd; width:100%; text-align: center; cursor:hander; } \n\
 				.my-info-item table th {border: 1px solid #ddd; background-color: #ECECEC; height: 30px; font-weight: normal; color: #6A6B70;} \n\
 				.my-info-item table td {border: 1px solid #ddd;} \n\
@@ -105,8 +106,8 @@ class InitMgr {
 				.my-info-item .green {color: #009900;} \n\
 				.my-info-item .selcol {background-color: #EEE9E9;} \n\
 				.w-1200 {width: 1400px;} \n\
-				.watch-content-left {width: 1090px;} \n\
-				";
+				${LEFT_CNT} {width: 1090px;} \n\
+				`;
 		style.appendChild(document.createTextNode(css));
 		document.head.appendChild(style);
 		$('.top-ad').remove();
@@ -119,9 +120,9 @@ class InitMgr {
 		let md6 = $('<div class="clearfix w-100p f-s-14 c-747474 toggle-nav-box finance-toggle-nav" name="tab-nav-item"> </div>');
 		let md7 = $('<div class="my-info-item p-r b-c-222" style="" name="tab-nav-cnt-item">  </div>');
 		group.append(md1).append(md2).append(md3).append(md4).append(md5).append(md6).append(md7);
-		$('.watch-content-left > div:gt(1)').hide();
+		$(`${LEFT_CNT} > div:gt(1)`).hide();
 		// group.insertAfter($('.watch-chart-box'));
-		$('.watch-content-left').append(group);
+		$(`${LEFT_CNT}`).append(group);
 		this.initUIEnd = true;
 		this.vue.data.initMgrReady = this.isReady();
 	}
