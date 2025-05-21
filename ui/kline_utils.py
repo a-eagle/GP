@@ -100,6 +100,6 @@ def openInCurWindow(parent, data):
     return win
 
 if __name__ == '__main__':
-    openInCurWindow(None, {'code': 'cls80353'}) # 601086
+    openInCurWindow(None, {'code': 'cls80222'}) # 601086 cls80353
     win32gui.PumpMessages()
     pass

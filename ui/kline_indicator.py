@@ -1398,7 +1398,7 @@ class ZT_NumIndicator(CustomIndicator):
 
     def _changeCode(self):
         super()._changeCode()
-        if len(self.code) != 8 or self.code[0 : 3] != 'cls':
+        if self.code[0 : 3] != 'cls' and self.code[0 : 2] != '88':
             return
         maps = {}
         isClsZs = self.code[0 : 3] == 'cls'
@@ -1417,29 +1417,48 @@ class ZT_NumIndicator(CustomIndicator):
             if not obj:
                 continue
             for a in attrs:
-                if self.code in obj.get(a, ''):
+                if self.code in (obj.get(a, '') or ''):
                     if lb: maps[day]['ZT'] += 1
                     elif lb == 0 and down == 0: maps[day]['ZB'] += 1
                     elif down: maps[day]['DT'] += 1
                     break
         self.cdata = maps
 
+    def calcValueRange(self, fromIdx, endIdx):
+        self.valueRange = None
+        if fromIdx == endIdx or not self.cdata:
+            return
+        fday = self.data[fromIdx].day
+        eday = self.data[endIdx - 1].day
+        maxVal = 0
+        for day in self.cdata:
+            if day >= fday and day <= eday:
+                item = self.cdata[day]
+                maxVal = max(maxVal, item['ZT'], item['ZB'], item['DT'])
+        self.valueRange = (0, maxVal)
+
     def drawItem(self, hdc, drawer : Drawer, idx, x):
         super().drawItem(hdc, drawer, idx, x)
-        IW = self.config['itemWidth']
+        W = self.config['itemWidth']
+        IW = 15
         day = self.data[idx].day
-        if not self.cdata or day not in self.cdata or not self.cdata[day]:
+        if not self.cdata or day not in self.cdata or not self.cdata[day] or not self.valueRange:
             return
         info = self.cdata[day]
-        ITEM_H = self.height // 2
         zt, zb, dt = info['ZT'], info['ZB'], info['DT']
-        if zt or zb:
-            txt = f'{zt}+{zb}'
-            rc = (x, 0, x + IW, ITEM_H)
-            drawer.drawText(hdc, txt, rc, 0xff3333, win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER)
-        if dt:
-            rc = (x, ITEM_H, x + IW, self.height)
-            drawer.drawText(hdc, str(dt), rc, 0x00ffff, win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER)
+        COLORS = (0xff3333, 0x33ff33, 0x00ffff)
+        maxVal = self.valueRange[1]
+        maxHeight = self.height - 20
+        SX = (W - IW * 3) // 2 + x
+        for i, val in enumerate((zt, zb, dt)):
+            y = maxHeight - int(val / maxVal * maxHeight)
+            y = max(y, 2)
+            sx = SX + IW * i
+            isw = sx + (IW - 6) // 2
+            rc = (isw, y, isw + 6, maxHeight)
+            drawer.fillRect(hdc, rc, COLORS[i])
+            trc = (sx, maxHeight, sx + IW, self.height)
+            drawer.drawText(hdc, val, trc, COLORS[i], win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER)
         
 if __name__ == '__main__':
     #base_win.ThreadPool.instance().start()
