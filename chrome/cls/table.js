@@ -822,11 +822,13 @@ class StockTable extends UIListener {
     }
 }
 
-class IndustryTable extends StockTable {
-    constructor(headers) {
+class GroupTable extends StockTable {
+    constructor(headers, groupName) {
         super(headers);
+        this.groupName = groupName;
     }
-
+    
+    // [{industry_name: 'xx', stocks: [...]}, ...]
     setData(data) {
         if (data == this.datas || !data) {
             return;
@@ -834,7 +836,7 @@ class IndustryTable extends StockTable {
         let mdata = {};
         for (let k = 0; k < data.length; k++) {
             let items = data[k].stocks;
-            let industry = data[k].industry_name;
+            let industry = data[k][this.groupName];
             for (let i = items.length - 1; i >= 0; i--) {
                 let code = this.buildUI_stdCode(items[i].secu_code);
                 if (! code) {
@@ -868,9 +870,9 @@ class IndustryTable extends StockTable {
         let thiz = this;
         for (let i = 0; i < this.datas.length; i++) {
             let sd = this.datas[i];
-            let ftr = $('<tr> <td colspan="' + this.headers.length + '" class="industry" style="text-align:left;"> ' + sd.industry_name + '&nbsp;&nbsp;' + sd.stocks.length + ' </td> </tr>');
+            let ftr = $('<tr> <td colspan="' + this.headers.length + '" class="industry" style="text-align:left;"> ' + sd[this.groupName] + '&nbsp;&nbsp;' + sd.stocks.length + ' </td> </tr>');
             this.table.append(ftr);
-            this.trs[sd.industry_name] = ftr;
+            this.trs[sd[this.groupName]] = ftr;
             
             for (let j = 0; j < sd.stocks.length; j++) {
                 let sdx = sd.stocks[j];
@@ -895,7 +897,7 @@ class IndustryTable extends StockTable {
         
         for (let i = 0; i < this.datas.length; i++) {
             let ids = this.datas[i];
-            this.table.append(this.trs[ids.industry_name]);
+            this.table.append(this.trs[ids[this.groupName]]);
             for (let j = 0; j < ids.stocks.length; j++) {
                 let it = ids.stocks[j];
                 let tr = this.trs[it.key];
@@ -948,6 +950,12 @@ class IndustryTable extends StockTable {
                 }
             }
         }
+    }
+}
+
+class IndustryTable extends GroupTable {
+    constructor(headers) {
+        super(headers, 'industry_name');
     }
 }
 
