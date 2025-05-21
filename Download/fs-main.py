@@ -322,7 +322,7 @@ class KlineDataFileLoader:
         f = open(dst.getLocalPath('DAY'), 'wb')
         arr = bytearray(32)
         for d in klineDatas:
-            struct.pack_into('l5f2l', arr, 0, d.day, d.open, d.high, d.low, d.close, d.amount, d.vol, 0)
+            struct.pack_into('l5f2l', arr, 0, d.day, d.open, d.high, d.low, d.close, d.amount, int(d.vol / 10000), 0)
             f.write(arr)
         f.close()
 
@@ -451,6 +451,8 @@ class Main:
 
 if __name__ == '__main__':
     try:
+        # ld = KlineDataFileLoader()
+        # ld._downloadList(['399001', '399006', '999999'], 0.1, 'AA')
         m = Main()
         m.run()
     except Exception as e:

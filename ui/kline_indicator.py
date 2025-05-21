@@ -1387,6 +1387,60 @@ class CLS_HotTcIndicator(CustomIndicator):
             drawer.fillRect(hdc, rc, color)
             sx += ITEM_W + 1
 
+# 涨停数（用于指数）
+class ZT_NumIndicator(CustomIndicator):
+    def __init__(self, win, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 60
+        super().__init__(win, config)
+        self.config['title'] = '[涨停数量]'
+
+    def _changeCode(self):
+        super()._changeCode()
+        if len(self.code) != 8 or self.code[0 : 3] != 'cls':
+            return
+        maps = {}
+        isClsZs = self.code[0 : 3] == 'cls'
+        attrs = ('gn_code', 'hy_2_code', 'hy_3_code', 'hy_code')
+        qr = cls_orm.CLS_UpDown.select(cls_orm.CLS_UpDown.secu_code, cls_orm.CLS_UpDown.day, cls_orm.CLS_UpDown.limit_up_days, cls_orm.CLS_UpDown.is_down).tuples()
+        for it in qr:
+            scode, day, lb, down = it
+            code = scode[2 : ]
+            day = int(day.replace('-', ''))
+            if day not in maps:
+                maps[day] = {'ZT': 0, 'DT': 0, 'ZB': 0}
+            if isClsZs:
+                obj = gn_utils.cls_gntc_s.get(code, None)
+            else:
+                obj = gn_utils.ths_gntc_s.get(code, None)
+            if not obj:
+                continue
+            for a in attrs:
+                if self.code in obj.get(a, ''):
+                    if lb: maps[day]['ZT'] += 1
+                    elif lb == 0 and down == 0: maps[day]['ZB'] += 1
+                    elif down: maps[day]['DT'] += 1
+                    break
+        self.cdata = maps
+
+    def drawItem(self, hdc, drawer : Drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        IW = self.config['itemWidth']
+        day = self.data[idx].day
+        if not self.cdata or day not in self.cdata or not self.cdata[day]:
+            return
+        info = self.cdata[day]
+        ITEM_H = self.height // 2
+        zt, zb, dt = info['ZT'], info['ZB'], info['DT']
+        if zt or zb:
+            txt = f'{zt}+{zb}'
+            rc = (x, 0, x + IW, ITEM_H)
+            drawer.drawText(hdc, txt, rc, 0xff3333, win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER)
+        if dt:
+            rc = (x, ITEM_H, x + IW, self.height)
+            drawer.drawText(hdc, str(dt), rc, 0x00ffff, win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER)
+        
 if __name__ == '__main__':
     #base_win.ThreadPool.instance().start()
     pass

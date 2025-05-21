@@ -365,7 +365,7 @@ class Server:
         if endDayInt > int(tradeDays[-1]):
             endDayInt = int(tradeDays[-1])
         for i in range(len(tradeDays) - 1, -1, -1):
-            if endDayInt <= int(tradeDays[i]):
+            if endDayInt >= int(tradeDays[i]):
                 endDayInt = int(tradeDays[i])
                 break
         si = i - period + 1
@@ -379,7 +379,7 @@ class Server:
             name = stocks[i].get('secu_name', '')
             snum = cs.get(code, 0)
             stocks[i]['_snum_'] = snum
-            if snum < 1 or len(code) != 6 or 'st' in name or 'ST' in name:
+            if len(code) != 6 or 'st' in name or 'ST' in name: # snum < 1 or 
                 stocks.pop(i)
         stocks.sort(key = lambda a: a['_snum_'], reverse = True)
 
@@ -409,9 +409,9 @@ class Server:
     def _subPlateByZT(self, stocks : dict, fromDayInt, endDayInt):
         fromDayStr = f"{fromDayInt // 10000}-{fromDayInt // 100 % 100 :02d}-{fromDayInt % 100 :02d}"
         endDayStr = f"{endDayInt // 10000}-{endDayInt // 100 % 100 :02d}-{endDayInt % 100 :02d}"
-        qr = ths_orm.THS_ZT.select(ths_orm.THS_ZT.code, pw.fn.count()).where(ths_orm.THS_ZT.day >= fromDayStr, ths_orm.THS_ZT.day <= endDayStr).group_by(ths_orm.THS_ZT.code).tuples()
+        qr = cls_orm.CLS_UpDown.select(cls_orm.CLS_UpDown.secu_code, pw.fn.count()).where(cls_orm.CLS_UpDown.day >= fromDayStr, cls_orm.CLS_UpDown.day <= endDayStr).group_by(cls_orm.CLS_UpDown.secu_code).tuples()
         for it in qr:
-            code = it[0]
+            code = it[0][2 : ]
             if code in stocks:
                 stocks[code] += it[1]
     

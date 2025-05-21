@@ -35,6 +35,7 @@ def createKLineWindow_ZS(parent = None, rect = None, style = None):
     win.klineWin.addIndicator(kline_indicator.LsAmountIndicator(win.klineWin))
     win.klineWin.addIndicator(kline_indicator.ZsZdPmIndicator(win.klineWin))
     win.klineWin.addIndicator(kline_indicator.CLS_HotTcIndicator(win.klineWin))
+    win.klineWin.addIndicator(kline_indicator.ZT_NumIndicator(win.klineWin))
     win.klineWin.calcIndicatorsRect()
     return win
 
