@@ -1392,7 +1392,7 @@ class ZT_NumIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 60
+            config['height'] = 80
         super().__init__(win, config)
         self.config['title'] = '[涨停数量]'
 
@@ -1446,18 +1446,17 @@ class ZT_NumIndicator(CustomIndicator):
             return
         info = self.cdata[day]
         zt, zb, dt = info['ZT'], info['ZB'], info['DT']
-        COLORS = (0xff3333, 0x33ff33, 0x00ffff)
+        COLORS = (0xFF3333, 0x00ff00, 0x00ffff)
         maxVal = self.valueRange[1]
-        maxHeight = self.height - 20
+        maxHeight = self.height - 30
         SX = (W - IW * 3) // 2 + x
         for i, val in enumerate((zt, zb, dt)):
-            y = maxHeight - int(val / maxVal * maxHeight)
-            y = max(y, 2)
+            y = maxHeight - int(val / maxVal * maxHeight) + 10
             sx = SX + IW * i
             isw = sx + (IW - 6) // 2
-            rc = (isw, y, isw + 6, maxHeight)
+            rc = (isw, y, isw + 6, maxHeight + 10)
             drawer.fillRect(hdc, rc, COLORS[i])
-            trc = (sx, maxHeight, sx + IW, self.height)
+            trc = (sx, maxHeight + 10, sx + IW, self.height)
             drawer.drawText(hdc, val, trc, COLORS[i], win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER)
         
 if __name__ == '__main__':
