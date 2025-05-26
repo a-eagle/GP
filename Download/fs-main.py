@@ -140,7 +140,7 @@ class TimelineDataFileLoader:
         try:
             dst = TimelineDataFile(code)
             lastDay = dst.loadLocalLastDay()
-            if self.newestDay and self.newestDay <= lastDay:
+            if self.getNetNewestDay() and self.getNetNewestDay() <= lastDay:
                 return True
             if len(code) == 6 and code[0] == '8': # ths zs
                 hx = henxin.HexinUrl()
@@ -151,15 +151,14 @@ class TimelineDataFileLoader:
             if datas and ('line' in datas):
                 self.mergeMinlineFile(code, datas['line'])
         except Exception as e:
-            traceback.print_exc()
-            print('Exception: ', code)
+            # traceback.print_exc()
+            print('Exception: download ', code, 'timeline')
             return False
         return True
     
     def _downloadList(self, codes, internalTime, tag):
         try:
-            self.newestDay = self.getNetNewestDay()
-            if not self.newestDay:
+            if not self.getNetNewestDay():
                 return
             print(f'-----begin download militime-----[{tag}]---')
             st = datetime.datetime.now()
@@ -260,6 +259,8 @@ class TimelineDataFileLoader:
         f.close()
 
     def getNetNewestDay(self):
+        if self.newestDay:
+            return self.newestDay
         url = cls.ClsUrl()
         fs = url.loadHistory5FenShi('999999')
         if not fs or ('line' not in fs):
@@ -269,7 +270,8 @@ class TimelineDataFileLoader:
             return None
         for i in range(len(datas) - 1, -1, -1):
             if datas[i].time == 1500:
-                return datas[i].day
+                self.newestDay = datas[i].day
+                return self.newestDay
         return None
     
     def getLocalNewestDay(self):
@@ -302,7 +304,7 @@ class KlineDataFileLoader:
         try:
             dst = KlineDataFile(code)
             lastDay = dst.loadLocalLastDay()
-            if self.newestDay and self.newestDay <= lastDay:
+            if self.getNetNewestDay() and self.getNetNewestDay() <= lastDay:
                 return True
             if len(code) == 6 and code[0] == '8': # ths zs
                 hx = henxin.HexinUrl()
@@ -312,8 +314,8 @@ class KlineDataFileLoader:
                 datas = url.loadKline(code, 100)
             self.writeToFile(code, datas)
         except Exception as e:
-            traceback.print_exc()
-            print('Exception: ', code)
+            # traceback.print_exc()
+            print('Exception: download ', code, 'kline')
             return False
         return True
     
@@ -345,6 +347,8 @@ class KlineDataFileLoader:
         f.close()
 
     def getNetNewestDay(self):
+        if self.newestDay:
+            return self.newestDay
         url = cls.ClsUrl()
         fs = url.loadHistory5FenShi('999999')
         if not fs or ('line' not in fs):
@@ -354,7 +358,8 @@ class KlineDataFileLoader:
             return None
         for i in range(len(datas) - 1, -1, -1):
             if datas[i].time == 1500:
-                return datas[i].day
+                self.newestDay = datas[i].day
+                return self.newestDay
         return None
     
     def getLocalNewestDay(self):
@@ -367,8 +372,7 @@ class KlineDataFileLoader:
 
     def _downloadList(self, codes, internalTime, tag):
         try:
-            self.newestDay = self.getNetNewestDay()
-            if not self.newestDay:
+            if not self.getNetNewestDay():
                 return
             print(f'-----begin download kline-----[{tag}]---')
             st = datetime.datetime.now()
@@ -448,11 +452,14 @@ class Main:
                 continue
             self.downloadKLine()
             self.downloadTLine()
+            time.sleep(60 * 60 * 2)
 
 if __name__ == '__main__':
     try:
-        # ld = KlineDataFileLoader()
-        # ld._downloadList(['399001', '399006', '999999'], 0.1, 'AA')
+        ld = KlineDataFileLoader()
+        #ld._downloadList(['399001', '399006', '999999'], 0.1, 'AA')
+        #ld._downloadList(['002131', '600050', '600157', '603005'], 0.1, 'BB')
+
         m = Main()
         m.run()
     except Exception as e:

@@ -320,6 +320,7 @@ class Server:
         try:
             day = flask.request.args.get('day', None)
             period = flask.request.args.get('period', 30)
+            subByHots = flask.request.args.get('subByMaxHots', '')
             params = f'app=CailianpressWeb&os=web&rever=1&secu_code={code}&sv=8.4.6&way=last_px'
             url = 'https://x-quote.cls.cn/web_quote/plate/stocks?' + cls.ClsUrl().signParams(params)
             data = memcache.cache.getCache(url)
@@ -330,7 +331,7 @@ class Server:
                 js = json.loads(resp.content.decode())
                 data = js['data']['stocks']
                 memcache.cache.saveCache(url, data, 60 * 60 * 2)
-            self._subPlate(data, day, period)
+            self._calcPlate(data, day, period, subByHots)
             return data
         except Exception as e:
             traceback.print_exc()
@@ -339,6 +340,7 @@ class Server:
     def getPlateThs(self, code):
         day = flask.request.args.get('day', None)
         period = flask.request.args.get('period', 30)
+        subByHots = flask.request.args.get('subByMaxHots', '')
         data = []
         for c in gn_utils.ths_gntc_s:
             info = gn_utils.ths_gntc_s[c]
@@ -347,10 +349,11 @@ class Server:
                 info['secu_code'] = ('sh'if info['code'][0] == '6' else 'sz') + info['code']
                 info['secu_name'] = info['name']
                 data.append(info)
-        self._subPlate(data, day, period)
+        self._calcPlate(data, day, period, subByHots)
         return data
     
-    def _subPlate(self, stocks : list, day, period):
+    def _calcPlate(self, stocks : list, day, period, subByHots):
+        subByHots = subByHots == 'true'
         period = int(period)
         if not day or len(day) < 8:
             day = datetime.date.today()
@@ -371,19 +374,41 @@ class Server:
         si = i - period + 1
         fromDayInt = int(tradeDays[si])
 
-        self._subPlateByHots(cs, fromDayInt, endDayInt)
-        self._subPlateByZS(cs, fromDayInt, endDayInt)
-        self._subPlateByZT(cs, fromDayInt, endDayInt)
+        self._calcPlateByHots(cs, fromDayInt, endDayInt)
+        self._calcPlateByZS(cs, fromDayInt, endDayInt)
+        self._calcPlateByZT(cs, fromDayInt, endDayInt)
+        self._calcPlateByMaxHots(stocks, endDayInt)
         for i in range(len(stocks) - 1, -1, -1):
-            code = stocks[i]['secu_code'][2 : ]
-            name = stocks[i].get('secu_name', '')
+            st = stocks[i]
+            code = st['secu_code'][2 : ]
+            name = st.get('secu_name', '')
             snum = cs.get(code, 0)
-            stocks[i]['_snum_'] = snum
+            st['_snum_'] = snum
             if len(code) != 6 or 'st' in name or 'ST' in name: # snum < 1 or 
+                stocks.pop(i)
+                continue
+            if subByHots and not st.get('maxHot', 0):
                 stocks.pop(i)
         stocks.sort(key = lambda a: a['_snum_'], reverse = True)
 
-    def _subPlateByHots(self, stocks : dict, fromDayInt, endDayInt):
+    def _calcPlateByMaxHots(self, stocks : list, endDayInt):
+        hots = {}
+        istoks = [s['secu_code'][2 : ] for s in stocks if len(s['secu_code']) == 8 and s['secu_code'][2] in ('0', '3', '6')]
+        endDay = datetime.date(endDayInt // 10000, endDayInt // 100 % 100, endDayInt % 100)
+        fromDay = endDay - datetime.timedelta(days = 60)
+        fromDay = int(fromDay.strftime('%Y%m%d'))
+        qr = ths_orm.THS_HotZH.select(ths_orm.THS_HotZH.code, pw.fn.min(ths_orm.THS_HotZH.zhHotOrder)) \
+            .where(ths_orm.THS_HotZH.code.in_(istoks), ths_orm.THS_HotZH.day >= fromDay)\
+                .group_by(ths_orm.THS_HotZH.code).tuples()
+        for it in qr:
+            code = f'{it[0] :06d}'
+            hots[code] = it[1]
+        for st in stocks:
+            code = st['secu_code'][2 : ]
+            if code in hots:
+                st['maxHot'] = hots[code]
+
+    def _calcPlateByHots(self, stocks : dict, fromDayInt, endDayInt):
         qr = ths_orm.THS_HotZH.select(ths_orm.THS_HotZH.code, pw.fn.count()).where(ths_orm.THS_HotZH.day >= fromDayInt, ths_orm.THS_HotZH.day <= endDayInt).group_by(ths_orm.THS_HotZH.code).tuples()
         for it in qr:
             code = f'{it[0] :06d}'
@@ -399,14 +424,14 @@ class Server:
             if code in stocks:
                 stocks[code] += 1
 
-    def _subPlateByZS(self, stocks : dict, fromDayInt, endDayInt):
+    def _calcPlateByZS(self, stocks : dict, fromDayInt, endDayInt):
         qr = d_orm.LocalSpeedModel.select(d_orm.LocalSpeedModel.code, pw.fn.count()).where(d_orm.LocalSpeedModel.day >= fromDayInt, d_orm.LocalSpeedModel.day <= endDayInt).group_by(d_orm.LocalSpeedModel.code).tuples()
         for it in qr:
             code = it[0]
             if code in stocks:
                 stocks[code] += it[1]
 
-    def _subPlateByZT(self, stocks : dict, fromDayInt, endDayInt):
+    def _calcPlateByZT(self, stocks : dict, fromDayInt, endDayInt):
         fromDayStr = f"{fromDayInt // 10000}-{fromDayInt // 100 % 100 :02d}-{fromDayInt % 100 :02d}"
         endDayStr = f"{endDayInt // 10000}-{endDayInt // 100 % 100 :02d}-{endDayInt % 100 :02d}"
         qr = cls_orm.CLS_UpDown.select(cls_orm.CLS_UpDown.secu_code, pw.fn.count()).where(cls_orm.CLS_UpDown.day >= fromDayStr, cls_orm.CLS_UpDown.day <= endDayStr).group_by(cls_orm.CLS_UpDown.secu_code).tuples()
@@ -419,6 +444,7 @@ class Server:
         try:
             day = flask.request.args.get('day', None)
             period = flask.request.args.get('period', 30)
+            subByHots = flask.request.args.get('subByMaxHots', '')
             params = f'app=CailianpressWeb&os=web&rever=1&secu_code={code}&sv=8.4.6&way=last_px'
             url = 'https://x-quote.cls.cn/web_quote/plate/industry?' + cls.ClsUrl().signParams(params)
             data = memcache.cache.getCache(url)
@@ -432,7 +458,7 @@ class Server:
             if not data:
                 return []
             for d in data:
-                self._subPlate(d['stocks'], day, period)
+                self._calcPlate(d['stocks'], day, period, subByHots)
             return data
         except Exception as e:
             traceback.print_exc()

@@ -161,7 +161,6 @@ function initPlatePage() {
     pdiv.append(ui).append(btn);
     pdiv.css('background-color', 'rgb(250, 250, 250)');
 
-
     let picker = $('<button style="margin-left:30px;" >选择日期 </button>');
     let fday = null;
     if (day) {
@@ -183,9 +182,16 @@ function initPlatePage() {
         });
         window.dpFS.openFor(this);
     });
+    let checked = params.subByMaxHots == 'true' ? 'checked=true' : ''
+    let onlyHotsBtn = $(`<input style="margin-left:30px;" type="checkbox" ${checked}> 最高热度(近60天) </input>`);
+    onlyHotsBtn.click(function() {
+        let px = getLocationParams();
+        px.subByMaxHots = px.subByMaxHots == 'true' ? 'false' : 'true';
+        window.location.href = paramsToUrl(px);
+    });
     let wrap = $('<div style="height: 80px; background-color: #d0d0d0; margin-bottom: 5px;"> </div>');
     let w1 = $('<div style="float:left; border-right: solid 2px #999; height: 100%; padding-right:10px;"> </div>');
-    w1.append(picker);
+    w1.append(picker).append(onlyHotsBtn);
     let w2 = $('<div style="float:left; height: 100%; border-right: solid 2px #999; padding: 0 5px;"> </div>');
     let ps = $('<button val="5" name="period">活跃周期(5&nbsp;&nbsp;日) </button> <button val="10" name="period">活跃周期(10日) </button> <br/> <button val="20" name="period">活跃周期(20日) </button> <button val="30" name="period">活跃周期(30日) </button>');
     w2.append(ps);
@@ -228,11 +234,18 @@ function loadUI() {
             else val = '';
             tdObj.text(val);
         }
+        let hotRender = function(rowIdx, rowData, head, tdObj) {
+            let val = rowData[head.name];
+            if (val) val += '°';
+            else val = '';
+            tdObj.text(val);
+        }
         let hd = [
             {text: '标记', 'name': 'mark_color', width: 40, defined: true, sortable: true},
             {text: '股票/代码', 'name': 'code', width: 80},
             {text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
             {text: '活跃指数', 'name': '_snum_', width: 70, sortable: true, cellRender: hyzsRender},
+            {text: '最高热度', 'name': 'maxHot', width: 70, sortable: true, defined: true, cellRender: hotRender},
             {text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
             {text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
             {text: '成交额', 'name': 'amount', width: 50, sortable: true, defined: true},
@@ -310,10 +323,11 @@ function loadStoks() {
     let code = params.refThsCode || params.code;
     let day = params.day || '';
     let period = params.period;
+    let subByMaxHots = params.subByMaxHots || '';
     if (! period) {
         return;
     }
-    let url = `http://localhost:5665/plate/${code}?day=${day}&period=${period}`;
+    let url = `http://localhost:5665/plate/${code}?day=${day}&period=${period}&subByMaxHots=${subByMaxHots}`;
     $.ajax({
         url: url, type: 'GET',
         success: function(resp) {
@@ -321,7 +335,7 @@ function loadStoks() {
             window['StockData'] = sd;
         }
     });
-    url = `http://localhost:5665/industry/${code}?day=${day}&period=${period}`;
+    url = `http://localhost:5665/industry/${code}?day=${day}&period=${period}&subByMaxHots=${subByMaxHots}`;
     $.ajax({
         url: url, type: 'GET',
         success: function(resp) {
