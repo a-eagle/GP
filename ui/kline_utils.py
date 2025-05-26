@@ -12,7 +12,7 @@ def createKLineWindow(parent = None, rect = None, style = None):
     dh = win32api.GetSystemMetrics (win32con.SM_CYSCREEN) - 35
     if not rect:
         BORDER = 7
-        W, H = int(dw + BORDER * 2), int(dh * 0.92)
+        W, H = int(dw + BORDER * 2), int(dh * 0.98)
         x = -BORDER
         y = dh - H
         rect = (x, y, W, H)

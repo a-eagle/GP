@@ -69,10 +69,11 @@ class ContextMenuManager:
             mm.extend([
               {'title': '叠加指数 THS', 'name': 'add-ref-zs', 'sub-menu': self.getThsZsList(selDay)},
               {'title': '叠加指数 CLS', 'name': 'add-ref-zs', 'sub-menu': self.getClsZsList(selDay)},
-              {'title': '打开叠加指数', 'name': 'open-cur-ref-zs'},
-              {'title': 'LINE'},
-              {'title': '查看板块个股 THS', 'name': 'open-ref-thszs', 'sub-menu': self.getThsZsList(selDay)},
-              {'title': '查看板块个股 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList(selDay)},
+              {'title': '查看指数', 'name': 'open-cur-ref-zs'},
+              {'title': '查看板块', 'name': 'open-cur-ref-zs-bk', 'enable': selDay > 0, 'day': selDay},
+              #{'title': 'LINE'},
+              #{'title': '查看板块个股 THS', 'name': 'open-ref-thszs', 'sub-menu': self.getThsZsList(selDay)},
+              #{'title': '查看板块个股 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList(selDay)},
               {'title': '查看当日行情', 'name': 'open-ref-global', 'enable': selDay > 0, 'day': selDay},
             ])
         else:
@@ -210,14 +211,18 @@ class ContextMenuManager:
             zsWin = kline_utils.openInCurWindow(self.win.hwnd, data)
             for d in mk:
                 zsWin.klineWin.marksMgr.setMarkDay(d, mk[d])
+        elif name == 'open-cur-ref-zs-bk':
+            code = self.win.refIndicator.code
+            day = evt.item["day"]
+            self.openRefZs(code, day)
         elif name == 'open-ref-thszs':
             code = evt.item['code']
             day = evt.item["day"]
-            self.openRefThsZs(code, day)
+            self._openRefThsZs(code, day)
         elif name == 'open-ref-clszs':
             code = evt.item['code']
             day = evt.item["day"]
-            self.openRefClsZs(code, day)
+            self._openRefClsZs(code, day)
         elif name == 'open-ref-global':
             day = evt.item["day"]
             self.openRefGlobal(day)
@@ -225,9 +230,9 @@ class ContextMenuManager:
             code = self.win.klineIndicator.code
             day = evt.item["day"]
             if code[0 : 2] == '88':
-                self.openRefThsZs(code, day)
+                self._openRefThsZs(code, day)
             else:
-                self.openRefClsZs(code, day)
+                self._openRefClsZs(code, day)
         elif name == 'add-ref-zs':
             code = evt.item['code']
             self.win.refIndicator.changeCode(code, self.win.klineIndicator.period)
@@ -259,18 +264,26 @@ class ContextMenuManager:
             obj.color = scolor
             obj.save()
 
-    def openRefClsZs(self, code, day):
+    def _openRefClsZs(self, code, day):
         # pip install websockets
         url = f'https://www.cls.cn/plate?code={code}&day={day}'
         pyperclip.copy(url)
         win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
 
-    def openRefThsZs(self, code, day):
+    def _openRefThsZs(self, code, day):
         obj = ths_orm.THS_ZS.get_or_none(ths_orm.THS_ZS.code == code)
         name = obj.name if obj else ''
         url = f'https://www.cls.cn/plate?code=0&day={day}&refThsCode={code}&refThsName={name}'
         pyperclip.copy(url)
         win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
+
+    def openRefZs(self, code, day):
+        if not code:
+            return
+        if code[0 : 2] == '88':
+            self._openRefThsZs(code, day)
+        elif code[0 : 3] == 'cls':
+            self._openRefClsZs(code, day)
 
     def openRefGlobal(self, day):
         url = f'https://www.cls.cn/finance?day={day}'
@@ -781,6 +794,15 @@ class KLineWindow(base_win.BaseWindow):
         # default deal
         self.contextMenuMgr.show(x, y)
 
+    def onDblClick(self, x, y):
+        it = self.getIndicatorByPoint(x, y)
+        if it and it.onDblClick(x - it.x, y - it.y):
+            return
+        # default deal
+        if self.selIdx > 0:
+            data = self.klineIndicator.data[self.selIdx]
+            self.notifyListener(self.Event('DbClick', self, code = self.klineIndicator.code, idx = self.selIdx, data = data))
+
     def createWindow(self, parentWnd, rect, style = win32con.WS_VISIBLE | win32con.WS_CHILD, className = 'STATIC', title = ''):
         super().createWindow(parentWnd, rect, style, className, title)
         self.calcIndicatorsRect()
@@ -816,9 +838,8 @@ class KLineWindow(base_win.BaseWindow):
             self.onMouseClick(x, y)
             return True
         if msg == win32con.WM_LBUTTONDBLCLK:
-            if self.selIdx > 0:
-                data = self.klineIndicator.data[self.selIdx]
-                self.notifyListener(self.Event('DbClick', self, code = self.klineIndicator.code, idx = self.selIdx, data = data))
+            x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
+            self.onDblClick(x, y)
             return True
         if msg == win32con.WM_RBUTTONUP:
             x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
@@ -1015,6 +1036,7 @@ class KLineWindow(base_win.BaseWindow):
         win.addIndicator(GnLdIndicator(win))
         win.addIndicator(ZhangSuIndicator(win))
         win.addIndicator(LhbIndicator(win))
+        win.addIndicator(RefZS_ZT_NumIndicator(win))
         return win
 
     @staticmethod

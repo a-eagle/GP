@@ -180,7 +180,10 @@ class Indicator:
             self.win.setSelIdx(si)
             return True
         return False
-
+    
+    def onDblClick(self, x, y):
+        return False
+    
     def onContextMenu(self, x, y):
         return True
 
@@ -1034,7 +1037,8 @@ class ClsZT_Indicator(CustomIndicator):
         drawer.drawText(hdc, detail, rc, 0xcccccc, win32con.DT_WORDBREAK | win32con.DT_VCENTER)
         drawer.drawRect(hdc, rc, 0xa0f0a0)
         win32gui.ReleaseDC(self.win.hwnd, hdc)
-    
+
+#概念联动
 class GnLdIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
@@ -1115,7 +1119,7 @@ class GnLdIndicator(CustomIndicator):
                 drawer.fillRect(hdc, rc, 0x3CDC14)
             sx += IIW
 
-    def onContextMenu(self, x, y):
+    def _onContextMenu(self, x, y):
         if not self.clsGntc:
             return
         menu = PopupMenu.create(self.win.hwnd, self.clsGntc)
@@ -1394,7 +1398,7 @@ class ZT_NumIndicator(CustomIndicator):
         if 'height' not in config:
             config['height'] = 80
         super().__init__(win, config)
-        self.config['title'] = '[涨停数量]'
+        self.config['title'] = '[涨跌停]'
 
     def _changeCode(self):
         super()._changeCode()
@@ -1458,7 +1462,35 @@ class ZT_NumIndicator(CustomIndicator):
             drawer.fillRect(hdc, rc, COLORS[i])
             trc = (sx, maxHeight + 10, sx + IW, self.height)
             drawer.drawText(hdc, val, trc, COLORS[i], win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER)
-        
+    
+    def onDblClick(self, x, y):
+        from ui import kline_win
+        if not self.code:
+            return True
+        mgr = kline_win.ContextMenuManager(None)
+        idx = self.getIdxAtX(x)
+        if idx < 0:
+            return True
+        curData = self.getItemData(idx)
+        mgr.openRefZs(self.code, curData.day)
+        return True
+    
+# 关联指数的涨停信息（用于个股）
+class RefZS_ZT_NumIndicator(ZT_NumIndicator):
+    def __init__(self, win, config = None) -> None:
+        super().__init__(win, config)
+        self.config['title'] = '[板块-]'
+        self.refCode = None
+        self.win.addNamedListener('Ref-Model-Changed', self.onRefChanged)
+
+    def onRefChanged(self, evt, args):
+        if not evt.code or not evt.model:
+            return
+        self.refCode = evt.code
+        name = evt.model.name
+        self.config['title'] = f'[板块-{name}]'
+        super().changeCode(self.refCode, self.period)
+
 if __name__ == '__main__':
     #base_win.ThreadPool.instance().start()
     pass
