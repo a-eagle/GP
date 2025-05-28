@@ -631,9 +631,109 @@ class TimelinePanKouWindow(base_win.BaseWindow):
     def loadRef(self, code):
         self.timelineWin.loadRef(code)
 
+class TimelineRender:
+    ONE_DAY_LINES = 241
+
+    def __init__(self, code, day) -> None:
+        self.code = code
+        self.day = day
+        self.model = None
+        self.canceled = False
+        self.win = None
+        self.maxPrice = self.minPrice = 0
+        self.hilights = []
+
+    def load(self):
+        self.model = TimelineModel()
+        num = len(base_win.ThreadPool.instance().threads)
+        taskId = f'{self.day}-{self.code}'
+        base_win.ThreadPool.instance().addTaskOnThread(num - 1, taskId, self._load)
+
+    def _load(self):
+        if self.canceled:
+            return
+        self.model.load(self.code, self.day)
+        self.calcMinMaxPrice()
+        self.initHilights()
+
+    def initHilights(self):
+        self.hilights.clear()
+        fxc = fx.FenXiCode(self.model.dataModel.code)
+        fxc.mdf = self.model.dataModel
+        fxc.calcOneDay(self.model.dataModel.day, False)
+        for x in fxc.results:
+            self.addHilight(x['fromMinute'], x['endMinute'], x)
+        if self.win:
+            self.win.invalidWindow()
+
+    def addHilight(self, fromMinute, endMinute, info):
+        fe = (fromMinute, endMinute, info)
+        self.hilights.append(fe)
+
+    def cancel(self):
+        self.canceled = True
+
+    def onDraw(self, win, hdc, row, col, colName, value, rowData, rect):
+        self.win = win
+        self.drawMinites(hdc, rect)
+
+    def calcMinMaxPrice(self):
+        maxPrice = 0
+        minPrice = 9999999
+        datas = self.model.dataModel.data
+        for d in datas:
+            price = d.price
+            if price > maxPrice:
+                maxPrice = price
+            if price < minPrice:
+                minPrice = price
+        self.maxPrice = maxPrice
+        self.minPrice = minPrice
+
+    def getLineColor(self):
+        last = self.model.dataModel.data[-1]
+        MZF = 20 if self.code[0] == '3' or self.code[0 : 3] == '688' else 10
+        minPrice = int(self.minPrice * 100 + 0.5)
+        maxPrice = int(self.maxPrice * 100 + 0.5)
+        pre = int(self.model.dataModel.pre * 100 + 0.5)
+        MAXP = int((pre * (100 + MZF)) / 100 + 0.5)
+        MINP = int((pre * (100 - MZF)) / 100 + 0.5)
+        # if maxPrice >= MAXP and minPrice <= MINP:
+        #     return 0x00ffff # 天地板
+        if maxPrice >= MAXP:
+            return 0xff0000
+        if minPrice <= MINP:
+            return 0x00AAAA
+        if int(last.price * 100) >= pre:
+            return 0x0000ff
+        return 0x00ff00
+
+    def drawMinites(self, hdc, rect):
+        if not self.model or not self.model.dataModel or not self.model.dataModel.data:
+            return
+        datas = self.model.dataModel.data
+        drawer = base_win.Drawer().instance()
+        drawer.use(hdc, drawer.getPen(self.getLineColor()))
+        W, H = rect[2] - rect[0], rect[3] - rect[1]
+        PADDING_X = 30
+        minPrice, maxPrice, pre = self.model.getPriceRange()
+        if minPrice > pre:
+            minPrice = pre
+        if maxPrice < pre:
+            maxPrice = pre
+        pointsCount = 241
+        pointsDistance = (W - PADDING_X) / (pointsCount - 1)
+        for i, md in enumerate(datas):
+            x = int(i * pointsDistance) + rect[0]
+            y = int(H - (md.price - minPrice) * H / (maxPrice - minPrice)) + rect[1]
+            if i == 0:
+                win32gui.MoveToEx(hdc, x, y)
+            else:
+                win32gui.LineTo(hdc, x, y)
+
 if __name__ == '__main__':
     win = TimelinePanKouWindow()
     win.createWindow(None, (0, 0, 1000, 600), win32con.WS_OVERLAPPEDWINDOW | win32con.WS_VISIBLE)
     win.load('301016', 20250403) # cls82437 sh000001 ; 300390  600611
-    win.loadRef('cls82437') 
+    win.loadRef('cls82437')
     win32gui.PumpMessages()

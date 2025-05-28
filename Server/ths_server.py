@@ -198,6 +198,7 @@ class Server:
             return True
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.GREEN, f'[Vol-Top100] {tag} Fail')
         return False
 
     def downloadSaveZs(self, tag):
@@ -212,6 +213,7 @@ class Server:
             return len(rs) > 0
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.GREEN, f"Save ZS Fail")
         return False
 
     def downloadSaveDde(self):
@@ -236,6 +238,7 @@ class Server:
             return True
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.GREEN, f'[THS-HyGn] {tag} Fail')
         return False
 
     def download_codes(self, tag):
@@ -282,6 +285,7 @@ class Server:
             return True
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.GREEN, f'[THS-DT] {tag} Fail')
         return False
 
     def loadOneTime(self):
@@ -323,7 +327,7 @@ class Server:
         #    self.downloadInfos[f'code-{day}'] = ok
         # 下载个股跌停
         if (curTime >= '22:00') and not self.downloadInfos.get(f'dt-{day}', False):
-            ok = self.download_dt('[6/5]')
+            ok = self.download_dt('[5/5]')
             self.downloadInfos[f'dt-{day}'] = ok
 
     def loadHotsOneTime(self):

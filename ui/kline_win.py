@@ -707,6 +707,27 @@ class RangeSelectorManager:
             return self.captureMouse
         return False
 
+# 日龙N标记
+class DayLongManager:
+    def __init__(self, win) -> None:
+        self.win = win
+        self.code = None
+        self.refCode = None
+        win.addNamedListener('Ref-Model-Changed', self.onRefModelChanged)
+        win.addNamedListener('K-Model-Changed', self.onKModelChanged)
+
+    def onRefModelChanged(self, evt, args):
+        self.refCode = evt.code
+        self.onChanged()
+
+    def onKModelChanged(self, evt, args):
+        self.code = evt.code
+        self.refCode = None
+
+    def onChanged(self):
+        if not self.code or not self.refCode:
+            return
+
 class KLineWindow(base_win.BaseWindow):
     LEFT_MARGIN, RIGHT_MARGIN = 0, 70
 
@@ -728,6 +749,7 @@ class KLineWindow(base_win.BaseWindow):
         self.contextMenuMgr = ContextMenuManager(self)
         self.lineMgr = TextLineManager(self)
         self.rangeSelMgr = RangeSelectorManager(self)
+        self.dayLongMgr = DayLongManager(self)
 
     def addIndicator(self, indicator : Indicator):
         self.indicators.append(indicator)

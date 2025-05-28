@@ -128,6 +128,7 @@ class Server:
             return True
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.CYAN, f'[CLS-Degree] {tag} Fail')
         return False
 
     def saveDegreeTime(self, day, time, degree):
@@ -243,6 +244,7 @@ class Server:
             return num > 0
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.CYAN, f'[Cls-HotTc] {tag} Fail')
         return False
 
     # 指数（板块概念）
@@ -267,6 +269,7 @@ class Server:
             console.writeln_1(console.CYAN, f'[CLS-ZS] {tag} {self.formatNowTime(True)} insert={i} update={u}')
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.CYAN, f'[CLS-ZS] {tag} Fail')
 
     def downloadZS_ZD(self, tag):
         try:
@@ -292,6 +295,7 @@ class Server:
             return True
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.CYAN, f'[CLS-ZS-ZD] {tag} Fail')
         return False
 
     # 指数分时
@@ -310,6 +314,7 @@ class Server:
             console.writeln_1(console.GREEN, f'[CLS-ZS-ZD] {self.formatNowTime(True)} insert={i} update={u}')
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.GREEN, f'[CLS-ZS-ZD] Fail')
 
     # 个股概念板块，仅更新前后10名的概念指数关联的个股
     def downloadBkGn(self, tag, day = None):
@@ -364,6 +369,7 @@ class Server:
             console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} {self.formatNowTime(True)} check {total}, update {u}, insert {i}, use time: {t :.1f} minutes')
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} Fail')
 
     def downloadZT_PanKou(self, tag):
         try:
@@ -384,6 +390,7 @@ class Server:
                 console.writeln_1(console.CYAN, f'[Cls-ZT-PanKou] {tag} {self.formatNowTime(True)} ')
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.CYAN, f'[Cls-ZT-PanKou] {tag} Fail')
 
     # 涨跌停、炸板
     def downloadUpDown(self, tag):
@@ -444,6 +451,7 @@ class Server:
             return True
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.CYAN, f'[Cls-EastMoney-Zdfb] Fail')
         return False
 
 def do_reason():

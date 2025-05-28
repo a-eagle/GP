@@ -106,6 +106,29 @@ def formatDateTime(ts):
     ms = f'{ts.hour :02d}:{ts.minute :02d}:{ts.second :02d}'
     return f'{ds} {ms}'
 
+# return item dict
+def hasRefZs(code, refZsCode):
+    if not refZsCode or not code:
+        return None
+    if code[0 : 2] == 'sz' or code[0 : 2] == 'sh':
+        code = code[2 : ]
+    if refZsCode[0 : 2] == '88':
+        obj = ths_gntc_s.get(code)
+        if not obj: 
+            return None
+        if refZsCode == obj['hy_2_code'] or refZsCode == obj['hy_3_code']:
+            return obj
+        if refZsCode in (obj['gn_code'] or ()):
+            return obj
+    if refZsCode[0 : 3] == 'cls':
+        obj = cls_gntc_s.get(code)
+        if not obj: 
+            return None
+        if refZsCode in obj['hy_code']:
+            return obj
+        if refZsCode in (obj['gn_code'] or ()):
+            return obj
+    return None
 
 if __name__ == '__main__':
     c = time.time()

@@ -418,8 +418,7 @@ class RefIndicator(Indicator):
         self.valueRange = None
         self.visibleRange = None
         self.period = period
-        CustomIndicator._taskIds += 1
-        ThreadPool.instance().addTask(CustomIndicator._taskIds, self._changeCode)
+        ThreadPool.instance().addTask_N(self._changeCode)
 
     def _changeCode(self):
         self.persent = 0
@@ -697,8 +696,6 @@ class RateIndicator(AttrIndicator):
 
 # config = {itemWidth: int}
 class CustomIndicator(Indicator):
-    _taskIds = 0
-
     def __init__(self, win, config = None) -> None:
         super().__init__(win, config)
         if 'itemWidth' not in self.config:
@@ -717,8 +714,7 @@ class CustomIndicator(Indicator):
         self.valueRange = None
         self.visibleRange = None
         self.period = period
-        CustomIndicator._taskIds += 1
-        ThreadPool.instance().addTask(CustomIndicator._taskIds, self._changeCode)
+        ThreadPool.instance().addTask_N(self._changeCode)
 
     def _changeCode(self):
         self.calcVisibleRange(self.win.selIdx)
@@ -1467,13 +1463,51 @@ class ZT_NumIndicator(CustomIndicator):
         from ui import kline_win
         if not self.code:
             return True
-        mgr = kline_win.ContextMenuManager(None)
+        #mgr = kline_win.ContextMenuManager(None)
         idx = self.getIdxAtX(x)
         if idx < 0:
             return True
         curData = self.getItemData(idx)
-        mgr.openRefZs(self.code, curData.day)
+        #mgr.openRefZs(self.code, curData.day)
+        self.showZT_List(curData)
         return True
+
+    def showZT_List(self, item):
+        from ui import timeline, dialog
+        if not self.code:
+            return
+        headers = [{'name': '#idx', 'width': 30}, {'name': 'code', 'width': 80, 'title': '代码'}, 
+                   {'name': 'name', 'width': 80, 'title': '名称'},
+                   {'name': 'fs', 'width': 80, 'stretch': 1, 'render': self.fsRender, 'paddings': (0, 2, 0, 2)}]
+        tab = TableWindow()
+        tab.rowHeight = 50
+        tab.css['selBgColor'] = 0xEAD6D6 # 0xEAD6D6 #0xf0a0a0
+        tab.headers = headers
+        day = f'{item.day // 10000}-{item.day // 100 % 100 :02d}-{item.day % 100 :02d}'
+        qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day).dicts()
+        model = []
+        for it in qr:
+            code = it['secu_code'][2 : ]
+            fd = gn_utils.hasRefZs(code, self.code)
+            if not fd:
+                continue
+            rr = timeline.TimelineRender(code, day)
+            model.append({'code': fd['code'], 'name': fd['name'], 'day': day, 'fsObj': rr})
+            rr.load()
+        popup = dialog.Dialog()
+        W, H = 500, 300
+        popup.createWindow(self.win.hwnd, (0, 0, W, H), title = f'{day}')
+        tab.createWindow(popup.hwnd, (0, 0, 1, 1))
+        popup.layout = GridLayout(('1fr', ), ('1fr', ), (0, 0))
+        popup.layout.setContent(0, 0, tab)
+        popup.layout.resize(0, 0, W, H)
+        tab.setData(model)
+        popup.showCenter()
+
+    def fsRender(self, win, hdc, row, col, colName, value, rowData, rect):
+        rr = rowData['fsObj']
+        rr.onDraw(win, hdc, row, col, colName, value, rowData, rect)
+
     
 # 关联指数的涨停信息（用于个股）
 class RefZS_ZT_NumIndicator(ZT_NumIndicator):
