@@ -1485,7 +1485,7 @@ class ZT_NumIndicator(CustomIndicator):
         tab.headers = headers
         timeline.Table_TimelineRender.registerFsRender(tab)
         day = f'{item.day // 10000}-{item.day // 100 % 100 :02d}-{item.day % 100 :02d}'
-        qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day).dicts()
+        qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day).order_by(cls_orm.CLS_UpDown.time).dicts()
         model = []
         for it in qr:
             code = it['secu_code'][2 : ]
@@ -1495,7 +1495,8 @@ class ZT_NumIndicator(CustomIndicator):
             model.append({'code': fd['code'], 'name': fd['name'], 'day': day})
         popup = dialog.Dialog()
         W, H = 550, 350
-        popup.createWindow(self.win.hwnd, (0, 0, W, H), title = f'{day}')
+        style = win32con.WS_POPUP | win32con.WS_CAPTION | win32con.WS_SYSMENU | win32con.WS_SIZEBOX
+        popup.createWindow(self.win.hwnd, (0, 0, W, H), style, title = f'{day}')
         tab.createWindow(popup.hwnd, (0, 0, 1, 1))
         popup.layout = GridLayout(('1fr', ), ('1fr', ), (0, 0))
         popup.layout.setContent(0, 0, tab)
@@ -1505,8 +1506,7 @@ class ZT_NumIndicator(CustomIndicator):
         tab.addNamedListener('DbClick', self.onRowEnter, item.day)
         popup.showCenter()
 
-    def onRowEnter(self, evt, args):
-        curDay = args[0]
+    def onRowEnter(self, evt, curDay):
         rowData = evt.data
         from ui import kline_utils
         mds = self.win.marksMgr.data
