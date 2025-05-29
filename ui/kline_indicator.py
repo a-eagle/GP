@@ -1478,7 +1478,7 @@ class ZT_NumIndicator(CustomIndicator):
             return
         tab = TableWindow()
         headers = [{'name': '#idx', 'width': 30}, {'name': 'code', 'width': 80, 'title': '代码'},
-                   {'name': 'name', 'width': 80, 'title': '名称'},
+                   {'name': 'name', 'width': 80, 'title': '名称'},{'name': 'lb', 'width': 50, 'title': '连板'},
                    {'name': 'fs', 'width': 80, 'stretch': 1}]
         tab.rowHeight = 50
         tab.css['selBgColor'] = 0xEAD6D6 # 0xEAD6D6 #0xf0a0a0
@@ -1492,7 +1492,10 @@ class ZT_NumIndicator(CustomIndicator):
             fd = gn_utils.hasRefZs(code, self.code)
             if not fd:
                 continue
-            model.append({'code': fd['code'], 'name': fd['name'], 'day': day})
+            lb = ''
+            if it['limit_up_days'] > 0 and not it['is_down']:
+                lb = str(it['limit_up_days']) + '板'
+            model.append({'code': fd['code'], 'name': fd['name'], 'day': day, 'lb': lb})
         popup = dialog.Dialog()
         W, H = 550, 350
         style = win32con.WS_POPUP | win32con.WS_CAPTION | win32con.WS_SYSMENU | win32con.WS_SIZEBOX
@@ -1502,11 +1505,12 @@ class ZT_NumIndicator(CustomIndicator):
         popup.layout.setContent(0, 0, tab)
         popup.layout.resize(0, 0, W, H)
         tab.setData(model)
-        tab.addNamedListener('RowEnter', self.onRowEnter, item.day)
-        tab.addNamedListener('DbClick', self.onRowEnter, item.day)
+        tab.addNamedListener('RowEnter', self.onRowEnter, (model, item.day))
+        tab.addNamedListener('DbClick', self.onRowEnter, (model, item.day))
         popup.showCenter()
 
-    def onRowEnter(self, evt, curDay):
+    def onRowEnter(self, evt, args):
+        model, curDay = args
         rowData = evt.data
         from ui import kline_utils
         mds = self.win.marksMgr.data
@@ -1514,6 +1518,8 @@ class ZT_NumIndicator(CustomIndicator):
         if curDay not in days:
             days.append(curDay)
         winx = kline_utils.openInCurWindow(self.win, {'code': rowData['code'], 'day': days})
+        codes = [m['code'] for m in model]
+        winx.setCodeList(codes)
         return
         pp = self.win.hwnd
         pcwin = self.win

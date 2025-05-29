@@ -911,6 +911,14 @@ class KLineWindow(base_win.BaseWindow):
         self.notifyListener(Listener.Event('selIdx-Changed', self, idx = idx, day = item.day, data = item, datas = self.klineIndicator.data))
         self.invalidWindow()
 
+    def setSelDay(self, day):
+        if not day:
+            return
+        idt = self.klineIndicator
+        idx = idt.model.getItemIdx(day)
+        self.makeVisible(idx)
+        self.setSelIdx(idx)
+
     def onKeyDown(self, keyCode):
         if keyCode == 73: # page up
             pass
