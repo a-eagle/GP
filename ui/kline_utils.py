@@ -95,7 +95,12 @@ def openInCurWindow(parent, data):
     parent = parent.hwnd if isinstance(parent, base_win.BaseWindow) else parent
     win = createKLineWindowByCode(data['code'], parent)
     win.changeCode(data['code'])
-    win.klineWin.marksMgr.setMarkDay(data.get('day', None))
+    days = data.get('day', None)
+    if isinstance(days, list):
+        for d in days:
+            win.klineWin.marksMgr.setMarkDay(d)
+    else:
+        win.klineWin.marksMgr.setMarkDay(days)
     win.klineWin.makeVisible(-1)
     return win
 

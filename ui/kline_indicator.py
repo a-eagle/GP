@@ -1501,12 +1501,20 @@ class ZT_NumIndicator(CustomIndicator):
         popup.layout.setContent(0, 0, tab)
         popup.layout.resize(0, 0, W, H)
         tab.setData(model)
-        tab.addNamedListener('RowEnter', self.onRowEnter)
-        tab.addNamedListener('DbClick', self.onRowEnter)
+        tab.addNamedListener('RowEnter', self.onRowEnter, item.day)
+        tab.addNamedListener('DbClick', self.onRowEnter, item.day)
         popup.showCenter()
 
     def onRowEnter(self, evt, args):
+        curDay = args[0]
         rowData = evt.data
+        from ui import kline_utils
+        mds = self.win.marksMgr.data
+        days = [d for d in mds]
+        if curDay not in days:
+            days.append(curDay)
+        winx = kline_utils.openInCurWindow(self.win, {'code': rowData['code'], 'day': days})
+        return
         pp = self.win.hwnd
         pcwin = self.win
         while True:
