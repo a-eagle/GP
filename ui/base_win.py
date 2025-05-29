@@ -80,6 +80,7 @@ class BaseWindow(Listener):
                     win32gui.PostQuitMessage(0)
                 return True
             self.onDestory()
+            self.hwnd = None
             del BaseWindow.bindHwnds[hwnd]
         if msg == win32con.WM_RBUTTONUP:
             x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
@@ -143,7 +144,8 @@ class BaseWindow(Listener):
         pass
     
     def onDestory(self):
-        pass
+        self.notifyListener(self.Event('OnDestory', self))
+
     def onMouseWheel(self, delta):
         pass
     @staticmethod

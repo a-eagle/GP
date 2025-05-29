@@ -645,9 +645,10 @@ class TimelineRender:
 
     def load(self):
         self.model = TimelineModel()
-        num = len(base_win.ThreadPool.instance().threads)
-        taskId = f'{self.day}-{self.code}'
-        base_win.ThreadPool.instance().addTaskOnThread(num - 1, taskId, self._load)
+        pool = base_win.ThreadPool.instance()
+        num = len(pool.threads)
+        taskId = pool.nextTaskId()
+        pool.addTaskOnThread(num - 1, taskId, self._load)
 
     def _load(self):
         if self.canceled:
@@ -703,7 +704,7 @@ class TimelineRender:
         if maxPrice >= MAXP:
             return 0xff0000
         if minPrice <= MINP:
-            return 0x00AAAA
+            return 0x00A5FF
         if int(last.price * 100) >= pre:
             return 0x0000ff
         return 0x00ff00
@@ -713,16 +714,17 @@ class TimelineRender:
             return
         datas = self.model.dataModel.data
         drawer = base_win.Drawer().instance()
-        drawer.use(hdc, drawer.getPen(self.getLineColor()))
+        color = self.getLineColor()
+        drawer.use(hdc, drawer.getPen(color))
         W, H = rect[2] - rect[0], rect[3] - rect[1]
-        PADDING_X = 30
-        minPrice, maxPrice, pre = self.model.getPriceRange()
+        PAD_RIGHT = 60
+        minPrice, maxPrice, pre = self.minPrice, self.maxPrice, self.model.dataModel.pre
         if minPrice > pre:
             minPrice = pre
         if maxPrice < pre:
             maxPrice = pre
         pointsCount = 241
-        pointsDistance = (W - PADDING_X) / (pointsCount - 1)
+        pointsDistance = (W - PAD_RIGHT) / (pointsCount - 1)
         for i, md in enumerate(datas):
             x = int(i * pointsDistance) + rect[0]
             y = int(H - (md.price - minPrice) * H / (maxPrice - minPrice)) + rect[1]
@@ -730,6 +732,41 @@ class TimelineRender:
                 win32gui.MoveToEx(hdc, x, y)
             else:
                 win32gui.LineTo(hdc, x, y)
+        # 画最高、最低价、收盘价
+        close = datas[-1].price
+        zf = (close - pre) / pre * 100
+        close = f'{zf :.1f}%'
+        drawer.use(hdc, drawer.getFont(fontSize = 12))
+        drawer.drawText(hdc, close, (rect[0] + W - PAD_RIGHT + 5, rect[1] + H // 2 - 6, rect[2], rect[3]), color = color, align = win32con.DT_LEFT)
+
+class Table_TimelineRender:
+    def __init__(self) -> None:
+        self.items = []
+    
+    @staticmethod
+    def registerFsRender(tableWin):
+        rr = Table_TimelineRender()
+        tableWin.addNamedListener('OnDestory', rr.onTableDestory)
+        for hd in tableWin.headers:
+            if hd['name'] != 'fs':
+                continue
+            hd['render'] = Table_TimelineRender.render
+            if not hd.get('paddings', None):
+                hd['paddings'] = (0, 2, 0, 2)
+        tableWin.__fsRender = rr
+
+    def onTableDestory(self, evt, args):
+        for it in self.items:
+            it.cancel()
+
+    @staticmethod
+    def render(win, hdc, row, col, colName, value, rowData, rect):
+        rr = rowData.get('_fsObj_', None)
+        if not rr:
+            rr = TimelineRender(rowData['code'], rowData.get('day', None))
+            rowData['_fsObj_'] = rr
+            rr.load()
+        rr.onDraw(win, hdc, row, col, colName, value, rowData, rect)
 
 if __name__ == '__main__':
     win = TimelinePanKouWindow()

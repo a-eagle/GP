@@ -793,7 +793,7 @@ class KLineWindow(base_win.BaseWindow):
                 return it
         return None
 
-    def changeCode(self, code, period):
+    def changeCode(self, code, period = 'day'):
         self.selIdx = -1
         if type(code) == int:
             code = f'{code :06d}'
@@ -1025,7 +1025,7 @@ class KLineWindow(base_win.BaseWindow):
         self.drawer.drawText(hdc, title, rc, color = 0x00dddd, align = win32con.DT_RIGHT)
 
     def onDestory(self):
-        pass
+        super().onDestory()
 
     def drawMouse(self, hdc):
         if not self.mouseXY:

@@ -1476,13 +1476,14 @@ class ZT_NumIndicator(CustomIndicator):
         from ui import timeline, dialog
         if not self.code:
             return
-        headers = [{'name': '#idx', 'width': 30}, {'name': 'code', 'width': 80, 'title': '代码'}, 
-                   {'name': 'name', 'width': 80, 'title': '名称'},
-                   {'name': 'fs', 'width': 80, 'stretch': 1, 'render': self.fsRender, 'paddings': (0, 2, 0, 2)}]
         tab = TableWindow()
+        headers = [{'name': '#idx', 'width': 30}, {'name': 'code', 'width': 80, 'title': '代码'},
+                   {'name': 'name', 'width': 80, 'title': '名称'},
+                   {'name': 'fs', 'width': 80, 'stretch': 1}]
         tab.rowHeight = 50
         tab.css['selBgColor'] = 0xEAD6D6 # 0xEAD6D6 #0xf0a0a0
         tab.headers = headers
+        timeline.Table_TimelineRender.registerFsRender(tab)
         day = f'{item.day // 10000}-{item.day // 100 % 100 :02d}-{item.day % 100 :02d}'
         qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day).dicts()
         model = []
@@ -1491,24 +1492,32 @@ class ZT_NumIndicator(CustomIndicator):
             fd = gn_utils.hasRefZs(code, self.code)
             if not fd:
                 continue
-            rr = timeline.TimelineRender(code, day)
-            model.append({'code': fd['code'], 'name': fd['name'], 'day': day, 'fsObj': rr})
-            rr.load()
+            model.append({'code': fd['code'], 'name': fd['name'], 'day': day})
         popup = dialog.Dialog()
-        W, H = 500, 300
+        W, H = 550, 350
         popup.createWindow(self.win.hwnd, (0, 0, W, H), title = f'{day}')
         tab.createWindow(popup.hwnd, (0, 0, 1, 1))
         popup.layout = GridLayout(('1fr', ), ('1fr', ), (0, 0))
         popup.layout.setContent(0, 0, tab)
         popup.layout.resize(0, 0, W, H)
         tab.setData(model)
+        tab.addNamedListener('RowEnter', self.onRowEnter)
+        tab.addNamedListener('DbClick', self.onRowEnter)
         popup.showCenter()
 
-    def fsRender(self, win, hdc, row, col, colName, value, rowData, rect):
-        rr = rowData['fsObj']
-        rr.onDraw(win, hdc, row, col, colName, value, rowData, rect)
+    def onRowEnter(self, evt, args):
+        rowData = evt.data
+        pp = self.win.hwnd
+        pcwin = self.win
+        while True:
+            pp = win32gui.GetParent(pp)
+            if not BaseWindow.bindHwnds.get(pp, None):
+                break
+            px = BaseWindow.bindHwnds[pp]
+            if hasattr(px, 'changeCode'):
+                pcwin = px
+        pcwin.changeCode(rowData['code'])
 
-    
 # 关联指数的涨停信息（用于个股）
 class RefZS_ZT_NumIndicator(ZT_NumIndicator):
     def __init__(self, win, config = None) -> None:
