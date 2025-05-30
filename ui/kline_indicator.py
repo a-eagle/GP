@@ -1398,10 +1398,13 @@ class ZT_NumIndicator(CustomIndicator):
 
     def _changeCode(self):
         super()._changeCode()
-        if self.code[0 : 3] != 'cls' and self.code[0 : 2] != '88':
+        self.changeZSCode(self.code)
+
+    def changeZSCode(self, zsCode):
+        if zsCode[0 : 3] != 'cls' and zsCode[0 : 2] != '88':
             return
         maps = {}
-        isClsZs = self.code[0 : 3] == 'cls'
+        isClsZs = zsCode[0 : 3] == 'cls'
         attrs = ('gn_code', 'hy_2_code', 'hy_3_code', 'hy_code')
         qr = cls_orm.CLS_UpDown.select(cls_orm.CLS_UpDown.secu_code, cls_orm.CLS_UpDown.day, cls_orm.CLS_UpDown.limit_up_days, cls_orm.CLS_UpDown.is_down).tuples()
         for it in qr:
@@ -1417,7 +1420,7 @@ class ZT_NumIndicator(CustomIndicator):
             if not obj:
                 continue
             for a in attrs:
-                if self.code in (obj.get(a, '') or ''):
+                if zsCode in (obj.get(a, '') or ''):
                     if lb: maps[day]['ZT'] += 1
                     elif lb == 0 and down == 0: maps[day]['ZB'] += 1
                     elif down: maps[day]['DT'] += 1
@@ -1469,12 +1472,12 @@ class ZT_NumIndicator(CustomIndicator):
             return True
         curData = self.getItemData(idx)
         #mgr.openRefZs(self.code, curData.day)
-        self.showZT_List(curData)
+        self.showZT_List(curData, self.code)
         return True
 
-    def showZT_List(self, item):
+    def showZT_List(self, item, zsCode):
         from ui import timeline, dialog
-        if not self.code:
+        if not zsCode:
             return
         kcode = self.win.klineIndicator.model.code
         tab = TableWindow()
@@ -1493,7 +1496,7 @@ class ZT_NumIndicator(CustomIndicator):
         zt, zb, dt = [], [], []
         for it in qr:
             code = it['secu_code'][2 : ]
-            fd = gn_utils.hasRefZs(code, self.code)
+            fd = gn_utils.hasRefZs(code, zsCode)
             if not fd:
                 continue
             lb = ''
@@ -1564,7 +1567,22 @@ class RefZS_ZT_NumIndicator(ZT_NumIndicator):
         self.refCode = evt.code
         name = evt.model.name
         self.config['title'] = f'[板块-{name}]'
-        super().changeCode(self.refCode, self.period)
+        #super().changeCode(self.refCode, self.period)
+        ThreadPool.instance().addTask_N(self.changeZSCode, self.refCode)
+
+    def _changeCode(self):
+        super()._changeCode()
+
+    def onDblClick(self, x, y):
+        from ui import kline_win
+        if not self.code:
+            return True
+        idx = self.getIdxAtX(x)
+        if idx < 0:
+            return True
+        curData = self.getItemData(idx)
+        self.showZT_List(curData, self.refCode)
+        return True
 
 if __name__ == '__main__':
     #base_win.ThreadPool.instance().start()
