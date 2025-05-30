@@ -1487,15 +1487,23 @@ class ZT_NumIndicator(CustomIndicator):
         day = f'{item.day // 10000}-{item.day // 100 % 100 :02d}-{item.day % 100 :02d}'
         qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day).order_by(cls_orm.CLS_UpDown.time).dicts()
         model = []
+        zt, zb, dt = [], [], []
         for it in qr:
             code = it['secu_code'][2 : ]
             fd = gn_utils.hasRefZs(code, self.code)
             if not fd:
                 continue
             lb = ''
-            if it['limit_up_days'] > 0 and not it['is_down']:
+            if it['limit_up_days'] > 0: 
                 lb = str(it['limit_up_days']) + '板'
-            model.append({'code': fd['code'], 'name': fd['name'], 'day': day, 'lb': lb})
+            itemx = {'code': fd['code'], 'name': fd['name'], 'day': day, 'lb': lb}
+            if it['limit_up_days'] > 0:
+                zt.append(itemx)
+            elif it['is_down']:
+                dt.append(itemx)
+            else:
+                zb.append(itemx)
+        model = zt + zb + dt
         popup = dialog.Dialog()
         W, H = 550, 350
         style = win32con.WS_POPUP | win32con.WS_CAPTION | win32con.WS_SYSMENU | win32con.WS_SIZEBOX
