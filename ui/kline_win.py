@@ -1066,7 +1066,7 @@ class KLineWindow(base_win.BaseWindow):
         win.addIndicator(GnLdIndicator(win))
         win.addIndicator(ZhangSuIndicator(win))
         win.addIndicator(LhbIndicator(win))
-        win.addIndicator(RefZS_ZT_NumIndicator(win))
+        win.addIndicator(Code_ZT_NumIndicator(win))
         return win
 
     @staticmethod

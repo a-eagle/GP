@@ -1388,7 +1388,7 @@ class CLS_HotTcIndicator(CustomIndicator):
             sx += ITEM_W + 1
 
 # 涨停数（用于指数）
-class ZT_NumIndicator(CustomIndicator):
+class ZS_ZT_NumIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
@@ -1554,7 +1554,7 @@ class ZT_NumIndicator(CustomIndicator):
         pcwin.changeCode(rowData['code'])
 
 # 关联指数的涨停信息（用于个股）
-class RefZS_ZT_NumIndicator(ZT_NumIndicator):
+class Code_ZT_NumIndicator(ZS_ZT_NumIndicator):
     def __init__(self, win, config = None) -> None:
         super().__init__(win, config)
         self.config['title'] = '[板块-]'
@@ -1571,11 +1571,10 @@ class RefZS_ZT_NumIndicator(ZT_NumIndicator):
         ThreadPool.instance().addTask_N(self.changeZSCode, self.refCode)
 
     def _changeCode(self):
-        super()._changeCode()
+        CustomIndicator._changeCode(self)
 
     def onDblClick(self, x, y):
-        from ui import kline_win
-        if not self.code:
+        if not self.refCode:
             return True
         idx = self.getIdxAtX(x)
         if idx < 0:
