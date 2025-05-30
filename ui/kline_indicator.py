@@ -1476,10 +1476,13 @@ class ZT_NumIndicator(CustomIndicator):
         from ui import timeline, dialog
         if not self.code:
             return
+        kcode = self.win.klineIndicator.model.code
         tab = TableWindow()
-        headers = [{'name': '#idx', 'width': 30}, {'name': 'code', 'width': 80, 'title': '代码'},
-                   {'name': 'name', 'width': 80, 'title': '名称'},{'name': 'lb', 'width': 50, 'title': '连板'},
-                   {'name': 'fs', 'width': 80, 'stretch': 1}]
+        headers = [{'name': '#idx', 'width': 30, 'textAlign': win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE}, 
+                   {'name': 'mcode', 'width': 80, 'title': '代码', 'textAlign': win32con.DT_WORDBREAK | win32con.DT_VCENTER},
+                   {'name': 'curKCode', 'width': 15, 'title': ''},{'name': 'lb', 'width': 50, 'title': '连板'},
+                   {'name': 'fs', 'width': 80, 'stretch': 1},
+                   {'name': 'up_reason', 'width': 100, 'textAlign': win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'paddings': (0, 0, 3, 0)}]
         tab.rowHeight = 50
         tab.css['selBgColor'] = 0xEAD6D6 # 0xEAD6D6 #0xf0a0a0
         tab.headers = headers
@@ -1496,7 +1499,14 @@ class ZT_NumIndicator(CustomIndicator):
             lb = ''
             if it['limit_up_days'] > 0: 
                 lb = str(it['limit_up_days']) + '板'
-            itemx = {'code': fd['code'], 'name': fd['name'], 'day': day, 'lb': lb}
+            reason = it['up_reason']
+            if '|' in reason:
+                reason = reason[0 : reason.index('|')]
+            else:
+                reason = reason[0 : 20]
+            itemx = {'code': fd['code'], 'mcode': fd['code'] + '\n' + fd['name'], 'name': fd['name'], 'day': day, 'lb': lb, 'up_reason': reason}
+            if itemx['code'] == kcode:
+                itemx['curKCode'] = '*'
             if it['limit_up_days'] > 0:
                 zt.append(itemx)
             elif it['is_down']:
@@ -1505,13 +1515,13 @@ class ZT_NumIndicator(CustomIndicator):
                 zb.append(itemx)
         model = zt + zb + dt
         popup = dialog.Dialog()
-        W, H = 550, 350
+        W, H = 650, 350
         style = win32con.WS_POPUP | win32con.WS_CAPTION | win32con.WS_SYSMENU | win32con.WS_SIZEBOX
         popup.createWindow(self.win.hwnd, (0, 0, W, H), style, title = f'{day}')
         tab.createWindow(popup.hwnd, (0, 0, 1, 1))
         popup.layout = GridLayout(('1fr', ), ('1fr', ), (0, 0))
         popup.layout.setContent(0, 0, tab)
-        popup.layout.resize(0, 0, W, H)
+        popup.layout.resize(0, 0, *popup.getClientSize())
         tab.setData(model)
         tab.addNamedListener('RowEnter', self.onRowEnter, (model, item.day))
         tab.addNamedListener('DbClick', self.onRowEnter, (model, item.day))

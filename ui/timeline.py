@@ -682,6 +682,8 @@ class TimelineRender:
         maxPrice = 0
         minPrice = 9999999
         datas = self.model.dataModel.data
+        if not datas:
+            return
         for d in datas:
             price = d.price
             if price > maxPrice:
@@ -711,6 +713,8 @@ class TimelineRender:
 
     def drawMinites(self, hdc, rect):
         if not self.model or not self.model.dataModel or not self.model.dataModel.data:
+            return
+        if not self.maxPrice or not self.minPrice:
             return
         datas = self.model.dataModel.data
         drawer = base_win.Drawer().instance()
