@@ -3,16 +3,18 @@ import json, os, sys
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Server import cls_server, ths_server, lhb_server
+from download import ths_iwencai
 
 thsServer = ths_server.Server()
 clsServer = cls_server.Server()
 lhbServer = lhb_server.Server()
 
-IGNORE_DAY = ('2025-06-02', )
-
 def acceptDay():
-    td = datetime.date.today().strftime('%Y-%m-%d')
-    return td not in IGNORE_DAY
+    days = ths_iwencai.getTradeDays()
+    if not days:
+        return False
+    td = datetime.date.today().strftime('%Y%m%d')
+    return td == days[-1]
 
 def runner():
     while True:
