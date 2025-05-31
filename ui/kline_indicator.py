@@ -1406,13 +1406,15 @@ class ZS_ZT_NumIndicator(CustomIndicator):
         maps = {}
         isClsZs = zsCode[0 : 3] == 'cls'
         attrs = ('gn_code', 'hy_2_code', 'hy_3_code', 'hy_code')
-        qr = cls_orm.CLS_UpDown.select(cls_orm.CLS_UpDown.secu_code, cls_orm.CLS_UpDown.day, cls_orm.CLS_UpDown.limit_up_days, cls_orm.CLS_UpDown.is_down).tuples()
+        qr = cls_orm.CLS_UpDown.select(cls_orm.CLS_UpDown.secu_code, 
+                cls_orm.CLS_UpDown.day, cls_orm.CLS_UpDown.limit_up_days, cls_orm.CLS_UpDown.is_down, 
+                cls_orm.CLS_UpDown.time).dicts()
         for it in qr:
-            scode, day, lb, down = it
+            scode, day, lb, down = it['secu_code'], it['day'], it['limit_up_days'], it['is_down']
             code = scode[2 : ]
             day = int(day.replace('-', ''))
             if day not in maps:
-                maps[day] = {'ZT': 0, 'DT': 0, 'ZB': 0}
+                maps[day] = {'ZT': 0, 'DT': 0, 'ZB': 0, 'items': []}
             if isClsZs:
                 obj = gn_utils.cls_gntc_s.get(code, None)
             else:
@@ -1421,6 +1423,7 @@ class ZS_ZT_NumIndicator(CustomIndicator):
                 continue
             for a in attrs:
                 if zsCode in (obj.get(a, '') or ''):
+                    maps[day]['items'].append(it)
                     if lb: maps[day]['ZT'] += 1
                     elif lb == 0 and down == 0: maps[day]['ZB'] += 1
                     elif down: maps[day]['DT'] += 1
@@ -1451,6 +1454,8 @@ class ZS_ZT_NumIndicator(CustomIndicator):
         zt, zb, dt = info['ZT'], info['ZB'], info['DT']
         COLORS = (0xFF3333, 0x00ff00, 0x00ffff)
         maxVal = self.valueRange[1]
+        if not maxVal:
+            maxVal = 1
         maxHeight = self.height - 30
         SX = (W - IW * 3) // 2 + x
         for i, val in enumerate((zt, zb, dt)):
@@ -1539,6 +1544,7 @@ class ZS_ZT_NumIndicator(CustomIndicator):
         if curDay not in days:
             days.append(curDay)
         winx = kline_utils.openInCurWindow(self.win, {'code': rowData['code'], 'day': days})
+        winx.klineWin.refIndicator.changeCode(self.win.refIndicator.model.code, 'day')
         codes = [m['code'] for m in model]
         winx.setCodeList(codes)
         return
@@ -1570,6 +1576,30 @@ class Code_ZT_NumIndicator(ZS_ZT_NumIndicator):
         #super().changeCode(self.refCode, self.period)
         ThreadPool.instance().addTask_N(self.changeZSCode, self.refCode)
 
+    def changeZSCode(self, zsCode):
+        super().changeZSCode(zsCode)
+        self.calcZT_Order()
+
+    def calcZT_Order(self):
+        if not self.cdata:
+            return
+        for day in self.cdata:
+            items : list = self.cdata[day]['items']
+            ztItems = [d for d in items if d['limit_up_days'] > 0]
+            ztItems.sort(key = lambda d : d['time'])
+            for idx, cur in enumerate(ztItems):
+                if cur['limit_up_days'] == 0:
+                    break
+                if idx == 0:
+                    cur['order'] = 1
+                elif cur['time'] == ztItems[idx - 1]['time']:
+                    cur['order'] = ztItems[idx - 1]['order']
+                else:
+                    cur['order'] = idx + 1
+                if cur['secu_code'][2 : ] == self.code:
+                    self.cdata[day]['order'] = cur['order']
+                    break
+    
     def _changeCode(self):
         CustomIndicator._changeCode(self)
 
@@ -1582,6 +1612,19 @@ class Code_ZT_NumIndicator(ZS_ZT_NumIndicator):
         curData = self.getItemData(idx)
         self.showZT_List(curData, self.refCode)
         return True
+
+    def drawItem(self, hdc, drawer : Drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        W = self.config['itemWidth']
+        day = self.data[idx].day
+        if not self.cdata or day not in self.cdata or not self.cdata[day] or not self.valueRange:
+            return
+        info = self.cdata[day]
+        if not info.get('order', None):
+            return
+        order = str(info['order'])
+        rc = (x, 5, x + W, 20)
+        drawer.drawText(hdc, order, rc, 0x505050)
 
 if __name__ == '__main__':
     #base_win.ThreadPool.instance().start()
