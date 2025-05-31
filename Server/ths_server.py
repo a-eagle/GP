@@ -16,7 +16,7 @@ class Server:
         self.last_dde_time = 0
         self.last_hot_time = 0
         self.last_hotzh_time = 0
-        self.downloadInfos = {'ignore': '2025-04-11'}
+        self.downloadInfos = {}
         
     def formatZtTime(self, ds):
         if not ds:
@@ -301,9 +301,6 @@ class Server:
             if time.time() - self.last_zt_time >= 5 * 60: # 5分钟
                 self.downloadSaveOneDayTry(day)
                 self.last_zt_time = time.time()
-
-        if self.downloadInfos.get('ignore', None) == fday:
-            return
         # 计算热度综合排名
         if curTime >= '15:05' and (not self.downloadInfos.get(f'zh-hots-{day}', False)):
             self.downloadInfos[f'zh-hots-{day}'] = True

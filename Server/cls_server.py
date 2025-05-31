@@ -9,7 +9,7 @@ from download import console, cls, ths_iwencai
 
 class Server:
     def __init__(self) -> None:
-        self.downloadInfos = {'ignore': '2025-04-11'}
+        self.downloadInfos = {}
         self._lastLoadTime = 0
         self._lastLoadHotTcTime = 0
         self._lastLoadZSTime = 0
@@ -145,11 +145,9 @@ class Server:
             return
         curTime = now.strftime('%H:%M')
         day = now.strftime('%Y-%m-%d')
+
         if curTime >= '09:30' and curTime <= '16:00':
             self.downloadClsZT()
-        
-        if self.downloadInfos.get('ignore', None) == day:
-            return
         if curTime > '15:10' and (not self.downloadInfos.get(f'scqx-{day}', False)):
             rs = self.downloadScqx('[1/8]')
             self.downloadInfos[f'scqx-{day}'] = rs
