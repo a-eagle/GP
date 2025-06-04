@@ -1403,12 +1403,23 @@ class ZS_ZT_NumIndicator(CustomIndicator):
     def changeZSCode(self, zsCode):
         if zsCode[0 : 3] != 'cls' and zsCode[0 : 2] != '88':
             return
-        maps = {}
-        isClsZs = zsCode[0 : 3] == 'cls'
-        attrs = ('gn_code', 'hy_2_code', 'hy_3_code', 'hy_code')
         qr = cls_orm.CLS_UpDown.select(cls_orm.CLS_UpDown.secu_code, 
                 cls_orm.CLS_UpDown.day, cls_orm.CLS_UpDown.limit_up_days, cls_orm.CLS_UpDown.is_down, 
                 cls_orm.CLS_UpDown.time).dicts()
+        self.cdata = self.calcGroups(zsCode, qr)
+        ds = self.loadTodayData(zsCode)
+        todayGroup = self.calcGroups(zsCode, ds)
+        if not todayGroup or len(todayGroup) != 1:
+            return
+        today = todayGroup.keys()[0]
+        self.cdata[today] = todayGroup[today]
+        
+    def calcGroups(self, zsCode, qr):
+        if not qr:
+            return None
+        maps = {}
+        isClsZs = zsCode[0 : 3] == 'cls'
+        attrs = ('gn_code', 'hy_2_code', 'hy_3_code', 'hy_code')
         for it in qr:
             scode, day, lb, down = it['secu_code'], it['day'], it['limit_up_days'], it['is_down']
             code = scode[2 : ]
@@ -1428,7 +1439,41 @@ class ZS_ZT_NumIndicator(CustomIndicator):
                     elif lb == 0 and down == 0: maps[day]['ZB'] += 1
                     elif down: maps[day]['DT'] += 1
                     break
-        self.cdata = maps
+        return maps
+
+    def loadTodayData(self, zsCode):
+        from download import ths_iwencai, cls
+        today = datetime.date.today().strftime("%Y%m%d")
+        if int(today) in self.cdata:
+            return None
+        tds = ths_iwencai.getTradeDays()
+        if not tds:
+            return None
+        lastDay = tds[-1]
+        if lastDay != today:
+            return None
+        urls = ['https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=8.4.6&type=up_pool&way=last_px&sign=a6ab28604a6dbe891cdbd7764799eda1',
+                'https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=8.4.6&type=up_open_pool&way=last_px&sign=c178185f9b06e3d9e885ba54a47d68ec',
+                'https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=8.4.6&type=down_pool&way=last_px&sign=95d3a7c20bb0313a0bb3445d9faf2d27']
+        rs = []
+        for url in urls:
+            try:
+                resp = requests.get(url)
+                js = json.loads(resp.text)
+                if js['code'] != 200:
+                    continue
+                for d in js['data']:
+                    if d['is_st']:
+                        continue
+                    d['day'] = d['time'][0 : 10]
+                    d['time'] = d['time'][11 : ]
+                    obj = cls_orm.CLS_UpDown(**d)
+                    if 'type=down_pool' in url:
+                        obj.is_down = 1
+                    rs.append(obj.__data__)
+            except Exception as e:
+                print('[ZS_ZT_NumIndicator.loadTodayData] ', url)
+        return rs
 
     def calcValueRange(self, fromIdx, endIdx):
         self.valueRange = None
@@ -1486,7 +1531,7 @@ class ZS_ZT_NumIndicator(CustomIndicator):
             return
         kcode = self.win.klineIndicator.model.code
         tab = TableWindow()
-        headers = [{'name': '#idx', 'width': 30, 'textAlign': win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE}, 
+        headers = [{'name': '#idx', 'width': 30, 'textAlign': win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE},
                    {'name': 'mcode', 'width': 80, 'title': '代码', 'textAlign': win32con.DT_WORDBREAK | win32con.DT_VCENTER},
                    {'name': 'curKCode', 'width': 15, 'title': ''},{'name': 'lb', 'width': 50, 'title': '连板'},
                    {'name': 'fs', 'width': 80, 'stretch': 1},

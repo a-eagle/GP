@@ -801,9 +801,9 @@ class KLineWindow(base_win.BaseWindow):
             code = code[2 : ]
         for it in self.indicators:
             it.changeCode(code, period)
-        rs = gn_utils.get_THS_GNTC(code)
-        if rs and rs.get('hy_2_code', None):
-            self.refIndicator.changeCode(rs['hy_2_code'], period)
+        #rs = gn_utils.get_THS_GNTC(code)
+        #if rs and rs.get('hy_2_code', None):
+        #    self.refIndicator.changeCode(rs['hy_2_code'], period)
         self.lineMgr.changeCode(code)
         self.makeVisible(-1)
         self.bkgnView.changeCode(code)
