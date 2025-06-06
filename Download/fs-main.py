@@ -306,7 +306,7 @@ class KlineDataFileLoader:
             lastDay = dst.loadLocalLastDay()
             if self.getNetNewestDay() and self.getNetNewestDay() <= lastDay:
                 return True
-            if len(code) == 6 and code[0] == '8': # ths zs
+            if len(code) != 8: #
                 hx = henxin.HexinUrl()
                 datas = hx.loadUrlData( hx.getKLineUrl(code))
             else:
@@ -423,10 +423,10 @@ class Main:
         if newestDay == lastDay:
             self.cache[f'{today}-T'] = True
             return True
-        loader.downloadCodes(0.1)
+        loader.downloadCodes(1)
         ld = fx.FenXiLoader()
         ld.fxAll(loader.newestDay)
-        loader.downloadAllZs(0.1)
+        loader.downloadAllZs(1)
         return True
 
     def downloadKLine(self):
@@ -442,7 +442,7 @@ class Main:
         if newestDay == lastDay:
             self.cache[f'{today}-K'] = True
             return True
-        loader.downloadCodes(0.1)
+        loader.downloadCodes(1)
         return True
 
     def run(self):
