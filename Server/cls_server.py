@@ -42,6 +42,8 @@ class Server:
         return insertNum, updateNum
 
     def saveCls_ZT_List(self, its):
+        if not its:
+            return
         day = None
         insertNum, updateNum = 0, 0
         for it in its:
@@ -91,14 +93,17 @@ class Server:
             traceback.print_exc()
 
     def downloadDegree(self):
-        url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
-        resp = requests.get(url)
-        txt = resp.content.decode('utf-8')
-        js = json.loads(txt)
-        day = js['data']['date']
-        degree = js['data']['market_degree']
-        degree = int(float(degree) * 100)
-        return day, degree
+        try:
+            url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
+            resp = requests.get(url)
+            txt = resp.content.decode('utf-8')
+            js = json.loads(txt)
+            day = js['data']['date']
+            degree = js['data']['market_degree']
+            degree = int(float(degree) * 100)
+            return day, degree
+        except Exception as e:
+            traceback.print_exc()
 
     def downloadScqx(self, tag):
         try:
@@ -178,14 +183,17 @@ class Server:
         if not ths_iwencai.isTradeDay():
             return
         curTime = now.strftime('%H:%M')
-        if (curTime >= '09:30' and curTime <= '11:30') or (curTime >= '13:00' and curTime <= '15:00'):
-            if (now.minute % 10 <= 2) and (time.time() - self._lastLoadDegreeTime >= 3 * 60):
-                curTime = curTime[0 : -1] + '0'
-                rs = self.downloadDegree()
-                if rs:
-                    self._lastLoadDegreeTime = time.time()
-                    d, degree = rs
-                    self.saveDegreeTime(d, curTime, degree)
+        try:
+            if (curTime >= '09:30' and curTime <= '11:30') or (curTime >= '13:00' and curTime <= '15:00'):
+                if (now.minute % 10 <= 2) and (time.time() - self._lastLoadDegreeTime >= 3 * 60):
+                    curTime = curTime[0 : -1] + '0'
+                    rs = self.downloadDegree()
+                    if rs:
+                        self._lastLoadDegreeTime = time.time()
+                        d, degree = rs
+                        self.saveDegreeTime(d, curTime, degree)
+        except Exception as e:
+            traceback.print_exc()
 
     def loadHotTc(self, daysNum = 10):
         try:
@@ -319,7 +327,6 @@ class Server:
         try:
             # console.writeln_1(console.CYAN, f'[CLS-HyGn] {self.formatNowTime(True)} begin...')
             st = time.time()
-            zs = {}
             if not day:
                 ts = datetime.datetime.now()
                 day = ts.strftime('%Y-%m-%d')
@@ -351,7 +358,7 @@ class Server:
                 code = obj.code
                 if not existsGnBk(obj.hy_code) and not existsGnBk(obj.gn_code):
                     continue
-                info = cls.ClsUrl().loadBkGnOfCode(code, zs)
+                info = cls.ClsUrl().loadBkGnOfCode(code)
                 total += 1
                 if not info:
                     continue
@@ -369,6 +376,40 @@ class Server:
         except Exception as e:
             traceback.print_exc()
             console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} Fail')
+
+    def downloadBkGnAll(self, tag):
+        def diff(old, new, names):
+            flag = False
+            for n in names:
+                if getattr(old, n, '') != getattr(new, n, ''):
+                    setattr(old, n, getattr(new, n, ''))
+                    flag = True
+            return flag
+        try:
+            st = time.time()
+            u, i, total = 0, 0, 0
+            attrs = ('gn', 'gn_code', 'hy', 'hy_code')
+            qr = cls_orm.CLS_GNTC.select()
+            for obj in qr:
+                code = obj.code
+                info = cls.ClsUrl().loadBkGnOfCode(code)
+                total += 1
+                if not info:
+                    continue
+                if obj:
+                    if diff(obj, info, attrs):
+                        obj.save() # update
+                        u += 1
+                else:
+                    info.save() # create new
+                    i += 1
+                t = time.time() - st
+                t /= 60
+                time.sleep(0.5)
+                print(f'[CLS-HyGn] {tag} {total}, update {u}, insert {i}, use time: {t :.1f} minutes')
+        except Exception as e:
+            traceback.print_exc()
+        console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} {self.formatNowTime(True)} check {total}, update {u}, insert {i}, use time: {t :.1f} minutes')
 
     def downloadZT_PanKou(self, tag):
         try:
@@ -479,5 +520,6 @@ if __name__ == '__main__':
     svr.downloadClsZT()
     svr.loadOneTime()
     #svr.downloadEastmoneyZdfb('[x]')
-    pass
+    #svr.downloadBkGnAll('[x]')
+    # svr.downloadUpDown('[2/8]')
     #do_reason()

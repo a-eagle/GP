@@ -408,8 +408,7 @@ class ClsUrl:
         calcPM(rs)
         return rs
 
-    # zs set to {}
-    def loadBkGnOfCode(self, code, zs = {}):
+    def loadBkGnOfCode(self, code):
         from orm import cls_orm
         if type(code) == int:
             code = f'{code :06d}'
@@ -417,10 +416,10 @@ class ClsUrl:
             code = code[2 : ]
         if code[0] not in ('0', '3', '6'):
             return None
-        if not zs:
-            qr = cls_orm.CLS_ZS.select().dicts()
-            for it in qr:
-                zs[it['code']] = it
+        zs = {}
+        qr = cls_orm.CLS_ZS.select().dicts()
+        for it in qr:
+            zs[it['code']] = it
         params = f'app=CailianpressWeb&os=web&secu_code={self._getTagCode(code)}&sv=8.4.6'
         url = 'https://x-quote.cls.cn/web_quote/stock/assoc_plate?' + self.signParams(params)
         resp = requests.get(url)
