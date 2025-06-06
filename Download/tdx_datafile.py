@@ -34,9 +34,7 @@ class DataFile:
             code = f'{code :06d}'
         self.code = code
         self.data = []
-
-    def loadData(self):
-        pass
+        self.days = []
 
     def getItemIdx(self, day):
         if not self.data:
@@ -74,45 +72,17 @@ class DataFile:
             return None
         return self.data[idx]
 
-    def getPath(self):
-        pass
+    def _getPath(self, type):
         code = self.code
         tag = '' 
         if code[0] == '6' or code[0] == '9': tag = 'sh'
         elif code[0] == '3' or code[0] == '0': tag = 'sz'
-        elif code[0] == '8': tag = 'ths'
-        if self.dataType == DataFile.DT_DAY:
-            dm = '__lday' if tag in ('sh', 'sz') else '__ths_lday'
-            bp = os.path.join(VIPDOC_BASE_PATH, dm, f'{tag}{code}.day')
+        if type == 'day':
+            bp = os.path.join(VIPDOC_BASE_PATH, f'{tag}\\lday\\{tag}{code}.day')
         else:
-            dm = '__minline' if tag in ('sh', 'sz') else '__ths_minline'
-            bp = os.path.join(VIPDOC_BASE_PATH, dm, f'{tag}{code}.lc1')
-        #if os.path.exists(bp):
+            bp = os.path.join(VIPDOC_BASE_PATH, f'{tag}\\minline\\{tag}{code}.lc1')
         return bp
 
-    def _loadDataFile_All(self, path):
-        def T(fv): return  fv # int(fv * 100 + 0.5)
-        rs = []
-        if not os.path.exists(path):
-            return rs
-        f = open(path, 'rb')
-        while f.readable():
-            bs = f.read(32)
-            if len(bs) != 32:
-                break
-            if self.dataType == self.DT_DAY:
-                item = struct.unpack('l5f2l', bs)
-                item = ItemData(*item[0 : -1])
-            else:
-                item = struct.unpack('2l5fl', bs)
-                item = ItemData(*item)
-            rs.append(item)
-        f.close()
-        # check minute line number
-        if self.dataType == self.DT_MINLINE and (len(rs) % 240) != 0:
-            raise Exception('Minute Line number error:', len(rs))
-        return rs
-    
     def _loadDataFile_Newest(self, path):
         def T(fv): return  fv # int(fv * 100 + 0.5)
         rs = []
@@ -166,4 +136,51 @@ class DataFile:
             elif self.days[-1] != d.day:
                 self.days.append(d.day)
 
+class K_DataFile(DataFile):
+    def __init__(self, code):
+        super().__init__(code)
 
+    def getPath(self):
+        return self._getPath('day')
+
+    def loadData(self):
+        self.data.clear()
+        path = self.getPath()
+        if not os.path.exists(path):
+            return
+        f = open(path, 'rb')
+        while f.readable():
+            bs = f.read(32)
+            if len(bs) != 32:
+                break
+            item = struct.unpack('l5f2l', bs)
+            item = ItemData(*item[0 : -1])
+            self.data.append(item)
+        f.close()
+        self.calcDays()
+
+class T_DataFile(DataFile):
+    def __init__(self, code):
+        super().__init__(code)
+
+    def getPath(self):
+        return self._getPath('minute')
+
+    def loadData(self):
+        self.data.clear()
+        path = self.getPath()
+        if not os.path.exists(path):
+            return
+        f = open(path, 'rb')
+        while f.readable():
+            bs = f.read(32)
+            if len(bs) != 32:
+                break
+            item = struct.unpack('2l5fl', bs)
+            item = ItemData(*item)
+            self.data.append(item)
+        f.close()
+        # check minute line number
+        if len(self.data) % 240 != 0:
+            raise Exception('Minute Line number error:', len(self.data))
+        self.calcDays()

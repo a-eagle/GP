@@ -5,7 +5,7 @@ import peewee as pw
 from multiprocessing import shared_memory # python 3.8+
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from download import tdx_datafile
+from download.tdx_datafile import *
 
 class TdxDownloader:
     def __init__(self) -> None:
@@ -74,23 +74,23 @@ class TdxDownloader:
         time.sleep(10)
 
     def getStartDayForDay(self):
-        maxday = 20240101
-        df = datafile.DataFile('999999', datafile.DataFile.DT_DAY)
-        df.loadData(datafile.DataFile.FLAG_ALL)
+        maxday = 20250505
+        df = K_DataFile('999999')
+        df.loadData()
         if df.data:
             maxday = df.data[-1].day
         dt = datetime.datetime.strptime(str(maxday), '%Y%m%d')
-        #dt = dt + datetime.timedelta(days = 1)
+        dt = dt + datetime.timedelta(days = 1)
         return dt
     
     def getStartDayForTimemimute(self):
-        maxday = 20240101
-        df = datafile.DataFile('999999', datafile.DataFile.DT_MINLINE)
-        df.loadData(datafile.DataFile.FLAG_ALL)
+        maxday = 20250505
+        df = T_DataFile('999999')
+        df.loadData()
         if df.data:
             maxday = df.data[-1].day
         dt = datetime.datetime.strptime(str(maxday), '%Y%m%d')
-        #dt = dt + datetime.timedelta(days = 1)
+        dt = dt + datetime.timedelta(days = 1)
         return dt
     
     def startDownloadForDay(self):
@@ -98,7 +98,7 @@ class TdxDownloader:
         print(f'download dialog hwnd={hwnd:X}')
         if not hwnd:
             raise Exception('Not find download dialog')
-        selBtnPos = self.getScreenPos(hwnd, 80, 95, False) # 鏃ョ嚎鍜屽疄鏃惰¡屾儏Button pos
+        selBtnPos = self.getScreenPos(hwnd, 80, 95, False)
         win32gui.SetForegroundWindow(hwnd)
         pyautogui.click(*selBtnPos, duration = 0.3)
         fromDayCtrl = win32gui.GetDlgItem(hwnd, 0x4D5) #
@@ -114,7 +114,7 @@ class TdxDownloader:
         pyautogui.click(*startBtnPos, duration = 0.3) # 
         # wait for download end
         statusCtrl = win32gui.GetDlgItem(hwnd, 0x4C8) 
-        time.sleep(2)
+        time.sleep(3)
         if win32gui.GetWindowText(startBtn) != '取消下载':
             raise Exception('start download Fail')
         while True:
@@ -122,6 +122,7 @@ class TdxDownloader:
             if win32gui.GetWindowText(startBtn) == '开始下载':
                 break
         pyautogui.click(*selBtnPos, duration = 0.3)
+        time.sleep(3)
 
     def startDownloadForTimeMinute(self):
         hwnd = win32gui.FindWindow('#32770', '盘后数据下载')
@@ -129,13 +130,13 @@ class TdxDownloader:
         if not hwnd:
             raise Exception('Not find download dialog')
         win32gui.SetForegroundWindow(hwnd)
-        selTabPos = self.getScreenPos(hwnd, 130, 35, False) # 涓€鍒嗛挓绾¿ tab pos
+        selTabPos = self.getScreenPos(hwnd, 130, 35, False)
         pyautogui.click(*selTabPos, duration = 0.3)
         time.sleep(1.5)
-        selBtnPos = self.getScreenPos(hwnd, 70, 70, False) # 涓€鍒嗛挓绾¿ pos
+        selBtnPos = self.getScreenPos(hwnd, 70, 70, False)
         pyautogui.click(*selBtnPos, duration = 0.3)
 
-        fromDayCtrl = win32gui.GetDlgItem(hwnd, 0x4D5) # 寮€濮嬫椂闂存帶浠
+        fromDayCtrl = win32gui.GetDlgItem(hwnd, 0x4D5)
         print(f'fromDayCtrl={fromDayCtrl:X}')
         if not fromDayCtrl:
             raise Exception('Not find fromDayCtrl')
@@ -144,9 +145,9 @@ class TdxDownloader:
         fromDayCtrl.set_time(year=startDay.year, month=startDay.month, day = startDay.day)
         startBtn = win32gui.FindWindowEx(hwnd, None, 'Button', '开始下载')
         startBtnPos = self.getScreenPos(hwnd, 440, 400, False)
-        pyautogui.click(*startBtnPos, duration = 0.3) # 鐐瑰嚮涓嬭浇
+        pyautogui.click(*startBtnPos, duration = 0.3)
         # wait for download end
-        time.sleep(2)
+        time.sleep(3)
         if win32gui.GetWindowText(startBtn) != '取消下载':
             raise Exception('start download Fail')
         while True:
@@ -164,141 +165,127 @@ class TdxDownloader:
             self.openDownloadDialog()
             self.startDownloadForDay()
             self.startDownloadForTimeMinute()
+            ok = True
         except:
             traceback.print_exc()
-            return False
+            ok = False
         self.killProcess()
-        return True
+        return ok
 
-def unlockScreen():
-    try:
-        shm = shared_memory.SharedMemory('PY_Screen_Locker', False)
-        buf = shm.buf.cast('q')
-        ts = win32api.GetTickCount() + 60 * 1000 * 60
-        buf[0] = ts
-        buf.release()
-        shm.close()
+class Main:
+    def unlockScreen(self):
+        try:
+            shm = shared_memory.SharedMemory('PY_Screen_Locker', False)
+            buf = shm.buf.cast('q')
+            ts = win32api.GetTickCount() + 60 * 1000 * 60
+            buf[0] = ts
+            buf.release()
+            shm.close()
+            time.sleep(10)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            pass
+
+    def resetLockScreen(self):
+        try:
+            shm = shared_memory.SharedMemory('PY_Screen_Locker', False)
+            buf = shm.buf.cast('q')
+            buf[0] = 0
+            buf.release()
+            shm.close()
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            pass
+
+    def checkNeedDownload(self, dataFileType):
+        kdf = dataFileType('999999')
+        kdf.loadData()
+        from download import ths_iwencai
+        tds = ths_iwencai.getTradeDays()
+        if not tds:
+            return False
+        lastDay = int(tds[-1])
+        if not kdf.days:
+            return True
+        if kdf.days[-1] < lastDay:
+            return True
+        return False
+
+    def runOnce(self):
+        time.sleep(5)
+        print('---work--start---')
+        self.unlockScreen()
         time.sleep(10)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        pass
-
-def resetLockScreen():
-    try:
-        shm = shared_memory.SharedMemory('PY_Screen_Locker', False)
-        buf = shm.buf.cast('q')
-        buf[0] = 0
-        buf.release()
-        shm.close()
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        pass
-
-def tryWork():
-    try:
-        return work()
-    except Exception as e:
-        traceback.print_exc()
-    return False
-
-def work():
-    time.sleep(5)
-    print('---work--start---')
-    unlockScreen()
-    time.sleep(10)
-    tm = datetime.datetime.now()
-    ss = tm.strftime('%Y-%m-%d %H:%M')
-    print('\033[32m' + ss + '\033[0m')
-    tdx = TdxDownloader()
-    flag = tdx.run()
-    resetLockScreen()
-    if flag:
         tm = datetime.datetime.now()
         ss = tm.strftime('%Y-%m-%d %H:%M')
-        print('download end ', ss)
-        print('merge mimute time line data')
-        ld = DataFileLoader()
-        ld.mergeAll()
-    print('-----------End----------\n\n')
-    return flag
+        print('\033[32m' + ss + '\033[0m')
+        tdx = TdxDownloader()
+        flag = tdx.run()
+        self.resetLockScreen()
+        if flag:
+            tm = datetime.datetime.now()
+            ss = tm.strftime('%Y-%m-%d %H:%M')
+            print('download end ', ss)
+            print('merge mimute time line data')
+            # ld = DataFileLoader()
+            # ld.mergeAll()
+        print('-----------End----------\n\n')
+        return flag
 
-def getDesktopGUILock():
-    LOCK_NAME = 'D:/__Desktop_GUI_Lock__'
-    mux = win32event.CreateMutex(None, False, LOCK_NAME)
-    if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
-        win32api.CloseHandle(mux)
-        return None
-    return mux
+    def getDesktopGUILock(self):
+        LOCK_NAME = 'D:/__Desktop_GUI_Lock__'
+        mux = win32event.CreateMutex(None, False, LOCK_NAME)
+        if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
+            win32api.CloseHandle(mux)
+            return None
+        return mux
 
-def releaseDesktopGUILock(lock):
-    if lock:
-        win32api.CloseHandle(lock)
+    def releaseDesktopGUILock(self, lock):
+        if lock:
+            win32api.CloseHandle(lock)
 
-# seconds
-def checkUserNoInputTime():
-    a = win32api.GetLastInputInfo()
-    cur = win32api.GetTickCount()
-    diff = cur - a
-    sec = diff / 1000
-    return sec >= 5 * 60
+    # seconds
+    def checkUserNoInputTime(self):
+        a = win32api.GetLastInputInfo()
+        cur = win32api.GetTickCount()
+        diff = cur - a
+        sec = diff / 1000
+        return sec >= 5 * 60
 
-def getMaxDay(paths):
-    md = None
-    for p in paths:
-        bn = os.path.basename(p)
-        if '-' not in bn:
-            continue
-        sp = bn.split('-')
-        if not md:
-            md = sp[-1]
-        elif md < sp[-1]:
-            md = sp[-1]
-    return md
-
-
-def autoMain():
-    os.system('') # fix win10 涓媍onsole 棰滆壊涓嶇敓鏁
-    lastDay = 0
-    tryDays = {}
-    while True:
-        today = datetime.datetime.now()
-        if today.weekday() >= 5: #鍛ㄥ叚鍛ㄦ棩
-            time.sleep(60 * 60)
-            continue
-        if lastDay == today.day:
-            time.sleep(60 * 60)
-            continue
-        ts = f"{today.hour:02d}:{today.minute:02d}"
-        if ts < '18:30' or ts > '19:30':
-            time.sleep(3 * 60)
-            continue
-        lock = getDesktopGUILock()
-        if not lock:
-            time.sleep(3 * 60)
-            continue
-        sday = today.strftime('%Y-%m-%d')
-        if sday in tryDays:
-            tryDays[sday] += 1
-        else:
-            tryDays[sday] = 1
-        if tryDays[sday] <= 3 and work(): #checkUserNoInputTime() and
-            lastDay = today.day
-        releaseDesktopGUILock(lock)
-        time.sleep(10 * 60)
+    def runLoop(self):
+        os.system('') # fix win10
+        lastDay = 0
+        tryDays = {}
+        while True:
+            today = datetime.datetime.now()
+            if today.weekday() >= 5:
+                time.sleep(60 * 60)
+                continue
+            if lastDay == today.day:
+                time.sleep(60 * 60)
+                continue
+            ts = f"{today.hour:02d}:{today.minute:02d}"
+            if ts < '18:30' or ts > '19:30':
+                time.sleep(3 * 60)
+                continue
+            lock = getDesktopGUILock()
+            if not lock:
+                time.sleep(3 * 60)
+                continue
+            sday = today.strftime('%Y-%m-%d')
+            if sday in tryDays:
+                tryDays[sday] += 1
+            else:
+                tryDays[sday] = 1
+            if tryDays[sday] <= 3 and work(): #checkUserNoInputTime() and
+                lastDay = today.day
+            releaseDesktopGUILock(lock)
+            time.sleep(10 * 60)
         
-
-def mergeTimeline():
-    pass
-
 if __name__ == '__main__':
-    #t = TdxLSTools()
-    #t.calcInfo()
-    print('Tdx start')
-    work()
-
-    if 'debug' in sys.argv:
-        work() # run one time
-    else:
-        autoMain()
+    print('Tdx start') 
+    mm = Main()
+    mm.runOnce()
+    #mm.autoMain()
