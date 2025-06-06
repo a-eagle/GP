@@ -171,7 +171,7 @@ class Server:
             self.downloadInfos[f'eastmoney-fb-{day}'] = flag
         if curTime >= '15:10' and (not self.downloadInfos.get(f'bkgn-{day}', False)) and self.downloadInfos[f'zs-zd-{day}']:
             self.downloadInfos[f'bkgn-{day}'] = True
-            self.downloadBkGn('[8/8]')
+            #self.downloadBkGn('[8/8]')
         
     def loadTimeDegree(self):
         now = datetime.datetime.now()
@@ -362,6 +362,7 @@ class Server:
                 else:
                     info.save() # create new
                     i += 1
+                time.sleep(0.5)
             t = time.time() - st
             t /= 60
             console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} {self.formatNowTime(True)} check {total}, update {u}, insert {i}, use time: {t :.1f} minutes')
@@ -474,6 +475,8 @@ if __name__ == '__main__':
     #    svr._loadHotTcOfDay(day)
     # svr.loadHotTc(1)
     # svr.downloadZS_ZD('d')
-    svr.downloadEastmoneyZdfb('[x]')
+
+    svr.loadOneTime()
+    #svr.downloadEastmoneyZdfb('[x]')
     pass
     #do_reason()
