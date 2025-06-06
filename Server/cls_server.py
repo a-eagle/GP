@@ -476,6 +476,7 @@ if __name__ == '__main__':
     # svr.loadHotTc(1)
     # svr.downloadZS_ZD('d')
 
+    svr.downloadClsZT()
     svr.loadOneTime()
     #svr.downloadEastmoneyZdfb('[x]')
     pass
