@@ -21,9 +21,9 @@ def runner():
         if not acceptDay():
             time.sleep(60 * 60)
             continue
-        clsServer.loadTimeDegree()
+        #clsServer.loadTimeDegree()
         thsServer.loadHotsOneTime()
-        clsServer.loadHotTc()
+        #clsServer.loadHotTc()
         time.sleep(20)
 
 def loop():
@@ -38,7 +38,7 @@ def loop():
             print('---------------->', lastDay, '<----------------')
         try:
             thsServer.loadOneTime()
-            clsServer.loadOneTime()
+            #clsServer.loadOneTime()
             lhbServer.loadOneTime()
         except Exception as e:
             traceback.print_exc()
