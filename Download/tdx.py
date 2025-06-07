@@ -7,7 +7,7 @@ from multiprocessing import shared_memory # python 3.8+
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download.tdx_datafile import *
 
-class TdxDownloader:
+class TdxGuiDownloader:
     def __init__(self) -> None:
         pass
 
@@ -74,7 +74,7 @@ class TdxDownloader:
         time.sleep(5)
 
     def getStartDayForDay(self):
-        maxday = 20250505
+        maxday = 20250602
         df = K_DataFile('999999')
         df.loadData()
         if df.data:
@@ -84,7 +84,7 @@ class TdxDownloader:
         return dt
     
     def getStartDayForTimemimute(self):
-        maxday = 20250505
+        maxday = 20250602
         df = T_DataFile('999999')
         df.loadData()
         if df.data:
@@ -224,7 +224,7 @@ class Main:
         tm = datetime.datetime.now()
         ss = tm.strftime('%Y-%m-%d %H:%M')
         print('\033[32m' + ss + '\033[0m')
-        tdx = TdxDownloader()
+        tdx = TdxGuiDownloader()
         flag = tdx.run()
         self.resetLockScreen()
         if flag:
@@ -232,8 +232,8 @@ class Main:
             ss = tm.strftime('%Y-%m-%d %H:%M')
             print('download end ', ss)
             print('merge mimute time line data')
-            # ld = DataFileLoader()
-            # ld.mergeAll()
+            ld = Writer()
+            ld.writeAll()
         print('-----------End----------\n\n')
         return flag
 
@@ -270,10 +270,10 @@ class Main:
                 time.sleep(60 * 60)
                 continue
             ts = f"{today.hour:02d}:{today.minute:02d}"
-            if ts < '18:30' or ts > '19:30':
+            if ts < '17:00' or ts > '19:30':
                 time.sleep(3 * 60)
                 continue
-            lock = getDesktopGUILock()
+            lock = self.getDesktopGUILock()
             if not lock:
                 time.sleep(3 * 60)
                 continue
@@ -282,13 +282,12 @@ class Main:
                 tryDays[sday] += 1
             else:
                 tryDays[sday] = 1
-            if tryDays[sday] <= 3 and work(): #checkUserNoInputTime() and
+            if tryDays[sday] <= 3 and self.runOnce():
                 lastDay = today.day
-            releaseDesktopGUILock(lock)
+            self.releaseDesktopGUILock(lock)
             time.sleep(10 * 60)
         
 if __name__ == '__main__':
-    print('Tdx start')
     mm = Main()
     mm.runOnce()
-    #mm.autoMain()
+    #mm.runLoop()

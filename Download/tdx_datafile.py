@@ -256,7 +256,7 @@ class Writer:
                 destDf.writeLocalFile()
                 break
 
-    def getLocalCodes_K(self):
+    def getLocalCodes(self):
         codes = []
         path = VIPDOC_BASE_PATH + '\\sh\\lday'
         dirs = os.listdir(path)
@@ -268,18 +268,16 @@ class Writer:
         for name in dirs:
             if name[0 : 2] == 'sz' and name[2] in ('0', '3'):
                 codes.append(name[2 : 8])
+        codes.append('999999')
+        return codes
 
     def writeAll(self):
-        pass
+        codes = self.getLocalCodes()
+        for c in codes:
+            self.writeToFile_K(c)
+            self.writeToFile_T(c)
 
 if __name__ == '__main__':
     w = Writer()
-    w.getLocalCodes_K()
-
-    df = K_DataFile('999999')
-    df.loadData()
-    print(df.days)
-
-    df = T_DataFile('000006')
-    df.loadData()
-    print(df.days)
+    cs = w.getLocalCodes()
+   
