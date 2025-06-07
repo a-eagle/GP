@@ -1,4 +1,4 @@
-import os, struct, platform, traceback, sys
+import os, struct, platform, traceback, sys, copy
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
@@ -153,11 +153,15 @@ class K_DataFile(DataFile):
             bs = f.read(32)
             if len(bs) != 32:
                 break
-            item = struct.unpack('l5f2l', bs)
-            item = ItemData(*item[0 : -1])
+            ritem = struct.unpack('5Lf2L', bs)
+            item = ItemData(*ritem[0 : -1])
+            item.open /= 100
+            item.close /= 100
+            item.low /= 100
+            item.high /= 100
             self.data.append(item)
         f.close()
-        self.calcDays()
+        self.calcDays()        
 
 class T_DataFile(DataFile):
     def __init__(self, code):
@@ -176,11 +180,106 @@ class T_DataFile(DataFile):
             bs = f.read(32)
             if len(bs) != 32:
                 break
-            item = struct.unpack('2l5fl', bs)
-            item = ItemData(*item)
+            ritem = struct.unpack('2H5f2l', bs)
+            item = ItemData(*ritem[0 : -1])
+            year = item.day //2048 + 2004
+            month = item.day % 2048 //100
+            day = item.day % 2048 % 100
+            item.day = year * 10000 + month * 100 + day
+            hour = item.time // 60
+            minute = item.time % 60
+            item.time = hour * 100 + minute
+            item.price = item.close
+            if item.time == 931:
+                t930 = copy.copy(item)
+                t930.time = 930
+                t930.vol = t930.amount = 0
+                self.data.append(t930)
             self.data.append(item)
         f.close()
         # check minute line number
-        if len(self.data) % 240 != 0:
+        if len(self.data) % 241 != 0:
             raise Exception('Minute Line number error:', len(self.data))
         self.calcDays()
+        self.calcAvgPrice()
+
+    # 分时均线
+    def calcAvgPrice(self):
+        if not self.data:
+            return 0
+        idx = 0
+        sumamount, sumVol = 0, 0
+        while idx < len(self.data):
+            d = self.data[idx]
+            if idx > 0 and self.data[idx - 1].day != d.day:
+                sumamount, sumVol = 0, 0
+            sumamount += d.amount
+            sumVol += d.vol
+            if sumVol > 0:
+                d.avgPrice = sumamount / sumVol
+            else:
+                d.avgPrice = d.price
+            idx += 1
+
+class Writer:
+    def writeToFile_K(self, code):
+        from download import datafile
+        srcDf = K_DataFile(code)
+        if not srcDf.data:
+            return
+        destDf = datafile.K_DataModel(code)
+        if not destDf.data:
+            destDf.data = srcDf.data
+            destDf.writeLocalFile()
+            return
+        lastDay = destDf.data[-1].day
+        for idx, item in enumerate(srcDf.data):
+            if item.day > lastDay:
+                destDf.data.extend(srcDf.data[idx : ])
+                destDf.writeLocalFile()
+                break
+
+    def writeToFile_T(self, code):
+        from download import datafile
+        srcDf = T_DataFile(code)
+        if not srcDf.data:
+            return
+        destDf = datafile.T_DataModel(code)
+        if not destDf.data:
+            destDf.data = srcDf.data
+            destDf.writeLocalFile()
+            return
+        lastDay = destDf.data[-1].day
+        for idx, item in enumerate(srcDf.data):
+            if item.day > lastDay:
+                destDf.data.extend(srcDf.data[idx : ])
+                destDf.writeLocalFile()
+                break
+
+    def getLocalCodes_K(self):
+        codes = []
+        path = VIPDOC_BASE_PATH + '\\sh\\lday'
+        dirs = os.listdir(path)
+        for name in dirs:
+            if name[0 : 2] == 'sh' and name[2] == '6':
+                codes.append(name[2 : 8])
+        path = VIPDOC_BASE_PATH + '\\sz\\lday'
+        dirs = os.listdir(path)
+        for name in dirs:
+            if name[0 : 2] == 'sz' and name[2] in ('0', '3'):
+                codes.append(name[2 : 8])
+
+    def writeAll(self):
+        pass
+
+if __name__ == '__main__':
+    w = Writer()
+    w.getLocalCodes_K()
+
+    df = K_DataFile('999999')
+    df.loadData()
+    print(df.days)
+
+    df = T_DataFile('000006')
+    df.loadData()
+    print(df.days)

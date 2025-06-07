@@ -71,7 +71,7 @@ class TdxDownloader:
         time.sleep(3)
         btnPos = self.getScreenPos(mainWnd, *btnPos)
         pyautogui.click(*btnPos, duration=0.5)
-        time.sleep(10)
+        time.sleep(5)
 
     def getStartDayForDay(self):
         maxday = 20250505
@@ -155,6 +155,21 @@ class TdxDownloader:
             if win32gui.GetWindowText(startBtn) == '开始下载':
                 break
 
+    def checkNeedDownload(self, dataFileType):
+        kdf = dataFileType('999999')
+        kdf.loadData()
+        today = datetime.date.today()
+        if not kdf.days:
+            return True
+        fd = int(kdf.days[-1])
+        fromDay = datetime.date(fd // 10000, fd // 100 % 100, fd % 100)
+        days = 0
+        while fromDay < today:
+            fromDay += datetime.timedelta(days = 1)
+            if fromDay.weekday() < 5: # week 1-5
+                days += 1
+        return days > 0
+
     def run(self):
         if self.checkProcessStarted():
             self.killProcess()
@@ -163,8 +178,10 @@ class TdxDownloader:
         try:
             self.login()
             self.openDownloadDialog()
-            self.startDownloadForDay()
-            self.startDownloadForTimeMinute()
+            if self.checkNeedDownload(K_DataFile):
+                self.startDownloadForDay()
+            if self.checkNeedDownload(T_DataFile):
+                self.startDownloadForTimeMinute()
             ok = True
         except:
             traceback.print_exc()
@@ -198,20 +215,6 @@ class Main:
             import traceback
             traceback.print_exc()
             pass
-
-    def checkNeedDownload(self, dataFileType):
-        kdf = dataFileType('999999')
-        kdf.loadData()
-        from download import ths_iwencai
-        tds = ths_iwencai.getTradeDays()
-        if not tds:
-            return False
-        lastDay = int(tds[-1])
-        if not kdf.days:
-            return True
-        if kdf.days[-1] < lastDay:
-            return True
-        return False
 
     def runOnce(self):
         time.sleep(5)
@@ -285,7 +288,7 @@ class Main:
             time.sleep(10 * 60)
         
 if __name__ == '__main__':
-    print('Tdx start') 
+    print('Tdx start')
     mm = Main()
     mm.runOnce()
     #mm.autoMain()
