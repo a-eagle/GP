@@ -194,6 +194,7 @@ def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite', maxP
         if maxPage is None:
             maxPage = (count + 99) // 100
         for i in range(2, maxPage + 1):
+            time.sleep(1)
             datas = iwencai_load_page_n(i, urlMore)
             rs.extend(datas)
             time.sleep(1)
@@ -217,7 +218,7 @@ def modify_hygn_code(obj : ths_orm.THS_GNTC, zsInfos):
     obj.hy_2_name = hys[1]
     obj.hy_3_name = hys[2]
 
-def diffHygn(srcModel, destDict, attrs):
+def modify_hygn_attrs(srcModel, destDict, attrs):
     changed = False
     for a in attrs:
         if getattr(srcModel, a) != destDict[a]:
@@ -234,8 +235,8 @@ def download_hygn():
     for q in qr:
         zsInfos[q.name] = q.code
     GP_CODE = ('0', '3', '6')
-    ATTRS = ('code', 'name', 'hy', 'gn', 'zgb', 'ltag', 'xsg', 'ltsz', 'zsz', 'pe')
-    ATTRS_D = ('code', '股票简称', '所属同花顺行业', '所属概念', '总股本', '流通a股', '限售股合计', 'a股市值(不含限售股)', '总市值', '市盈率(pe)')
+    ATTRS = ('code', 'name', 'hy', 'gn', 'zgb', 'ltag', 'xsg', 'ltsz', 'zsz')
+    ATTRS_D = ('code', '股票简称', '所属同花顺行业', '所属概念', '总股本', '流通a股', '限售股合计', 'a股市值(不含限售股)', '总市值')
     ATTRS_D_T = (str, str, str, str, float, float, float, float, float, float)
     for idx, line in enumerate(rs):
         columns = ThsColumns(line)
@@ -246,7 +247,7 @@ def download_hygn():
             continue
         obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
         if obj:
-            diffHygn(obj, dest, ATTRS)
+            modify_hygn_attrs(obj, dest, ATTRS)
         else:
             obj = ths_orm.THS_GNTC(**dest)
         modify_hygn_code(obj, zsInfos)
@@ -254,20 +255,23 @@ def download_hygn():
     return len(rs)
 
 # 个股信息(市盈率 ttm)
-def download_hygn_ttm():
-    rs = iwencai_load_list(question = '市盈率(ttm)')
+def download_hygn_pe():
+    rs = iwencai_load_list(question = '静态市盈率,市盈率(ttm)')
     if not rs:
         return None
     updateNum = 0
     for item in rs:
         columns = ThsColumns(item)
         code = columns.getColumnValue('code', str, '')
+        pe = columns.getColumnValue('静态市盈率(中证发布)', float, None)
         peTTM = columns.getColumnValue('市盈率(pe,ttm)', float, None)
         obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
-        if obj and obj.peTTM != peTTM:
-            obj.peTTM = peTTM
-            obj.save()
-            updateNum += 1
+        if not obj:
+            continue
+        obj.peTTM = peTTM
+        obj.pe = pe
+        obj.save()
+        updateNum += 1
     return updateNum
 
 # dde大单净额
@@ -550,7 +554,6 @@ if __name__ == '__main__':
     from orm import ths_orm
     # ds = download_codes(20250401)
     #iwencai_load_list('个股热度排名<=200且个股热度从大到小排名')
-    num = download_hygn()
-    num2 = download_hygn_ttm()
-    print(num, num2)
+    #num = download_hygn()
+    num2 = download_hygn_pe()
     

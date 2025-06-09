@@ -242,7 +242,7 @@ class Server:
 
     def download_hygn_ttm(self, tag):
         try:
-            ds = ths_iwencai.download_hygn_ttm()
+            ds = ths_iwencai.download_hygn_pe()
             console.writeln_1(console.GREEN, f'[THS-HyGn-PeTtm] {tag} {self.formatNowTime(True)} update {ds}')
             return True
         except Exception as e:

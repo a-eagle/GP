@@ -22,7 +22,7 @@ class THS_GNTC(pw.Model):
     ltsz = pw.FloatField(null=True) # 流通市值
     zsz = pw.FloatField(null=True) #  总市值
 
-    pe = pw.FloatField(null=True) # 市盈率
+    pe = pw.FloatField(null=True) # 静态市盈率
     peTTM = pw.FloatField(null=True) # 市盈率(pe,ttm)
 
     class Meta:

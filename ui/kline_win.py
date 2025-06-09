@@ -1115,13 +1115,12 @@ class CodeWindow(BaseWindow):
         y += 3
         self.drawer.drawText(hdc, '市盈率_静', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         if self.basicData:
-            rz = int(self.basicData.get('pe', 0))
+            rz = int(self.basicData['pe'] or 0)
             self.drawer.drawText(hdc, str(rz or '--'), (RIGHT_X + 10, y, W, y + RH), (0xcccccc if rz >= 0 else 0x00ff00), self.V_CENTER)
         y += RH
         self.drawer.drawText(hdc, '市盈率_TTM', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         if self.basicData:
-            pttm = self.basicData.get('peTTM', 0)
-            rz = int(pttm if pttm != None else 0)
+            rz = int(self.basicData['peTTM'] or 0)
             self.drawer.drawText(hdc, str(rz or '--'), (RIGHT_X + 10, y, W, y + RH), (0xcccccc if rz >= 0 else 0x00ff00), self.V_CENTER)
         y += RH
         self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
