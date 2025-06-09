@@ -151,8 +151,12 @@ class Server:
         curTime = now.strftime('%H:%M')
         day = now.strftime('%Y-%m-%d')
 
-        if curTime >= '09:30' and curTime <= '16:00':
+        if curTime >= '15:00' and curTime <= '15:20':
             self.downloadClsZT()
+
+        if curTime > '15:10' and (not self.downloadInfos.get(f'clszt-{day}', False)):
+            self.downloadClsZT()
+            self.downloadInfos[f'clszt-{day}'] = True
         if curTime > '15:10' and (not self.downloadInfos.get(f'scqx-{day}', False)):
             rs = self.downloadScqx('[1/8]')
             self.downloadInfos[f'scqx-{day}'] = rs
@@ -508,18 +512,4 @@ def do_reason():
 
 if __name__ == '__main__':
     svr = Server()
-    #svr.downloadZS()
-    # svr.downloadBkGn('[4/7]', 20250508)
-    #downloadClsZT()
-    #days = ths_iwencai.getTradeDays(100)
-    #for day in days:
-    #    svr._loadHotTcOfDay(day)
-    # svr.loadHotTc(1)
-    # svr.downloadZS_ZD('d')
-
-    svr.downloadClsZT()
     svr.loadOneTime()
-    #svr.downloadEastmoneyZdfb('[x]')
-    #svr.downloadBkGnAll('[x]')
-    # svr.downloadUpDown('[2/8]')
-    #do_reason()

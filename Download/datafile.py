@@ -373,12 +373,13 @@ class Ths_K_DataModel(K_DataModel):
         from download import henxin
         hx = henxin.HexinUrl()
         if period == 'day':
-            url = hx.getKLineUrl(self.code)
+            rs = hx.loadKLineData(self.code)
         elif period == 'week':
             url = hx.getKLineUrl_Week(self.code)
+            rs = hx.loadUrlData(url)
         elif period == 'month':
             url = hx.getKLineUrl_Month(self.code)
-        rs = hx.loadUrlData(url)
+            rs = hx.loadUrlData(url)
         if rs:
             self.data = rs['data']
             self.name = rs['name']

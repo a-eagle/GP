@@ -4,6 +4,96 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import ths_orm
 from download import henxin, memcache
 
+class ThsColumns:
+    def __init__(self, item) -> None:
+        self.item = None
+        self.names = {}
+        self._setItem(item)
+
+    def getColumnNames(self, item, partColumnName):
+        names = []
+        for k in item:
+            if partColumnName in k:
+                names.append(k)
+        return names
+    
+    def getColumnDay(self, columnName):
+        if '[' in columnName:
+            b = columnName.index('[')
+            e = columnName.index(']')
+            return columnName[b + 1 : e]
+        return ''
+    
+    @staticmethod
+    def getItemColumnDay(self, item, baseColumnName):
+        for k in item:
+            if baseColumnName + '[' in k:
+                b = k.index('[')
+                e = k.index(']')
+                return k[b + 1 : e]
+        return ''
+    
+    def _setItem(self, item):
+        self.item = item
+        self.names.clear()
+        for k in item:
+            if '[' in k:
+                bname = k[0 : k.index('[')]
+            else:
+                bname = k
+            if type(self.names.get(bname, None)) == list:
+                self.names[bname].append(k)
+            elif self.names.get(bname, None) != None:
+                old = self.names[bname]
+                self.names[bname] = [old, k]
+            else:
+                self.names[bname] = k
+
+    def cast(self, val, _type, defaultVal):
+        try:
+            rs = _type(val)
+            if _type == str:
+                rs = rs.strip()
+            return rs
+        except Exception as e:
+            pass
+            # traceback.print_exc()
+            # print('[ths_iwencai.ThsColumns.cast] ', val)
+        return defaultVal
+
+    def getColumnValue(self, baseColumnName, _type, defaultVal = '', listValue = False):
+        fullName = self.names.get(baseColumnName, None)
+        if not fullName:
+            return defaultVal
+        if type(fullName) == str:
+            val = self.cast(self.item[fullName], _type, defaultVal)
+            return val
+        if type(fullName) == list:
+            rs = []
+            fullName.sort()
+            for n in fullName:
+                val = self.cast(self.item[n], _type, defaultVal)
+                rs.append((n, val))
+            if not listValue:
+                return rs[0][1] # use first value
+            return rs
+        return defaultVal
+    
+    def getColumnValue_Part(self, partColumnName, _type, defaultVal = ''):
+        name = None
+        num = 0
+        for k in self.item:
+            if partColumnName in k:
+                name = k
+                num += 1
+        if num > 1:
+            print('[ths_iwencai.ThsColumns.getColumnValue2] not unicode column name: ', partColumnName)
+            return defaultVal
+        if name and num == 1:
+            val = self.cast(self.item[name], _type, defaultVal)
+            return val
+        return defaultVal
+
 def iwencai_search_info(question, intent = 'stock', input_type = 'typewrite'):
     url = 'http://www.iwencai.com/customized/chart/get-robot-data'
     data = {
@@ -112,7 +202,7 @@ def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite', maxP
         traceback.print_exc()
     return rs
 
-def modify_hygn(obj : ths_orm.THS_GNTC, zsInfos):
+def modify_hygn_code(obj : ths_orm.THS_GNTC, zsInfos):
     gn_code = []
     for g in obj.gn.split(';'):
         gcode = zsInfos.get(g, '')
@@ -127,64 +217,58 @@ def modify_hygn(obj : ths_orm.THS_GNTC, zsInfos):
     obj.hy_2_name = hys[1]
     obj.hy_3_name = hys[2]
 
+def diffHygn(srcModel, destDict, attrs):
+    changed = False
+    for a in attrs:
+        if getattr(srcModel, a) != destDict[a]:
+            setattr(srcModel, a, destDict[a])
+            changed = True
+    return changed
+
 # 个股行业概念
 # @return update-datas, insert-datas
 def download_hygn():
-    # 下载所有的 个股行业概念（含当日涨跌信息）
-    # code 市盈率(pe)[20240708],  总股本[20240708]  所属概念  所属同花顺行业  最新涨跌幅  最新价 股票简称  总市值[20240717] a股市值(不含限售股)[20240717]
-    rs = iwencai_load_list(question = '个股及行业板块,总市值,流通市值,pe,ttm')
+    rs = iwencai_load_list(question = '个股及行业板块,流通a股,pe,限售股,流通市值,总市值') # ,maxPage = 1
     zsInfos = {}
     qr = ths_orm.THS_ZS.select()
     for q in qr:
         zsInfos[q.name] = q.code
-    updates = []
-    inserts = []
     GP_CODE = ('0', '3', '6')
+    ATTRS = ('code', 'name', 'hy', 'gn', 'zgb', 'ltag', 'xsg', 'ltsz', 'zsz', 'pe')
+    ATTRS_D = ('code', '股票简称', '所属同花顺行业', '所属概念', '总股本', '流通a股', '限售股合计', 'a股市值(不含限售股)', '总市值', '市盈率(pe)')
+    ATTRS_D_T = (str, str, str, str, float, float, float, float, float, float)
     for idx, line in enumerate(rs):
-        code, name, hy, gn = line['code'], line['股票简称'], line.get('所属同花顺行业'), line.get('所属概念', '')
-        if code[0] not in GP_CODE:
+        columns = ThsColumns(line)
+        dest = {}
+        for idx, a in enumerate(ATTRS):
+            dest[a] = columns.getColumnValue(ATTRS_D[idx], ATTRS_D_T[idx])
+        if dest['code'][0] not in GP_CODE:
             continue
-        zsz, ltsz = 0, 0
-        for k in line:
-            if '总市值' in k: zsz = int(float(line[k])) // 100000000
-            elif 'a股市值' in k: ltsz = int(float(line[k])) // 100000000
-        hy = hy.strip() if hy else ''
-        gn = gn.strip() if gn else ''
-        gns = gn.split(';')
-        gn = ';'.join(gns)
-        obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
+        obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
         if obj:
-            if obj.zsz != zsz or obj.ltsz != ltsz:
-                obj.zsz = zsz
-                obj.ltsz = ltsz
-                obj.save()
-            ch = False
-            if obj.hy != hy and hy:
-                obj.hy = hy
-                ch = True
-            if obj.gn != gn and gn:
-                obj.gn = gn
-                ch = True
-            if obj.name != name and name:
-                obj.name = name
-                ch = True
-            if ch == True:
-                modify_hygn(obj, zsInfos)
-                updates.append(obj)
+            diffHygn(obj, dest, ATTRS)
         else:
-            obj = ths_orm.THS_GNTC(code = code, name = name, gn = gn, hy = hy, zsz = zsz, ltsz = ltsz)
-            modify_hygn(obj, zsInfos)
-            inserts.append(obj)
-    return updates, inserts
+            obj = ths_orm.THS_GNTC(**dest)
+        modify_hygn_code(obj, zsInfos)
+        obj.save()
+    return len(rs)
 
-# @return (update-num, insert-num)
-def save_hygn(updateDatas, insertDatas):
-    for it in updateDatas:
-        it.save()
-    for it in insertDatas:
-        it.save()
-    return len(updateDatas), len(insertDatas)
-
+# 个股信息(市盈率 ttm)
+def download_hygn_ttm():
+    rs = iwencai_load_list(question = '市盈率(ttm)')
+    if not rs:
+        return None
+    updateNum = 0
+    for item in rs:
+        columns = ThsColumns(item)
+        code = columns.getColumnValue('code', str, '')
+        peTTM = columns.getColumnValue('市盈率(pe,ttm)', float, None)
+        obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
+        if obj and obj.peTTM != peTTM:
+            obj.peTTM = peTTM
+            obj.save()
+            updateNum += 1
+    return updateNum
 
 # dde大单净额
 # @return data : list (前100 + 后100)
@@ -457,137 +541,6 @@ def download_vol_top100(day = None):
         rs.append(obj)
     return rs
 
-class ThsColumns:
-    def __init__(self, item) -> None:
-        self.item = None
-        self.names = {}
-        self._setItem(item)
-
-    def getColumnNames(self, item, partColumnName):
-        names = []
-        for k in item:
-            if partColumnName in k:
-                names.append(k)
-        return names
-    
-    def getColumnDay(self, columnName):
-        if '[' in columnName:
-            b = columnName.index('[')
-            e = columnName.index(']')
-            return columnName[b + 1 : e]
-        return ''
-    
-    @staticmethod
-    def getItemColumnDay(self, item, baseColumnName):
-        for k in item:
-            if baseColumnName + '[' in k:
-                b = k.index('[')
-                e = k.index(']')
-                return k[b + 1 : e]
-        return ''
-    
-    def _setItem(self, item):
-        self.item = item
-        self.names.clear()
-        for k in item:
-            if '[' in k:
-                bname = k[0 : k.index('[')]
-            else:
-                bname = k
-            if type(self.names.get(bname, None)) == list:
-                self.names[bname].append(k)
-            elif self.names.get(bname, None) != None:
-                old = self.names[bname]
-                self.names[bname] = [old, k]
-            else:
-                self.names[bname] = k
-
-    def cast(self, val, _type, defaultVal):
-        try:
-            return _type(val)
-        except Exception as e:
-            pass
-            # traceback.print_exc()
-            # print('[ths_iwencai.ThsColumns.cast] ', val)
-        return defaultVal
-
-    def getColumnValue(self, baseColumnName, _type, defaultVal = ''):
-        fullName = self.names.get(baseColumnName, None)
-        if not fullName:
-            return defaultVal
-        if type(fullName) == str:
-            val = self.cast(self.item[fullName], _type, defaultVal)
-            return val
-        if type(fullName) == list:
-            rs = []
-            fullName.sort()
-            for n in fullName:
-                val = self.cast(self.item[n], _type, defaultVal)
-                rs.append((n, val))
-            return rs
-        return defaultVal
-
-    def getColumnValue2(self, partColumnName, _type, defaultVal = ''):
-        name = None
-        num = 0
-        for k in self.item:
-            if partColumnName in k:
-                name = k
-                num += 1
-        if num > 1:
-            print('[ths_iwencai.ThsColumns.getColumnValue2] not unicode column name: ', partColumnName)
-            return defaultVal
-        if name and num == 1:
-            val = self.cast(self.item[name], _type, defaultVal)
-            return val
-        return defaultVal
-
-# 个股每日信息
-def download_codes(day = None):
-    if not day:
-        day = ''
-    if type(day) == int:
-        day = str(day)
-    day = day.replace('-', '')
-    # code 市盈率(pe)[20240708],  总股本[20240708]  所属概念  所属同花顺行业  最新涨跌幅  最新价 股票简称  总市值[20240717] a股市值(不含限售股)[20240717]
-    rs = iwencai_load_list(question = f'{day}个股成交额,成交量,总股本,流通a股,涨跌幅,换手率,市盈率,市盈率(ttm)')
-    if not rs:
-        return None
-    
-    day = ThsColumns.getItemColumnDay(rs[0], '开盘价:前复权')
-    rt = []
-    for item in rs:
-        obj = {}
-        columns = ThsColumns(item)
-        obj['day'] = day
-        obj['code'] = columns.getColumnValue('code', str)
-        obj['name'] = columns.getColumnValue('股票简称', str)
-        obj['open'] = columns.getColumnValue('开盘价:前复权', float, 0)
-        obj['close'] = columns.getColumnValue('收盘价:前复权', float, 0)
-        obj['high'] = columns.getColumnValue('最高价:前复权', float, 0)
-        obj['low'] = columns.getColumnValue('最低价:前复权', float, 0)
-        obj['zf'] = columns.getColumnValue('涨跌幅:前复权', float, 0)
-        obj['zd'] = columns.getColumnValue('涨跌', float, 0)  # 涨跌价格（元）
-        obj['zhenfu'] = columns.getColumnValue('振幅', float, 0)
-        obj['vol'] = columns.getColumnValue('成交量', float, 0) # 股
-        obj['amount'] = columns.getColumnValue('成交额', float, 0) # 元
-        obj['rate'] = columns.getColumnValue('换手率', float, 0)
-        obj['zgb'] = columns.getColumnValue('总股本', float, 0) # 股
-        obj['ltag'] = columns.getColumnValue('流通a股', float, 0) # 股
-        obj['zsz'] = int(columns.getColumnValue('总市值', float, 0) / 100000000) # 亿元
-        obj['pe'] = columns.getColumnValue('市盈率(pe)', float, 0)
-        obj['peTTM'] = columns.getColumnValue('市盈率(pe,ttm)', float, 0)
-        pes = columns.getColumnValue('预测市盈率(pe,最新预测)', float, 0)
-        if type(pes) == list:
-            obj['ycPEs'] = ';'.join([columns.getColumnDay(d[0]) + ':' + str(d[1]) for d in pes])
-        else:
-            obj['ycPEs'] = ''
-        obj['jrl'] = columns.getColumnValue('归属母公司股东的净利润(ttm)', float, 0) # 净利润 (元)
-        # obj[''] = columns.getColumnValue('', float, 0)
-        rt.append(obj)
-
-    return rt
-
 def isTradeDay():
     lastDay = getTradeDays()[-1]
     today = datetime.date.today().strftime('%Y%m%d')
@@ -596,5 +549,8 @@ def isTradeDay():
 if __name__ == '__main__':
     from orm import ths_orm
     # ds = download_codes(20250401)
-    iwencai_load_list('个股热度排名<=200且个股热度从大到小排名')
+    #iwencai_load_list('个股热度排名<=200且个股热度从大到小排名')
+    num = download_hygn()
+    num2 = download_hygn_ttm()
+    print(num, num2)
     

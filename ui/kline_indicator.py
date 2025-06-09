@@ -217,6 +217,7 @@ class KLineIndicator(Indicator):
         tag = getTypeByCode(code)
         model = Cls_K_DataModel(code) if tag == 'cls' else Ths_K_DataModel(code)
         model.loadNetData(period)
+        model.calcZhangFu()
         self.model = model
         super().changeCode(code, period)
         self.data = model.data if model else None

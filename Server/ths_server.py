@@ -232,41 +232,22 @@ class Server:
 
     def download_hygn(self, tag):
         try:
-            upd, ins = ths_iwencai.download_hygn()
-            u, i = ths_iwencai.save_hygn(upd, ins)
-            console.writeln_1(console.GREEN, f'[THS-HyGn] {tag} {self.formatNowTime(True)} update {u}, insert {i}')
+            upd = ths_iwencai.download_hygn()
+            console.writeln_1(console.GREEN, f'[THS-HyGn] {tag} {self.formatNowTime(True)} update {upd}')
             return True
         except Exception as e:
             traceback.print_exc()
             console.writeln_1(console.GREEN, f'[THS-HyGn] {tag} Fail')
         return False
 
-    def download_codes(self, tag):
+    def download_hygn_ttm(self, tag):
         try:
-            ds = ths_iwencai.download_codes()
-            day = None
-            mds = {}
-            for d in ds:
-                mds[d['code']] = d
-                if not day:
-                    day = d['day']
-            qr = ths_orm.CodesInfo.select().where(ths_orm.CodesInfo.day == day)
-            updateNum = 0
-            for q in qr:
-                if q.code not in mds:
-                    continue
-                item = mds[q.code]
-                if item['close'] != q.close:
-                    q.__data__.update(item)
-                    q.save()
-                    updateNum += 1
-                mds.pop(q.code)
-            objs = [ths_orm.CodesInfo(**mds[k]) for k in mds]
-            ths_orm.CodesInfo.bulk_create(objs, 200)
-            console.writeln_1(console.GREEN, f'[THS-Code] {tag} {self.formatNowTime(True)} insert {len(objs)}  update {updateNum}')
+            ds = ths_iwencai.download_hygn_ttm()
+            console.writeln_1(console.GREEN, f'[THS-HyGn-PeTtm] {tag} {self.formatNowTime(True)} update {ds}')
             return True
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.GREEN, f'[THS-HyGn-PeTtm] {tag} Fail')
         return False
 
     def download_dt(self, tag, day = None):
@@ -318,10 +299,10 @@ class Server:
         if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False):
             self.downloadInfos[f'hygn-{day}'] = True
             self.download_hygn('[4/5]')
-        # 下载个股信息
-        #if (curTime >= '15:05') and not self.downloadInfos.get(f'code-{day}', False):
-        #    ok = self.download_codes('[5/6]')
-        #    self.downloadInfos[f'code-{day}'] = ok
+        # 下载个股PeTTM
+        if (curTime >= '20:00') and not self.downloadInfos.get(f'hygn_ttm-{day}', False) and now.weekday() == 2: # 每周三
+            ok = self.download_hygn_ttm('')
+            self.downloadInfos[f'hygn_ttm-{day}'] = ok
         # 下载个股跌停
         if (curTime >= '22:00') and not self.downloadInfos.get(f'dt-{day}', False):
             ok = self.download_dt('[5/5]')

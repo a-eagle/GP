@@ -16,7 +16,7 @@ def getTypeByCode(code):
     if type(code) != str:
         return None
     if code[0] in ('0', '3', '6'):
-        return 'cls'
+        return 'ths'
     if code[0 : 2] in ('sz', 'sh'):
         return 'cls'
     if code[0 : 3] == 'cls':

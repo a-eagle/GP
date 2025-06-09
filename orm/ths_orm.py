@@ -15,8 +15,15 @@ class THS_GNTC(pw.Model):
     hy_2_code = pw.CharField(null=True) # 二级行业代码
     hy_3_name = pw.CharField(null=True) # 三级行业名称
     hy_3_code = pw.CharField(null=True) # 三级行业代码
-    zsz = pw.IntegerField(null = True, default = 0) # 总市值, 亿元
-    ltsz = pw.IntegerField(null = True, default = 0) # 流通市值, 亿元
+
+    zgb = pw.FloatField(null=True) # 总股本 股
+    ltag = pw.FloatField(null=True) # 流通a股 股
+    xsg = pw.FloatField(null=True) # 限售股 股
+    ltsz = pw.FloatField(null=True) # 流通市值
+    zsz = pw.FloatField(null=True) #  总市值
+
+    pe = pw.FloatField(null=True) # 市盈率
+    peTTM = pw.FloatField(null=True) # 市盈率(pe,ttm)
 
     class Meta:
         database = db_gntc
@@ -94,39 +101,24 @@ class THS_ZT(pw.Model):
     class Meta:
         database = db_ths
 
-db_codes = pw.SqliteDatabase(f'{path}GP/db/codes.db')
-# 个股信息(每日)
-class CodesInfo(pw.Model):
-    day = pw.CharField() # YYYYMMDD
-    code = pw.CharField()
-    name = pw.CharField(null = True)
-    open = pw.FloatField()
-    close = pw.FloatField()
-    high = pw.FloatField()
-    low = pw.FloatField()
-    zf = pw.FloatField() # 涨跌幅 9.99%
-    zd = pw.FloatField() # 涨跌价格（元）
-    zhenfu = pw.FloatField() # 振幅
-    vol = pw.FloatField() # 股
-    amount = pw.FloatField() # 元
-    rate = pw.FloatField() # 25%
-    zgb = pw.FloatField() # 总股本 股
-    ltag = pw.FloatField() # 流通a股 股
-    zsz = pw.IntegerField() # 总市值  # 亿元
-    pe = pw.FloatField() # 市盈率
-    peTTM = pw.FloatField() # 市盈率(pe,ttm)
-    ycPEs = pw.CharField() # 预测市盈率(三年)
-    jrl = pw.FloatField() # 净利润
+# db_codes = pw.SqliteDatabase(f'{path}GP/db/codes.db')
+# # 个股信息
+# class CodesInfo(pw.Model):
+#     code = pw.CharField()
+#     name = pw.CharField(null = True)
+#     zgb = pw.FloatField() # 总股本 股
+#     ltag = pw.FloatField() # 流通a股 股
+#     pe = pw.FloatField() # 市盈率
+#     peTTM = pw.FloatField() # 市盈率(pe,ttm)
 
-    class Meta:
-        database = db_codes
+#     class Meta:
+#         database = db_codes
 
 db_hot.create_tables([THS_Hot])
 db_hot_zh.create_tables([THS_HotZH])
 db_thszs.create_tables([THS_ZS_ZD])
 db_gntc.create_tables([THS_GNTC])
 db_ths.create_tables([THS_ZT])
-db_codes.create_tables([CodesInfo])
 
 
 if __name__ == '__main__':
