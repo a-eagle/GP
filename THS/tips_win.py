@@ -1036,19 +1036,19 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.drawer.use(hdc, self.drawer.getFont(fontSize = 14, weight=1000))
         y1, y2 = 22, 45
         rc = (LR, y1, LW // 2 - PD, y1 + 20)
-        v = self.data["流通市值"] // 100000000 #亿
+        v = int(self.data.get('ltsz', 0) / 100000000) #亿 # 流通市值
         cs1 =  f'{v :d} 亿'
         self.drawer.drawText(hdc, '流通值', rc, 0xcccccc, align=win32con.DT_LEFT)
         self.drawer.drawText(hdc, cs1, rc, 0xF4E202, align=win32con.DT_RIGHT)
         rc = (LR, y2, LW // 2 - PD, y2 + 20)
-        v = self.data["总市值"] // 100000000 #亿
+        v = int(self.data.get('zsz', 0) / 100000000) #亿 总市值
         cs1 =  f'{v :d} 亿'
         self.drawer.drawText(hdc, '总市值', rc, 0xcccccc, align=win32con.DT_LEFT)
         self.drawer.drawText(hdc, cs1, rc, 0xF4E202, align=win32con.DT_RIGHT)
 
         rc = (LW // 2 + PD, y1, LW - LR, y1 + 20)
         self.drawer.drawText(hdc, '市盈_静', rc, 0xcccccc, align=win32con.DT_LEFT)
-        v = self.data['市盈率_静']
+        v = self.data['pe']
         if v == None:
             cs1 = '--'
         else:
@@ -1056,7 +1056,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.drawer.drawText(hdc, cs1, rc, 0xF4E202, align=win32con.DT_RIGHT)
         rc = (LW // 2 + PD, y2, LW - LR, y2 + 20)
         self.drawer.drawText(hdc, '市盈_TTM', rc, 0xcccccc, align=win32con.DT_LEFT)
-        v = self.data["市盈率_TTM"]
+        v = self.data["peTTM"]
         if v == None:
             cs1 = '--'
         else:
@@ -1092,12 +1092,15 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
     
     def loadCodeBasic(self, code):
         if code[0 : 2] == '88':
-            pass
-        else:
-            url = cls.ClsUrl()
-            data = url.loadBasic(code)
-            self.cacheData[code] = data
-            self._useCacheData(code)
+            return
+        #url = cls.ClsUrl()
+        #data = url.loadBasic(code)
+        #self.cacheData[code] = data
+        #self._useCacheData(code)
+        obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
+        if obj: 
+            self.data = obj.__data__
+        self.invalidWindow()
 
     def _useCacheData(self, code):
         if code != self.curCode or code not in self.cacheData:
@@ -1115,10 +1118,11 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         if len(scode) != 6 or (code[0] not in ('0', '3', '6')):
             self.invalidWindow()
             return
-        if scode in self.cacheData:
-            self._useCacheData(scode)
-        else:
-            base_win.ThreadPool.instance().addTask(scode, self.loadCodeBasic, scode)
+        #if scode in self.cacheData:
+        #    self._useCacheData(scode)
+        #else:
+        #    base_win.ThreadPool.instance().addTask(scode, self.loadCodeBasic, scode)
+        self.loadCodeBasic(scode)
 
     def getWindowState(self):
         rc = win32gui.GetWindowRect(self.hwnd)
