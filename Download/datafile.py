@@ -183,12 +183,14 @@ class K_DataModel(DataModel):
         if not self.data:
             return True
         path = self.getLocalPath('DAY')
-        filesize = os.path.getsize(path)
+        filesize = 0
         RL = 32
-        if filesize % RL != 0:
-            print('[KDataFile.writeLocalFile] invalid file size ', self.code, path)
-            return False
-        f = open(path, 'ab')
+        if os.path.exists(path):
+            filesize = os.path.getsize(path)
+            if filesize % RL != 0:
+                print('[KDataFile.writeLocalFile] invalid file size ', self.code, path)
+                return False
+        f = open(path, 'a+b')
         # get last day
         lastDay = 0
         if filesize > 0:
@@ -307,18 +309,39 @@ class T_DataModel(DataModel):
             self.data = rs
         f.close()
         return len(rs) > 0
+    
+    def getLocalLatestDay(self):
+        MINUTES_IN_DAY = 241
+        path = self.getLocalPath('TIME')
+        if not os.path.exists(path):
+            return None
+        filesize = os.path.getsize(path)
+        if filesize == 0:
+            return None
+        RL = 24
+        if filesize % (RL * MINUTES_IN_DAY) != 0:
+            print('[TDataFile.getLocalLatestDay] invalid file size ', self.code, path)
+            return None
+        f = open(path, 'rb')
+        n = f.seek(-RL, 2)
+        bs = f.read(RL)
+        day, *_ = struct.unpack('2l4f', bs)
+        f.close()
+        return day
 
     def writeLocalFile(self):
         if not self.data:
             return True
         MINUTES_IN_DAY = 241
         path = self.getLocalPath('TIME')
-        filesize = os.path.getsize(path)
+        filesize = 0
         RL = 24
-        if filesize % (RL * MINUTES_IN_DAY) != 0:
-            print('[TDataFile.writeLocalFile] invalid file size ', self.code, path)
-            return False
-        f = open(path, 'ab')
+        if os.path.exists(path):
+            filesize = os.path.getsize(path)
+            if filesize % (RL * MINUTES_IN_DAY) != 0:
+                print('[TDataFile.writeLocalFile] invalid file size ', self.code, path)
+                return False
+        f = open(path, 'a+b')
         # get last day
         lastDay = 0
         if filesize > 0:

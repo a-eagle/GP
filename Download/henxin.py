@@ -228,7 +228,7 @@ class HexinUrl(Henxin):
         # 600xxx -> 17;  300xxx 000xxx 002xxx -> 33;   88xxxx -> 48
         if code[0 : 2] == '88': #指数
             return '48'
-        if code[0] == '6' or code == '1A0001':
+        if code[0] == '6' or code == '1A0001' or code == '999999':
             return '17'
         if code[0] == '0' or code[0] == '3':
             return '33'
@@ -247,6 +247,8 @@ class HexinUrl(Henxin):
         sh = self.getCodeSH(code)
         if not sh:
             return None
+        if code == '999999':
+            code = '1A0001'
         url = 'http://d.10jqka.com.cn/v6/time/' + sh + '_' + code + '/last.js'
         url = self._getUrlWithParam(url)
         return url
@@ -256,6 +258,8 @@ class HexinUrl(Henxin):
         sh = self.getCodeSH(code)
         if not sh:
             return None
+        if code == '999999':
+            code = '1A0001'
         url = 'http://d.10jqka.com.cn/v6/line/'+ sh + '_' + code + '/01/today.js'
         url = self._getUrlWithParam(url)
         return url
@@ -263,6 +267,8 @@ class HexinUrl(Henxin):
     # 日线 url
     def getKLineUrl(self, code):
         sh = self.getCodeSH(code)
+        if code == '999999':
+            code = '1A0001'
         if not sh:
             return None
         url = 'http://d.10jqka.com.cn/v6/line/'+ sh + '_' + code + '/01/last1800.js'
@@ -274,6 +280,8 @@ class HexinUrl(Henxin):
         sh = self.getCodeSH(code)
         if not sh:
             return None
+        if code == '999999':
+            code = '1A0001'
         url = 'http://d.10jqka.com.cn/v6/line/'+ sh + '_' + code + '/11/last1800.js'
         url = self._getUrlWithParam(url)
         return url
@@ -283,6 +291,8 @@ class HexinUrl(Henxin):
         sh = self.getCodeSH(code)
         if not sh:
             return None
+        if code == '999999':
+            code = '1A0001'
         url = 'http://d.10jqka.com.cn/v6/line/'+ sh + '_' + code + '/21/last1800.js'
         url = self._getUrlWithParam(url)
         return url
@@ -335,14 +345,14 @@ class HexinUrl(Henxin):
             if not klineRs:
                 return None
             data = klineRs['data']
-            if data:
-                last = data[-1]
-            url = self.getTodayKLineUrl(code)
-            todayRs = self.loadUrlData(url)
-            if data and todayRs and todayRs['data'] and data[-1].day == todayRs['data'].day:
-                data.pop(-1)
-            if todayRs and todayRs['data']:
-                data.append(todayRs['data'])
+            if not data:
+                return None
+            last = data[-1]
+            if last.day != int(klineRs['today']):
+                url = self.getTodayKLineUrl(code)
+                todayRs = self.loadUrlData(url)
+                if todayRs and todayRs['data']:
+                    data.append(todayRs['data'])
             return klineRs
         except Exception as e:
             traceback.print_exc()

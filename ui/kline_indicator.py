@@ -6,7 +6,7 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download.datafile import *
 from ui.base_win import *
 from utils import hot_utils, gn_utils
-from download import cls
+from download import cls, henxin
 from orm import d_orm, ths_orm, lhb_orm, cls_orm
 
 def getTypeByCode(code):
@@ -827,12 +827,12 @@ class LsAmountIndicator(CustomIndicator):
     def _changeCode(self):
         super()._changeCode()
         maps = {}
-        url = cls.ClsUrl()
-        ds = url.loadKline('sh000001')
-        for d in ds:
+        url = henxin.HexinUrl()
+        ds = url.loadKLineData('999999')
+        for d in ds['data']:
             maps[d.day] = d.amount / 1000000000000 # 万亿
-        ds = url.loadKline('sz399001')
-        for d in ds:
+        ds = url.loadKLineData('399001')
+        for d in ds['data']:
             maps[d.day] += d.amount / 1000000000000 # 万亿
         self.cdata = maps
 

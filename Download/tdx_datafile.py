@@ -225,36 +225,22 @@ class Writer:
     def writeToFile_K(self, code):
         from download import datafile
         srcDf = K_DataFile(code)
+        srcDf.loadData()
         if not srcDf.data:
             return
         destDf = datafile.K_DataModel(code)
-        if not destDf.data:
-            destDf.data = srcDf.data
-            destDf.writeLocalFile()
-            return
-        lastDay = destDf.data[-1].day
-        for idx, item in enumerate(srcDf.data):
-            if item.day > lastDay:
-                destDf.data.extend(srcDf.data[idx : ])
-                destDf.writeLocalFile()
-                break
+        destDf.data = srcDf.data
+        destDf.writeLocalFile()
 
     def writeToFile_T(self, code):
         from download import datafile
         srcDf = T_DataFile(code)
+        srcDf.loadData()
         if not srcDf.data:
             return
         destDf = datafile.T_DataModel(code)
-        if not destDf.data:
-            destDf.data = srcDf.data
-            destDf.writeLocalFile()
-            return
-        lastDay = destDf.data[-1].day
-        for idx, item in enumerate(srcDf.data):
-            if item.day > lastDay:
-                destDf.data.extend(srcDf.data[idx : ])
-                destDf.writeLocalFile()
-                break
+        destDf.data = srcDf.data
+        destDf.writeLocalFile()
 
     def getLocalCodes(self):
         codes = []
@@ -279,5 +265,5 @@ class Writer:
 
 if __name__ == '__main__':
     w = Writer()
-    cs = w.getLocalCodes()
+    w.writeAll()
    

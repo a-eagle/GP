@@ -290,4 +290,4 @@ class Main:
 if __name__ == '__main__':
     mm = Main()
     mm.runOnce()
-    #mm.runLoop()
+    mm.runLoop()
