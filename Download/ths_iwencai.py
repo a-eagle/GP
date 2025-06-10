@@ -186,7 +186,7 @@ def iwencai_load_page_n(page : int, moreUrl):
 # input_type = 'typewrite' | 'click'
 # maxPage = int | None(all pages)
 # @return list
-def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite', maxPage = None):
+def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite', maxPage = None, internalTime = 5):
     rs = []
     try:
         data1, urlMore, count = iwencai_load_page_1(question, intent, input_type)
@@ -197,7 +197,7 @@ def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite', maxP
             time.sleep(1)
             datas = iwencai_load_page_n(i, urlMore)
             rs.extend(datas)
-            time.sleep(1)
+            time.sleep(internalTime)
     except Exception as e:
         print('Exception: ', question)
         traceback.print_exc()
