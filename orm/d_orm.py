@@ -9,6 +9,7 @@ class ZT_PanKou(pw.Model):
     day = pw.CharField() # YYYY-MM-DD
     code = pw.CharField()
     info = pw.CharField()
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_pankou
@@ -27,6 +28,7 @@ class HotVol(pw.Model):
     avg10_20 = pw.IntegerField() # 前11 ~ 20平均
     avg20_50 = pw.IntegerField() # 前21 ~ 50平均
     avg50_100 = pw.IntegerField() # 前51 ~ 100平均
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_hotvol
@@ -40,6 +42,7 @@ class LocalSpeedModel(pw.Model):
     endMinute  = pw.IntegerField()
     minuts =  pw.IntegerField() # 时间
     zf = pw.FloatField() #涨幅
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_zhangsu

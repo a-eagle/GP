@@ -1,5 +1,5 @@
 import peewee as pw
-import sys
+import sys, datetime
 
 path = __file__[0 : __file__.upper().index('GP')]
 
@@ -15,15 +15,14 @@ class THS_GNTC(pw.Model):
     hy_2_code = pw.CharField(null=True) # 二级行业代码
     hy_3_name = pw.CharField(null=True) # 三级行业名称
     hy_3_code = pw.CharField(null=True) # 三级行业代码
-
     zgb = pw.FloatField(null=True) # 总股本 股
     ltag = pw.FloatField(null=True) # 流通a股 股
     xsg = pw.FloatField(null=True) # 限售股 股
     ltsz = pw.FloatField(null=True) # 流通市值
     zsz = pw.FloatField(null=True) #  总市值
-
     pe = pw.FloatField(null=True) # 静态市盈率
     peTTM = pw.FloatField(null=True) # 市盈率(pe,ttm)
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_gntc
@@ -39,6 +38,7 @@ class THS_Hot(pw.Model):
     time = pw.IntegerField(column_name = '时间') # 刷新时间  HHMM
     hotValue = pw.IntegerField(column_name = '热度值_万' ) #
     hotOrder = pw.IntegerField(column_name = '热度排名' ) #
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_hot
@@ -51,6 +51,7 @@ class THS_HotZH(pw.Model):
     avgHotValue = pw.IntegerField(column_name = '平均热度值_万' )
     avgHotOrder = pw.FloatField(column_name = '平均热度排名' )
     zhHotOrder = pw.IntegerField(column_name = '综合热度排名' )
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_hot_zh
@@ -60,6 +61,7 @@ db_thszs = pw.SqliteDatabase(f'{path}GP/db/THS_ZS.db')
 class THS_ZS(pw.Model):
     code = pw.CharField() #指数代码
     name = pw.CharField() #指数名称
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_thszs
@@ -82,6 +84,7 @@ class THS_ZS_ZD(pw.Model):
     zdf_topLevelPM = pw.IntegerField(default = 0) # 一级概念、行业排名
     zdf_PM = pw.IntegerField(default = 0) # 全部排名
     markColor = pw.IntegerField(null = True, column_name = 'mark_1') # 标记 1
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_thszs
@@ -97,6 +100,7 @@ class THS_ZT(pw.Model):
     status = pw.CharField(null = True, column_name='状态')
     ztReason = pw.CharField(null = True, column_name='涨停原因')
     #ztNum = pw.IntegerField(null=True, column_name='涨停数量')
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_ths

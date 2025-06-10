@@ -13,7 +13,7 @@ class CLS_GNTC(pw.Model):
     hy_code = pw.CharField(default='') # 行业
     gn = pw.CharField(default='') # 常规概念，每概概念之间用;分隔
     gn_code = pw.CharField(default='') # 常规概念对应的代码;分隔
-    updateTime = pw.DateTimeField()
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_gntc
@@ -23,6 +23,7 @@ class CLS_ZS(pw.Model):
     code = pw.CharField() #指数代码
     name = pw.CharField() #指数名称
     type_ = pw.CharField() #指数类型 HY | GN
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_gntc
@@ -36,6 +37,7 @@ class CLS_ZT(pw.Model):
     lbs = pw.IntegerField(default = 0, column_name='连板数')
     ztReason = pw.CharField(null = True, column_name='涨停原因')
     detail = pw.CharField(null = True, column_name='详情')
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_cls
@@ -51,6 +53,7 @@ class CLS_UpDown(pw.Model):
     up_reason = pw.CharField(null = True)
     limit_up_days = pw.IntegerField(default = 0) # 连板数
     is_down = pw.IntegerField(default = 0) # 是否是跌停
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_cls
@@ -61,6 +64,7 @@ class CLS_SCQX(pw.Model):
     zhqd = pw.IntegerField(column_name='综合强度', null = True)
     fb = pw.CharField(null = True) # 涨跌分布
     zdfb = pw.CharField(null = True) # 涨跌分布（东方财富数据）
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_cls
@@ -70,6 +74,7 @@ class CLS_SCQX_Time(pw.Model):
     day = pw.CharField() # YYYY-MM-DD
     time = pw.CharField() # HH:MM
     zhqd = pw.IntegerField(column_name='综合强度')
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_cls
@@ -81,6 +86,7 @@ class CLS_HotTc(pw.Model):
     name = pw.CharField()
     up = pw.BooleanField() # 是否是上涨, 还是下跌
     ctime = pw.CharField()
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_cls
@@ -94,6 +100,7 @@ class CLS_ZS_ZD(pw.Model):
     zf = pw.FloatField(default = 0) # 涨幅
     fund = pw.FloatField(default = 0) #资金流向 (亿)
     pm = pw.IntegerField() # 涨跌排名
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_cls

@@ -11,12 +11,15 @@ class TextLine(pw.Model):
     _startPos = pw.CharField(default = None)
     _endPos = pw.CharField(default = None, null = True)
     info = pw.CharField(default = None, null = True)
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
     
     class Meta:
         database = db_def
 
 class MyHotGn(pw.Model):
     info = pw.CharField(null = True)
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+
     class Meta:
         database = db_def
 
@@ -24,6 +27,8 @@ class MySettings(pw.Model):
     mainKey =  pw.CharField()
     subKey =  pw.CharField(null = True)
     val = pw.CharField(null = True)
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+    
     class Meta:
         database = db_def
 

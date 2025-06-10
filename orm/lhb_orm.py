@@ -1,5 +1,5 @@
 import peewee as pw
-import sys
+import sys, datetime
 
 path = sys.argv[0]
 path = path[0 : path.index('GP') ]
@@ -23,6 +23,7 @@ class TdxLHB(pw.Model):
     jme = pw.DecimalField(column_name = '净买额_亿' , null=True, decimal_places = 1, max_digits = 10) #  (亿元)
     famous = pw.CharField(column_name = '知名游资' , null=True)
     detail = pw.CharField(column_name = '详细', null = True)
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_lhb
