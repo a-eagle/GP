@@ -56,7 +56,7 @@ class Server:
 
     def _downloadClsZT(self):
         url = 'https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=7.7.5&type=up_pool&way=last_px&sign=a820dce18412fac3775aa940d0b00dcb'
-        resp = requests.get(url)
+        resp = requests.get(url, proxies = cls.PROXY)
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         if js['code'] != 200:
@@ -95,7 +95,7 @@ class Server:
     def downloadDegree(self):
         try:
             url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
-            resp = requests.get(url)
+            resp = requests.get(url, proxies = cls.PROXY)
             txt = resp.content.decode('utf-8')
             js = json.loads(txt)
             day = js['data']['date']
@@ -114,7 +114,7 @@ class Server:
                 console.writeln_1(console.CYAN, f'[CLS-Degree] {tag}', today, 'skip')
                 return True
             url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
-            resp = requests.get(url)
+            resp = requests.get(url, proxies = cls.PROXY)
             txt = resp.content.decode('utf-8')
             js = json.loads(txt)
             day = js['data']['date']
@@ -168,7 +168,8 @@ class Server:
             self.downloadZS('[3/8]')
         if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-zd-{day}', False)):
             #flag = self.downloadZS_ZD('[4/8]')
-            self.downloadInfos[f'zs-zd-{day}'] = flag
+            #self.downloadInfos[f'zs-zd-{day}'] = flag
+            pass
         if curTime >= '15:10' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
             self.downloadInfos[f'ztpk-{day}'] = True
             self.downloadZT_PanKou('[5/8]')
@@ -178,7 +179,7 @@ class Server:
         if curTime >= '15:10' and (not self.downloadInfos.get(f'eastmoney-fb-{day}', False)):
             flag = self.downloadEastmoneyZdfb('[7/8]')
             self.downloadInfos[f'eastmoney-fb-{day}'] = flag
-        if curTime >= '15:10' and (not self.downloadInfos.get(f'bkgn-{day}', False)) and self.downloadInfos[f'zs-zd-{day}']:
+        if curTime >= '15:10' and (not self.downloadInfos.get(f'bkgn-{day}', False)):
             self.downloadInfos[f'bkgn-{day}'] = True
             self.downloadBkGn('[8/8]')
     
@@ -427,7 +428,7 @@ class Server:
                     i += 1
                 t = time.time() - st
                 t /= 60
-                time.sleep(0.5)
+                time.sleep(5)
                 print(f'[CLS-HyGn] {tag} {total}, update {u}, insert {i}, use time: {t :.1f} minutes')
         except Exception as e:
             traceback.print_exc()
@@ -447,6 +448,7 @@ class Server:
                     continue
                 pk = json.dumps(pk)
                 d_orm.ZT_PanKou.create(code = r['code'], day = r['day'], info = pk)
+                time.sleep(5)
             if full:
                 self._lastLoadZT_PanKou = time.time()
                 console.writeln_1(console.CYAN, f'[Cls-ZT-PanKou] {tag} {self.formatNowTime(True)} ')
@@ -462,7 +464,7 @@ class Server:
         ok = True
         for url in urls:
             try:
-                resp = requests.get(url)
+                resp = requests.get(url, proxies = cls.PROXY)
                 js = json.loads(resp.text)
                 if js['code'] != 200:
                     ok = False
@@ -509,7 +511,7 @@ class Server:
             else:
                 obj.zdfb = fb
                 obj.save()
-            console.writeln_1(console.CYAN, f'[Cls-EastMoney-Zdfb] {tag}', day, ' -> ', fb)
+            console.writeln_1(console.CYAN, f'[Cls-EastMoney-Zdfb] {tag} {self.formatNowTime(True)}', day, ' -> ', fb)
             return True
         except Exception as e:
             traceback.print_exc()
