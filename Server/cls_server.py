@@ -167,7 +167,7 @@ class Server:
             self.downloadInfos[f'zs-{day}'] = True
             self.downloadZS('[3/8]')
         if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-zd-{day}', False)):
-            flag = self.downloadZS_ZD('[4/8]')
+            #flag = self.downloadZS_ZD('[4/8]')
             self.downloadInfos[f'zs-zd-{day}'] = flag
         if curTime >= '15:10' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
             self.downloadInfos[f'ztpk-{day}'] = True
@@ -384,7 +384,7 @@ class Server:
                 else:
                     info.save() # create new
                     i += 1
-                time.sleep(0.5)
+                time.sleep(2.5)
             t = time.time() - st
             t /= 60
             console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} {self.formatNowTime(True)} check {total}, update {u}, insert {i}, use time: {t :.1f} minutes')

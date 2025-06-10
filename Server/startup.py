@@ -1,5 +1,5 @@
 import time, os, threading, datetime, traceback
-import json, os, sys
+import json, os, sys, platform
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from Server import cls_server, ths_server, lhb_server
@@ -24,7 +24,7 @@ def runner():
         if LOAD_CLS:
             clsServer.loadTimeDegree()
             clsServer.loadHotTc()
-        elif LOAD_THS:
+        if LOAD_THS:
             thsServer.loadHotsOneTime()
         time.sleep(20)
 
@@ -41,7 +41,7 @@ def loop():
         try:
             if LOAD_CLS:
                 clsServer.loadOneTime()
-            elif LOAD_THS:
+            if LOAD_THS:
                 thsServer.loadOneTime()
             lhbServer.loadOneTime()
         except Exception as e:
@@ -50,7 +50,9 @@ def loop():
 
 
 LOAD_CLS = True
-LOAD_THS = False
+LOAD_THS = True
+if platform.node() == 'DESKTOP-P6GAAMF':
+    LOAD_CLS = False
 
 if __name__ == '__main__':
     th = threading.Thread(target = runner, daemon = True)
