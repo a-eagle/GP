@@ -181,7 +181,18 @@ class Server:
         if curTime >= '15:10' and (not self.downloadInfos.get(f'bkgn-{day}', False)) and self.downloadInfos[f'zs-zd-{day}']:
             self.downloadInfos[f'bkgn-{day}'] = True
             #self.downloadBkGn('[8/8]')
-        
+    
+    def loadOneTimeAnyTime(self):
+        self.downloadClsZT()
+        self.downloadScqx('[1/8]')
+        self.downloadUpDown('[2/8]')
+        self.downloadZS('[3/8]')
+        self.downloadZS_ZD('[4/8]')
+        self.downloadZT_PanKou('[5/8]')
+        self.downloadHotTcOfLastDay('[6/8]')
+        self.downloadEastmoneyZdfb('[7/8]')
+        #self.downloadBkGn('[8/8]')
+
     def loadTimeDegree(self):
         now = datetime.datetime.now()
         if not ths_iwencai.isTradeDay():
@@ -512,4 +523,4 @@ def do_reason():
 
 if __name__ == '__main__':
     svr = Server()
-    svr.loadOneTime()
+    svr.loadOneTimeAnyTime()
