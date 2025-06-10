@@ -1,5 +1,5 @@
 import peewee as pw
-import sys
+import sys, datetime
 
 path = __file__[0 : __file__.upper().index('GP')]
 
@@ -13,6 +13,7 @@ class CLS_GNTC(pw.Model):
     hy_code = pw.CharField(default='') # 行业
     gn = pw.CharField(default='') # 常规概念，每概概念之间用;分隔
     gn_code = pw.CharField(default='') # 常规概念对应的代码;分隔
+    updateTime = pw.DateTimeField()
 
     class Meta:
         database = db_gntc

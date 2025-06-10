@@ -180,7 +180,7 @@ class Server:
             self.downloadInfos[f'eastmoney-fb-{day}'] = flag
         if curTime >= '15:10' and (not self.downloadInfos.get(f'bkgn-{day}', False)) and self.downloadInfos[f'zs-zd-{day}']:
             self.downloadInfos[f'bkgn-{day}'] = True
-            #self.downloadBkGn('[8/8]')
+            self.downloadBkGn('[8/8]')
     
     def loadOneTimeAnyTime(self):
         self.downloadClsZT()
@@ -358,7 +358,7 @@ class Server:
                 return flag
             attrs = ('gn', 'gn_code', 'hy', 'hy_code')
             u, i, total = 0, 0, 0
-            qr = cls_orm.CLS_ZS_ZD.select().where(cls_orm.CLS_ZS_ZD.day == day).where(cls_orm.CLS_ZS_ZD.pm > 0, cls_orm.CLS_ZS_ZD.pm <= 10)
+            qr = cls_orm.CLS_ZS_ZD.select().where(cls_orm.CLS_ZS_ZD.day == day).where(cls_orm.CLS_ZS_ZD.pm > 0, cls_orm.CLS_ZS_ZD.pm <= 5)
             exzs = {}
             for obj in qr:
                 exzs[obj.code] = obj
@@ -373,18 +373,25 @@ class Server:
                 code = obj.code
                 if not existsGnBk(obj.hy_code) and not existsGnBk(obj.gn_code):
                     continue
+                # check update time
+                if obj.updateTime:
+                    timeout : datetime.timedelta = obj.updateTime - datetime.datetime.now()
+                    if timeout.days <= 10:
+                        continue
                 info = cls.ClsUrl().loadBkGnOfCode(code)
                 total += 1
                 if not info:
                     continue
                 if obj:
                     if diff(obj, info, attrs):
+                        obj.updateTime = datetime.datetime.now()
                         obj.save() # update
                         u += 1
                 else:
+                    info.updateTime = datetime.datetime.now()
                     info.save() # create new
                     i += 1
-                time.sleep(2.5)
+                time.sleep(3.5)
             t = time.time() - st
             t /= 60
             console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} {self.formatNowTime(True)} check {total}, update {u}, insert {i}, use time: {t :.1f} minutes')
