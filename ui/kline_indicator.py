@@ -809,6 +809,8 @@ class ScqxIndicator(CustomIndicator):
         if not self.cdata or day not in self.cdata:
             return
         val = self.cdata[day]
+        if not val:
+            return
         rc = (x + 1, 1, x + iw, self.height)
         rc = (x + 3, 3, x + iw - 3, self.height)
         color = 0xcccccc
@@ -834,7 +836,7 @@ class LsAmountIndicator(CustomIndicator):
             maps[d.day] = d.amount / 1000000000000 # 万亿
         ds = url.loadKLineData('399001')
         for d in ds['data']:
-            maps[d.day] += d.amount / 1000000000000 # 万亿
+            maps[d.day] = maps.get(d.day, 0) + d.amount / 1000000000000 # 万亿
         self.cdata = maps
 
     def drawItem(self, hdc, drawer, idx, x):

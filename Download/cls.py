@@ -471,12 +471,7 @@ class ClsUrl:
         return rs
 
 if __name__ == '__main__':
-    #m = signByStr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012')
-    #print(m)
-    #signByStr('app=CailianpressWeb&fields=date,minute,last_px,business_balance,business_amount,open_px,preclose_px,av_px&os=web&secu_code=sz301488&sv=7.7.5')
     cu = ClsUrl()
-    #ds = cu.loadBkGnOfCode('688041')
-    #print(ds.__data__)
-    #ClsUrl().loadDegree()
-    # k = cu.loadKline('sh000001', 10)
-    cu.loadAllZS_ZD()
+    rs = cu.loadHotTC(20250609) # OK
+    rs = cu.loadDegree()
+    print(rs)
