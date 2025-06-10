@@ -523,4 +523,5 @@ def do_reason():
 
 if __name__ == '__main__':
     svr = Server()
-    svr.loadOneTimeAnyTime()
+    svr.loadOneTime()
+    #svr.loadOneTimeAnyTime()

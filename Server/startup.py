@@ -21,9 +21,11 @@ def runner():
         if not acceptDay():
             time.sleep(60 * 60)
             continue
-        #clsServer.loadTimeDegree()
-        thsServer.loadHotsOneTime()
-        #clsServer.loadHotTc()
+        if LOAD_CLS:
+            clsServer.loadTimeDegree()
+            clsServer.loadHotTc()
+        elif LOAD_THS:
+            thsServer.loadHotsOneTime()
         time.sleep(20)
 
 def loop():
@@ -37,12 +39,18 @@ def loop():
             lastDay = td
             print('---------------->', lastDay, '<----------------')
         try:
-            thsServer.loadOneTime()
-            #clsServer.loadOneTime()
+            if LOAD_CLS:
+                clsServer.loadOneTime()
+            elif LOAD_THS:
+                thsServer.loadOneTime()
             lhbServer.loadOneTime()
         except Exception as e:
             traceback.print_exc()
         time.sleep(60)
+
+
+LOAD_CLS = True
+LOAD_THS = False
 
 if __name__ == '__main__':
     th = threading.Thread(target = runner, daemon = True)
