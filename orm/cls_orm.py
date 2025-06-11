@@ -47,7 +47,7 @@ class CLS_ZT(pw.Model):
 
 # 财联社涨停、跌停、连板、炸板
 class CLS_UpDown(pw.Model):
-    keys = ('code', 'day')
+    keys = ('secu_code', 'day')
     secu_code = pw.CharField()
     secu_name = pw.CharField(null = True)
     day = pw.CharField() # YYYY-MM-DD
