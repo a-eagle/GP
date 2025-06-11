@@ -10,7 +10,7 @@ from utils import hot_utils, gn_utils
 
 class Server:
     def __init__(self) -> None:
-        self.app = flask.Flask(__name__)
+        self.app = flask.Flask(__name__, static_folder = 'local')
         flask_cors.CORS(self.app)
         self.uiThread = None
 
@@ -36,7 +36,23 @@ class Server:
         self.app.add_url_rule('/mynote', view_func = self.myNote, methods = [ 'POST'])
         self.app.add_url_rule('/plate/<code>', view_func = self.getPlate)
         self.app.add_url_rule('/industry/<code>', view_func = self.getIndustry)
+        self.app.add_url_rule('/get-anchors', view_func = self.getAnchors)
         self.app.run('localhost', 5665, use_reloader = False, debug = False)
+
+    def getAnchors(self):
+        days = int(flask.request.args.get('days', '60'))
+        today = datetime.date.today() - datetime.timedelta(days = days)
+        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day >= today.strftime('%Y-%m-%d')).dicts()
+        rs = []
+        one = None
+        lastDay = None
+        for it in qr:
+            if it['day'] != lastDay:
+                one = []
+                rs.append(one)
+                lastDay = it['day']
+            one.append(it)
+        return rs
 
     def _openUI_Timeline(self, code, day):
         win = timeline.TimelinePanKouWindow()
