@@ -1,11 +1,11 @@
-import json, os, sys, datetime, threading, time, inspect
+import json, os, sys, datetime, threading, time, inspect, platform
 import traceback
 import requests, json, logging
 import peewee as pw, flask
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import chrome_orm, cls_orm, d_orm, def_orm, lhb_orm, ths_orm
-from download import console
+from download import console, ths_iwencai
 
 class Server:
     def __init__(self) -> None:
@@ -53,7 +53,19 @@ class Client:
         pass
 
     def start(self):
-        pass
+        while True:
+            if datetime.date.today().weekday() >= 5:
+                time.sleep(60 * 60 * 2)
+                continue
+            hm = datetime.datetime.now().strftime('%H:%M')
+            if hm < '09:00' or hm > '23:00':
+                time.sleep(5 * 60)
+                continue
+            if not ths_iwencai.isTradeDay():
+                time.sleep(60 * 60 * 2)
+                continue
+            self.checkOnce()
+            time.sleep(5 * 60)
 
     def checkOnce(self):
         rs = self.getMaxUpdateTimeAll()
@@ -200,8 +212,10 @@ class DbTableManager:
         return None
 
 if __name__ == '__main__':
-    #svr = Server()
-    #svr.start()
-
-    client = Client()
-    client.checkOnce()
+    if platform.node() == 'DESKTOP-P6GAAMF':
+        client = Client()
+        client.start()
+    else:
+        svr = Server()
+        svr.start()
+        
