@@ -477,6 +477,6 @@ class ClsUrl:
 
 if __name__ == '__main__':
     cu = ClsUrl()
-    rs = cu.loadHotTC(20250609) # OK
+    # rs = cu.loadHotTC(20250609) # OK
     rs = cu.loadDegree()
     print(rs)

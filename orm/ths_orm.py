@@ -6,6 +6,7 @@ path = __file__[0 : __file__.upper().index('GP')]
 db_gntc = pw.SqliteDatabase(f'{path}GP/db/THS_GNTC.db')
 # 同花顺--概念题材
 class THS_GNTC(pw.Model):
+    keys = ('code', )
     code = pw.CharField() #股票代码
     name = pw.CharField() #股票名称
     gn = pw.CharField(null=True) # 常规概念，每概概念之间用;分隔
@@ -61,7 +62,6 @@ db_thszs = pw.SqliteDatabase(f'{path}GP/db/THS_ZS.db')
 class THS_ZS(pw.Model):
     code = pw.CharField() #指数代码
     name = pw.CharField() #指数名称
-    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_thszs

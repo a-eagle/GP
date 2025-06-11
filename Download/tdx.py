@@ -6,6 +6,8 @@ from multiprocessing import shared_memory # python 3.8+
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download.tdx_datafile import *
+from orm import d_orm
+from ui import fx
 
 class TdxGuiDownloader:
     def __init__(self) -> None:
@@ -234,6 +236,8 @@ class Main:
             print('merge mimute time line data')
             ld = Writer()
             ld.writeAll()
+            ld = fx.FenXiLoader()
+            ld.fxAll_2()
         print('-----------End----------\n\n')
         return flag
 

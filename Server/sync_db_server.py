@@ -1,36 +1,11 @@
-import json, os, sys, datetime, threading, time
+import json, os, sys, datetime, threading, time, inspect
 import traceback
 import requests, json, logging
 import peewee as pw, flask
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import chrome_orm, cls_orm, d_orm, def_orm, lhb_orm, ths_orm
-
-class Sync:
-    def __init__(self, ormClass) -> None:
-        self.ormClass = ormClass
-
-    def getUpdatedDatas(self, dateTime : datetime.datetime):
-        rs = []
-        qr = self.ormClass.select().where(self.ormClass.updateTime > dateTime).dicts()
-        for it in qr:
-            rs.append(it)
-        return rs
-
-    def getMaxUpdateTime(self):
-        maxTime = self.ormClass.select(pw.fn.max(self.ormClass.updateTime)).scalar()
-        return maxTime
-
-    # list of dict
-    def insertDatas(self, datas : list):
-        if not datas:
-            return
-        ds = []
-        for d in datas:
-            if 'id' in d:
-                d.pop('id')
-            ds.append(self.ormClass(**d))
-        self.ormClass.bulk_create(ds, 50)
+from download import console
 
 class Server:
     def __init__(self) -> None:
@@ -40,24 +15,31 @@ class Server:
         pass
 
     def start(self):
-        self.app.add_url_rule('/diff/ormFile/<ormClass>/<updateTime>', view_func = self.diff, methods = ['GET', 'POST'])
-        self.app.run('localhost', 8090, use_reloader = False, debug = False)
+        self.app.add_url_rule('/getUpdateData/<ormFile>/<ormClass>/<updateTime>', view_func = self.getUpdateData, methods = ['GET', 'POST'])
+        self.app.add_url_rule('/getMaxUpdateTimeAll', view_func = self.getMaxUpdateTimeAll, methods = ['GET', 'POST'])
+        self.app.run('0.0.0.0', 8090, use_reloader = False, debug = False)
+
+    def getMaxUpdateTimeAll(self):
+        mgr = DbTableManager()
+        models = mgr.getAllModels()
+        rs = []
+        for m in models:
+            maxTime = mgr.getMaxUpdateTime(m['ormClass'])
+            if not maxTime:
+                continue
+            rs.append({'ormFile': m['ormFileName'], 'ormClass': m['ormClassName'], 'updateTime': maxTime.timestamp()})
+        return rs
     
     # updateTime float
-    def diff(self, ormFile, ormClass, updateTime):
-        files = {'chrome_orm': chrome_orm, 'cls_orm': cls_orm,
-                'd_orm': d_orm, 'def_orm': def_orm, 'lhb_orm': lhb_orm,
-                'ths_orm': ths_orm}
+    def getUpdateData(self, ormFile, ormClass, updateTime):
         if not updateTime:
             return {'status': 'Fail', 'msg': f'Request updateTime param'}
-        if ormFile not in files:
-            return {'status': 'Fail', 'msg': f'Not find orm file "{ormFile}"'}
-        cl = getattr(files[ormFile], ormClass)
-        if not cl or not issubclass(cl, pw.Model):
-            return {'status': 'Fail', 'msg': f'Not find orm class"{ormClass}"'}
-
+        mgr = DbTableManager()
+        model = mgr.getOrmClass(ormFile, ormClass)
+        if not model:
+            return {'status': 'Fail', 'msg': f'Not find orm class"{ormClass}" in "{ormFile}"'}
         dt = datetime.datetime.fromtimestamp(float(updateTime))
-        qr = cl.select().where(cl.updateTime > dt).dicts()
+        qr = model.select().where(model.updateTime > dt).dicts()
         # print(qr)
         datas = []
         for it in qr:
@@ -70,9 +52,86 @@ class Client:
     def __init__(self) -> None:
         pass
 
-class DbTableModifier:
-    @staticmethod
-    def _modifyTableColumn(cursor, tableName):
+    def start(self):
+        pass
+
+    def checkOnce(self):
+        rs = self.getMaxUpdateTimeAll()
+        if not rs:
+            return
+        for r in rs:
+            self.loadUpdateData(r)
+
+    def loadUpdateData(self, item):
+        try:
+            mgr = DbTableManager()
+            ormFile, ormClass, updateTime = item['ormFile'], item['ormClass'], item['updateTime']
+            model = mgr.getOrmClass(ormFile, ormClass)
+            if not model:
+                print(f"[Client.loadUpdateData] Not find model: {ormFile} {ormClass}")
+                return
+            maxTime = mgr.getMaxUpdateTime(model)
+            if not maxTime:
+                maxTime = datetime.datetime(2025, 6, 11, 8, 0, 0)
+            if maxTime.timestamp() >= updateTime:
+                return
+            resp = requests.get(f"http://113.44.136.221:8090/getUpdateData/{ormFile}/{ormClass}/{maxTime.timestamp()}")
+            txt = resp.content.decode()
+            rs = json.loads(txt)
+            if not rs:
+                return
+            if rs['status'] != 'OK':
+                print('[loadUpdateData] ', rs)
+                return
+            datas = rs['data']
+            self.diffDatas(model, datas)
+            updateTimeStr = datetime.datetime.fromtimestamp(updateTime)
+            console.writeln_1(console.GREEN, f'Update datas {ormFile}.{ormClass} --> num: {len(datas)} time: {updateTimeStr}')
+        except Exception as e:
+            traceback.print_exc()
+
+    def diffDatas(self, model, datas : list):
+        if not datas:
+            return
+        ds = []
+        for d in datas:
+            if 'id' in d:
+                d.pop('id')
+            ds.append(model(**d))
+        if not getattr(model, 'keys', None):
+            model.bulk_create(ds, 50)
+            return
+        for d in datas:
+            self.diffOneData(model, d)
+
+    def diffOneData(self, model, data):
+        cnd = {}
+        for k in model.keys:
+            cnd[k] = data[k]
+        obj = model.get_or_one(**cnd)
+        if not obj: # insert
+            model.create(**data)
+            return
+        # update
+        for k in data:
+            setattr(obj, k, data[k])
+        obj.save()
+
+    def getMaxUpdateTimeAll(self):
+        try:
+            resp = requests.get('http://113.44.136.221:8090/getMaxUpdateTimeAll')
+            txt = resp.content.decode()
+            rs = json.loads(txt)
+            return rs
+        except Exception as e:
+            traceback.print_exc()
+        return None
+
+class DbTableManager:
+    def __init__(self) -> None:
+        self.modules = [chrome_orm, cls_orm, d_orm, def_orm, lhb_orm, ths_orm]
+
+    def _addUpdateTimeColumn(self, cursor, tableName):
         cursor.execute(f'pragma table_info({tableName})')
         rs = cursor.fetchall()
         for r in rs:
@@ -80,13 +139,40 @@ class DbTableModifier:
                 return
         cursor.execute(f'alter table {tableName} add column updateTime datetime')
 
-    @staticmethod
-    def addUpdateTimeFiled():
-        files = [chrome_orm, cls_orm, d_orm, def_orm, lhb_orm, ths_orm]
-        for f in files:
-            names = dir(f)
+    def getAllDatabases(self):
+        rs = []
+        for m in self.modules:
+            names = dir(m)
             for name in names:
-                db = getattr(f, name)
+                db = getattr(m, name)
+                if isinstance(db, pw.SqliteDatabase):
+                    rs.append(db)
+        return rs
+    
+    def getAllModels(self):
+        rs = []
+        for m in self.modules:
+            names = dir(m)
+            for name in names:
+                obj = getattr(m, name)
+                if not isinstance(obj, type.__class__) or not issubclass(obj, pw.Model):
+                    continue
+                if hasattr(obj, 'updateTime'):
+                    fn = m.__name__
+                    if '.' in fn:
+                        fn = fn[fn.index('.') + 1 : ]
+                    rs.append({'ormFileName': fn, 'ormFile': m, 'ormClass': obj, 'ormClassName': obj.__name__})
+        return rs
+    
+    def getMaxUpdateTime(self, model):
+        maxTime = model.select(pw.fn.max(model.updateTime)).scalar()
+        return maxTime
+
+    def addUpdateTimeFiled(self):
+        for m in self.modules:
+            names = dir(m)
+            for name in names:
+                db = getattr(m, name)
                 # check is database
                 if not isinstance(db, pw.SqliteDatabase):
                     continue
@@ -98,15 +184,24 @@ class DbTableModifier:
                 cc.execute('SELECT name FROM sqlite_master WHERE type="table"')
                 tables = cc.fetchall()
                 for t in tables:
-                    DbTableModifier._modifyTableColumn(cc, t[0])
+                    self._addUpdateTimeColumn(cc, t[0])
 
+    def getOrmClass(self, ormFileName, ormClassName):
+        for m in self.modules:
+            simpleName = m.__name__
+            if '.' in m.__name__:
+                simpleName = simpleName[m.__name__.index('.') + 1 : ]
+            if simpleName != ormFileName:
+                continue
+            obj = getattr(m, ormClassName, None)
+            if inspect.isclass(obj) and issubclass(obj, pw.Model):
+                return obj
+            return None
+        return None
 
 if __name__ == '__main__':
-    #DbTableModifier.addUpdateTimeFiled()
-
-    svr = Server()
+    #svr = Server()
     #svr.start()
-    #d_orm.ZT_PanKou.update(updateTime = datetime.datetime.now()).where(
-    #    d_orm.ZT_PanKou.id > 4300, d_orm.ZT_PanKou.id <= 4340).execute()
-    #svr.diff('d_orm', 'ZT_PanKou', datetime.datetime(2025, 6, 10, 20, 48, 0).timestamp())
-    print(Sync(d_orm.ZT_PanKou).getMaxUpdateTime())
+
+    client = Client()
+    client.checkOnce()

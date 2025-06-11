@@ -7,6 +7,7 @@ db_gntc = pw.SqliteDatabase(f'{path}GP/db/CLS_GNTC.db')
 
 # 财联社--个股概念题材
 class CLS_GNTC(pw.Model):
+    keys = ('code', )
     code = pw.CharField() #股票代码
     name = pw.CharField(default='') #股票名称
     hy = pw.CharField(default='') # 行业

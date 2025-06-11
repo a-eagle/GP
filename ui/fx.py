@@ -94,11 +94,12 @@ class FenXiLoader:
 
     def loadAllCodes(self):
         from orm import ths_orm
-        qr = ths_orm.THS_GNTC.select()
         rs = []
         FL = ('3', '0', '6')
-        for it in qr:
-            code = it.code
+        for n in os.listdir(PathManager.NET_MINLINE_PATH):
+            if len(n) != 10 or not n.endswith('.lc1'):
+                continue
+            code = n[0 : 6]
             if code[0] in FL and code[0 : 3] != '399':
                 rs.append(code)
         return rs
@@ -122,6 +123,15 @@ class FenXiLoader:
                 obj.minuts = r['minuts']
                 obj.zf = r['zf']
                 obj.save()
+
+    def fxAll_2(self):
+        lastDay = d_orm.LocalSpeedModel.select(pw.fn.max(d_orm.LocalSpeedModel.day)).scalar()
+        lastDay = datetime.date(lastDay // 10000, lastDay // 100 % 100, lastDay % 100)
+        fromDay = lastDay + datetime.timedelta(days = 1)
+        while fromDay <= datetime.date.today():
+            curDay = fromDay.strftime('%Y%m%d')
+            self.fxAll(curDay)
+            fromDay += datetime.timedelta(days = 1)
 
     def fxAll(self, day):
         print('---begin fenxi zhang su----')
@@ -159,7 +169,7 @@ class FenXiLoader:
 if __name__ == '__main__':
     #test()
     ld = FenXiLoader()
-    ld.fxAll(20250403)
+    ld.fxAll_2()
     #os.system('pause')
     #ld.fxOne('300688')
 
