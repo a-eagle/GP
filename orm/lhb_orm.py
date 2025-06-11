@@ -7,6 +7,7 @@ path = path[0 : path.index('GP') ]
 db_lhb = pw.SqliteDatabase(f'{path}/GP/db/LHB.db')
 
 class TdxLHB(pw.Model):
+    keys = ('code', 'day')
     day = pw.CharField(column_name = '日期' ) # YYYY-MM-DD
     code = pw.CharField()
     name = pw.CharField()

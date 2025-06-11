@@ -108,7 +108,7 @@ class Client:
         cnd = {}
         for k in model.keys:
             cnd[k] = data[k]
-        obj = model.get_or_one(**cnd)
+        obj = model.get_or_none(**cnd)
         if not obj: # insert
             model.create(**data)
             return

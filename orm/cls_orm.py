@@ -21,6 +21,7 @@ class CLS_GNTC(pw.Model):
 
 # 材联社--指数(板块、概念)
 class CLS_ZS(pw.Model):
+    keys = ('code', )
     code = pw.CharField() #指数代码
     name = pw.CharField() #指数名称
     type_ = pw.CharField() #指数类型 HY | GN
@@ -32,6 +33,7 @@ class CLS_ZS(pw.Model):
 db_cls = pw.SqliteDatabase(f'{path}GP/db/CLS.db')
 # 财联社涨停
 class CLS_ZT(pw.Model):
+    keys = ('code', 'day')
     day = pw.CharField() # YYYY-MM-DD
     code = pw.CharField()
     name = pw.CharField(null = True)
@@ -45,6 +47,7 @@ class CLS_ZT(pw.Model):
 
 # 财联社涨停、跌停、连板、炸板
 class CLS_UpDown(pw.Model):
+    keys = ('code', 'day')
     secu_code = pw.CharField()
     secu_name = pw.CharField(null = True)
     day = pw.CharField() # YYYY-MM-DD

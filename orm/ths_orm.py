@@ -93,6 +93,7 @@ class THS_ZS_ZD(pw.Model):
 db_ths = pw.SqliteDatabase(f'{path}GP/db/THS.db')
 # 同花顺涨停
 class THS_ZT(pw.Model):
+    keys = ('code', 'day')
     code = pw.CharField()
     name = pw.CharField(null = True)
     day = pw.CharField() # YYYY-MM-DD

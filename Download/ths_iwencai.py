@@ -229,7 +229,7 @@ def modify_hygn_attrs(srcModel, destDict, attrs):
 # 个股行业概念
 # @return update-datas, insert-datas
 def download_hygn():
-    rs = iwencai_load_list(question = '个股及行业板块,流通a股,pe,限售股,流通市值,总市值') # ,maxPage = 1
+    rs = iwencai_load_list(question = '个股及行业板块,流通a股,限售股,流通市值,总市值') # ,maxPage = 1
     zsInfos = {}
     qr = ths_orm.THS_ZS.select()
     for q in qr:
@@ -247,10 +247,13 @@ def download_hygn():
             continue
         obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
         if obj:
-            modify_hygn_attrs(obj, dest, ATTRS)
+            changed = modify_hygn_attrs(obj, dest, ATTRS)
         else:
             obj = ths_orm.THS_GNTC(**dest)
+            changed = True
         modify_hygn_code(obj, zsInfos)
+        if changed:
+            obj.updateTime = datetime.datetime.now()
         obj.save()
     return len(rs)
 
@@ -268,6 +271,8 @@ def download_hygn_pe():
         obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
         if not obj:
             continue
+        if obj.peTTM != peTTM or obj.pe != pe:
+            obj.updateTime = datetime.datetime.now()
         obj.peTTM = peTTM
         obj.pe = pe
         obj.save()

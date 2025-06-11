@@ -34,6 +34,7 @@ class Server:
             if obj.ztReason != it['ztReason'] or obj.detail != it['detail']:
                 obj.ztReason = it['ztReason']
                 obj.detail = it['detail']
+                obj.updateTime = datetime.datetime.now()
                 updateNum += 1
                 obj.save()
         else:
@@ -167,8 +168,8 @@ class Server:
             self.downloadInfos[f'zs-{day}'] = True
             self.downloadZS('[3/8]')
         if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-zd-{day}', False)):
-            #flag = self.downloadZS_ZD('[4/8]')
-            #self.downloadInfos[f'zs-zd-{day}'] = flag
+            flag = self.downloadZS_ZD('[4/8]')
+            self.downloadInfos[f'zs-zd-{day}'] = flag
             pass
         if curTime >= '15:10' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
             self.downloadInfos[f'ztpk-{day}'] = True

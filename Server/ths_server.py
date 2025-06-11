@@ -124,6 +124,7 @@ class Server:
                     obj.status = it['status']
                 if it['ztReason']:
                     obj.ztReason = it['ztReason']
+                obj.updateTime = datetime.datetime.now()
                 obj.save()
                 updateNum += 1
         if insertNum or updateNum:
@@ -260,6 +261,7 @@ class Server:
                 obj = cls_orm.CLS_UpDown.get_or_none(cls_orm.CLS_UpDown.secu_code == d['secu_code'], cls_orm.CLS_UpDown.day == d['day'])
                 if obj:
                     obj.up_reason = d['up_reason']
+                    obj.updateTime = datetime.datetime.now()
                     obj.save()
                     unum += 1
             console.writeln_1(console.GREEN, f'[THS-DT] {tag} {self.formatNowTime(True)} update {unum}')
@@ -296,7 +298,7 @@ class Server:
             self.downloadInfos[f'zs-{day}'] = True
             self.downloadSaveZs('[3/5]')
         # 下载个股板块概念信息
-        if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False):
+        if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False) and now.weekday() == 1: # 每周二
             self.downloadInfos[f'hygn-{day}'] = True
             self.download_hygn('[4/5]')
         # 下载个股PeTTM
