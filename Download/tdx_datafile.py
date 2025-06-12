@@ -223,47 +223,110 @@ class T_DataFile(DataFile):
 
 class Writer:
     def writeToFile_K(self, code):
-        from download import datafile
         srcDf = K_DataFile(code)
         srcDf.loadData()
         if not srcDf.data:
             return
-        destDf = datafile.K_DataModel(code)
-        destDf.data = srcDf.data
-        destDf.writeLocalFile()
+        self._writeToNetFile_K(code, srcDf.data)
+
+    def _writeToNetFile_K(self, code, datas):
+        from download import datafile
+        if not datas:
+            return True
+        path = datafile.K_DataModel(code).getLocalPath('DAY')
+        filesize = 0
+        RL = 32
+        if os.path.exists(path):
+            filesize = os.path.getsize(path)
+            if filesize % RL != 0:
+                print('[Writer._writeToNetFile_K] invalid file size ', code, path)
+                return False
+        f = open(path, 'a+b')
+        # get last day
+        lastDay = 0
+        if filesize > 0:
+            n = f.seek(-RL, 2)
+            bs = f.read(RL)
+            lastDay, *_ = struct.unpack('l5f2l', bs)
+        for idx, item in enumerate(datas):
+            if item.day <= lastDay:
+                continue
+            buf = struct.pack('l5f2l', item.day, item.open, item.high, item.low, item.close, item.amount, item.vol, 0)
+            f.write(buf)
+        f.close()
+        return True
 
     def writeToFile_T(self, code):
-        from download import datafile
         srcDf = T_DataFile(code)
         srcDf.loadData()
         if not srcDf.data:
             return
-        destDf = datafile.T_DataModel(code)
-        destDf.data = srcDf.data
-        destDf.writeLocalFile()
+        self._writeToNetFile_T(code, srcDf.data)
 
-    def getLocalCodes(self):
+    def _writeToNetFile_T(self, code, datas):
+        from download import datafile
+        RL = 24
+        if not datas:
+            return True
+        if len(datas) % datafile.T_DataModel.MINUTES_IN_DAY != 0:
+            print('[Writer._writeToNetFile_T] invalid data length', code, path)
+            return False
+        path = datafile.T_DataModel(code).getLocalPath('TIME')
+        filesize = 0
+        if os.path.exists(path):
+            filesize = os.path.getsize(path)
+            if filesize % (RL * datafile.T_DataModel.MINUTES_IN_DAY) != 0:
+                print('[Writer._writeToNetFile_T] invalid file size ', code, path)
+                return False
+        f = open(path, 'a+b')
+        # get last day
+        lastDay = 0
+        if filesize > 0:
+            n = f.seek(-RL, 2)
+            bs = f.read(RL)
+            lastDay, *_ = struct.unpack('2l4f', bs)
+        for idx, item in enumerate(datas):
+            if item.day <= lastDay:
+                continue
+            buf = struct.pack('2l4f', item.day, item.time, item.price, item.avgPrice, item.amount, item.vol)
+            f.write(buf)
+        f.close()
+        return True
+
+    # tag = lday | minline
+    def getLocalCodes(self, tag):
         codes = []
-        path = VIPDOC_BASE_PATH + '\\sh\\lday'
+        path = VIPDOC_BASE_PATH + f'\\sh\\{tag}'
         dirs = os.listdir(path)
+        c999999 = None
         for name in dirs:
             if name[0 : 2] == 'sh' and name[2] == '6':
                 codes.append(name[2 : 8])
-        path = VIPDOC_BASE_PATH + '\\sz\\lday'
+            if name[2 : 8] == '999999':
+                c999999 = '999999'
+        path = VIPDOC_BASE_PATH + f'\\sz\\{tag}'
         dirs = os.listdir(path)
         for name in dirs:
             if name[0 : 2] == 'sz' and name[2] in ('0', '3'):
                 codes.append(name[2 : 8])
-        codes.append('999999')
+        if c999999:
+            codes.append('999999')
         return codes
 
     def writeAll(self):
-        codes = self.getLocalCodes()
+        codes = self.getLocalCodes('lday')
         for c in codes:
             self.writeToFile_K(c)
+
+        codes = self.getLocalCodes('minline')
+        for c in codes:
             self.writeToFile_T(c)
 
 if __name__ == '__main__':
+    df = T_DataFile('603900')
+    df.loadData()
+    print('Local Tdx:', df.days)
+
     w = Writer()
     w.writeAll()
    

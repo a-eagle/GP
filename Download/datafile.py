@@ -178,35 +178,10 @@ class K_DataModel(DataModel):
         self.data = rs
         f.close()
         return len(rs) > 0
-    
-    def writeLocalFile(self):
-        if not self.data:
-            return True
-        path = self.getLocalPath('DAY')
-        filesize = 0
-        RL = 32
-        if os.path.exists(path):
-            filesize = os.path.getsize(path)
-            if filesize % RL != 0:
-                print('[KDataFile.writeLocalFile] invalid file size ', self.code, path)
-                return False
-        f = open(path, 'a+b')
-        # get last day
-        lastDay = 0
-        if filesize > 0:
-            n = f.seek(-RL, 2)
-            bs = f.read(RL)
-            lastDay, *_ = struct.unpack('l5f2l', bs)
-        for idx, item in enumerate(self.data):
-            if item.day <= lastDay:
-                continue
-            else:
-                buf = struct.pack('l5f2l', item.day, item.open, item.high, item.low, item.close, item.amount, item.vol, 0)
-                f.write(buf)
-        f.close()
-        return True
 
 class T_DataModel(DataModel):
+    MINUTES_IN_DAY = 241
+
     def __init__(self, code):
         super().__init__(code)
         self.pre = 0
@@ -261,7 +236,6 @@ class T_DataModel(DataModel):
 
     # day: int
     def loadLocalData(self, day):
-        MINUTES_IN_DAY = 241
         self.data = None
         if not day:
             return False
@@ -275,12 +249,12 @@ class T_DataModel(DataModel):
         if filesize == 0:
             return False
         RL = 24
-        if filesize % (RL * MINUTES_IN_DAY) != 0:
+        if filesize % (RL * self.MINUTES_IN_DAY) != 0:
             print('[TDataFile.loadData] invalid file size ', self.code, path)
             return False
         f = open(path, 'rb')
-        maxDays = filesize // (RL * MINUTES_IN_DAY)
-        PAGE = RL * MINUTES_IN_DAY
+        maxDays = filesize // (RL * self.MINUTES_IN_DAY)
+        PAGE = RL * self.MINUTES_IN_DAY
         rs = []
         for i in range(maxDays):
             pos = PAGE * (i + 1)
@@ -298,7 +272,7 @@ class T_DataModel(DataModel):
                 item = struct.unpack('2l4f', bs)
                 pre = item[2]
             n = f.seek(-pos, 2)
-            for k in range(MINUTES_IN_DAY):
+            for k in range(self.MINUTES_IN_DAY):
                 bs = f.read(RL)
                 item = struct.unpack('2l4f', bs)
                 rs.append(ItemData(day = item[0], time = item[1], price = item[2], avgPrice = item[3], amount  = item[4], vol = item[5]))
@@ -311,7 +285,6 @@ class T_DataModel(DataModel):
         return len(rs) > 0
     
     def getLocalLatestDay(self):
-        MINUTES_IN_DAY = 241
         path = self.getLocalPath('TIME')
         if not os.path.exists(path):
             return None
@@ -319,7 +292,7 @@ class T_DataModel(DataModel):
         if filesize == 0:
             return None
         RL = 24
-        if filesize % (RL * MINUTES_IN_DAY) != 0:
+        if filesize % (RL * self.MINUTES_IN_DAY) != 0:
             print('[TDataFile.getLocalLatestDay] invalid file size ', self.code, path)
             return None
         f = open(path, 'rb')
@@ -328,41 +301,6 @@ class T_DataModel(DataModel):
         day, *_ = struct.unpack('2l4f', bs)
         f.close()
         return day
-
-    def writeLocalFile(self):
-        if not self.data:
-            return True
-        MINUTES_IN_DAY = 241
-        path = self.getLocalPath('TIME')
-        filesize = 0
-        RL = 24
-        if os.path.exists(path):
-            filesize = os.path.getsize(path)
-            if filesize % (RL * MINUTES_IN_DAY) != 0:
-                print('[TDataFile.writeLocalFile] invalid file size ', self.code, path)
-                return False
-        f = open(path, 'a+b')
-        # get last day
-        lastDay = 0
-        if filesize > 0:
-            n = f.seek(-RL, 2)
-            bs = f.read(RL)
-            lastDay, *_ = struct.unpack('2l4f', bs)
-        for idx, item in enumerate(self.data):
-            if item.day <= lastDay:
-                continue
-            else:
-                less = len(self.data) - idx
-                if less % MINUTES_IN_DAY != 0:
-                    print('[TDataFile.writeLocalFile] invalid data length', self.code, path)
-                    return False
-                break
-        for i in range(idx, len(self.data)):
-            item = self.data[i]
-            buf = struct.pack('2l4f', item.day, item.time, item.price, item.avgPrice, item.amount, item.vol)
-            f.write(buf)
-        f.close()
-        return True
 
 class Ths_K_DataModel(K_DataModel):
     def __init__(self, code):
