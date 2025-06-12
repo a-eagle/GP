@@ -1174,7 +1174,7 @@ class AnchrosView extends Listener {
                 break;
             }
             if ((time >= 930 && time <= 1130) || (time > 1300 && time <= 1500)) {
-                let price = minites <= 30 ? 110 : 100;
+                let price = time <= 1130 ? 100 : 110;
                 kline.push({day: day, time: time, price: price});
             }
             minites ++;

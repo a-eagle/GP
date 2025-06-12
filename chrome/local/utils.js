@@ -25,7 +25,11 @@ function getLocationParams(name = null) {
     if (url.indexOf('#') > 0)
         url = url.substring(0, url.indexOf('#'));
     let q = url.indexOf('?');
-    if (q < 0) return params;
+    if (q < 0) {
+        if (name)
+            return null;
+        return params;
+    }
     let ps = url.substring(q + 1);
     for (let it of ps.split('&')) {
         let ks = it.split('=');

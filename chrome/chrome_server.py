@@ -64,11 +64,21 @@ class Server:
         return rs
 
     def getAnchors(self):
-        days = int(flask.request.args.get('days', '60'))
         tds = ths_iwencai.getTradeDays()
-        fromDay = str(tds[-days])
+        days = int(flask.request.args.get('days', None) or 10)
+        curDay = flask.request.args.get('curDay', None) or tds[-1]
+        curDay = curDay.replace('-', '')
+        fromDay = None
+        for i in range(len(tds) - 1, 0, -1):
+            if curDay >= tds[i]:
+                idx = max(i - days + 1, 0)
+                fromDay = tds[idx]
+                break
+        if not fromDay:
+            return []
         fromDay = f"{fromDay[0 : 4]}-{fromDay[4 : 6]}-{fromDay[6 : 8]}"
-        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day >= fromDay).dicts()
+        curDay = f"{curDay[0 : 4]}-{curDay[4 : 6]}-{curDay[6 : 8]}"
+        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day >= fromDay, cls_orm.CLS_HotTc.day <= curDay).dicts()
         rs = []
         one = None
         lastDay = None

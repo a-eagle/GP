@@ -7,7 +7,7 @@ class InitMgr {
 
 	isReady() {
 		let model = this.vue.data;
-		return  model.tradeDays && model.anchros && this.initUIEnd;
+		return  model.tradeDays && this.initUIEnd;
 	}
 
 	init() {
@@ -29,14 +29,7 @@ class InitMgr {
 	}
 
 	_initRequest() {
-		let thiz = this;
-		let model = this.vue.data;
 		this._loadTradeDays(false);
-		$.ajax({url: '/get-anchors?days=60', async: true, success: function(data) {
-			model.anchros = data;
-			for (let d of data) d.float = d.up ? 'up' : 'down';
-			model.initMgrReady = thiz.isReady();
-		}});
 	}
 
 	_initUI() {
@@ -207,7 +200,7 @@ class GlobalMgr {
 					if (m != lastMonth) {
 						lastMonth = m;
 					} else {
-						v = v.substring(2);
+						v = v.substring(3);
 					}
 					let dx = new Date(datas[i].day);
 					v += '<br/>' + WW[dx.getDay() - 1];
@@ -375,21 +368,21 @@ class ZdfbMgr {
 		// 实时动态更新
 		let model = this.vue.data;
 		let thiz = this;
-		setInterval(function() {
-			let today = formatDay(new Date());
-			if (today != model.lastTradeDay || model.lastTradeDay != model.curDay) {
-				return;
-			}
-			let curTime = formatTime(new Date());
-			if (curTime < '09:25' || curTime > '15:05') {
-				return;
-			}
-			thiz.loadNewestData(function(data) {
-				if (model.curDay != model.lastTradeDay)
-					return;
-				thiz.updateData(data);
-			});
-		}, 1000 * 30);
+		// setInterval(function() {
+		// 	let today = formatDay(new Date());
+		// 	if (today != model.lastTradeDay || model.lastTradeDay != model.curDay) {
+		// 		return;
+		// 	}
+		// 	let curTime = formatTime(new Date());
+		// 	if (curTime < '09:25' || curTime > '15:05') {
+		// 		return;
+		// 	}
+		// 	thiz.loadNewestData(function(data) {
+		// 		if (model.curDay != model.lastTradeDay)
+		// 			return;
+		// 		thiz.updateData(data);
+		// 	});
+		// }, 1000 * 30);
 	}
 
 	_render(elem, bindName, data, attrName) {
@@ -513,8 +506,8 @@ class AnchorsMgr {
 		this.table = null; // list table
 		let thiz = this;
 		this.vue.addWatch('curDay', function(a, b) {thiz._onChangeDay(a, b);});
-		this.vue.addWatch('newestAnchor', function(a, b) {thiz.onNewestAnchorUpdate(a, b);});
-		this.vue.addWatch('curAnchorGroup', function(a, b) {thiz.onCurAnchorUpdate(a, b);});
+		this.vue.addWatch('dayAnchor', function(a, b) {thiz.onDayAnchorUpdate(a, b);});
+		this.vue.addWatch('anchorGroup', function(a, b) {thiz.onAnchorGroupUpdate(a, b);});
 	}
 
 	_initUI() {
@@ -531,9 +524,10 @@ class AnchorsMgr {
 				.popup-container p {padding: 0 20px 0 10px; } \n\
 				.popup-container p:hover {background-color: #f0f0f0; } \n\
 				.popup-container .anchors-wrap {position:absolute; width: 800px; height: 250px; background-color: #fcfcfc; border: solid 1px #aaa;} \n\
+				.anchor-list a {text-decoration: none; color: #202020; } \n\
 				.anchor-list .anchor-arrow {float:right; width:15px; text-align:center; border-left:1px solid #c0c0c0; background-color:#c0c0c0; width:15px; height:25px;} \n\
-				.anchor-list .up {background-color: #FFD8D8;} \n\
-				.anchor-list .down {background-color: #A0F1DC;} \n\
+				.anchor-list .true {background-color: #FFD8D8;} \n\
+				.anchor-list .false {background-color: #A0F1DC;} \n\
 				";
 		style.appendChild(document.createTextNode(css));
 		document.head.appendChild(style);
@@ -543,62 +537,48 @@ class AnchorsMgr {
 		popup.on('mousewheel', function(event) {event.preventDefault();});
 
 		this.anchorView = new AnchrosView(canvas.get(0));
-		this.loadNewestAnchor();
 	}
 
 	_onChangeDay(newVal, oldVal) {
 		let thiz = this;
+		let model = this.vue.data;
 		if (! this.anchorView) {
 			this._initUI();
 		}
 		if (newVal == this.vue.data.lastTradeDay) {
 		}
-		this.vue.data.curAnchorGroup = this.calcGroups(newVal);
-		this.anchorView.loadData(newVal, function( d) {thiz.updateAnchorName(d);});
+		$.ajax({url: `/get-anchors?days=20&curDay=${newVal}`, async: true, success: function(data) {
+			model.anchros = data;
+			model.anchorGroup = thiz.calcGroups(newVal);
+			thiz.loadAnchorOfDay(newVal);
+		}});
 	}
 
 	updateAnchorName(data) {
 		if (! data) return;
-		let anchrosCP = this.vue.data.curAnchorGroup;
+		let anchrosCP = this.vue.data.anchorGroup;
 		for (let i = 0; i < data.length; i++) {
 			let an = data[i];
-			let key = an.code + '#' + an.float;
+			let key = an.code + '#' + an.up;
 			let num = anchrosCP[key]?.num || 1;
 			an.name += '' + num + '';
 		}
 	}
 
-	loadNewestAnchor() {
-		// 实时动态更新
+	loadAnchorOfDay(day) {
 		let model = this.vue.data;
 		let thiz = this;
-		this._loadNewestAnchor();
-		setInterval(function() {
-			let curTime = formatTime(new Date());
-			if (curTime < '09:25' || curTime > '15:05' || model.curDay != model.lastTradeDay) {
-				return;
-			}
-			thiz._loadNewestAnchor();
-		}, 1000 * 30);
-	}
-
-	_loadNewestAnchor() {
-		let model = this.vue.data;
-		let thiz = this;
-		if (model.curDay != model.lastTradeDay)
-			return;
-		this.anchorView.loadData(model.lastTradeDay, function(data) {
+		this.anchorView.loadData(day, function(data) {
 			if (! data)
 				return;
-			if (! model.newestAnchor || model.newestAnchor.length != data.length) {
-				model.newestAnchor = data;
+			if (! model.dayAnchor || model.dayAnchor.length != data.length) {
+				model.dayAnchor = data;
 			}
-			if (model.lastTradeDay == model.curDay)
-				thiz.updateAnchorName(data);
+			thiz.updateAnchorName(data);
 		});
 	}
 
-	onNewestAnchorUpdate(newVal, oldVal) {
+	onDayAnchorUpdate(newVal, oldVal) {
 		if (newVal == oldVal || !newVal || newVal.length == 0) {
 			return;
 		}
@@ -611,14 +591,14 @@ class AnchorsMgr {
 			model.anchros[0] = newVal;
 		}
 		if (model.curDay >= cday) {
-			model.curAnchorGroup = this.calcGroups(model.curDay);
+			model.anchorGroup = this.calcGroups(model.curDay);
 		}
 	}
 
-	onCurAnchorUpdate(anchrosCP, oldVal) {
+	onAnchorGroupUpdate(anchrosCP, oldVal) {
 		let arr = [];
 		for (let k in anchrosCP) {
-			if (k.indexOf('#up') > 0)
+			if (k.indexOf('#true') > 0)
 				arr.push(anchrosCP[k]);
 		}
 		arr.sort(function(a, b) {return b.num - a.num});
@@ -643,21 +623,19 @@ class AnchorsMgr {
 
 	calcGroups(cday) {
 		let model = this.vue.data;
-		let anchrosDays = [];
 		let anchrosCP = {};
 		for (let i = 0, num = 0; i < model.anchros.length && num < 10; i++) { // 10 days
 			let day = model.anchros[i][0].day;
 			if (day > cday)
 				continue;
-			anchrosDays.push(day);
-			++num;
+			num++;
 			for (let j = 0; j < model.anchros[i].length; j++) {
 				let an = model.anchros[i][j];
-				let key = an.code + '#' + an.float;
+				let key = an.code + '#' + an.up;
 				if (anchrosCP[key]) {
 					anchrosCP[key].items.push(an);
 				} else {
-					anchrosCP[key] = {name: an. name, code: an. code, num: 0, tag: an.float, items: [an]};
+					anchrosCP[key] = {name: an. name, code: an.code, num: 0, tag: an.up, items: [an]};
 				}
 				anchrosCP[key].num++;
 			}
@@ -673,7 +651,7 @@ class AnchorsMgr {
 		}
 		let rs = {up: [], down: [], days: [], allDays: []};
 		for (let i = 0, num = 0; i < model.anchros.length && num < daysNum; i++) {
-			let day = model.anchros[i][0].c_time.substring(0, 10);
+			let day = model.anchros[i][0].day;
 			rs.allDays.push(day);
 			if (day > maxDay)
 				continue;
@@ -681,8 +659,8 @@ class AnchorsMgr {
 			rs.days.push(day);
 			for (let j = 0; j < model.anchros[i].length; j++) {
 				let an = model.anchros[i][j];
-				if (an. code == code) {
-					rs[an.float].push(an);
+				if (an.code == code) {
+					rs[an.up ? 'up' : 'down'].push(an);
 				}
 			}
 		}
@@ -724,7 +702,7 @@ class AnchorsMgr {
 			for (let i = 0; i < ds.length; i++) {
 				let num = 0;
 				for (let j = 0; j < ud.length; ++j) {
-					let day = ud[j].c_time.substring(0, 10);
+					let day = ud[j].day;
 					if (day <= ds[i]) {
 						num++;
 					}
@@ -1193,7 +1171,7 @@ class TabNaviMgr {
 		day = day.replaceAll('-', '');
 		// ths_dtReason
 		$.ajax({
-			url: ` /iwencai?q=${day} 跌停,非st,成交额,收盘价,涨跌幅`,
+			url: `/iwencai?q=${day} 跌停,非st,成交额,收盘价,涨跌幅`,
 			success: function(resp) {
 				if (! resp) return;
 				for (let r of resp) {
@@ -1218,8 +1196,8 @@ class TabNaviMgr {
 
 function changeCurDay(initMgr, globalMgr) {
 	let curDay = getLocationParams('day');
-	if (! curDay || curDay.length < 8)
-		return;
+	// if (! curDay || curDay.length < 8)
+	// 	return;
 	// if (curDay.length == 8) 
 	if (!initMgr.isReady() || !globalMgr.isReady()) {
 		setTimeout(() => {
@@ -1227,15 +1205,15 @@ function changeCurDay(initMgr, globalMgr) {
 		}, 500);
 		return;
 	}
-	globalMgr.changeDay(curDay);
+	globalMgr.changeDay(curDay || window.vue.data.lastTradeDay);
 }
 
 (function() {
 	let model = {
 		initMgrReady: false,
 		anchros: null,
-		newestAnchor: null,
-		curAnchorGroup: null, //当前
+		dayAnchor: null,
+		anchorGroup: null, //当前
 		tradeDays: null, // ['YYYY-MM-DD', ...]
 		lastTradeDay: null, //最新交易日期
 		curDay: null, //当前选择的日期
