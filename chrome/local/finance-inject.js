@@ -169,7 +169,8 @@ class GlobalMgr {
 				break;
 			}
 		}
-		if (idx < 0) return;
+		if (idx < 0)
+			return;
 		let td = this.table.find(`tr:eq(1) > td:eq(${idx})`);
 		this._inFunction(td);
 		this._onClick(td);
@@ -246,6 +247,7 @@ class GlobalMgr {
 			this.table.find('td[colidx=' + oldSelIdx + ']').removeClass('selcol');
 		}
 		let data = $(elem).data('val');
+		// window.location.hash = data.day;
 		this.vue.data.curDay = data.day;
 	}
 }
@@ -1196,9 +1198,6 @@ class TabNaviMgr {
 
 function changeCurDay(initMgr, globalMgr) {
 	let curDay = getLocationParams('day');
-	// if (! curDay || curDay.length < 8)
-	// 	return;
-	// if (curDay.length == 8) 
 	if (!initMgr.isReady() || !globalMgr.isReady()) {
 		setTimeout(() => {
 			changeCurDay(initMgr, globalMgr);
