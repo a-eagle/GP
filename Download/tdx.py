@@ -180,8 +180,8 @@ class TdxGuiDownloader:
         try:
             self.login()
             self.openDownloadDialog()
-            if self.checkNeedDownload(K_DataFile):
-                self.startDownloadForDay()
+            # if self.checkNeedDownload(K_DataFile):
+            #     self.startDownloadForDay()
             if self.checkNeedDownload(T_DataFile):
                 self.startDownloadForTimeMinute()
             ok = True
@@ -293,5 +293,5 @@ class Main:
         
 if __name__ == '__main__':
     mm = Main()
-    mm.runOnce()
-    #mm.runLoop()
+    #mm.runOnce()
+    mm.runLoop()

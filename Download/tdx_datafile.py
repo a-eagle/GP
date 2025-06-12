@@ -315,17 +315,17 @@ class Writer:
 
     def writeAll(self):
         codes = self.getLocalCodes('lday')
-        for c in codes:
-            self.writeToFile_K(c)
+        # for c in codes:
+            # self.writeToFile_K(c)
 
         codes = self.getLocalCodes('minline')
         for c in codes:
             self.writeToFile_T(c)
 
 if __name__ == '__main__':
-    df = T_DataFile('603900')
+    df = T_DataFile('999999')
     df.loadData()
-    print('Local Tdx:', df.days)
+    print('Local Tdx:', df.days, len(df.days))
 
     w = Writer()
     w.writeAll()
