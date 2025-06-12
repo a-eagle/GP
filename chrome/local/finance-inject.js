@@ -21,7 +21,7 @@ class InitMgr {
 		let model = this.vue.data;
 		if (async == undefined)
 			async = true;
-		$.ajax({url: 'http://localhost:5665/get-trade-days', async: async, success: function(data) {
+		$.ajax({url: '/get-trade-days', async: async, success: function(data) {
 			model.lastTradeDay = data[data.length - 1];
 			model.tradeDays = data;
 			model.initMgrReady = thiz.isReady();
@@ -32,9 +32,9 @@ class InitMgr {
 		let thiz = this;
 		let model = this.vue.data;
 		this._loadTradeDays(false);
-		$.ajax({url: 'http://localhost:5665/get-anchors?days=60', async: async, success: function(data) {
-			model.anchros = data.data;
-			console.log('[InitMgr._initRequest] get-anchors:', data.data);
+		$.ajax({url: '/get-anchors?days=60', async: true, success: function(data) {
+			model.anchros = data;
+			for (let d of data) d.float = d.up ? 'up' : 'down';
 			model.initMgrReady = thiz.isReady();
 		}});
 	}
@@ -43,7 +43,7 @@ class InitMgr {
 		let thiz = this;
 		let LEFT_CNT = '#main';
 		let style = document.createElement('style');
-		let css = `.my-info-item {border-bottom: solid 1px #222; padding-bottom: 10px; padding-top: 5px; width: 100%; } \n\
+		let css = `.my-info-item {border-bottom: solid 1px #222; margin-bottom: 10px; margin-top: 5px; width: 100%; } \n\
 				.my-info-item table { border-collapse: collapse; border: 1px solid #ddd; width:100%; text-align: center; cursor:hander; } \n\
 				.my-info-item table th {border: 1px solid #ddd; background-color: #ECECEC; height: 30px; font-weight: normal; color: #6A6B70;} \n\
 				.my-info-item table td {border: 1px solid #ddd;} \n\
@@ -55,13 +55,13 @@ class InitMgr {
 		style.appendChild(document.createTextNode(css));
 		document.head.appendChild(style);
 		let group = $('<div id="my-group-items"> </div>');
-		let md1 = $('<div class="my-info-item  " name="global-item"></div>');
-		let md2 = $('<div class="my-info-item  " name="time-degree-item" > </div>');
-		let md3 = $('<div class="my-info-item  " style="height: 90px;" name="zdfb-item"> </div>');
-		let md4 = $('<div class="my-info-item  " style="height: 400px;" name="anchor-fs-item" > </div>');
-		let md5 = $('<div class="my-info-item m-b-20   " name="anchor-list-item" ></div>');
-		let md6 = $('<div class="clearfix w-100p f-s-14 c-747474 toggle-nav-box finance-toggle-nav" name="tab-nav-item"> </div>');
-		let md7 = $('<div class="my-info-item  " style="" name="tab-nav-cnt-item">  </div>');
+		let md1 = $('<div class="my-info-item" name="global-item"></div>');
+		let md2 = $('<div class="my-info-item" name="time-degree-item" > </div>');
+		let md3 = $('<div class="my-info-item" style="height: 90px;" name="zdfb-item"> </div>');
+		let md4 = $('<div class="my-info-item" style="height: 400px;" name="anchor-fs-item" > </div>');
+		let md5 = $('<div class="my-info-item" name="anchor-list-item" ></div>');
+		let md6 = $('<div class="my-info-item toggle-nav-box" name="tab-nav-item"> </div>');
+		let md7 = $('<div class="my-info-item" style="" name="tab-nav-cnt-item">  </div>');
 		group.append(md1).append(md2).append(md3).append(md4).append(md5).append(md6).append(md7);
 		$(`${LEFT_CNT}`).append(group);
 		this.initUIEnd = true;
@@ -95,19 +95,18 @@ class GlobalMgr {
 		function cb(data) {
 			let rs = {};
 			for (let i = 0; i < data.length; i++) {
-				let day = String(data[i].date);
+				let day = String(data[i].day);
 				day = day.substring(0, 4) + '-' + day.substring(4, 6) + '-' + day.substring(6);
-				data[i].amount = data[i].business_balance / 1000000000000; // 万亿
+				data[i].amount = data[i].amount / 1000000000000; // 万亿
 				rs[day] = data[i];
 			}
 			return rs;
 		}
-		let cu = new ClsUrl();
-		cu.loadKline('sh000001', 100, 'DAY', function(data) {
+		$.get('/load-kline/999999', function(data) {
 			thiz.zsInfos.sh000001 = cb(data);
 		});
-		cu.loadKline('sz399001', 100, 'DAY', function(data) {
-			thiz.zsInfos.sz399001 = cb(data);; // business_balance
+		$.get('/load-kline/399001', function(data) {
+			thiz.zsInfos.sz399001 = cb(data);
 		});
 	}
 
@@ -121,7 +120,7 @@ class GlobalMgr {
 		let fday = formatDay(date);
 		let sql = "select day, 综合强度 as degree, substr(day, 6) as sday, fb from CLS_SCQX where day >= '" + fday + "' and day <= '" + eday + "'";
 		$.ajax({
-			url: 'http://localhost:5665/query-by-sql/cls',
+			url: '/query-by-sql/cls',
 			data: {'sql': sql},
 			success: function(resp) {
 				let ds = thiz._getDays(fday, eday);
@@ -200,7 +199,7 @@ class GlobalMgr {
 			tr.append($('<th>' + colsDesc[c] + '</th>'));
 			let lastMonth = '';
 			for (let i = 0; i < datas.length; i++) {
-				let v = datas[i][cols[c]];
+				let v = datas[i][cols[c]] || '';
 				let clazz = '';
 				let title = '';
 				if (cols[c] == 'sday') {
@@ -279,7 +278,7 @@ class TimeDegreeMgr {
 	_loadData(day) {
 		let thiz = this;
 		$.ajax({
-			url: 'http://localhost:5665/get-time-degree?day=' + day,
+			url: '/get-time-degree?day=' + day,
 			success: function(resp) {
 				thiz._buildUI(resp);
 			}
@@ -350,9 +349,9 @@ class ZdfbMgr {
 			this._buildUI();
 		}
 		if (newVal == this.vue.data.lastTradeDay) {
-			this.loadNewestData(function(data) {
-				thiz.updateData(data);
-			});
+			// this.loadNewestData(function(data) {
+			// 	thiz.updateData(data);
+			// });
 			this.loadNewestData_EC(function(data) {
 				thiz.updateData_EC(data);
 			});
@@ -471,13 +470,13 @@ class ZdfbMgr {
 		let thiz =  this;
 		let sql = `select day, 综合强度 as degree, substr(day, 6) as sday, fb, zdfb from CLS_SCQX where day = '${day}'`;
 		$.ajax({
-			url: 'http://localhost:5665/query-by-sql/cls',
+			url: '/query-by-sql/cls',
 			data: {'sql': sql},
 			success: function(resp) {
-				let ds = JSON.parse(resp[0].fb);
-				ds.day = day;
-				ds.degree = resp[0].degree;
+				let ds = JSON.parse(resp[0].fb) || {};
 				let zdfb = resp[0].zdfb ? JSON.parse(resp[0].zdfb) : null;
+				ds.day = day;
+				ds.degree = resp[0].degree || '';
 				thiz.updateData(ds);
 				thiz.updateData_EC(zdfb);
 			}
@@ -563,9 +562,9 @@ class AnchorsMgr {
 		let anchrosCP = this.vue.data.curAnchorGroup;
 		for (let i = 0; i < data.length; i++) {
 			let an = data[i];
-			let key = an.symbol_code + '#' + an.float;
+			let key = an.code + '#' + an.float;
 			let num = anchrosCP[key]?.num || 1;
-			an.symbol_name += '' + num + '';
+			an.name += '' + num + '';
 		}
 	}
 
@@ -604,8 +603,8 @@ class AnchorsMgr {
 			return;
 		}
 		let model = this.vue.data;
-		let lastDay = model.anchros[0][0].c_time.substring(0, 10);
-		let cday = newVal[0].c_time.substring(0, 10);
+		let lastDay = model.anchros[0][0].day;
+		let cday = newVal[0].day;
 		if (cday > lastDay) {
 			model.anchros.unshift(newVal);
 		} else if (cday == lastDay) {
@@ -647,18 +646,18 @@ class AnchorsMgr {
 		let anchrosDays = [];
 		let anchrosCP = {};
 		for (let i = 0, num = 0; i < model.anchros.length && num < 10; i++) { // 10 days
-			let day = model.anchros[i][0].c_time.substring(0, 10);
+			let day = model.anchros[i][0].day;
 			if (day > cday)
 				continue;
 			anchrosDays.push(day);
 			++num;
 			for (let j = 0; j < model.anchros[i].length; j++) {
 				let an = model.anchros[i][j];
-				let key = an.symbol_code + '#' + an.float;
+				let key = an.code + '#' + an.float;
 				if (anchrosCP[key]) {
 					anchrosCP[key].items.push(an);
 				} else {
-					anchrosCP[key] = {name: an.symbol_name, code: an.symbol_code, num: 0, tag: an.float, items: [an]};
+					anchrosCP[key] = {name: an. name, code: an. code, num: 0, tag: an.float, items: [an]};
 				}
 				anchrosCP[key].num++;
 			}
@@ -682,7 +681,7 @@ class AnchorsMgr {
 			rs.days.push(day);
 			for (let j = 0; j < model.anchros[i].length; j++) {
 				let an = model.anchros[i][j];
-				if (an.symbol_code == code) {
+				if (an. code == code) {
 					rs[an.float].push(an);
 				}
 			}
@@ -809,7 +808,6 @@ class TabNaviMgr {
 		let thiz = this;
 		this.navi = $('<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div> <div >热度榜</div> <div >成交额</div> <div >指数</div> <div>笔记</div> <div>标记</div> </div>');
 		$('div[name="tab-nav-item"]').append(this.navi);
-		this.navi.width('110px');
 		$('div[name="tab-nav-item"] > div').click(function() {
 			if (! $(this).hasClass('toggle-nav-active')) {
 				$('div[name="tab-nav-item"] > .toggle-nav-active').removeClass('toggle-nav-active');
@@ -817,6 +815,13 @@ class TabNaviMgr {
 			}
 			thiz.loadTabNavi($(this).text().trim());
 		});
+
+		let style = document.createElement('style');
+		let css = `.toggle-nav-box {color: #747474; font-size: 14px; width: 100%; height: 39px; line-height: 38px; border-bottom: 1px solid #e6e7ea; } \n\
+				   .toggle-nav-box > div {float: left; width: 110px; background-color: #f9fafc; text-align: center; border: 1px solid #e6e7ea; border-bottom: none; border-right: none; cursor: pointer;} \n\
+				   .toggle-nav-box > div.toggle-nav-active {font-weight: bold; color: #222; background-color: #fff; border-top-width: 2px; border-top-color: #222;} \n`;
+		style.appendChild(document.createTextNode(css));
+		document.head.appendChild(style);
 	}
 
 	loadTabNavi(name) {
@@ -857,7 +862,7 @@ class TabNaviMgr {
 			params = new ClsUrl().signParams(params);
 			url += params;
 			$.ajax({
-				url: url, 
+				url: 'http://113.44.136.221:8090/cls-proxy?url=' + encodeURIComponent(url),
 				success: function(resp) {
 					for (let i = resp.data.length - 1; i >= 0; i--) {
 						if (resp.data[i].is_st) resp.data.splice(i, 1);
@@ -872,7 +877,7 @@ class TabNaviMgr {
 			else if (name == '炸板池') sql += ' and limit_up_days = 0 and is_down = 0';
 			else sql += ' and is_down = 1';
 			$.ajax({
-				url : 'http://localhost:5665/query-by-sql/cls',
+				url : ' /query-by-sql/cls',
 				data: {'sql': sql},
 				success: function(resp) {
 					thiz.updateTabContentUI(name, resp);
@@ -884,7 +889,7 @@ class TabNaviMgr {
 	loadMarkNavi(name) {
 		let thiz = this;
 		$.ajax({
-			url: 'http://localhost:5665/mark-color',
+			url: ' /mark-color',
 			contentType: 'application/json',
 			type: 'POST',
 			data: JSON.stringify({op: 'get'}),
@@ -898,7 +903,7 @@ class TabNaviMgr {
 		let thiz = this;
 		let day = this.vue.data.curDay;
 		$.ajax({
-			url: `http://localhost:5665/top100-vol?day=${day}`,
+			url: ` /top100-vol?day=${day}`,
 			contentType: 'application/json',
 			type: 'GET',
 			// data: JSON.stringify({op: 'get'}),
@@ -912,7 +917,7 @@ class TabNaviMgr {
 		let thiz = this;
 		let day = this.vue.data.curDay;
 		$.ajax({
-			url: 'http://localhost:5665/get-hots?day=' + day, type: 'GET',
+			url: ' /get-hots?day=' + day, type: 'GET',
 			success: function(resp) {
 				let rs = [];
 				for (let k in resp) {
@@ -932,7 +937,7 @@ class TabNaviMgr {
 		let day = this.vue.data.curDay;
 		day = day.replaceAll('-', '');
 		$.ajax({
-			url: 'http://localhost:5665/iwencai', type: 'GET',
+			url: ' /iwencai', type: 'GET',
 			data: {q: '个股成交额排名, ' + day, maxPage : 2},
 			success: function(resp) {
 				let amountAttrName = 'amount';
@@ -1017,7 +1022,7 @@ class TabNaviMgr {
 		}
 		let opts = $('<button name="ths"> 同花顺指数 </button>  &nbsp; &nbsp; <button name="cls">财联社指数 </button>');
 		$.ajax({
-			url: 'http://localhost:5665/query-by-sql/' + db,
+			url: ' /query-by-sql/' + db,
 			data: {'sql': sql},
 			success: function(resp) {
 				for (let d of resp) {
@@ -1188,7 +1193,7 @@ class TabNaviMgr {
 		day = day.replaceAll('-', '');
 		// ths_dtReason
 		$.ajax({
-			url: `http://localhost:5665/iwencai?q=${day} 跌停,非st,成交额,收盘价,涨跌幅`,
+			url: ` /iwencai?q=${day} 跌停,非st,成交额,收盘价,涨跌幅`,
 			success: function(resp) {
 				if (! resp) return;
 				for (let r of resp) {
@@ -1237,7 +1242,6 @@ function changeCurDay(initMgr, globalMgr) {
 	};
 	let vue = new Vuex(model);
 	let initMgr = new InitMgr(vue);
-	return
 	let globalMgr = new GlobalMgr(vue);
 	new TimeDegreeMgr(vue);
 	new ZdfbMgr(vue);

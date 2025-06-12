@@ -500,12 +500,12 @@ class StockTable extends UIListener {
         let menu = this.__menu__;
         let model = [
                     {title: '标记', sub: [
-                        {name: 'mark-color', title: ' <span style="border:solid 1px #999; width: 50px; height:15px; display: inline-block; vertical-align: middle;"> &nbsp; </span>', color: ''},
-                        {name: 'mark-color', title: ' <span style="background-color: #f00; width: 50px; height:15px; display: inline-block; vertical-align: middle;"> &nbsp; </span>', color: '#f00'}, 
-                        {name: 'mark-color', title: ' <span style="background-color: #0f0; width: 50px; height:15px; display: inline-block; vertical-align: middle;"> &nbsp; </span>', color: '#0f0'}, 
-                        {name: 'mark-color', title: ' <span style="background-color: #00f; width: 50px; height:15px; display: inline-block; vertical-align: middle;"> &nbsp; </span>', color: '#00f'}, 
-                        {name: 'mark-color', title: ' <span style="background-color: #FF1493; width: 50px; height:15px; display: inline-block; vertical-align: middle;"> &nbsp; </span>', color: '#FF1493'}, 
-                        {name: 'mark-color', title: ' <span style="background-color: #9A32CD; width: 50px; height:15px; display: inline-block; vertical-align: middle;"> &nbsp; </span>', color: '#9A32CD'}, 
+                        {name: 'mark-color', title: ' <span style="border:solid 1px #999; width: 50px; height:15px; display: inline-block; vertical-align: middle; margin-top:5px;"> &nbsp; </span>', color: ''},
+                        {name: 'mark-color', title: ' <span style="background-color: #f00; width: 50px; height:15px; display: inline-block; vertical-align: middle; margin-top:5px;"> &nbsp; </span>', color: '#f00'}, 
+                        {name: 'mark-color', title: ' <span style="background-color: #0f0; width: 50px; height:15px; display: inline-block; vertical-align: middle; margin-top:5px;"> &nbsp; </span>', color: '#0f0'}, 
+                        {name: 'mark-color', title: ' <span style="background-color: #00f; width: 50px; height:15px; display: inline-block; vertical-align: middle; margin-top:5px;"> &nbsp; </span>', color: '#00f'}, 
+                        {name: 'mark-color', title: ' <span style="background-color: #FF1493; width: 50px; height:15px; display: inline-block; vertical-align: middle; margin-top:5px;"> &nbsp; </span>', color: '#FF1493'}, 
+                        {name: 'mark-color', title: ' <span style="background-color: #9A32CD; width: 50px; height:15px; display: inline-block; vertical-align: middle; margin-top:5px;"> &nbsp; </span>', color: '#9A32CD'}, 
                     ]},
                 ];
         menu.setModel(model);
@@ -568,7 +568,7 @@ class StockTable extends UIListener {
         let name = this.datasMap[scode]?.name || '';
         let item = {code: scode.substring(2), secu_code: scode, name:name, color: color, day: this.formatDay(new Date())};
         $.ajax({
-            url: 'http://localhost:5665/mark-color',
+            url: '/mark-color',
             type: 'POST', contentType: 'application/json',
             data: JSON.stringify({op: 'save', data: item}),
             success: function(resp) {
@@ -580,7 +580,7 @@ class StockTable extends UIListener {
     loadMarkColors() {
         let thiz = this;
         $.ajax({
-            url: 'http://localhost:5665/mark-color',
+            url: '/mark-color',
             type: 'POST', contentType: 'application/json',
             data: JSON.stringify({op: 'get', data: null}),
             success: function(rs) {
@@ -639,7 +639,7 @@ class StockTable extends UIListener {
         this.notify({name: 'BeforeOpenKLine', src: this, data: rdatas, rowData});
         let data = JSON.stringify(rdatas);
         $.post({
-            url: 'http://localhost:5665/openui/kline/' + code,
+            url: '/openui/kline/' + code,
             contentType: "application/json",
             data: data
         });
@@ -762,7 +762,7 @@ class StockTable extends UIListener {
             }
         }
         $.ajax({
-            url: 'http://localhost:5665/query-codes-info',
+            url: '/query-codes-info',
             type: 'POST',
             contentType: "application/json",
             data: JSON.stringify({cols: cols, codes: this.getCodeList()}),
@@ -816,6 +816,7 @@ class StockTable extends UIListener {
                    .my-stoks-table .ths-zt-reason {color: #5CACEE; font-size: 12px;}\n\
                    .my-stoks-table .industry {background-color: #8C92A6; height: 26px; vertical-align: middle; color: #fff; }\n\
                    .my-stoks-table .industry:before {content:'\\20'; width: 6px; height:16px; background-color: #8d1f1f; margin: 0 5px 0 10px; display: inline-block; vertical-align: middle;} \n\
+                   .my-stoks-table a {text-decoration-line: none; } \n\
                 ";
         style.appendChild(document.createTextNode(css));
         document.head.appendChild(style);
@@ -985,7 +986,7 @@ class TradeDatePicker extends UIListener {
 
     loadTradeDays() {
         let thiz = this;
-        $.ajax({url: 'http://localhost:5665/get-trade-days', async: false, success: function(data) {
+        $.ajax({url: '/get-trade-days', async: false, success: function(data) {
             for (let d of data) {
                 if (d.length == 8) {
                     d = d.substring(0, 4) + '-' + d.substring(4, 6) + '-' + d.substring(6, 8);
@@ -1271,6 +1272,7 @@ class PopupMenu extends UIListener {
             .popupmenu-popup .menu-item-suffix {width: 30px; height: 25px; float:right; margin-left: 10px; text-align:center;} \n\
             .popupmenu-popup .menu-item:hover {background-color:#ECECEC;} \n\
             .popupmenu-popup .menu-item-updown {min-width: 100px; height: 15px; display: block; vertical-align: middle; user-select: none; -webkit-user-select: none;} \n\
+            .popupmenu-popup p {margin: 0; padding: 0;} \n\
         ";
         style.appendChild(document.createTextNode(css));
         document.head.appendChild(style);
@@ -1317,8 +1319,8 @@ class RichEditor extends UIListener {
         menu.addListener('select-item', onselect);
         const makeColorItem = function(name, color) {
             if (! color)
-                return {name: name, title: ' <span style="border:solid 1px #999; width: 50px; height:15px; display: inline-block; vertical-align: middle;">  </span>', value: ''};
-            return {name: name, title: ` <span style="background-color: ${color};width: 50px; height:15px; display: inline-block; vertical-align: middle;">  </span>`, value: color};
+                return {name: name, title: ' <span style="border:solid 1px #999; width: 50px; height:15px; display: inline-block; vertical-align: middle; margin-top:5px;">  </span>', value: ''};
+            return {name: name, title: ` <span style="background-color: ${color};width: 50px; height:15px; display: inline-block; vertical-align: middle; margin-top:5px;">  </span>`, value: color};
         }
         const makeColorItems = function(name, colors) {
             let rs = [];
@@ -1384,7 +1386,7 @@ class RichEditor extends UIListener {
     loadData() {
         let thiz = this;
         $.ajax({
-            url: 'http://localhost:5665/mynote',
+            url: '/mynote',
             type: 'POST', contentType: 'application/json',
             data: JSON.stringify({op: 'get', name: this.name}),
             success: function(data) {
@@ -1495,7 +1497,7 @@ class RichEditor extends UIListener {
     }
     save() {
         $.ajax({
-            url: 'http://localhost:5665/mynote',
+            url: '/mynote',
             contentType: 'application/json',
             type: 'POST',
             data: JSON.stringify({op: 'save', name: this.name, cnt: this.ui.html()}),
@@ -1700,7 +1702,7 @@ class CodeView extends UIListener {
         let day = this.day || '';
         let thiz = this;
         $.ajax({
-            url: `http://localhost:5665/get-fenshi/${this.code}?day=${day}`,
+            url: `/get-fenshi/${this.code}?day=${day}`,
             success: function(resp) {
                 if (! resp) {
                     return;

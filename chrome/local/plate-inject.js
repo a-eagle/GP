@@ -153,7 +153,7 @@ function initPlatePage() {
     let btn = $('<button style="margin-left: 30px;"> 打开K线图-Win </button>');
     btn.click(function() {
         $.ajax({
-            url: 'http://localhost:5665/openui/kline/' + code, 
+            url: '/openui/kline/' + code, 
             type: 'POST', contentType: 'application/json',
             data: JSON.stringify({day: day}),
         });
@@ -327,7 +327,7 @@ function loadStoks() {
     if (! period) {
         return;
     }
-    let url = `http://localhost:5665/plate/${code}?day=${day}&period=${period}&subByMaxHots=${subByMaxHots}`;
+    let url = `/plate/${code}?day=${day}&period=${period}&subByMaxHots=${subByMaxHots}`;
     $.ajax({
         url: url, type: 'GET',
         success: function(resp) {
@@ -335,7 +335,7 @@ function loadStoks() {
             window['StockData'] = sd;
         }
     });
-    url = `http://localhost:5665/industry/${code}?day=${day}&period=${period}&subByMaxHots=${subByMaxHots}`;
+    url = `/industry/${code}?day=${day}&period=${period}&subByMaxHots=${subByMaxHots}`;
     $.ajax({
         url: url, type: 'GET',
         success: function(resp) {

@@ -10,7 +10,7 @@ from utils import hot_utils, gn_utils
 
 class Server:
     def __init__(self) -> None:
-        self.app = flask.Flask(__name__, static_folder = 'local')
+        self.app = flask.Flask(__name__, static_folder = '', template_folder = '')
         flask_cors.CORS(self.app)
         self.uiThread = None
 
@@ -37,12 +37,38 @@ class Server:
         self.app.add_url_rule('/plate/<code>', view_func = self.getPlate)
         self.app.add_url_rule('/industry/<code>', view_func = self.getIndustry)
         self.app.add_url_rule('/get-anchors', view_func = self.getAnchors)
-        self.app.run('localhost', 5665, use_reloader = False, debug = False)
+        self.app.add_url_rule('/load-one-anchor', view_func = self.getOneAnchor)
+        self.app.add_url_rule('/load-kline/<code>', view_func = self.loadKLine)
+        self.app.run('localhost', 8080, use_reloader = False, debug = False)
+
+    def loadKLine(self, code):
+        hx = henxin.HexinUrl()
+        rs = hx.loadKLineData(code)
+        datas = []
+        KEYS = ('day', 'open', 'high', 'low', 'close', 'amount', 'vol')
+        for d in rs['data']:
+            obj = {}
+            for k in KEYS:
+                obj[k] = getattr(d, k, 0)
+            datas.append(obj)
+        return datas
+    
+    def getOneAnchor(self):
+        day = flask.request.args.get('day', '')
+        if len(day) == 8:
+            day = f"{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}"
+        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day == day).dicts()
+        rs = []
+        for it in qr:
+            rs.append(it)
+        return rs
 
     def getAnchors(self):
         days = int(flask.request.args.get('days', '60'))
-        today = datetime.date.today() - datetime.timedelta(days = days)
-        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day >= today.strftime('%Y-%m-%d')).dicts()
+        tds = ths_iwencai.getTradeDays()
+        fromDay = str(tds[-days])
+        fromDay = f"{fromDay[0 : 4]}-{fromDay[4 : 6]}-{fromDay[6 : 8]}"
+        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day >= fromDay).dicts()
         rs = []
         one = None
         lastDay = None
@@ -52,6 +78,7 @@ class Server:
                 rs.append(one)
                 lastDay = it['day']
             one.append(it)
+        rs.sort(key = lambda item : item[0]['day'], reverse = True)
         return rs
 
     def _openUI_Timeline(self, code, day):
@@ -250,6 +277,8 @@ class Server:
             df.loadLocalData(day)
             rs['pre'] = df.pre
             rs['line'] = df.data
+        if not rs['line']:
+            return rs
         rsd = []
         KS = ('day', 'time', 'price', 'avgPrice', 'amount', 'vol')
         for ln in rs['line']:

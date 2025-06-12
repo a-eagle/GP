@@ -1,7 +1,7 @@
 import json, os, sys, datetime, threading, time, inspect, platform
 import traceback
 import requests, json, logging
-import peewee as pw, flask
+import peewee as pw, flask, flask_cors
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import chrome_orm, cls_orm, d_orm, def_orm, lhb_orm, ths_orm
@@ -10,6 +10,7 @@ from download import console, ths_iwencai
 class Server:
     def __init__(self) -> None:
         self.app = flask.Flask(__name__)
+        flask_cors.CORS(self.app)
 
     def check(self):
         pass
@@ -17,7 +18,17 @@ class Server:
     def start(self):
         self.app.add_url_rule('/getUpdateData/<ormFile>/<ormClass>/<updateTime>', view_func = self.getUpdateData, methods = ['GET', 'POST'])
         self.app.add_url_rule('/getMaxUpdateTimeAll', view_func = self.getMaxUpdateTimeAll, methods = ['GET', 'POST'])
+        self.app.add_url_rule('/cls-proxy', view_func = self.loadClsProxy, methods = ['GET'])
         self.app.run('0.0.0.0', 8090, use_reloader = False, debug = False)
+
+    def loadClsProxy(self):
+        url = flask.request.args.get('url', None)
+        if not url:
+            return {'status': 'Fail', 'msg': 'No url'}
+        resp = requests.get(url)
+        rs = resp.content.decode()
+        js = json.loads(rs)
+        return js
 
     def getMaxUpdateTimeAll(self):
         mgr = DbTableManager()
@@ -50,7 +61,7 @@ class Server:
 
 class Client:
     def __init__(self) -> None:
-        pass
+        self.spliters = {} # key: YYYYmmdd : boolean
 
     def start(self):
         while True:
@@ -68,6 +79,10 @@ class Client:
             time.sleep(5 * 60)
 
     def checkOnce(self):
+        today = datetime.date.today().strftime('%Y-%m-%d')
+        if today not in self.spliters:
+            self.spliters[today] = True
+            print('--------------------->', today, '<-------------------')
         rs = self.getMaxUpdateTimeAll()
         if not rs:
             return

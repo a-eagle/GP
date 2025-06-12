@@ -811,7 +811,7 @@ class TimeLineView extends Listener {
         let thiz = this;
         day = day || ''
         $.ajax({
-            url: `http://localhost:5665/get-fenshi/${code}?day=${day}`,
+            url: `/get-fenshi/${code}?day=${day}`,
             success: function(resp) {
                 if (! resp) {
                     if (callback) callback(null);
@@ -1140,6 +1140,7 @@ class AnchrosView extends Listener {
     }
 
     _loadData(day, cb) {
+        let thiz = this;
         let cbNum = 0;
         let rs = {};
         function mcb() {
@@ -1148,14 +1149,42 @@ class AnchrosView extends Listener {
                 cb(rs);
             }
         }
-        new ClsUrl().loadAnchor(day, function(resp) {
-            rs.anchors = resp.data;
-            mcb();
-        })
-        new ClsUrl().loadIndexFenShi('sh000001', day, function(data) {
-            rs.sh000001 = data;
+        if (! day) day = '';
+        $.get(`/load-one-anchor?day=${day}`, function(data) {
+            rs.anchors = data;
             mcb();
         });
+        $.get(`/get-fenshi/999999?day=${day}`, function(data) {
+            rs.sh000001 = data;
+            if (! data.line || !data.line.length) {
+                thiz._fillEmptyKLine(day, data);
+            }
+            mcb();
+        });
+    }
+
+    _fillEmptyKLine(day, data) {
+        let kline = [];
+        let hour = 9;
+        let minites = 30;
+        day = parseInt(day.replace(/[-]/g, ""));
+        while (true) {
+            let time = hour * 100 + minites;
+            if (time > 1500) {
+                break;
+            }
+            if ((time >= 930 && time <= 1130) || (time > 1300 && time <= 1500)) {
+                let price = minites <= 30 ? 110 : 100;
+                kline.push({day: day, time: time, price: price});
+            }
+            minites ++;
+            if (minites >= 60) {
+                minites %= 60;
+                hour ++;
+            }
+        }
+        data.line = kline;
+        data.pre = 100;
     }
 
     calcMinMax() {
@@ -1167,9 +1196,9 @@ class AnchrosView extends Listener {
             if (! item) {
                 continue;
             }
-            let price = item.last_px;
+            let price = item.price;
             if (i == 0) {
-                maxPrice = minPrice = item.preclose_px; // 昨日收盘价
+                maxPrice = minPrice = this.sh000001.pre; // 昨日收盘价
             }
             if (price > maxPrice) {
                 maxPrice = price;
@@ -1226,7 +1255,7 @@ class AnchrosView extends Listener {
         this.ctx.beginPath();
         let an = this.selAnchor.data;
         let rect = this.selAnchor;
-        if (an.float == 'up') {
+        if (an.up) {
             this.ctx.fillStyle = '#FFD8D8';
             this.ctx.strokeStyle = 'red';
         } else {
@@ -1236,7 +1265,7 @@ class AnchrosView extends Listener {
         this.ctx.font = 'bold 18px 宋体';
         this.ctx.fillRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
         this.ctx.fillStyle = 'black';
-        this.ctx.fillText(an.symbol_name, rect.left + 5, rect.top + 20);
+        this.ctx.fillText(an.name, rect.left + 5, rect.top + 20);
         this.ctx.stroke();
         this.ctx.closePath();
     }
@@ -1256,7 +1285,7 @@ class AnchrosView extends Listener {
         }
         let x = this.PADDING_X + pointsDistance * midx;
         let item = this.sh000001.line[midx];
-        let priceY = H - (item.last_px - this.zMinPrice) * H / (this.zMaxPrice - this.zMinPrice) + PADDING_Y;
+        let priceY = H - (item.price - this.zMinPrice) * H / (this.zMaxPrice - this.zMinPrice) + PADDING_Y;
         let y = priceY + 50;
         let rect = new Rect(x, y, x + w, y + h);
         rect.priceY = priceY;
@@ -1310,10 +1339,10 @@ class AnchrosView extends Listener {
         for (let i = 0; i < this.anchors.length; i++) {
             this.ctx.beginPath();
             let an = this.anchors[i];
-            let hour = parseInt(an.c_time.substring(11, 13));
-            let minute = parseInt(an.c_time.substring(14, 16));
+            let hour = parseInt(an.ctime.substring(0, 2));
+            let minute = parseInt(an.ctime.substring(3, 5));
             let time = hour * 100 + minute;
-            if (an.float == 'up') {
+            if (an.up) {
                 this.ctx.fillStyle = '#FFD8D8';
                 this.ctx.strokeStyle = '#ff0000';
             } else {
@@ -1321,7 +1350,7 @@ class AnchrosView extends Listener {
                 this.ctx.strokeStyle = '#00ff00';
             }
             this.ctx.font = 'bold 18px 宋体';
-            let tw = this.ctx.measureText(an.symbol_name).width;
+            let tw = this.ctx.measureText(an.name).width;
             let bw = tw + 10;
             let rc = this.getAnchorRectAtIdx(i, bw, IH, time);
             if (! rc) {
@@ -1341,7 +1370,7 @@ class AnchrosView extends Listener {
                 this.ctx.stroke();
             }
             this.ctx.fillStyle = 'black';
-            this.ctx.fillText(an.symbol_name, rc.left + 5, rc.top + 20);
+            this.ctx.fillText(an.name, rc.left + 5, rc.top + 20);
             this.ctx.closePath();
         }
     }
@@ -1363,7 +1392,7 @@ class AnchrosView extends Listener {
     }
 
     drawFenShi() {
-        if (! this.sh000001 || this.sh000001.line.length == 0) {
+        if (! this.sh000001 || !this.sh000001.line || this.sh000001.line.length == 0) {
             return;
         }
         this.zMaxPrice = this.zMinPrice = 0;
@@ -1371,7 +1400,7 @@ class AnchrosView extends Listener {
         if (this.maxPrice == this.minPrice) {
             return;
         }
-        let pre = this.sh000001.line[0].preclose_px;
+        let pre = this.sh000001.pre;
         let zf1 = Math.abs(this.maxPrice - pre) / pre;
         let zf2 = Math.abs(this.minPrice - pre) / pre;
         let zf = zf1 > zf2 ? zf1 : zf2;
@@ -1393,7 +1422,7 @@ class AnchrosView extends Listener {
         for (let i = 0; i < this.sh000001.line.length; i++) {
             let item = this.sh000001.line[i];
             let x = i * pointsDistance + this.PADDING_X;
-            let y = H - (item.last_px - zMinPrice) * H / (zMaxPrice - zMinPrice) + PADDING_Y;
+            let y = H - (item.price - zMinPrice) * H / (zMaxPrice - zMinPrice) + PADDING_Y;
             if (i == 0) {
                 this.ctx.moveTo(x, y);
             } else {
