@@ -50,7 +50,7 @@ class InitMgr {
 		let group = $('<div id="my-group-items"> </div>');
 		let md1 = $('<div class="my-info-item" name="global-item"></div>');
 		let md2 = $('<div class="my-info-item" name="time-degree-item" > </div>');
-		let md3 = $('<div class="my-info-item" style="height: 90px;" name="zdfb-item"> </div>');
+		let md3 = $('<div class="my-info-item" style="heightx: 90px;" name="zdfb-item"> </div>');
 		let md4 = $('<div class="my-info-item" style="height: 400px;" name="anchor-fs-item" > </div>');
 		let md5 = $('<div class="my-info-item" name="anchor-list-item" ></div>');
 		let md6 = $('<div class="my-info-item toggle-nav-box" name="tab-nav-item"> </div>');
@@ -329,7 +329,7 @@ class ZdfbMgr {
 		this.table = null;
 		let thiz = this;
 		let r = function(elem, bindName, obj, attrName) {
-			thiz._render(elem, bindName, obj, attrName);
+			thiz._renderDegree(elem, bindName, obj, attrName);
 		}
 		let czdFunc = function(elem, bindName, obj, attrName) {
 			thiz._render_czd(elem, bindName, obj, attrName);
@@ -343,65 +343,77 @@ class ZdfbMgr {
 		if (! this.table) {
 			this._buildUI();
 		}
+		let model = this.vue.data;
 		if (newVal == this.vue.data.lastTradeDay) {
 			// this.loadNewestData(function(data) {
 			// 	thiz.updateData(data);
 			// });
 			this.loadNewestData_EC(function(data) {
-				thiz.updateData_EC(data);
+				thiz.loadNewestDegree(function(day, degree) {
+					// console.log(day, degree);
+					if (day == newVal)
+						thiz.updateData_EC(newVal, degree, data);
+				});
 			});
 		} else {
 			this.loadHistoryData(newVal);
 		}
 	}
 
+	loadNewestDegree(cb) {
+		let thiz =  this;
+		let url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597';
+		$.ajax({
+			url: 'http://113.44.136.221:8090/cls-proxy?url=' + encodeURIComponent(url),
+			success: function(resp) {
+				let day = resp.data.date;
+				let degree = resp.data.market_degree;
+				degree = parseInt(parseFloat(degree) * 100);
+				cb(day, degree);
+			}
+		});
+	}
+
 	_buildUI() {
 		this.table = $('<table>'+
-			"<tr class='red'> <th> 日期 </th> <th> 热度</th>  <th> 上涨数 </th> <td :bind='zdfb.up'> </td>  <th> 涨停 </th> " +
+			"<tr class='red'> <th> 日期 </th> <th rowspan=2 :bind='zdfb.degree' :render='zdfb.r' style='width:165px; background-color:#fff;' >  </th>  " +
+			"<th> 上涨数 </th> <td :bind='zdfb.up'> </td>  <th> 涨停 </th> " +
 			"<td :bind='zdfb.zt'> </td> <th> 涨幅>8% </th> <td :bind='zdfb.up_8'> </td> </tr>" +
-			"<tr class='green'> <th :bind='zdfb.day'> </th> <td :bind='zdfb.degree' :render='zdfb.r'> </td>  <th> 下跌数 </th> " +
+			"<tr class='green'> <th :bind='zdfb.day'> </th>        <th> 下跌数 </th> " +
 			"<td :bind='zdfb.down'> </td>  <th> 跌停 </th> <td :bind='zdfb.dt'> </td> <th> 跌幅>8% </th>" +
 			"<td :bind='zdfb.down_8'> </td> </tr>" +
 			" <tr style='height: 20px;'> <td></td> <td></td> <td></td> <td colspan=5 :bind='zdfb.czd' :render='zdfb.czdFunc'></td> </tr> </table> ");
-		this.table.find('td').css('width', '120px');
+		// this.table.find('td').css('width', '120px');
 		$('div[name="zdfb-item"]').append(this.table);
 		this.vue.mount(this.table);
-
-		// 实时动态更新
-		let model = this.vue.data;
-		let thiz = this;
-		// setInterval(function() {
-		// 	let today = formatDay(new Date());
-		// 	if (today != model.lastTradeDay || model.lastTradeDay != model.curDay) {
-		// 		return;
-		// 	}
-		// 	let curTime = formatTime(new Date());
-		// 	if (curTime < '09:25' || curTime > '15:05') {
-		// 		return;
-		// 	}
-		// 	thiz.loadNewestData(function(data) {
-		// 		if (model.curDay != model.lastTradeDay)
-		// 			return;
-		// 		thiz.updateData(data);
-		// 	});
-		// }, 1000 * 30);
 	}
 
-	_render(elem, bindName, data, attrName) {
+	_renderDegree(elem, bindName, data, attrName) {
 		elem = $(elem);
-		if (attrName == 'degree') {
-			if (data.degree && data.degree >= 50) {
-				elem.removeClass('green');
-				elem.addClass('red');
-				elem.text(String(data.degree) + '°');
-			} else if (data.degree) {
-				elem.removeClass('red');
-				elem.addClass('green');
-				elem.text(String(data.degree) + '°');
-			} else {
-				elem.text('');
-			}
+		elem.empty();
+		let d = 0;
+		if (data.degree) {
+			d = data.degree / 100.0 * 226;
 		}
+		let wrap = $(`<div style="width:160px; height: 80px;"><svg style="width:100% ;height: 100%;">\
+						<defs>\
+						    <linearGradient id="linear" x1="0%" y1="0%" x2="100%" y2="0%">\
+								<stop offset="0%" stop-color="#80DCC2"></stop>\
+								<stop offset="100%" stop-color="#FF2C49"></stop>\
+							</linearGradient>\
+						</defs>\
+						<circle cx="77.5" cy="76" r="72" stroke="#E2E2E2" stroke-width="8" fill="none" stroke-dasharray="226" stroke-dashoffset="-226" stroke-linecap="round"></circle>\
+						<circle cx="77.5" cy="76" r="72" stroke="url(#linear)" stroke-width="8" fill="none" stroke-dasharray="${d} 227" stroke-dashoffset="-226" stroke-linecap="round"></circle>\
+					</svg></div>`);
+		elem.append(wrap);
+		let dg = '--';
+		if (data.degree) {
+			dg = String(data.degree) + '°';
+		}
+		let color = 'green';
+		if (data.degree && data.degree >= 50) color = 'red';
+		let title = $(`<div style="text-align: center; line-height: 1; font-size: 30px; margin-top:-35px;" class="${color}">${dg}</div>`);
+		wrap.append(title);
 	}
 
 	_render_czd(elem, bindName, data, attrName) {
@@ -468,12 +480,9 @@ class ZdfbMgr {
 			url: '/query-by-sql/cls',
 			data: {'sql': sql},
 			success: function(resp) {
-				let ds = JSON.parse(resp[0].fb) || {};
 				let zdfb = resp[0].zdfb ? JSON.parse(resp[0].zdfb) : null;
-				ds.day = day;
-				ds.degree = resp[0].degree || '';
-				thiz.updateData(ds);
-				thiz.updateData_EC(zdfb);
+				let degree = resp[0].degree || '';
+				thiz.updateData_EC(day, degree, zdfb);
 			}
 		});
 	}
@@ -489,15 +498,25 @@ class ZdfbMgr {
 		model.czd = data.up *100 + data.down * 10 + data.zero;
 	}
 
-	updateData_EC(zdfb) {
+	updateData_EC(day, degree, zdfb) {
 		let model = this.vue.data.zdfb;
-		if (zdfb) {
-			model.zt = zdfb['11'];
-			model.dt = zdfb['-11'];
-		} else {
-			model.zt = '';
-			model.dt = '';
+		function numToStr(n) {if (typeof(n) == undefined) return ''; return n;}
+		model.day = day;
+		model.degree = degree;
+		zdfb = zdfb || {}
+		model.zt = numToStr(zdfb['11']);
+		model.dt = numToStr(zdfb['-11']);
+		let up = 0, down = 0;
+		for (let k in zdfb) {
+			if (k.indexOf('-') >= 0) down += zdfb[k];
+			else if (k != '0') up += zdfb[k];
 		}
+		model.up = numToStr(up);
+		model.down = numToStr(down);
+		model.zero = numToStr(zdfb['0']);
+		model.up_8 = numToStr(zdfb['9']) + numToStr(zdfb['10']); // zdfb['10'] means > 9%
+		model.down_8 = numToStr(zdfb['-9']) + numToStr(zdfb['-10']); // zdfb['10'] means > 9%
+		model.czd = Math.random(); // update it view
 	}
 }
 
@@ -781,6 +800,8 @@ class TabNaviMgr {
 		if (! this.navi) {
 			this._initUI();
 		}
+		let wrap = $(`div[name=tab-nav-cnt-item]`);
+		wrap.empty();
 		this.loadTabNavi(this.curTabName || '涨停池');
 	}
 
@@ -1018,8 +1039,15 @@ class TabNaviMgr {
 	}
 
 	updateTabContentUI(name, data) {
-		let wrap = $('div[name=tab-nav-cnt-item]');
-		wrap.empty();
+		let wrap = $(`div[name=tab-nav-cnt-item]`);
+		let cnt = wrap.find(`div[name=${name}]`);
+		$(`div[name=tab-nav-cnt-item] > div`).hide();
+		if (cnt.length != 0) {
+			cnt.show();
+			return;
+		}
+		cnt = $(`<div  name=${name} > </div>`);
+		wrap.append(cnt);
 		let model = this.vue.data;
 		if (! data) {
 			return;
@@ -1040,7 +1068,6 @@ class TabNaviMgr {
 			}
 			tdObj.html(rowData.amountIdx);
 		}
-
 		if (name == '涨停池' || name == '连板池') {
 			hd = [
 				{text: ' ', 'name': 'mark_color', width: 40, sortable: true, defined: true},
@@ -1133,7 +1160,7 @@ class TabNaviMgr {
 		}
 
 		let st = new StockTable(hd);
-		window.st = st;
+		// window.st = st;
 		st.setDay(model.curDay);
 		st.setTradeDays(model.tradeDays);
 		st.setData(data);
@@ -1161,8 +1188,8 @@ class TabNaviMgr {
 			}
 		});
 		ops.append(exOps);
-		wrap.append(ops);
-		wrap.append(st.table);
+		cnt.append(ops);
+		cnt.append(st.table);
 		if (name == '跌停池' && model.curDay == model.lastTradeDay) {
 			this.loadDTInfo(st, window.st.day);
 		}
@@ -1188,11 +1215,18 @@ class TabNaviMgr {
 	}
 
 	loadNoteNavi(name) {
-		let wrap = $('div[name=tab-nav-cnt-item]');
-		wrap.empty();
+		let wrap = $(`div[name=tab-nav-cnt-item]`);
+		let cnt = wrap.find(`div[name=${name}]`);
+		$(`div[name=tab-nav-cnt-item] > div`).hide();
+		if (cnt.length != 0) {
+			cnt.show();
+			return;
+		}
+		cnt = $(`<div name=${name} > </div>`);
+		wrap.append(cnt);
 		let re = new RichEditor('my-note');
 		re.buildUI();
-		wrap.append(re.ui);
+		cnt.append(re.ui);
 	}
 }
 
