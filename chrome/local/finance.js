@@ -1196,7 +1196,7 @@ class TabNaviMgr {
 		cnt.append(ops);
 		cnt.append(st.table);
 		if (name == '跌停池' && model.curDay == model.lastTradeDay) {
-			this.loadDTInfo(st, window.st.day);
+			this.loadDTInfo(st, model.curDay);
 		}
 	}
 

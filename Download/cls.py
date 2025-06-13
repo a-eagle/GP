@@ -478,5 +478,7 @@ class ClsUrl:
 if __name__ == '__main__':
     cu = ClsUrl()
     # rs = cu.loadHotTC(20250609) # OK
-    rs = cu.loadDegree()
+    # rs = cu.loadDegree()
+    url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
+    rs = getProxyUrl(url)
     print(rs)
