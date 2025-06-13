@@ -511,6 +511,7 @@ class Server:
                 cls_orm.CLS_SCQX.create(day = day, zdfb = fb)
             else:
                 obj.zdfb = fb
+                obj.updateTime = datetime.datetime.now()
                 obj.save()
             console.writeln_1(console.CYAN, f'[Cls-EastMoney-Zdfb] {tag} {self.formatNowTime(True)}', day, ' -> ', fb)
             return True
