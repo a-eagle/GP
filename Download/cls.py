@@ -1,4 +1,5 @@
 import ctypes, os, sys, requests, json, traceback, datetime, platform
+import urllib
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download import memcache
@@ -31,10 +32,9 @@ def _c_digest(s : str):
     #print('[_c_digest]', r)
     return r
 
-if platform.node() == 'DESKTOP-P6GAAMF':
-    PROXY = {'https': '113.44.136.221:8080', 'http': '113.44.136.221:8080'}
-else:
-    PROXY = None
+def getProxyUrl(url):
+    url = urllib.parse.urlencode({'url': url})
+    return 'http://113.44.136.221:8090/clsurl?' + url
 
 class ClsUrl:
     def __init__(self) -> None:
@@ -77,7 +77,7 @@ class ClsUrl:
         scode = self._getTagCode(code)
         params = f'app=CailianpressWeb&fields=date,minute,last_px,business_balance,business_amount,open_px,preclose_px,av_px&os=web&secu_code={scode}&sv=7.7.5'
         url += self.signParams(params)
-        resp = requests.get(url, proxies = PROXY)
+        resp = requests.get(url)
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         data = js['data']
@@ -101,7 +101,7 @@ class ClsUrl:
             sday = f"&date={day}"
         params = f'app=CailianpressWeb{sday}&os=web&sv=8.4.6'
         url += self.signParams(params)
-        resp = requests.get(url, proxies = PROXY)
+        resp = requests.get(url)
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         data = js['data']
@@ -135,7 +135,7 @@ class ClsUrl:
             'sv': '7.7.5'
         }
         url = f'https://x-quote.cls.cn/quote/stock/basic?' + self.signParams(params)
-        resp = requests.get(url, proxies = PROXY)
+        resp = requests.get(url)
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         data = js['data']
@@ -179,7 +179,7 @@ class ClsUrl:
             'sv': '7.7.5'
         }
         url = f'https://x-quote.cls.cn/quote/stock/tline_history?' + self.signParams(params)
-        resp = requests.get(url, proxies = PROXY)
+        resp = requests.get(url)
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         data = js['data']
@@ -261,7 +261,7 @@ class ClsUrl:
             'type': period
         }
         url = f'https://x-quote.cls.cn/quote/stock/kline?' + self.signParams(params)
-        resp = requests.get(url, proxies = PROXY)
+        resp = requests.get(url)
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         data = js['data']
@@ -286,7 +286,7 @@ class ClsUrl:
                 'sv': '7.7.5',
             }
             url = f'https://x-quote.cls.cn/quote/stock/volume?' + self.signParams(params)
-            resp = requests.get(url, proxies = PROXY)
+            resp = requests.get(url)
             txt = resp.content.decode('utf-8')
             js = json.loads(txt)
             data = js['data']
@@ -313,7 +313,7 @@ class ClsUrl:
                 'sv': '7.7.5',
             }
             url = f'https://x-quote.cls.cn/quote/stock/volume?' + self.signParams(params)
-            resp = requests.get(url, proxies = PROXY)
+            resp = requests.get(url)
             txt = resp.content.decode('utf-8')
             js = json.loads(txt)
             data = js['data']
@@ -356,7 +356,7 @@ class ClsUrl:
         if item:
             return item
         url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
-        resp = requests.get(url, proxies = PROXY)
+        resp = requests.get(url)
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         day = js['data']['date']
@@ -375,7 +375,7 @@ class ClsUrl:
             'rever': '1', 'sv': '8.4.6', 'way': 'change'
         }
         url = f'https://x-quote.cls.cn/web_quote/plate/plate_list?' + self.signParams(params)
-        resp = requests.get(url, proxies = PROXY)
+        resp = requests.get(url)
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         isAll = js['data']['is_all'] # 是否是全部数据
@@ -427,7 +427,7 @@ class ClsUrl:
             zs[it['code']] = it
         params = f'app=CailianpressWeb&os=web&secu_code={self._getTagCode(code)}&sv=8.4.6'
         url = 'https://x-quote.cls.cn/web_quote/stock/assoc_plate?' + self.signParams(params)
-        resp = requests.get(url, proxies = PROXY)
+        resp = requests.get(url)
         cnt = resp.content.decode('utf-8')
         js = json.loads(cnt)
         data = js['data']
@@ -460,7 +460,7 @@ class ClsUrl:
         #    return None
         #lastDay = days[-1]
         #lastDay = f"{lastDay[0 : 4]}-{lastDay[4 : 6]}-{lastDay[6 : 8]}"
-        resp = requests.get('https://x-quote.cls.cn/quote/index/home?app=CailianpressWeb&os=web&sv=8.4.6&sign=9f8797a1f4de66c2370f7a03990d2737', proxies = PROXY)
+        resp = requests.get('https://x-quote.cls.cn/quote/index/home?app=CailianpressWeb&os=web&sv=8.4.6&sign=9f8797a1f4de66c2370f7a03990d2737')
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         v = js['data']['up_down_dis']

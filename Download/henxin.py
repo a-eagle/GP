@@ -335,7 +335,10 @@ class HexinUrl(Henxin):
             rs = self.parseFenShiData(txt)
         if rs:
             rs['code'] = code
-        memcache.cache.saveCache(baseUrl, rs, 60)
+        timeout = 60
+        if datetime.datetime.now().strftime('%H:%M') > '15:01':
+            timeout = 60 * 60 * 6
+        memcache.cache.saveCache(baseUrl, rs, timeout)
         return rs
     
     def loadKLineData(self, code):

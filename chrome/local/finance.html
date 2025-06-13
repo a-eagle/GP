@@ -19,10 +19,18 @@
     </head>
 
     <body>
-        <div class="outer-x">
-            <div style="width:1250px; margin-left: 200px;" id="main">
+        <div class="outer">
+            <div style="width:1250px; " id="main">
             </div>
         </div>
     </body>
-    <script src="finance-inject.js"></script>
+    <script src="finance.js"></script>
+    <script>
+        $(document).ready(function() {
+            let ww = $(document.body).width() - $('#main').width();
+            let left = - ww * 0.3;
+            $('#main').css('margin-left',  String(left) + 'px');
+        });
+    </script>
+    
 </html>
