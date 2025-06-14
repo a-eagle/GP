@@ -227,10 +227,11 @@ class DbTableManager:
         return None
 
 if __name__ == '__main__':
-    if platform.node() == 'DESKTOP-P6GAAMF':
-        client = Client()
-        client.start()
-    else:
+    if platform.node() == 'hcss-ecs-3865':
         svr = Server()
         svr.start()
+    else:
+        client = Client()
+        client.start()
+        
         

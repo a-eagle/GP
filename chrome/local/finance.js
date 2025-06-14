@@ -364,7 +364,7 @@ class ZdfbMgr {
 		let thiz =  this;
 		let url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597';
 		$.ajax({
-			url: 'http://113.44.136.221:8090/cls-proxy?url=' + encodeURIComponent(url),
+			url: '/cls-proxy?url=' + encodeURIComponent(url),
 			success: function(resp) {
 				let day = resp.data.date;
 				let degree = resp.data.market_degree;
@@ -868,7 +868,7 @@ class TabNaviMgr {
 			params = new ClsUrl().signParams(params);
 			url += params;
 			$.ajax({
-				url: 'http://113.44.136.221:8090/cls-proxy?url=' + encodeURIComponent(url),
+				url: '/cls-proxy?url=' + encodeURIComponent(url),
 				success: function(resp) {
 					for (let i = resp.data.length - 1; i >= 0; i--) {
 						if (resp.data[i].is_st) resp.data.splice(i, 1);

@@ -34,7 +34,7 @@ def _c_digest(s : str):
 
 def getProxyUrl(url):
     url = urllib.parse.urlencode({'url': url})
-    return 'http://113.44.136.221:8090/clsurl?' + url
+    return 'http://113.44.136.221:8090/cls-proxy?' + url
 
 class ClsUrl:
     def __init__(self) -> None:

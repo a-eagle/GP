@@ -39,7 +39,22 @@ class Server:
         self.app.add_url_rule('/get-anchors', view_func = self.getAnchors)
         self.app.add_url_rule('/load-one-anchor', view_func = self.getOneAnchor)
         self.app.add_url_rule('/load-kline/<code>', view_func = self.loadKLine)
+        self.app.add_url_rule('/cls-proxy/', view_func = self.clsProxy)
         self.app.run('localhost', 8080, use_reloader = False, debug = False)
+
+    def clsProxy(self):
+        url = flask.request.args.get('url')
+        cachetime= flask.request.args.get('cachetime', 300, type = int)
+        item = memcache.cache.getCache(url)
+        if item:
+            return item
+        purl = cls.getProxyUrl(url)
+        resp = requests.get(purl)
+        txt = resp.content.decode()
+        js = json.loads(txt)
+        if resp.status_code == 200:
+            memcache.cache.saveCache(url, js, cachetime)
+        return js
 
     def loadKLine(self, code):
         hx = henxin.HexinUrl()
