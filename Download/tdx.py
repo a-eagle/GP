@@ -293,5 +293,8 @@ class Main:
         
 if __name__ == '__main__':
     mm = Main()
-    #mm.runOnce()
-    mm.runLoop()
+    if '--once' in sys.argv:
+        print('Run only once time')
+        mm.runOnce()
+    else:
+        mm.runLoop()
