@@ -2657,8 +2657,11 @@ class Editor(BaseEditor):
                 return True
             # else : NO return
         if msg == win32con.WM_IME_CHAR or msg == win32con.WM_CHAR:
+            print('onChar', msg, f'0x{wParam:x}', f'0x{lParam:x}')
             self.onChar(wParam)
             return True
+        if msg == win32con.WM_KEYDOWN or msg == win32con.WM_KEYUP:
+            print(msg, f'0x{wParam:x}', f'0x{lParam:x}')
         if msg == win32con.WM_KEYDOWN:
             if wParam == win32con.VK_LEFT:
                 if self.insertPos > 0:

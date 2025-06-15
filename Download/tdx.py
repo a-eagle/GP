@@ -24,10 +24,26 @@ class TdxGuiDownloader:
 
     def startProcess(self):
         subprocess.Popen('D:\\new_tdx\\TdxW.exe', shell=True)
-        time.sleep(10)
+        time.sleep(15)
 
     def killProcess(self):
         os.system('taskkill /F /IM TdxW.exe')
+
+    # x, y is relative position hwnd
+    def click(self, hwnd, x, y):
+        win32api.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, 0, y * 65536 + x)
+        time.sleep(0.1)
+        win32api.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, y * 65536 + x)
+
+    def inputs(self, hwnd, chars):
+        for ch in chars:
+            win32api.PostMessage(hwnd, win32con.WM_CHAR, ord(ch), 0x220001)
+            time.sleep(0.1)
+
+    def enter(self, hwnd):
+        win32api.PostMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0x0001)
+        time.sleep(0.1)
+        win32api.PostMessage(hwnd, win32con.WM_KEYUP, win32con.VK_RETURN, 0x0001)
 
     def getScreenPos(self, hwnd, x, y, recurcive = True):
         while hwnd:
@@ -45,18 +61,25 @@ class TdxGuiDownloader:
         print(f'login hwnd=0x{hwnd :X}')
         if not hwnd:
             raise Exception('Not find Tdx login window')
-        win32gui.SetForegroundWindow(hwnd)
+        # win32gui.SetForegroundWindow(hwnd)
         time.sleep(3)
-        pwdPos = (250, 300)
-        pwdPos = self.getScreenPos(hwnd, *pwdPos)
-        pyautogui.click(*pwdPos, duration=0.5)
-        for i in range(20):
-            pyautogui.press('backspace')
-        pyautogui.typewrite('gaoyan2012')
+        loginBtn = win32gui.GetDlgItem(hwnd, 0x1)
+        self.click(loginBtn, 0, 0)
 
-        loginBtnPos = (200, 370)
-        loginBtnPos = self.getScreenPos(hwnd, *loginBtnPos)
-        pyautogui.click(*loginBtnPos, duration=0.5)
+        # pwdEditer = win32gui.GetDlgItem(hwnd, 0x422)
+        # self.click(pwdEditer, 0, 0)
+        # time.sleep(0.5)
+        # self.enter(pwdEditer)
+
+        # pwdPos = (250, 300)
+        # pwdPos = self.getScreenPos(hwnd, *pwdPos)
+        # pyautogui.click(*pwdPos, duration=0.5)
+        # for i in range(20):
+            # pyautogui.press('backspace')
+        # pyautogui.typewrite('gaoyan2012')
+        # loginBtnPos = (200, 370)
+        # loginBtnPos = self.getScreenPos(hwnd, *loginBtnPos)
+        # pyautogui.click(*loginBtnPos, duration=0.5)
         time.sleep(15)
 
     def getTdxMainWindow(self):
@@ -66,17 +89,30 @@ class TdxGuiDownloader:
             raise Exception('Not find tdx main window')
         return mainWnd
     
+    def getChildWindow(self, hwnd, className = None, title = None):
+        child = win32gui.GetWindow(hwnd, win32con.GW_CHILD)
+        while child:
+            if className and title:
+                if win32gui.GetClassName(child) == className and win32gui.GetWindowText(child) == title:
+                    return child
+            elif className:
+                if win32gui.GetClassName(child) == className:
+                    return child
+            elif title:
+                if win32gui.GetWindowText(child) == title:
+                    return child
+            child = win32gui.GetWindow(child, win32con.GW_HWNDNEXT)
+        return child
+
     def openDownloadDialog(self):
         mainWnd = self.getTdxMainWindow()
-        win32gui.SetForegroundWindow(mainWnd)
-        btnPos = (433, 35)
-        time.sleep(3)
-        btnPos = self.getScreenPos(mainWnd, *btnPos)
-        pyautogui.click(*btnPos, duration=0.5)
+        child = self.getChildWindow(mainWnd, 'ToolbarWindow32')
+        self.click(child, 430, 10)
+        # win32gui.SetForegroundWindow(mainWnd)
         time.sleep(5)
 
     def getStartDayForDay(self):
-        maxday = 20250602
+        maxday = 20250612
         df = K_DataFile('999999')
         df.loadData()
         if df.data:
@@ -86,7 +122,7 @@ class TdxGuiDownloader:
         return dt
     
     def getStartDayForTimemimute(self):
-        maxday = 20250602
+        maxday = 20250612
         df = T_DataFile('999999')
         df.loadData()
         if df.data:
@@ -131,12 +167,13 @@ class TdxGuiDownloader:
         print(f'download dialog hwnd={hwnd:X}')
         if not hwnd:
             raise Exception('Not find download dialog')
-        win32gui.SetForegroundWindow(hwnd)
-        selTabPos = self.getScreenPos(hwnd, 130, 35, False)
-        pyautogui.click(*selTabPos, duration = 0.3)
-        time.sleep(1.5)
-        selBtnPos = self.getScreenPos(hwnd, 70, 70, False)
-        pyautogui.click(*selBtnPos, duration = 0.3)
+        # win32gui.SetForegroundWindow(hwnd)
+        tabWin = win32gui.FindWindowEx(hwnd, None, 'SysTabControl32', 'Tab2')
+        self.click(tabWin, 110, 10)
+        time.sleep(2)
+        oneFsBtn = win32gui.FindWindowEx(hwnd, None, 'Button', '1分钟线数据')
+        print(f'oneFsBtn = {oneFsBtn :x}')
+        self.click(oneFsBtn, 10, 5)
 
         fromDayCtrl = win32gui.GetDlgItem(hwnd, 0x4D5)
         print(f'fromDayCtrl={fromDayCtrl:X}')
@@ -146,8 +183,8 @@ class TdxGuiDownloader:
         startDay = self.getStartDayForTimemimute()
         fromDayCtrl.set_time(year=startDay.year, month=startDay.month, day = startDay.day)
         startBtn = win32gui.FindWindowEx(hwnd, None, 'Button', '开始下载')
-        startBtnPos = self.getScreenPos(hwnd, 440, 400, False)
-        pyautogui.click(*startBtnPos, duration = 0.3)
+        self.click(startBtn, 10, 5)
+
         # wait for download end
         time.sleep(3)
         if win32gui.GetWindowText(startBtn) != '取消下载':
@@ -221,14 +258,13 @@ class Main:
     def runOnce(self):
         time.sleep(5)
         print('---work--start---')
-        self.unlockScreen()
-        time.sleep(10)
+        # self.unlockScreen()
         tm = datetime.datetime.now()
         ss = tm.strftime('%Y-%m-%d %H:%M')
         print('\033[32m' + ss + '\033[0m')
         tdx = TdxGuiDownloader()
         flag = tdx.run()
-        self.resetLockScreen()
+        # self.resetLockScreen()
         if flag:
             tm = datetime.datetime.now()
             ss = tm.strftime('%Y-%m-%d %H:%M')
@@ -290,11 +326,15 @@ class Main:
                 lastDay = today.day
             self.releaseDesktopGUILock(lock)
             time.sleep(10 * 60)
-        
+
+    def start(self):
+        if '--once' in sys.argv:
+            print('Run only once time')
+            self.runOnce()
+        else:
+            self.runLoop()
+
 if __name__ == '__main__':
     mm = Main()
-    if '--once' in sys.argv:
-        print('Run only once time')
-        mm.runOnce()
-    else:
-        mm.runLoop()
+    mm.start()
+    # mm.runOnce()
