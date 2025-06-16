@@ -293,22 +293,27 @@ class Server:
         if curTime >= '15:05' and not self.downloadInfos.get(f'vol-top100-{day}', False):
             self.downloadInfos[f'vol-top100-{day}'] = True
             self.downloadSaveVolTop100('[2/5]')
+            time.sleep(50)
         # 下载同花顺指数涨跌信息
         if curTime >= '15:05' and not self.downloadInfos.get(f'zs-{day}', False):
             self.downloadInfos[f'zs-{day}'] = True
             self.downloadSaveZs('[3/5]')
+            time.sleep(50)
         # 下载个股板块概念信息
         if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False) and now.weekday() == 1: # 每周二
             self.downloadInfos[f'hygn-{day}'] = True
             self.download_hygn('[4/5]')
+            time.sleep(50)
         # 下载个股PeTTM
         if (curTime >= '20:00') and not self.downloadInfos.get(f'hygn_ttm-{day}', False) and now.weekday() == 2: # 每周三
             ok = self.download_hygn_ttm('')
             self.downloadInfos[f'hygn_ttm-{day}'] = ok
+            time.sleep(50)
         # 下载个股跌停
         if (curTime >= '22:00') and not self.downloadInfos.get(f'dt-{day}', False):
             ok = self.download_dt('[5/5]')
             self.downloadInfos[f'dt-{day}'] = ok
+            time.sleep(50)
 
     def loadHotsOneTime(self):
         now = datetime.datetime.now()

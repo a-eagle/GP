@@ -158,19 +158,23 @@ class Server:
         if curTime > '15:10' and (not self.downloadInfos.get(f'clszt-{day}', False)):
             self.downloadClsZT()
             self.downloadInfos[f'clszt-{day}'] = True
+            time.sleep(60)
         if curTime > '15:10' and (not self.downloadInfos.get(f'scqx-{day}', False)):
             rs = self.downloadScqx('[1/8]')
+            time.sleep(60)
             self.downloadInfos[f'scqx-{day}'] = rs
         if curTime >= '15:10' and (not self.downloadInfos.get(f'updown-{day}', False)):
             ok = self.downloadUpDown('[2/8]')
             self.downloadInfos[f'updown-{day}'] = ok
+            time.sleep(60)
         if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-{day}', False)):
             self.downloadInfos[f'zs-{day}'] = True
-            self.downloadZS('[3/8]')
+            # self.downloadZS('[3/8]')
+            # time.sleep(60)
         if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-zd-{day}', False)):
             flag = self.downloadZS_ZD('[4/8]')
             self.downloadInfos[f'zs-zd-{day}'] = flag
-            pass
+            time.sleep(60)
         if curTime >= '15:10' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
             self.downloadInfos[f'ztpk-{day}'] = True
             self.downloadZT_PanKou('[5/8]')
@@ -271,9 +275,9 @@ class Server:
         return False
 
     # 指数（板块概念）
-    def downloadZS(self, tag):
+    def downloadZS(self, tag, rs):
         try:
-            rs = cls.ClsUrl().loadAllZS()
+            # rs = cls.ClsUrl().loadAllZS()
             ex = {}
             qt = cls_orm.CLS_ZS.select()
             u, i = 0, 0
@@ -289,7 +293,7 @@ class Server:
                 else:
                     cls_orm.CLS_ZS.create(code = it['code'], name = it['name'], type_ = it['type_'])
                     i += 1
-            console.writeln_1(console.CYAN, f'[CLS-ZS] {tag} {self.formatNowTime(True)} insert={i} update={u}')
+            console.writeln_1(console.CYAN, f'  [CLS-ZS] {tag} {self.formatNowTime(True)} insert={i} update={u}')
         except Exception as e:
             traceback.print_exc()
             console.writeln_1(console.CYAN, f'[CLS-ZS] {tag} Fail')
@@ -297,6 +301,8 @@ class Server:
     def downloadZS_ZD(self, tag):
         try:
             rs = cls.ClsUrl().loadAllZS_ZD()
+            self.downloadZS(tag, rs)
+
             lastDay = ths_iwencai.getTradeDays()[-1]
             today = datetime.date.today().strftime('%Y%m%d')
             if today == lastDay:
@@ -393,7 +399,7 @@ class Server:
                     info.updateTime = datetime.datetime.now()
                     info.save() # create new
                     i += 1
-                time.sleep(3.5)
+                time.sleep(12)
             t = time.time() - st
             t /= 60
             console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} {self.formatNowTime(True)} check {total}, update {u}, insert {i}, use time: {t :.1f} minutes')
@@ -429,7 +435,7 @@ class Server:
                     i += 1
                 t = time.time() - st
                 t /= 60
-                time.sleep(5)
+                time.sleep(15)
                 print(f'[CLS-HyGn] {tag} {total}, update {u}, insert {i}, use time: {t :.1f} minutes')
         except Exception as e:
             traceback.print_exc()
@@ -449,7 +455,7 @@ class Server:
                     continue
                 pk = json.dumps(pk)
                 d_orm.ZT_PanKou.create(code = r['code'], day = r['day'], info = pk)
-                time.sleep(5)
+                time.sleep(15)
             if full:
                 self._lastLoadZT_PanKou = time.time()
                 console.writeln_1(console.CYAN, f'[Cls-ZT-PanKou] {tag} {self.formatNowTime(True)} ')
