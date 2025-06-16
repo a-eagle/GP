@@ -5,7 +5,7 @@ import peewee as pw, flask, flask_cors
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import chrome_orm, cls_orm, d_orm, def_orm, lhb_orm, ths_orm
-from download import console, ths_iwencai
+from download import console, ths_iwencai, cls
 
 class Server:
     def __init__(self) -> None:
@@ -25,7 +25,8 @@ class Server:
         url = flask.request.args.get('url', None)
         if not url:
             return {'status': 'Fail', 'msg': 'No url'}
-        resp = requests.get(url)
+        print('ClsProxy: ', url)
+        resp = requests.get(url, headers = cls.ClsUrl().reqHeaders)
         rs = resp.content.decode()
         js = json.loads(rs)
         return js

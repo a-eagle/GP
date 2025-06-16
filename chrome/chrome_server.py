@@ -80,16 +80,16 @@ class Server:
             day = f"{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}"
         today = datetime.date.today().strftime('%Y-%m-%d')
         now = datetime.datetime.now().strftime('%H:%M')
-        # if now >= '15:10' or today != day:
-        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day == day).dicts()
-        rs = []
-        for it in qr:
-            rs.append(it)
-        return rs
+        if now >= '15:10' or today != day:
+            qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day == day).dicts()
+            rs = []
+            for it in qr:
+                rs.append(it)
+            return rs
         # is trading now
-        # url = cls.ClsUrl().getHotTCUrl(day)
-        # rs = self._clsProxy(url, 60)
-        # return rs
+        url = cls.ClsUrl().getHotTCUrl(day)
+        rs = self._clsProxy(url, 60)
+        return rs
 
     def getAnchors(self):
         tds = ths_iwencai.getTradeDays()
