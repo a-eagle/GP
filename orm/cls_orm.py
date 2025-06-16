@@ -64,6 +64,7 @@ class CLS_UpDown(pw.Model):
 
 # 综合强度
 class CLS_SCQX(pw.Model):
+    keys = ('day', )
     day = pw.CharField() # YYYY-MM-DD
     zhqd = pw.IntegerField(column_name='综合强度', null = True)
     fb = pw.CharField(null = True) # 涨跌分布

@@ -324,9 +324,8 @@ class ClsUrl:
             traceback.print_exc()
         return None
 
-    # 热度题材
-    def loadHotTC(self, day):
-        today = datetime.date.today().strftime('%Y-%m-%d')
+    def getHotTCUrl(self, day):
+        # today = datetime.date.today().strftime('%Y-%m-%d')
         if isinstance(day, datetime.date):
             cday = day.strftime('%Y-%m-%d')
         elif isinstance(day, str):
@@ -343,6 +342,11 @@ class ClsUrl:
             'sv': '7.7.5',
         }
         url = 'https://www.cls.cn/v3/transaction/anchor?' + self.signParams(params)
+        return url
+
+    # 热度题材
+    def loadHotTC(self, day):
+        url = self.getHotTCUrl(day)
         resp = requests.get(url, headers = self.reqHeaders)
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
