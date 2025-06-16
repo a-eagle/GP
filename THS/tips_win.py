@@ -1031,7 +1031,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.drawer.fillRect(hdc, rc, 0x101010)
         self.drawer.drawText(hdc, cs, rc, 0x00D7FF)
         
-        if not self.data:
+        if not self.data or not self.curCode or self.curCode[0] == '8':
             return
         self.drawer.use(hdc, self.drawer.getFont(fontSize = 14, weight=1000))
         y1, y2 = 22, 45
@@ -1091,15 +1091,16 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
             return
     
     def loadCodeBasic(self, code):
-        if code[0 : 2] == '88':
-            return
         #url = cls.ClsUrl()
         #data = url.loadBasic(code)
         #self.cacheData[code] = data
         #self._useCacheData(code)
-        obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
-        if obj: 
-            self.data = obj.__data__
+        if code[0 : 2] == '88':
+            obj = ths_orm.THS_ZS.get_or_none(ths_orm.THS_ZS.code == code)
+            if obj: self.data = obj.__data__
+        else:
+            obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
+            if obj: self.data = obj.__data__
         self.invalidWindow()
 
     def _useCacheData(self, code):
@@ -1115,7 +1116,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.curCode = scode
         self.data = None
         self.wbData = None
-        if len(scode) != 6 or (code[0] not in ('0', '3', '6')):
+        if len(scode) != 6 or (code[0] not in ('0', '3', '6', '8')):
             self.invalidWindow()
             return
         #if scode in self.cacheData:

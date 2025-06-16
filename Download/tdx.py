@@ -299,32 +299,33 @@ class Main:
 
     def runLoop(self):
         os.system('') # fix win10
-        lastDay = 0
         tryDays = {}
         while True:
             today = datetime.datetime.now()
             if today.weekday() >= 5:
                 time.sleep(60 * 60)
                 continue
-            if lastDay == today.day:
-                time.sleep(60 * 60)
-                continue
             ts = f"{today.hour:02d}:{today.minute:02d}"
-            if ts < '17:00' or ts > '19:30':
-                time.sleep(3 * 60)
-                continue
-            lock = self.getDesktopGUILock()
-            if not lock:
+            if ts < '15:35':
                 time.sleep(3 * 60)
                 continue
             sday = today.strftime('%Y-%m-%d')
-            if sday in tryDays:
-                tryDays[sday] += 1
-            else:
-                tryDays[sday] = 1
-            if tryDays[sday] <= 3 and self.runOnce():
-                lastDay = today.day
-            self.releaseDesktopGUILock(lock)
+            if sday not in tryDays:
+                tryDays[sday] = {'15': False, 'num' : 0}
+            if today.hour == 15 and not tryDays[sday]['15']:
+                tryDays[sday]['15'] = True
+                self.runOnce()
+                continue
+            if ts < '19:00':
+                time.sleep(10 * 60)
+            # lock = self.getDesktopGUILock()
+            # if not lock:
+            #     time.sleep(3 * 60)
+            #     continue
+            tryDays[sday]['num'] += 1
+            if tryDays[sday]['num'] <= 2:
+                self.runOnce()
+            # self.releaseDesktopGUILock(lock)
             time.sleep(10 * 60)
 
     def start(self):
@@ -337,4 +338,3 @@ class Main:
 if __name__ == '__main__':
     mm = Main()
     mm.start()
-    # mm.runOnce()
