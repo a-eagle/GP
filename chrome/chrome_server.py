@@ -89,7 +89,21 @@ class Server:
         # is trading now
         url = cls.ClsUrl().getHotTCUrl(day)
         rs = self._clsProxy(url, 60)
-        return rs
+        datas = rs['data']
+        if not datas:
+            return []
+        newDatas = []
+        for d in datas:
+            item = {}
+            ts = d['c_time'].split(' ')
+            item['day'] = ts[0]
+            item['time'] = ts[1]
+            item['code'] = d['symbol_code']
+            item['name'] = d['symbol_name']
+            item['up'] = d['float'] == 'up'
+            newDatas.append(item)
+        return newDatas
+        
 
     def getAnchors(self):
         tds = ths_iwencai.getTradeDays()

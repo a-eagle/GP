@@ -57,7 +57,7 @@ class Server:
 
     def _downloadClsZT(self):
         url = 'https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=7.7.5&type=up_pool&way=last_px&sign=a820dce18412fac3775aa940d0b00dcb'
-        resp = requests.get(url, proxies = cls.PROXY)
+        resp = requests.get(url)
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         if js['code'] != 200:
@@ -96,7 +96,7 @@ class Server:
     def downloadDegree(self):
         try:
             url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
-            resp = requests.get(url, proxies = cls.PROXY)
+            resp = requests.get(url)
             txt = resp.content.decode('utf-8')
             js = json.loads(txt)
             day = js['data']['date']
@@ -115,7 +115,7 @@ class Server:
                 console.writeln_1(console.CYAN, f'[CLS-Degree] {tag}', today, 'skip')
                 return True
             url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
-            resp = requests.get(url, proxies = cls.PROXY)
+            resp = requests.get(url)
             txt = resp.content.decode('utf-8')
             js = json.loads(txt)
             day = js['data']['date']
@@ -471,7 +471,7 @@ class Server:
         ok = True
         for url in urls:
             try:
-                resp = requests.get(url, proxies = cls.PROXY)
+                resp = requests.get(url)
                 js = json.loads(resp.text)
                 if js['code'] != 200:
                     ok = False
