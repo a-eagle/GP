@@ -155,16 +155,22 @@ class Server:
         if curTime >= '15:00' and curTime <= '15:20':
             self.downloadClsZT()
 
+        idx, NUM = 1, 8
         if curTime > '15:10' and (not self.downloadInfos.get(f'clszt-{day}', False)):
             self.downloadClsZT()
             self.downloadInfos[f'clszt-{day}'] = True
             time.sleep(60)
         if curTime > '15:10' and (not self.downloadInfos.get(f'scqx-{day}', False)):
-            rs = self.downloadScqx('[1/8]')
+            rs = self.downloadScqx(f'[{idx}/{NUM}]')
             time.sleep(60)
             self.downloadInfos[f'scqx-{day}'] = rs
+        if curTime >= '15:10' and (not self.downloadInfos.get(f'eastmoney-fb-{day}', False)):
+            idx += 1
+            flag = self.downloadEastmoneyZdfb(f'[{idx}/{NUM}]')
+            self.downloadInfos[f'eastmoney-fb-{day}'] = flag
         if curTime >= '15:10' and (not self.downloadInfos.get(f'updown-{day}', False)):
-            ok = self.downloadUpDown('[2/8]')
+            idx += 1
+            ok = self.downloadUpDown(f'[{idx}/{NUM}]')
             self.downloadInfos[f'updown-{day}'] = ok
             time.sleep(60)
         if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-{day}', False)):
@@ -172,21 +178,22 @@ class Server:
             # self.downloadZS('[3/8]')
             # time.sleep(60)
         if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-zd-{day}', False)):
-            flag = self.downloadZS_ZD('[4/8]')
+            idx += 1
+            flag = self.downloadZS_ZD(f'[{idx}/{NUM}]')
             self.downloadInfos[f'zs-zd-{day}'] = flag
             time.sleep(60)
         if curTime >= '15:10' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
+            idx += 1
             self.downloadInfos[f'ztpk-{day}'] = True
-            self.downloadZT_PanKou('[5/8]')
+            self.downloadZT_PanKou(f'[{idx}/{NUM}]')
         if curTime >= '15:10' and (not self.downloadInfos.get(f'hot-tc-{day}', False)):
-            flag = self.downloadHotTcOfLastDay('[6/8]')
+            idx += 1
+            flag = self.downloadHotTcOfLastDay(f'[{idx}/{NUM}]')
             self.downloadInfos[f'hot-tc-{day}'] = flag
-        if curTime >= '15:10' and (not self.downloadInfos.get(f'eastmoney-fb-{day}', False)):
-            flag = self.downloadEastmoneyZdfb('[7/8]')
-            self.downloadInfos[f'eastmoney-fb-{day}'] = flag
         if curTime >= '15:10' and (not self.downloadInfos.get(f'bkgn-{day}', False)):
+            idx += 1
             self.downloadInfos[f'bkgn-{day}'] = True
-            self.downloadBkGn('[8/8]')
+            self.downloadBkGn(f'[{idx}/{NUM}]')
     
     def loadOneTimeAnyTime(self):
         self.downloadClsZT()

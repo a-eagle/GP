@@ -256,7 +256,6 @@ class Main:
             pass
 
     def runOnce(self):
-        time.sleep(5)
         print('---work--start---')
         # self.unlockScreen()
         tm = datetime.datetime.now()
