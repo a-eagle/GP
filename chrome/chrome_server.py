@@ -97,7 +97,7 @@ class Server:
             item = {}
             ts = d['c_time'].split(' ')
             item['day'] = ts[0]
-            item['time'] = ts[1]
+            item['ctime'] = ts[1]
             item['code'] = d['symbol_code']
             item['name'] = d['symbol_name']
             item['up'] = d['float'] == 'up'
