@@ -179,7 +179,7 @@ class GlobalMgr {
 	_initUI() {
 		let thiz = this;
 		let model = this.vue.data;
-		if (!this.zsInfos.data) {
+		if (!this.zsInfos.data || !this.zsInfos.sh000001 || !this.zsInfos.sz399001) {
 			setTimeout(function() {thiz._initUI();}, 500);
 			return;
 		}
