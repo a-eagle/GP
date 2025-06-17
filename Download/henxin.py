@@ -459,7 +459,7 @@ class HexinUrl(Henxin):
 
 if __name__ == '__main__':
     hx = HexinUrl()
-    url = hx.getKLineUrl('1A0001')  #   1A0001
+    url = hx.getTodayKLineUrl('999999')
     rs = hx.loadUrlData(url)
     print(rs)
 

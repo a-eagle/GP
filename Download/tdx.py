@@ -310,20 +310,23 @@ class Main:
                 continue
             sday = today.strftime('%Y-%m-%d')
             if sday not in tryDays:
-                tryDays[sday] = {'15': False, 'num' : 0}
+                tryDays[sday] = {'15': False, 'num' : 0, 'success': False}
             if today.hour == 15 and not tryDays[sday]['15']:
                 tryDays[sday]['15'] = True
-                self.runOnce()
+                if self.runOnce():
+                    tryDays[sday]['success'] = True
                 continue
-            if ts < '19:00':
+            if ts < '19:00' or tryDays[sday]['success']:
                 time.sleep(10 * 60)
+                continue
             # lock = self.getDesktopGUILock()
             # if not lock:
             #     time.sleep(3 * 60)
             #     continue
             tryDays[sday]['num'] += 1
             if tryDays[sday]['num'] <= 2:
-                self.runOnce()
+                if self.runOnce():
+                    tryDays[sday]['success'] = True
             # self.releaseDesktopGUILock(lock)
             time.sleep(10 * 60)
 

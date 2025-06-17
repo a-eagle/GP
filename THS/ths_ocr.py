@@ -40,7 +40,7 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         WB_WIN_HEIGHT = 30
         srcSize = w, h + WB_WIN_HEIGHT
         imgFull = self.dumpImg(hwnd, (0, 0, *srcSize))
-        LEFT_PADDING = 20
+        LEFT_PADDING = 3
         codeImg = imgFull.crop((LEFT_PADDING, 2, w - LEFT_PADDING, h // 2))
         priceImg = imgFull.crop((LEFT_PADDING, h // 2, w - LEFT_PADDING, h - 1))
 
@@ -52,7 +52,7 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         wbImg = wbImg.crop((0, 0, wbImg.width, y))
         #sign = bi.calcSign(wbImg)
         #wbImg = bi.expand(wbImg)
-        #wbImg.save('D:/a.bmp')
+        # wbImg.save('D:/a.bmp')
         return codeImg, priceImg, wbImg
     
     def dumpStockUnitWindow(self, thsMainWin):
