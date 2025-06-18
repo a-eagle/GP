@@ -89,8 +89,8 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
             return False
         rs['code'] = code[-6 : ]
         rs['name'] = ''
-        # if rs['code'][0 : 2] not in ('00', '30', '60', '68', '88'):
-        #     return False
+        if rs['code'][0 : 2] not in ('00', '30', '60', '68', '88'):
+            return False
         return True
     
     def parsePrice(self, img : Image, rs):

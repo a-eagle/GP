@@ -124,7 +124,10 @@ def _workThread(thsWin : ths_win.ThsWindow, fileName):
             continue
         showTipWins(True)
         updateWindowInfo(thsWin, stateMgr)
-        rs = wbOcr.runOcr(thsWin.mainHwnd)
+        rs = wbOcr.runOcr(thsWin.mainHwnd) or {}
+        code = thsWin.findCode_Level2()
+        if code:
+            rs['code'] = code
         codeBasicWindow.updateWeiBi(rs)
         if not rs:
             continue

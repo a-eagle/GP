@@ -1010,7 +1010,12 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.MAX_SIZE = (350, 65)
         self.MIN_SIZE = (60, 30)
         self.maxMode = True
+        self.inputs = ''
         base_win.ThreadPool.instance().start()
+
+    def show(self, x, y):
+        win32gui.SetWindowPos(self.hwnd, 0, x, y, 0, 0, win32con.SWP_NOZORDER | win32con.SWP_NOSIZE) #  | win32con.SWP_NOACTIVATE
+        win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW) # SW_SHOWNOACTIVATE
 
     def createWindow(self, parentWnd):
         w = win32api.GetSystemMetrics(0) # desktop width
@@ -1160,6 +1165,15 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
             data = {'code': self.data['code'], 'day': None}
             kline_utils.openInCurWindow(self, data)
 
+    def onChar(self, char):
+        if char >= ord('0') and char <= ord('9'):
+            self.inputs += chr(char)
+        elif char == 13: # enter
+            self.changeCode(self.inputs)
+            self.inputs = ''
+        else:
+            self.inputs = ''
+
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_NCHITTEST:
             x, y = (lParam & 0xffff), (lParam >> 16) & 0xffff
@@ -1171,6 +1185,12 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
             return True
         if msg == win32con.WM_LBUTTONDBLCLK:
             self.onOpenKLine()
+            return True
+        if msg == win32con.WM_LBUTTONDOWN:
+            win32gui.SetFocus(self.hwnd)
+            return True
+        if msg == win32con.WM_CHAR:
+            self.onChar(wParam)
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
 
