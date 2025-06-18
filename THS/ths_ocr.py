@@ -1,6 +1,9 @@
 import win32gui, win32ui, win32con, re, io, traceback, sys, datetime, time, copy
 from PIL import Image
-import easyocr
+from cnocr import CnOcr
+
+# pip install cnocr -i  https://pypi.tuna.tsinghua.edu.cn/simple
+# https://blog.csdn.net/bugang4663/article/details/131687243?spm=1001.2014.3001.5501
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from THS import ths_win, number_ocr
@@ -12,6 +15,7 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         self.titleHwnds = set()
         self.wbOcr = number_ocr.NumberOCR('wb', '+-.%0123456789')
         self.ocr = number_ocr.eocr()
+        self.codeOcr = CnOcr(cand_alphabet = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
 
     # wb = 委比 28.45
     # diff = 委差
@@ -66,9 +70,16 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         # imgFull.save('D:/price.bmp')
         return imgFull
     
-    def parseCodeName(self, img, rs):
+    def parseCodeName(self, img : Image, rs):
+        # img.save('D:/code.bmp')
+        eimg = number_ocr.BaseEImage(img, lambda v : 0 if v <= 30 else 255)
+        splists = eimg.splitVertical()
+        destImg = eimg.expand(splists[-6 : ], 20)
+        # destImg.save('D:/code-extend.bmp')
+        # result = self.codeOcr.ocr(img)
+
         bmpBytes = io.BytesIO()
-        img.save(bmpBytes, format = 'bmp')
+        destImg.save(bmpBytes, format = 'bmp')
         bits = bmpBytes.getvalue()
         result = self.ocr.readtext(bits, allowlist = '0123456789')
         if not result:
@@ -78,8 +89,8 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
             return False
         rs['code'] = code[-6 : ]
         rs['name'] = ''
-        if rs['code'][0 : 2] not in ('00', '30', '60', '68', '88'):
-            return False
+        # if rs['code'][0 : 2] not in ('00', '30', '60', '68', '88'):
+        #     return False
         return True
     
     def parsePrice(self, img : Image, rs):
@@ -452,11 +463,13 @@ def test_zs_main2():
 if __name__ == '__main__':
     thsWin = ths_win.ThsWindow()
     thsWin.init()
-
+    import platform
+    print(platform.node())
     s = ThsWbOcrUtils()
     # s.runOcr(thsWin.mainHwnd)
     print(f'mainWin={thsWin.mainHwnd :X}')
     while True:
-        s.runOcr(thsWin.mainHwnd)
+        rs = s.runOcr(thsWin.mainHwnd)
         time.sleep(3)
+        break
     # time.sleep(100)

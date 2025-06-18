@@ -39,9 +39,11 @@ class RGBImage:
         return -1
 
 class BaseEImage:
-    def __init__(self, oimg : Image):
-        oimg = oimg.convert('L') # 转为灰度图
-        self.bImg : Image = oimg.point(lambda v : 0 if v == 0 else 255) # 二值化图片
+    def __init__(self, oimg : Image, convert = None):
+        self.grayImg = oimg.convert('L') # 转为灰度图
+        if not convert:
+            convert = lambda v : 0 if v == 0 else 255
+        self.bImg : Image = self.grayImg.point(convert) # 二值化图片
         #self.pixs = list(self.imgPIL.getdata())
         self.pixs = self.bImg.load()
         
@@ -147,13 +149,13 @@ class BaseEImage:
         val = matchNum * 100 / (tW * tH)
         return val
 
-    def expand(self):
+    def expand(self, items = None, space = 10):
         w, h = self.bImg.size
-        SPACE_W = 5
         dw = 30
-        items = self.splitVertical()
+        if not items:
+            items = self.splitVertical()
         for it in items:
-            dw += it[1] - it[0] + SPACE_W
+            dw += it[1] - it[0] + space
         destImg = Image.new('L', (dw, h), 0)
 
         destPixs = destImg.load()
@@ -161,7 +163,7 @@ class BaseEImage:
         sdx = 5
         for it in items:
             sx, ex = it
-            sdx += SPACE_W
+            sdx += space
             for x in range(sx, ex):
                 sdx += 1
                 for y in range(h):
@@ -170,8 +172,8 @@ class BaseEImage:
         return destImg
 
 class EImage(BaseEImage):
-    def __init__(self, oimg):
-        super().__init__(oimg)
+    def __init__(self, oimg, convert = None):
+        super().__init__(oimg, convert)
         self.itemsRect = [] # array of (left, top, right, bottom)
         self.split()
 
@@ -202,18 +204,17 @@ class NumberOCR:
         self.templateImg = EImage(Image.open(f'{p}img/{baseName}-{plat}.bmp'))
         self.templateDigit = templateDigit
 
-    def _matchOne(self, oimg : EImage, oRect):
-        MIN_SIMILAR_VAL = 95
-        idx = self.templateImg.findSameAs(oimg, oRect, MIN_SIMILAR_VAL)
+    def _matchOne(self, oimg : EImage, oRect, minSimilarVal):
+        idx = self.templateImg.findSameAs(oimg, oRect, minSimilarVal)
         if idx >= 0:
             return self.templateDigit[idx]
         return '#'
 
-    def match(self, oimg : Image):
+    def match(self, oimg : Image, minSimilarVal = 90):
         rimg = EImage(oimg)
         rs = ''
         for rect in rimg.itemsRect:
-            rs += self._matchOne(rimg, rect)
+            rs += self._matchOne(rimg, rect, minSimilarVal)
         return ''.join(rs)
 
 class BuildTemplateImage:
@@ -309,10 +310,60 @@ class DumpWindowUtils:
         bits = bmpBytes.getvalue()
         return bits
 
+class CodeOCR:
+    def __init__(self) -> None:
+        plat = platform.node()
+        bn = os.path.basename(__file__)
+        p = __file__[0 : - len(bn)]
+        self.convert = lambda v : 0 if v <= 50 else 255
+        self.templateImg = EImage(Image.open(f'{p}img/code-{plat}.bmp'))
+
+    def find(self, srcImg : Image):
+        eimg = EImage(srcImg, self.convert)
+        srcRect = eimg.itemsRect[-6 : ]
+        codes = []
+        for idx, rc in enumerate(srcRect):
+            iim = eimg.bImg.crop(rc)
+            iim.save(f'D:/code-pos-{idx}.bmp')
+            c = self.findOne(eimg, rc)
+            codes.append(c)
+        print(codes)
+        code = ''.join(codes)
+        return code
+    
+    def findOne(self, srcImg : EImage, srcRect):
+        vals = []
+        for idx, rc in enumerate(self.templateImg.itemsRect):
+            sw = srcRect[2] - srcRect[0]
+            sh = srcRect[3] - srcRect[1]
+            mw = rc[2] - rc[0]
+            mh = rc[3] - rc[1]
+            if mw > sw or mh != sh:
+                continue
+            drect = (srcRect[0], srcRect[1], srcRect[0] + mw, srcRect[1] + mh)
+            lastRect = (srcRect[0] + mw, srcRect[1], srcRect[2], srcRect[3])
+            if lastRect[2] - lastRect[0] <= 2:
+                lastRect = None
+            val = self.templateImg.similar(rc, srcImg, drect)
+            vals.append({'code': str(idx), 'val': val, 'tmpRect': rc, 'destRect': drect, 'lastRect': lastRect})
+        vals.sort(key = lambda v : v['val'], reverse = True)
+        if not vals:
+            return '#'
+        rs = vals[0]
+        code = rs['code']
+        if rs['lastRect']:
+            scode = self.findOne(srcImg, rs['lastRect'])
+            code += scode
+        return code
 
 if __name__ == '__main__':
+    import ths_win
+    thsWin = ths_win.ThsWindow()
+    thsWin.init()
     print(platform.node())
     # 同花顺分析图中的日期窗口
-    THS_SELECT_DAY_HWND = 0X1109C
-    dtm = BuildTemplateImage(THS_SELECT_DAY_HWND)
-    dtm.saveTemplate()
+    # THS_SELECT_DAY_HWND = 0X1109C
+    # dtm = BuildTemplateImage(THS_SELECT_DAY_HWND)
+    # dtm.saveTemplate()
+
+    co = CodeOCR()
