@@ -351,10 +351,13 @@ class HexinUrl(Henxin):
             if not data:
                 return None
             last = data[-1]
-            if last.day != int(klineRs['today']):
+            todayInt = int(datetime.date.today().strftime('%Y%m%d'))
+            if todayInt == int(klineRs['today']):
                 url = self.getTodayKLineUrl(code)
                 todayRs = self.loadUrlData(url)
                 if todayRs and todayRs['data']:
+                    if last.day == int(klineRs['today']):
+                        data.pop(-1)
                     data.append(todayRs['data'])
             return klineRs
         except Exception as e:

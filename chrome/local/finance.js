@@ -415,9 +415,9 @@ class ZdfbMgr {
 		if (data.degree) {
 			dg = String(data.degree) + '°';
 		}
-		let color = 'green';
+		let color = '#52c2a3';
 		if (data.degree && data.degree >= 50) color = 'red';
-		let title = $(`<div style="text-align: center; line-height: 1; font-size: 30px; margin-top:-35px;" class="${color}">${dg}</div>`);
+		let title = $(`<div style="text-align: center; line-height: 1; font-size: 30px; margin-top:-35px; color:${color};">${dg}</div>`);
 		wrap.append(title);
 	}
 
