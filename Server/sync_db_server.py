@@ -12,6 +12,9 @@ MIN_UPDATE_TIME = datetime.datetime(2025, 6, 11, 8, 0, 0)
 class Server:
     def __init__(self) -> None:
         self.app = flask.Flask(__name__)
+        log = logging.getLogger('werkzeug')
+        log.setLevel(logging.WARNING)
+        # log.disabled = True
         flask_cors.CORS(self.app)
 
     def check(self):
@@ -76,7 +79,6 @@ class Server:
         cl.diffDatas(model, datas)
         console.writeln_1(console.RED, f"{ormFile}.{ormClass} ==> push {len(datas)} row datas", datetime.datetime.now())
         return {'status': 'OK', 'msg': 'Success'}
-
 
 class Client:
     def __init__(self) -> None:

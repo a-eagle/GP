@@ -1,5 +1,5 @@
-import threading, sys, traceback, datetime, json, requests
-import flask, flask_cors
+import threading, sys, traceback, datetime, json, logging
+import flask, flask_cors, requests
 import win32con, win32gui, peewee as pw
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
@@ -11,6 +11,9 @@ from utils import hot_utils, gn_utils
 class Server:
     def __init__(self) -> None:
         self.app = flask.Flask(__name__, static_folder = '', template_folder = '')
+        log = logging.getLogger('werkzeug')
+        log.setLevel(logging.WARNING)
+        # log.disabled = True
         flask_cors.CORS(self.app)
         self.uiThread = None
 
