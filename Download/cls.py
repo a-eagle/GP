@@ -39,11 +39,13 @@ def getProxyUrl(url):
     return 'http://113.44.136.221:8090/cls-proxy?' + url
 
 class ClsUrl:
-    def __init__(self) -> None:
-        self.reqHeaders = {'Accept': 'text/plain, */*; q=0.01',
+    reqHeaders = {'Accept': 'text/plain, */*; q=0.01',
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     'Accept-Encoding': 'gzip, deflate',
                     'Accept-Language': 'zh-CN,zh;q=0.9'}
+    
+    def __init__(self) -> None:
+        pass
 
     def _getTagCode(self, code):
         if type(code) == int:

@@ -31,7 +31,7 @@ class Server:
         url = flask.request.args.get('url', None)
         if not url:
             return {'status': 'Fail', 'msg': 'No url'}
-        print('ClsProxy: ', url)
+        # print('ClsProxy: ', url)
         resp = requests.get(url, headers = cls.ClsUrl().reqHeaders)
         rs = resp.content.decode()
         js = json.loads(rs)

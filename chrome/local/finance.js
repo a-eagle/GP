@@ -639,7 +639,7 @@ class AnchorsMgr {
 				tr = $('<tr> </tr>');
 				this.table.append(tr);
 			}
-			let a = '<a href="https://www.cls.cn/plate?code=' + item.code + '" target=_blank> ' + item.name + '&nbsp;&nbsp;' + item.num + '&nbsp;&nbsp;</a>';
+			let a = '<a href="plate.html?code=' + item.code + '&name=' + item.name + '" target=_blank> ' + item.name + '&nbsp;&nbsp;' + item.num + '&nbsp;&nbsp;</a>';
 			let s = '<span class="anchor-arrow" code="' + item.code + '">  </span>';
 			tr.append($('<td class="' + item.tag + '"> ' + a + s + ' </td>'));
 		}

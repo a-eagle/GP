@@ -9,6 +9,8 @@ from orm import d_orm, def_orm, cls_orm, chrome_orm, lhb_orm, ths_orm
 from utils import hot_utils, gn_utils
 
 class Server:
+    BASE_CLS_PARAMS = {"os": "web", "sv":"8.4.6", "app": "CailianpressWeb"}
+
     def __init__(self) -> None:
         self.app = flask.Flask(__name__, static_folder = '', template_folder = '')
         log = logging.getLogger('werkzeug')
@@ -43,7 +45,34 @@ class Server:
         self.app.add_url_rule('/load-one-anchor', view_func = self.getOneAnchor)
         self.app.add_url_rule('/load-kline/<code>', view_func = self.loadKLine)
         self.app.add_url_rule('/cls-proxy/', view_func = self.clsProxy)
+        self.app.add_url_rule('/subject/<title>', view_func = self.getSubject)
+        self.app.add_url_rule('/plate-info/<code>', view_func = self.getPlateInfo)
         self.app.run('localhost', 8080, use_reloader = False, debug = False)
+
+    def signParams(self, **kargs):
+        params : dict = self.BASE_CLS_PARAMS.copy()
+        params.update(kargs)
+        return cls.ClsUrl().signParams(params)
+
+    def getPlateInfo(self, code):
+        url = f'https://x-quote.cls.cn/web_quote/plate/info?' + self.signParams(secu_code = code)
+        rs = self._clsProxy(url, 120)
+        return rs
+
+    def getSubject(self, title):
+        url = f'https://www.cls.cn/api/subject/{title}/schema?' + self.signParams()
+        resp = requests.get(url, headers = cls.ClsUrl.reqHeaders)
+        js = json.loads(resp.content.decode())
+        if js['errno'] != 0:
+            return []
+        schema = js['data'][0]['schema']
+        keyId = schema[schema.index('=') + 1 : ]
+        url = f'https://www.cls.cn/api/subject/detail/{keyId}?' + self.signParams()
+        resp = requests.get(url, headers = cls.ClsUrl.reqHeaders)
+        data = resp.content.decode()
+        js = json.loads(data)
+        js['subject_id'] = keyId
+        return js
 
     def clsProxy(self):
         url = flask.request.args.get('url')
@@ -107,7 +136,6 @@ class Server:
             newDatas.append(item)
         return newDatas
         
-
     def getAnchors(self):
         tds = ths_iwencai.getTradeDays()
         days = int(flask.request.args.get('days', None) or 10)
@@ -567,10 +595,14 @@ class Server:
 if __name__ == '__main__':
     svr = Server()
     svr.start()
-    # ds = svr.getIndustry('cls80147')
-    # for it in ds:
-    #     for idx, d in enumerate(it['stocks']):
-    #         print(idx, d['secu_code'])
-    # s.queryBySql('hot_zh', 'select *  from 个股热度综合排名 where 日期 >= 20250415')
-    # s.getTimeDegree()
-    
+
+    cu = cls.ClsUrl()
+    body = {"os": "web", "sv":"8.4.6", "app": "CailianpressWeb"}
+    params = cu.signParams(body)
+    print(params)
+    url = 'https://www.cls.cn/api/subject/固态电池/schema?' + params
+    resp = requests.get(url, headers = cls.ClsUrl.reqHeaders)
+    print(resp.content.decode())
+    url = 'https://www.cls.cn/api/subject/detail/3025?' + params
+    resp = requests.get(url, headers = cls.ClsUrl.reqHeaders)
+    print(resp.content.decode())
