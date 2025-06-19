@@ -182,6 +182,7 @@ class TdxGuiDownloader:
         fromDayCtrl = DateTimePickerWrapper(fromDayCtrl)
         startDay = self.getStartDayForTimemimute()
         fromDayCtrl.set_time(year=startDay.year, month=startDay.month, day = startDay.day)
+        print('start minutes day: ', startDay.strftime("%Y-%m-%d"))
         startBtn = win32gui.FindWindowEx(hwnd, None, 'Button', '开始下载')
         self.click(startBtn, 10, 5)
 

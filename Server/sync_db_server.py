@@ -7,6 +7,8 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from orm import chrome_orm, cls_orm, d_orm, def_orm, lhb_orm, ths_orm
 from download import console, ths_iwencai, cls
 
+MIN_UPDATE_TIME = datetime.datetime(2025, 6, 11, 8, 0, 0)
+
 class Server:
     def __init__(self) -> None:
         self.app = flask.Flask(__name__)
@@ -19,6 +21,7 @@ class Server:
         self.app.add_url_rule('/getUpdateData/<ormFile>/<ormClass>/<updateTime>', view_func = self.getUpdateData, methods = ['GET', 'POST'])
         self.app.add_url_rule('/getMaxUpdateTimeAll', view_func = self.getMaxUpdateTimeAll, methods = ['GET', 'POST'])
         self.app.add_url_rule('/cls-proxy', view_func = self.loadClsProxy, methods = ['GET'])
+        self.app.add_url_rule('/pushUpdateData/<ormFile>/<ormClass>', view_func = self.pushUpdateData, methods = ['POST'])
         self.app.run('0.0.0.0', 8090, use_reloader = False, debug = False)
 
     def loadClsProxy(self):
@@ -38,7 +41,7 @@ class Server:
         for m in models:
             maxTime = mgr.getMaxUpdateTime(m['ormClass'])
             if not maxTime:
-                continue
+                maxTime = MIN_UPDATE_TIME
             rs.append({'ormFile': m['ormFileName'], 'ormClass': m['ormClassName'], 'updateTime': maxTime.timestamp()})
         return rs
     
@@ -59,6 +62,21 @@ class Server:
             it['updateTime'] = str(it['updateTime'])
         rs = {'status': 'OK', 'msg':'Success', 'data': datas}
         return rs
+    
+    def pushUpdateData(self, ormFile, ormClass):
+        mgr = DbTableManager()
+        model = mgr.getOrmClass(ormFile, ormClass)
+        if not model:
+            return {'status': 'Fail', 'msg': f'Not find orm class"{ormClass}" in "{ormFile}"'}
+        txt = flask.request.data
+        datas = json.loads(txt)
+        if not datas:
+            return {'status': 'Fail', 'msg': 'No data'}
+        cl = Client()
+        cl.diffDatas(model, datas)
+        console.writeln_1(console.RED, f"{ormFile}.{ormClass} ==> push {len(datas)} row datas", datetime.datetime.now())
+        return {'status': 'OK', 'msg': 'Success'}
+
 
 class Client:
     def __init__(self) -> None:
@@ -89,6 +107,7 @@ class Client:
             return
         for r in rs:
             self.loadUpdateData(r)
+            self.pushUpdateData(r)
 
     def loadUpdateData(self, item):
         try:
@@ -100,7 +119,7 @@ class Client:
                 return
             maxTime = mgr.getMaxUpdateTime(model)
             if not maxTime:
-                maxTime = datetime.datetime(2025, 6, 11, 8, 0, 0)
+                maxTime = MIN_UPDATE_TIME
             if maxTime.timestamp() >= updateTime:
                 return
             resp = requests.get(f"http://113.44.136.221:8090/getUpdateData/{ormFile}/{ormClass}/{maxTime.timestamp()}")
@@ -115,6 +134,30 @@ class Client:
             self.diffDatas(model, datas)
             updateTimeStr = datetime.datetime.fromtimestamp(updateTime)
             console.writeln_1(console.GREEN, f'Update datas {ormFile}.{ormClass} --> num: {len(datas)} time: {updateTimeStr}')
+        except Exception as e:
+            traceback.print_exc()
+
+    def pushUpdateData(self, item):
+        try:
+            mgr = DbTableManager()
+            ormFile, ormClass, updateTime = item['ormFile'], item['ormClass'], item['updateTime']
+            model = mgr.getOrmClass(ormFile, ormClass)
+            if not model:
+                print(f"[Client.pushUpdateData] Not find model: {ormFile} {ormClass}")
+                return
+            maxTime = mgr.getMaxUpdateTime(model)
+            if not maxTime:
+                maxTime = MIN_UPDATE_TIME
+            if maxTime.timestamp() <= updateTime:
+                return
+            dt = datetime.datetime.fromtimestamp(float(updateTime))
+            qr = model.select().where(model.updateTime > dt).dicts()
+            datas = []
+            for it in qr:
+                datas.append(it)
+                it['updateTime'] = str(it['updateTime'])
+            resp = requests.post(f"http://113.44.136.221:8090/pushUpdateData/{ormFile}/{ormClass}", json = datas)
+            console.writeln_1(console.RED, f'Push datas {ormFile}.{ormClass} --> num: {len(datas)} time: {maxTime} ', resp.content.decode())
         except Exception as e:
             traceback.print_exc()
 
