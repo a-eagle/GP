@@ -1246,6 +1246,25 @@ function changeCurDay(initMgr, globalMgr) {
 	globalMgr.changeDay(curDay || window.vue.data.lastTradeDay);
 }
 
+class AmountCompare {
+	constructor(vue) {
+		this.vue = vue;
+		this.data = null;
+		this.vue.addWatch('curDay', function(a, b) {thiz._onChangeDay(a, b);});
+	}
+
+	_onChangeDay(newVal, oldVal) {
+		this._loadAmount(newVal);
+	}
+
+	_loadAmount(day) {
+		let thiz = this;
+		$.get('/compare-amount/'+day, function(data) {
+			thiz.data = data;
+		});
+	}
+}
+
 (function() {
 	let model = {
 		initMgrReady: false,
@@ -1255,6 +1274,7 @@ function changeCurDay(initMgr, globalMgr) {
 		tradeDays: null, // ['YYYY-MM-DD', ...]
 		lastTradeDay: null, //最新交易日期
 		curDay: null, //当前选择的日期
+		compareAmountData: null, // 今昨日成交对比
 	};
 	let vue = new Vuex(model);
 	let initMgr = new InitMgr(vue);
@@ -1263,6 +1283,7 @@ function changeCurDay(initMgr, globalMgr) {
 	new ZdfbMgr(vue);
 	new AnchorsMgr(vue);
 	new TabNaviMgr(vue);
+	new AmountCompare(vue);
 	window.vue = vue;
 	setTimeout(function() {changeCurDay(initMgr, globalMgr);}, 500);
 })();

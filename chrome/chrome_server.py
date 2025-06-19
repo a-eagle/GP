@@ -47,12 +47,31 @@ class Server:
         self.app.add_url_rule('/cls-proxy/', view_func = self.clsProxy)
         self.app.add_url_rule('/subject/<title>', view_func = self.getSubject)
         self.app.add_url_rule('/plate-info/<code>', view_func = self.getPlateInfo)
+        self.app.add_url_rule('/compare-amount/<day>', view_func = self.compareAmount)
         self.app.run('localhost', 8080, use_reloader = False, debug = False)
 
     def signParams(self, **kargs):
         params : dict = self.BASE_CLS_PARAMS.copy()
         params.update(kargs)
         return cls.ClsUrl().signParams(params)
+    
+    def compareAmount(self, day):
+        tds : list = ths_iwencai.getTradeDays()
+        if not day:
+            day = tds[-1]
+        day = day.replace('-', '')
+        idx = tds.index(day)
+        preDay = tds[idx - 1]
+        rsPre, rsCur = [], []
+        shPre = self._getFenShi('999999', preDay)
+        szPre = self._getFenShi('399001', preDay)
+        for it in zip(shPre['line'], szPre['line']):
+            rsPre.append(it[0].amount + it[1].amount)
+        shPre = self._getFenShi('999999', day)
+        szPre = self._getFenShi('399001', day)
+        for it in zip(shPre['line'], szPre['line']):
+            rsCur.append(it[0].amount + it[1].amount)
+        return {'pre': rsPre, 'cur': rsCur}
 
     def getPlateInfo(self, code):
         url = f'https://x-quote.cls.cn/web_quote/plate/info?' + self.signParams(secu_code = code)
@@ -334,6 +353,10 @@ class Server:
 
     def getFenShi(self, code):
         day = flask.request.args.get('day', None)
+        fs = self._getFenShi(code, day)
+        return fs
+    
+    def _getFenShi(self, code, day):
         lastTradeDay = ths_iwencai.getTradeDays()[-1]
         today = datetime.date.today().strftime('%Y%m%d')
         if not day:
