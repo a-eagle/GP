@@ -40,3 +40,4 @@ THS/*.json
 *.spec
 .vscode
 *.db
+db
