@@ -189,7 +189,7 @@ class Client:
         else:
             ds = 'None'
         now = datetime.datetime.now()
-        logFile.write(f'[{str(now)}] ', tag, model.__name__, ds, '\n')
+        logFile.write(f'[{str(now)}] {tag} {model.__name__} {ds} \n')
 
     def logManyRow(self, tag, model, datas, logFile):
         if not datas or not logFile:
