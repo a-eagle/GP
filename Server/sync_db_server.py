@@ -302,9 +302,6 @@ class DbTableManager:
         return None
 
 if __name__ == '__main__':
-    for it in def_orm.MyHotGn.select().dicts():
-        print(it)
-
     if platform.node() == 'hcss-ecs-3865':
         svr = Server()
         svr.start()
