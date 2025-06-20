@@ -86,7 +86,7 @@ class Server:
 
     # 下载同花顺涨停信息
     # day = int, str, date, datetime
-    def downloadOneDayZT(self, day):
+    def _downloadZT(self, day):
         datas = {}
         if type(day) == int:
             day = str(day)
@@ -130,9 +130,9 @@ class Server:
         if insertNum or updateNum:
             console.writeln_1(console.YELLOW, f'[THS-zt] {self.formatNowTime(False)}', f'{day} insert {insertNum}, update {updateNum}')
 
-    def downloadSaveOneDayTry(self, day):
+    def downloadZT(self, day):
         try:
-            datas = self.downloadOneDayZT(day)
+            datas = self._downloadZT(day)
             self.saveZT(day, datas)
         except Exception as e:
             traceback.print_exc()
@@ -157,7 +157,7 @@ class Server:
         today = datetime.date.today()
         while fromDay <= today:
             if self.acceptDay(fromDay):
-                self.downloadSaveOneDayTry(fromDay.year * 10000 + fromDay.month * 100 + fromDay.day)
+                self.downloadZT(fromDay.year * 10000 + fromDay.month * 100 + fromDay.day)
             fromDay += one
             time.sleep(2)
 
@@ -195,7 +195,7 @@ class Server:
                     avg = sum(vols[r[1] : r[2]]) / (r[2] - r[1])
                     setattr(item, f'avg{r[1]}_{r[2]}', int(avg))
                 item.save()
-            console.writeln_1(console.GREEN, f'[Vol-Top100] {tag} {self.formatNowTime(False)}')
+            console.writeln_1(console.GREEN, f'{tag} [Vol-Top100] {self.formatNowTime(False)}')
             return True
         except Exception as e:
             traceback.print_exc()
@@ -206,7 +206,7 @@ class Server:
         try:
             rs = ths_iwencai.download_zs_zd()
             num = ths_iwencai.save_zs_zd(rs)
-            console.write_1(console.GREEN, f'[THS-ZS] {tag} {self.formatNowTime(False)}')
+            console.write_1(console.GREEN, f'{tag} [THS-ZS] {self.formatNowTime(False)}')
             if rs:
                 console.writeln_1(console.GREEN, f"Save ZS success, insert {rs[0].day} num: {num} ")
             else:
@@ -234,7 +234,7 @@ class Server:
     def download_hygn(self, tag):
         try:
             upd = ths_iwencai.download_hygn()
-            console.writeln_1(console.GREEN, f'[THS-HyGn] {tag} {self.formatNowTime(True)} update {upd}')
+            console.writeln_1(console.GREEN, f'{tag} [THS-HyGn] {self.formatNowTime(True)} update {upd}')
             return True
         except Exception as e:
             traceback.print_exc()
@@ -244,11 +244,11 @@ class Server:
     def download_hygn_ttm(self, tag):
         try:
             ds = ths_iwencai.download_hygn_pe()
-            console.writeln_1(console.GREEN, f'[THS-HyGn-PeTtm] {tag} {self.formatNowTime(True)} update {ds}')
+            console.writeln_1(console.GREEN, f'{tag} [THS-HyGn-PeTtm] {self.formatNowTime(True)} update {ds}')
             return True
         except Exception as e:
             traceback.print_exc()
-            console.writeln_1(console.GREEN, f'[THS-HyGn-PeTtm] {tag} Fail')
+            console.writeln_1(console.GREEN, f'{tag} [THS-HyGn-PeTtm] Fail')
         return False
 
     def download_dt(self, tag, day = None):
@@ -264,7 +264,7 @@ class Server:
                     obj.updateTime = datetime.datetime.now()
                     obj.save()
                     unum += 1
-            console.writeln_1(console.GREEN, f'[THS-DT] {tag} {self.formatNowTime(True)} update {unum}')
+            console.writeln_1(console.GREEN, f'{tag} [THS-DT] {self.formatNowTime(True)} update {unum}')
             return True
         except Exception as e:
             traceback.print_exc()
@@ -280,29 +280,29 @@ class Server:
         curTime = now.strftime('%H:%M')
 
         # 下载同花顺涨停信息
-        if (curTime >= '09:30' and curTime < '11:40') or (curTime >= '13:00' and curTime <= '17:30'):
+        if (curTime >= '09:30' and curTime <= '11:30') or (curTime >= '13:00' and curTime <= '15:10'):
             if time.time() - self.last_zt_time >= 5 * 60: # 5分钟
-                self.downloadSaveOneDayTry(day)
+                self.downloadZT(day)
                 self.last_zt_time = time.time()
         # 计算热度综合排名
         if curTime >= '15:05' and (not self.downloadInfos.get(f'zh-hots-{day}', False)):
             self.downloadInfos[f'zh-hots-{day}'] = True
             hot_utils.calcAllHotZHAndSave()
-            console.writeln_1(console.GREEN, f'[THS-ZH-hot] [1/5] {self.formatNowTime(False)}', ' calc hot ZH success')
+            console.writeln_1(console.GREEN, f'[1/6] [THS-ZH-hot] {self.formatNowTime(False)}', ' calc hot ZH success')
         # 下载成交量前100信息
         if curTime >= '15:05' and not self.downloadInfos.get(f'vol-top100-{day}', False):
             self.downloadInfos[f'vol-top100-{day}'] = True
-            self.downloadSaveVolTop100('[2/5]')
+            self.downloadSaveVolTop100('[2/6]')
             time.sleep(50)
         # 下载同花顺指数涨跌信息
         if curTime >= '15:05' and not self.downloadInfos.get(f'zs-{day}', False):
             self.downloadInfos[f'zs-{day}'] = True
-            self.downloadSaveZs('[3/5]')
+            self.downloadSaveZs('[3/6]')
             time.sleep(50)
         # 下载个股板块概念信息
         if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False) and now.weekday() == 1: # 每周二
             self.downloadInfos[f'hygn-{day}'] = True
-            self.download_hygn('[4/5]')
+            self.download_hygn('[4/6]')
             time.sleep(50)
         # 下载个股PeTTM
         if (curTime >= '20:00') and not self.downloadInfos.get(f'hygn_ttm-{day}', False) and now.weekday() == 2: # 每周三
@@ -311,8 +311,14 @@ class Server:
             time.sleep(50)
         # 下载个股跌停
         if (curTime >= '22:00') and not self.downloadInfos.get(f'dt-{day}', False):
-            ok = self.download_dt('[5/5]')
+            ok = self.download_dt('[5/6]')
             self.downloadInfos[f'dt-{day}'] = ok
+            time.sleep(50)
+        # 下载同花顺涨停信息
+        if (curTime >= '22:00') and not self.downloadInfos.get(f'zt-{day}', False):
+            ok = self.downloadZT(day)
+            self.downloadInfos[f'zt-{day}'] = ok
+            console.writeln_1(console.GREEN, f'[6/6] [THS-ZT] {self.formatNowTime(True)}  {ok}')
             time.sleep(50)
 
     def loadHotsOneTime(self):

@@ -111,8 +111,8 @@ class Server:
             now = datetime.datetime.now()
             today = now.strftime('%Y-%m-%d')
             obj = cls_orm.CLS_SCQX.get_or_none(day = today)
-            if obj:
-                console.writeln_1(console.CYAN, f'[CLS-Degree] {tag}', today, 'skip')
+            if obj and obj.zhqd and obj.fb:
+                console.writeln_1(console.CYAN, f'{tag} [CLS-Degree]', today, 'skip')
                 return True
             url = 'https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597'
             resp = requests.get(url)
@@ -130,11 +130,11 @@ class Server:
                 obj.fb = json.dumps(fb)
                 obj.zhqd = degree
                 obj.save()
-            console.writeln_1(console.CYAN, f'[CLS-Degree] {tag}', day, ' -> ', degree)
+            console.writeln_1(console.CYAN, f'{tag} [CLS-Degree]', day, ' -> ', degree)
             return True
         except Exception as e:
             traceback.print_exc()
-            console.writeln_1(console.CYAN, f'[CLS-Degree] {tag} Fail')
+            console.writeln_1(console.CYAN, f'{tag} [CLS-Degree] Fail')
         return False
 
     def saveDegreeTime(self, day, time, degree):
@@ -300,10 +300,10 @@ class Server:
                 else:
                     cls_orm.CLS_ZS.create(code = it['code'], name = it['name'], type_ = it['type_'])
                     i += 1
-            console.writeln_1(console.CYAN, f'  [CLS-ZS] {tag} {self.formatNowTime(True)} insert={i} update={u}')
+            console.writeln_1(console.CYAN, f'{tag} [CLS-ZS] {self.formatNowTime(True)} insert={i} update={u}')
         except Exception as e:
             traceback.print_exc()
-            console.writeln_1(console.CYAN, f'[CLS-ZS] {tag} Fail')
+            console.writeln_1(console.CYAN, f'{tag} [CLS-ZS] Fail')
 
     def downloadZS_ZD(self, tag):
         try:
@@ -319,7 +319,7 @@ class Server:
             fday = lastDay[0 : 4] + '-' + lastDay[4 : 6] + '-' + lastDay[6 : 8]
             existsNum = cls_orm.CLS_ZS_ZD.select(pw.fn.count()).where(cls_orm.CLS_ZS_ZD.day == fday).scalar()
             if existsNum > 0:
-                console.writeln_1(console.CYAN, f'[CLS-ZS-ZD] {tag} {self.formatNowTime(True)} skip')
+                console.writeln_1(console.CYAN, f'{tag} [CLS-ZS-ZD] {self.formatNowTime(True)} skip')
                 return True
             irs = []
             for d in rs:
@@ -327,11 +327,11 @@ class Server:
                 m.day = fday
                 irs.append(m)
             cls_orm.CLS_ZS_ZD.bulk_create(irs, 100)
-            console.writeln_1(console.CYAN, f'[CLS-ZS-ZD] {tag} {self.formatNowTime(True)} insert num={len(rs)}')
+            console.writeln_1(console.CYAN, f'{tag} [CLS-ZS-ZD] {self.formatNowTime(True)} insert num={len(rs)}')
             return True
         except Exception as e:
             traceback.print_exc()
-            console.writeln_1(console.CYAN, f'[CLS-ZS-ZD] {tag} Fail')
+            console.writeln_1(console.CYAN, f'{tag} [CLS-ZS-ZD] Fail')
         return False
 
     # 指数分时
@@ -409,10 +409,10 @@ class Server:
                 time.sleep(12)
             t = time.time() - st
             t /= 60
-            console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} {self.formatNowTime(True)} check {total}, update {u}, insert {i}, use time: {t :.1f} minutes')
+            console.writeln_1(console.CYAN, f'{tag} [CLS-HyGn] {self.formatNowTime(True)} check {total}, update {u}, insert {i}, use time: {t :.1f} minutes')
         except Exception as e:
             traceback.print_exc()
-            console.writeln_1(console.CYAN, f'[CLS-HyGn] {tag} Fail')
+            console.writeln_1(console.CYAN, f'{tag} [CLS-HyGn] Fail')
 
     def downloadBkGnAll(self, tag):
         def diff(old, new, names):
@@ -465,10 +465,10 @@ class Server:
                 time.sleep(15)
             if full:
                 self._lastLoadZT_PanKou = time.time()
-                console.writeln_1(console.CYAN, f'[Cls-ZT-PanKou] {tag} {self.formatNowTime(True)} ')
+                console.writeln_1(console.CYAN, f'{tag} [Cls-ZT-PanKou] {self.formatNowTime(True)} ')
         except Exception as e:
             traceback.print_exc()
-            console.writeln_1(console.CYAN, f'[Cls-ZT-PanKou] {tag} Fail')
+            console.writeln_1(console.CYAN, f'{tag} [Cls-ZT-PanKou] Fail')
 
     # 涨跌停、炸板
     def downloadUpDown(self, tag):
@@ -499,7 +499,7 @@ class Server:
             except Exception as e:
                 print('[downloadUpDown] ', url)
                 traceback.print_exc()
-        console.writeln_1(console.CYAN, f'[Cls-UpDown] {tag} {self.formatNowTime(True)} ', ('Success' if ok else 'Fail'))
+        console.writeln_1(console.CYAN, f'{tag} [Cls-UpDown] {self.formatNowTime(True)} ', ('Success' if ok else 'Fail'))
         return ok
     
     def downloadEastmoneyZdfb(self, tag):
@@ -526,7 +526,7 @@ class Server:
                 obj.zdfb = fb
                 obj.updateTime = datetime.datetime.now()
                 obj.save()
-            console.writeln_1(console.CYAN, f'[Cls-EastMoney-Zdfb] {tag} {self.formatNowTime(True)}', day, ' -> ', fb)
+            console.writeln_1(console.CYAN, f'{tag} [Cls-EastMoney-Zdfb] {self.formatNowTime(True)}', day, ' -> ', fb)
             return True
         except Exception as e:
             traceback.print_exc()
