@@ -17,8 +17,10 @@ class Server:
         # log.disabled = True
         flask_cors.CORS(self.app)
         LOG_FILE_NAME = 'server.log'
+        path = __file__[0 : __file__.upper().index('GP') + 2]
+        path = os.path.join(path, LOG_FILE_NAME)
         # if os.path.exists(LOG_FILE_NAME):
-        self.logFile = open(LOG_FILE_NAME, 'a')
+        self.logFile = open(path, 'a')
 
     def check(self):
         pass
@@ -167,20 +169,19 @@ class Client:
     def diffDatas(self, model, datas : list, logFile = None):
         if not datas:
             return
-        ds = []
         for d in datas:
             if 'id' in d:
                 d.pop('id')
-            ds.append(model(**d))
         if not getattr(model, 'keys', None):
+            ds = [model(**d) for d in datas]
             model.bulk_create(ds, 50)
-            self.logManyRow('Append', ds, logFile)
+            self.logManyRow('Append', datas, logFile)
             return
         for d in datas:
             self.diffOneData(model, d, logFile)
         if logFile: logFile.flush()
 
-    def logOneRow(self, tag, data, logFile):
+    def logOneRow(self, tag, model, data, logFile):
         if not logFile:
             return
         if data:
@@ -188,13 +189,13 @@ class Client:
         else:
             ds = 'None'
         now = datetime.datetime.now()
-        logFile.write(f'[{str(now)}] ', tag, ds, '\n')
+        logFile.write(f'[{str(now)}] ', tag, model.__name__, ds, '\n')
 
-    def logManyRow(self, tag, datas, logFile):
+    def logManyRow(self, tag, model, datas, logFile):
         if not datas or not logFile:
             return
         for d in datas:
-            self.logOneRow(tag, d, logFile)
+            self.logOneRow(tag, model, d, logFile)
         logFile.flush()
 
     def diffOneData(self, model, data, logFile):
@@ -204,7 +205,7 @@ class Client:
         obj = model.get_or_none(**cnd)
         if not obj: # insert
             model.create(**data)
-            self.logOneRow('Append', data, logFile)
+            self.logOneRow('Append', model, data, logFile)
             return
         updateDiffs = {}
         # update
@@ -213,7 +214,7 @@ class Client:
                 setattr(obj, k, data[k])
                 updateDiffs[k] = data[k]
         obj.save()
-        self.logOneRow('Update', updateDiffs, logFile)
+        self.logOneRow('Update', model, updateDiffs, logFile)
 
     def getMaxUpdateTimeAll_Server(self):
         try:
