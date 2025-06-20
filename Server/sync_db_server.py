@@ -16,6 +16,9 @@ class Server:
         log.setLevel(logging.WARNING)
         # log.disabled = True
         flask_cors.CORS(self.app)
+        LOG_FILE_NAME = 'server.log'
+        # if os.path.exists(LOG_FILE_NAME):
+        self.logFile = open(LOG_FILE_NAME, 'a')
 
     def check(self):
         pass
@@ -76,7 +79,7 @@ class Server:
         if not datas:
             return {'status': 'Fail', 'msg': 'No data'}
         cl = Client()
-        cl.diffDatas(model, datas)
+        cl.diffDatas(model, datas, self.logFile)
         console.writeln_1(console.RED, f"{ormFile}.{ormClass} ==> push {len(datas)} row datas", datetime.datetime.now())
         return {'status': 'OK', 'msg': 'Success'}
 
@@ -104,7 +107,7 @@ class Client:
         if today not in self.spliters:
             self.spliters[today] = True
             print('--------------------->', today, '<-------------------')
-        rs = self.getMaxUpdateTimeAll()
+        rs = self.getMaxUpdateTimeAll_Server()
         if not rs:
             return
         for r in rs:
@@ -114,15 +117,13 @@ class Client:
     def loadUpdateData(self, item):
         try:
             mgr = DbTableManager()
-            ormFile, ormClass, updateTime = item['ormFile'], item['ormClass'], item['updateTime']
+            ormFile, ormClass, updateTimeStamp = item['ormFile'], item['ormClass'], item['updateTime']
             model = mgr.getOrmClass(ormFile, ormClass)
             if not model:
                 print(f"[Client.loadUpdateData] Not find model: {ormFile} {ormClass}")
                 return
             maxTime = mgr.getMaxUpdateTime(model)
-            if not maxTime:
-                maxTime = MIN_UPDATE_TIME
-            if maxTime.timestamp() >= updateTime:
+            if maxTime.timestamp() >= updateTimeStamp:
                 return
             resp = requests.get(f"http://113.44.136.221:8090/getUpdateData/{ormFile}/{ormClass}/{maxTime.timestamp()}")
             txt = resp.content.decode()
@@ -134,7 +135,7 @@ class Client:
                 return
             datas = rs['data']
             self.diffDatas(model, datas)
-            updateTimeStr = datetime.datetime.fromtimestamp(updateTime)
+            updateTimeStr = datetime.datetime.fromtimestamp(updateTimeStamp)
             console.writeln_1(console.GREEN, f'Update datas {ormFile}.{ormClass} --> num: {len(datas)} time: {updateTimeStr}')
         except Exception as e:
             traceback.print_exc()
@@ -163,7 +164,7 @@ class Client:
         except Exception as e:
             traceback.print_exc()
 
-    def diffDatas(self, model, datas : list):
+    def diffDatas(self, model, datas : list, logFile = None):
         if not datas:
             return
         ds = []
@@ -173,24 +174,48 @@ class Client:
             ds.append(model(**d))
         if not getattr(model, 'keys', None):
             model.bulk_create(ds, 50)
+            self.logManyRow('Append', ds, logFile)
             return
         for d in datas:
-            self.diffOneData(model, d)
+            self.diffOneData(model, d, logFile)
+        if logFile: logFile.flush()
 
-    def diffOneData(self, model, data):
+    def logOneRow(self, tag, data, logFile):
+        if not logFile:
+            return
+        if data:
+            ds = json.dumps(data)
+        else:
+            ds = 'None'
+        now = datetime.datetime.now()
+        logFile.write(f'[{str(now)}] ', tag, ds, '\n')
+
+    def logManyRow(self, tag, datas, logFile):
+        if not datas or not logFile:
+            return
+        for d in datas:
+            self.logOneRow(tag, d, logFile)
+        logFile.flush()
+
+    def diffOneData(self, model, data, logFile):
         cnd = {}
         for k in model.keys:
             cnd[k] = data[k]
         obj = model.get_or_none(**cnd)
         if not obj: # insert
             model.create(**data)
+            self.logOneRow('Append', data, logFile)
             return
+        updateDiffs = {}
         # update
         for k in data:
-            setattr(obj, k, data[k])
+            if getattr(obj, k, None) != data[k]:
+                setattr(obj, k, data[k])
+                updateDiffs[k] = data[k]
         obj.save()
+        self.logOneRow('Update', updateDiffs, logFile)
 
-    def getMaxUpdateTimeAll(self):
+    def getMaxUpdateTimeAll_Server(self):
         try:
             resp = requests.get('http://113.44.136.221:8090/getMaxUpdateTimeAll')
             txt = resp.content.decode()
@@ -237,8 +262,11 @@ class DbTableManager:
                     rs.append({'ormFileName': fn, 'ormFile': m, 'ormClass': obj, 'ormClassName': obj.__name__})
         return rs
     
+    # return datetime object
     def getMaxUpdateTime(self, model):
         maxTime = model.select(pw.fn.max(model.updateTime)).scalar()
+        if not maxTime:
+            maxTime = MIN_UPDATE_TIME
         return maxTime
 
     def addUpdateTimeFiled(self):
@@ -273,6 +301,9 @@ class DbTableManager:
         return None
 
 if __name__ == '__main__':
+    for it in def_orm.MyHotGn.select().dicts():
+        print(it)
+
     if platform.node() == 'hcss-ecs-3865':
         svr = Server()
         svr.start()
