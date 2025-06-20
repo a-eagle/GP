@@ -175,7 +175,7 @@ class Client:
         if not getattr(model, 'keys', None):
             ds = [model(**d) for d in datas]
             model.bulk_create(ds, 50)
-            self.logManyRow('Append', datas, logFile)
+            self.logManyRow('Append', model, datas, logFile)
             return
         for d in datas:
             self.diffOneData(model, d, logFile)
