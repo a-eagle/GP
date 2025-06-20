@@ -207,7 +207,7 @@ class Client:
             model.create(**data)
             self.logOneRow('Append', model, data, logFile)
             return
-        updateDiffs = {}
+        updateDiffs = {'id': obj.id}
         # update
         for k in data:
             if getattr(obj, k, None) != data[k]:
