@@ -435,7 +435,7 @@ class ClsUrl:
             zs[it['code']] = it
         params = f'app=CailianpressWeb&os=web&secu_code={self._getTagCode(code)}&sv=8.4.6'
         url = 'https://x-quote.cls.cn/web_quote/stock/assoc_plate?' + self.signParams(params)
-        resp = requests.get(url)
+        resp = requests.get(getProxyUrl(url))
         cnt = resp.content.decode('utf-8')
         js = json.loads(cnt)
         data = js['data']

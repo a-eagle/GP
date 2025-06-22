@@ -808,6 +808,30 @@ class KLineWindow(base_win.BaseWindow):
         self.makeVisible(-1)
         self.bkgnView.changeCode(code)
         self.invalidWindow()
+        self.loadBkGn(code)
+
+    def loadBkGn(self, code):
+        def _ln(code):
+            obj = cls_orm.CLS_GNTC.get_or_none(code = code)
+            if not obj:
+                info = cls.ClsUrl().loadBkGnOfCode(code)
+                info.save()
+                self.bkgnView.changeCode(code)
+                return
+            update = False
+            if not obj.updateTime:
+                update = True
+            else:
+                now = datetime.datetime.now()
+                ds : datetime.timedelta = now - obj.updateTime
+                update = ds.days >= 1
+            if not update:
+                return
+            info = cls.ClsUrl().loadBkGnOfCode(code)
+            info.id = obj.id
+            info.save()
+            self.bkgnView.changeCode(code)
+        ThreadPool.instance().addTask_N(_ln, code)
 
     def onContextMenu(self, x, y):
         it = self.getIndicatorByPoint(x, y)
