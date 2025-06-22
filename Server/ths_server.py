@@ -134,8 +134,10 @@ class Server:
         try:
             datas = self._downloadZT(day)
             self.saveZT(day, datas)
+            return True
         except Exception as e:
             traceback.print_exc()
+        return False
 
     def acceptDay(self, day):
         if type(day) == str:
@@ -300,14 +302,21 @@ class Server:
             self.downloadSaveZs('[3/6]')
             time.sleep(50)
         # 下载个股板块概念信息
-        if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False) and now.weekday() == 1: # 每周二
+        if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False):
             self.downloadInfos[f'hygn-{day}'] = True
-            self.download_hygn('[4/6]')
+            if now.weekday() == 1: # 每周二
+                self.download_hygn('[4/6]')
+            else:
+                console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn] skip, only week 2 download')
             time.sleep(50)
         # 下载个股PeTTM
-        if (curTime >= '20:00') and not self.downloadInfos.get(f'hygn_ttm-{day}', False) and now.weekday() == 2: # 每周三
-            ok = self.download_hygn_ttm('')
-            self.downloadInfos[f'hygn_ttm-{day}'] = ok
+        if (curTime >= '20:00') and not self.downloadInfos.get(f'hygn_ttm-{day}', False):
+            if now.weekday() == 2: # 每周三
+                ok = self.download_hygn_ttm('[4/6]')
+                self.downloadInfos[f'hygn_ttm-{day}'] = ok
+            else:
+                self.downloadInfos[f'hygn_ttm-{day}'] = True
+                console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn-PeTtm] skip, only week 3 download')
             time.sleep(50)
         # 下载个股跌停
         if (curTime >= '22:00') and not self.downloadInfos.get(f'dt-{day}', False):

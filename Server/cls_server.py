@@ -152,10 +152,10 @@ class Server:
         curTime = now.strftime('%H:%M')
         day = now.strftime('%Y-%m-%d')
 
-        if curTime >= '15:00' and curTime <= '15:20':
+        if curTime >= '15:00' and curTime <= '15:05':
             self.downloadClsZT()
 
-        idx, NUM = 1, 8
+        idx, NUM = 1, 7
         if curTime > '15:10' and (not self.downloadInfos.get(f'clszt-{day}', False)):
             self.downloadClsZT()
             self.downloadInfos[f'clszt-{day}'] = True
@@ -193,7 +193,7 @@ class Server:
         if curTime >= '15:10' and (not self.downloadInfos.get(f'bkgn-{day}', False)):
             idx += 1
             self.downloadInfos[f'bkgn-{day}'] = True
-            self.downloadBkGn(f'[{idx}/{NUM}]')
+            #self.downloadBkGn(f'[{idx}/{NUM}]')
     
     def loadOneTimeAnyTime(self):
         self.downloadClsZT()
@@ -406,7 +406,7 @@ class Server:
                     info.updateTime = datetime.datetime.now()
                     info.save() # create new
                     i += 1
-                time.sleep(12)
+                time.sleep(20)
             t = time.time() - st
             t /= 60
             console.writeln_1(console.CYAN, f'{tag} [CLS-HyGn] {self.formatNowTime(True)} check {total}, update {u}, insert {i}, use time: {t :.1f} minutes')
@@ -526,7 +526,7 @@ class Server:
                 obj.zdfb = fb
                 obj.updateTime = datetime.datetime.now()
                 obj.save()
-            console.writeln_1(console.CYAN, f'{tag} [Cls-EastMoney-Zdfb] {self.formatNowTime(True)}', day, ' -> ', fb)
+            console.writeln_1(console.CYAN, f'{tag} [Cls-EastMoney-Zdfb] {self.formatNowTime(True)}')
             return True
         except Exception as e:
             traceback.print_exc()
