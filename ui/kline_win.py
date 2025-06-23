@@ -1374,14 +1374,8 @@ class KLineCodeWindow(base_win.BaseWindow):
         return super().winProc(hwnd, msg, wParam, lParam)
 
 if __name__ == '__main__':
-    # base_win.ThreadPool.instance().start()
-    # win = KLineCodeWindow()
-    # win.createWindow(None, (0, 0, 1300, 700), win32con.WS_OVERLAPPEDWINDOW)
-    # win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
-    # win.changeCode('cls80353', 'day') # 000737  002261
-
     import kline_utils
-    CODE = '002579'
-    win = kline_utils.createKLineWindowByCode(CODE)  # 000737  002261  cls80353
+    CODE = '603335'
+    win = kline_utils.createKLineWindowByCode(CODE)
     win.changeCode(CODE)
     win32gui.PumpMessages()

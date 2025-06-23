@@ -458,6 +458,13 @@ class ClsUrl:
         if rs.hy_code:
             rs.hy_code = rs.hy_code[0 : -1]
             rs.hy = rs.hy[0 : -1]
+        from utils import gn_utils
+        clsObj = gn_utils.cls_gntc_s.get(rs.code, None)
+        if clsObj and clsObj['name']:
+            rs.name = clsObj['name']
+        thsObj = gn_utils.ths_gntc_s.get(rs.code, None)
+        if thsObj and thsObj['name']:
+            rs.name = thsObj['name']
         return rs
 
     # 最新交易日的涨跌票的数量分布
