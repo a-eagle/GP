@@ -6,7 +6,7 @@ sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 from download.datafile import *
 from ui.base_win import *
 from utils import hot_utils, gn_utils
-from download import cls, henxin
+from download import cls, henxin, memcache
 from orm import d_orm, ths_orm, lhb_orm, cls_orm
 
 def getTypeByCode(code):
@@ -1398,6 +1398,7 @@ class ZS_ZT_NumIndicator(CustomIndicator):
             config['height'] = 80
         super().__init__(win, config)
         self.config['title'] = '[涨跌停]'
+        self.todayGroupData = None
 
     def _changeCode(self):
         super()._changeCode()
@@ -1411,10 +1412,12 @@ class ZS_ZT_NumIndicator(CustomIndicator):
                 cls_orm.CLS_UpDown.time).dicts()
         self.cdata = self.calcGroups(zsCode, qr)
         ds = self.loadTodayData(zsCode)
-        todayGroup = self.calcGroups(zsCode, ds)
+        self.todayGroupData = todayGroup = self.calcGroups(zsCode, ds)
         if not todayGroup or len(todayGroup) != 1:
             return
-        today = todayGroup.keys()[0]
+        for t in todayGroup:
+            today = t
+            break
         self.cdata[today] = todayGroup[today]
         
     def calcGroups(self, zsCode, qr):
@@ -1461,10 +1464,15 @@ class ZS_ZT_NumIndicator(CustomIndicator):
         rs = []
         for url in urls:
             try:
-                resp = requests.get(url)
+                rslist = memcache.cache.getCache(url)
+                if rslist:
+                    rs.extend(rslist)
+                    continue
+                resp = requests.get(cls.getProxyUrl(url))
                 js = json.loads(resp.text)
                 if js['code'] != 200:
                     continue
+                rslist = []
                 for d in js['data']:
                     if d['is_st']:
                         continue
@@ -1473,7 +1481,9 @@ class ZS_ZT_NumIndicator(CustomIndicator):
                     obj = cls_orm.CLS_UpDown(**d)
                     if 'type=down_pool' in url:
                         obj.is_down = 1
-                    rs.append(obj.__data__)
+                    rslist.append(obj.__data__)
+                memcache.cache.saveCache(url, rslist, 3 * 60)
+                rs.extend(rslist)
             except Exception as e:
                 print('[ZS_ZT_NumIndicator.loadTodayData] ', url)
         return rs
@@ -1543,8 +1553,14 @@ class ZS_ZT_NumIndicator(CustomIndicator):
         tab.css['selBgColor'] = 0xEAD6D6 # 0xEAD6D6 #0xf0a0a0
         tab.headers = headers
         timeline.Table_TimelineRender.registerFsRender(tab)
+
         day = f'{item.day // 10000}-{item.day // 100 % 100 :02d}-{item.day % 100 :02d}'
-        qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day).order_by(cls_orm.CLS_UpDown.time).dicts()
+        if self.todayGroupData and item.day in self.todayGroupData:
+            ls = self.todayGroupData[item.day]['items']
+            qr = [copy.copy(r) for r in ls]
+            qr.sort(key = lambda x : x['time'])
+        else:
+            qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day).order_by(cls_orm.CLS_UpDown.time).dicts()
         model = []
         zt, zb, dt = [], [], []
         for it in qr:
@@ -1553,14 +1569,14 @@ class ZS_ZT_NumIndicator(CustomIndicator):
             if not fd:
                 continue
             lb = ''
-            if it['limit_up_days'] > 0: 
+            if it['limit_up_days'] > 0:
                 lb = str(it['limit_up_days']) + '板'
             reason = it['up_reason']
             if '|' in reason:
                 reason = reason[0 : reason.index('|')]
             else:
                 reason = reason[0 : 20]
-            itemx = {'code': fd['code'], 'mcode': fd['code'] + '\n' + fd['name'], 'name': fd['name'], 'day': day, 'lb': lb, 'up_reason': reason}
+            itemx = {'code': code, 'mcode': code + '\n' + it['secu_name'], 'name': it['secu_name'], 'day': day, 'lb': lb, 'up_reason': reason}
             if itemx['code'] == kcode:
                 itemx['curKCode'] = '*'
             if it['limit_up_days'] > 0:
@@ -1676,5 +1692,7 @@ class Code_ZT_NumIndicator(ZS_ZT_NumIndicator):
 
 if __name__ == '__main__':
     #base_win.ThreadPool.instance().start()
+    a = set(['A', 'B', 'C'])
+    print(a[0])
     pass
     #win32gui.PumpMessages()
