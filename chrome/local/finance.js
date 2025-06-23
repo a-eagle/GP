@@ -587,7 +587,7 @@ class AnchorsMgr {
 			let an = data[i];
 			let key = an.code + '#' + an.up;
 			let num = anchrosCP[key]?.num || 1;
-			an.name += '' + num + '';
+			an.wName = an.name + num;
 		}
 	}
 
@@ -1250,6 +1250,7 @@ class AmountCompare {
 	constructor(vue) {
 		this.vue = vue;
 		this.data = null;
+		let thiz = this;
 		this.vue.addWatch('curDay', function(a, b) {thiz._onChangeDay(a, b);});
 	}
 
@@ -1283,7 +1284,7 @@ class AmountCompare {
 	new ZdfbMgr(vue);
 	new AnchorsMgr(vue);
 	new TabNaviMgr(vue);
-	new AmountCompare(vue);
+	// new AmountCompare(vue);
 	window.vue = vue;
 	setTimeout(function() {changeCurDay(initMgr, globalMgr);}, 500);
 })();

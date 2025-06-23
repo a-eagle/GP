@@ -1236,11 +1236,11 @@ class AnchrosView extends Listener {
     onDbClick(x, y) {
         let an = this.findAnchor(x, y);
         if (! an) return;
-        let code = an.data.symbol_code;
+        let code = an.data.code;
         if (code.length == 8 && (code.substring(0, 2) == 'sz' || code.substring(0, 2) == 'sh'))
             window.open('https://www.cls.cn/stock?code=' + code, '_blank');
         else
-            window.open('https://www.cls.cn/plate?code=' + code, '_blank');
+            window.open('plate.html?code=' + code + '&name=' + an.data.name, '_blank');
     }
 
     draw() {
@@ -1265,7 +1265,7 @@ class AnchrosView extends Listener {
         this.ctx.font = 'bold 18px 宋体';
         this.ctx.fillRect(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top);
         this.ctx.fillStyle = 'black';
-        this.ctx.fillText(an.name, rect.left + 5, rect.top + 20);
+        this.ctx.fillText(an.wName, rect.left + 5, rect.top + 20);
         this.ctx.stroke();
         this.ctx.closePath();
     }
@@ -1350,7 +1350,7 @@ class AnchrosView extends Listener {
                 this.ctx.strokeStyle = '#00ff00';
             }
             this.ctx.font = 'bold 18px 宋体';
-            let tw = this.ctx.measureText(an.name).width;
+            let tw = this.ctx.measureText(an.wName).width;
             let bw = tw + 10;
             let rc = this.getAnchorRectAtIdx(i, bw, IH, time);
             if (! rc) {
@@ -1370,7 +1370,7 @@ class AnchrosView extends Listener {
                 this.ctx.stroke();
             }
             this.ctx.fillStyle = 'black';
-            this.ctx.fillText(an.name, rc.left + 5, rc.top + 20);
+            this.ctx.fillText(an.wName, rc.left + 5, rc.top + 20);
             this.ctx.closePath();
         }
     }
