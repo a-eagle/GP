@@ -70,10 +70,10 @@ class ScreenLocker(base_win.BaseWindow):
     def onDraw(self, hdc):
         W, H = self.getClientSize()
         # box
-        CW = 30
-        sx = 0
-        sy = H - CW
-        rc = (sx, sy, sx + CW, sy + CW)
+        CW, CH = W, 5
+        sx = (W - CW) // 2
+        sy = H - CH
+        rc = (sx, sy, sx + CW, sy + CH)
         color = 0x202020
         self.drawer.fillRect(hdc, rc, color)
 
@@ -190,4 +190,4 @@ if __name__ == '__main__':
     win32gui.PumpMessages()
 
     # 生成无cmd窗口的exe程序
-    # cd Common; pyinstaller.exe -F -w screenlocker.py base_win.py   
+    # cd ui; pyinstaller.exe -F -w screenlocker.py base_win.py
