@@ -266,10 +266,7 @@ class Main:
         flag = tdx.run()
         # self.resetLockScreen()
         if flag:
-            tm = datetime.datetime.now()
-            ss = tm.strftime('%Y-%m-%d %H:%M')
-            print('download end ', ss)
-            print('merge mimute time line data')
+            print('Merge mimute time line data')
             ld = Writer()
             ld.writeAll()
             ld = fx.FenXiLoader()

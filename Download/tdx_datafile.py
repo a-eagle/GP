@@ -199,7 +199,9 @@ class T_DataFile(DataFile):
         f.close()
         # check minute line number
         if len(self.data) % 241 != 0:
-            raise Exception('Minute Line number error:', len(self.data))
+            print('Minute Line number error:', self.code, 'len = ', len(self.data))
+            # raise Exception('Minute Line number error:', len(self.data))
+            return
         self.calcDays()
         self.calcAvgPrice()
 
@@ -326,6 +328,10 @@ if __name__ == '__main__':
     df = T_DataFile('999999')
     df.loadData()
     print('Local Tdx:', df.days, len(df.days))
+
+    import datafile
+    dm = datafile.T_DataModel('999999')
+    print('T_DataModel last day:', dm.getLocalLatestDay())
 
     w = Writer()
     w.writeAll()

@@ -1375,7 +1375,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '603335'
+    CODE = '300204'
     win = kline_utils.createKLineWindowByCode(CODE)
     win.changeCode(CODE)
     win32gui.PumpMessages()
