@@ -1608,20 +1608,13 @@ class ZS_ZT_NumIndicator(CustomIndicator):
         if curDay not in days:
             days.append(curDay)
         winx = kline_utils.openInCurWindow(self.win, {'code': rowData['code'], 'day': days})
-        winx.klineWin.refIndicator.changeCode(self.win.refIndicator.model.code, 'day')
+        code = self.code
+        if code[0 : 2] == '88' or code[0 : 3] == 'cls':
+            winx.klineWin.refIndicator.changeCode(code, 'day')
+        else:
+            winx.klineWin.refIndicator.changeCode(self.win.refIndicator.model.code, 'day')
         codes = [m['code'] for m in model]
         winx.setCodeList(codes)
-        return
-        pp = self.win.hwnd
-        pcwin = self.win
-        while True:
-            pp = win32gui.GetParent(pp)
-            if not BaseWindow.bindHwnds.get(pp, None):
-                break
-            px = BaseWindow.bindHwnds[pp]
-            if hasattr(px, 'changeCode'):
-                pcwin = px
-        pcwin.changeCode(rowData['code'])
 
 # 关联指数的涨停信息（用于个股）
 class Code_ZT_NumIndicator(ZS_ZT_NumIndicator):

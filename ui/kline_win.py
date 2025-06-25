@@ -831,7 +831,8 @@ class KLineWindow(base_win.BaseWindow):
             info.id = obj.id
             info.save()
             self.bkgnView.changeCode(code)
-        ThreadPool.instance().addTask_N(_ln, code)
+        if code[0] in ('0', '3', '6'):
+            ThreadPool.instance().addTask_N(_ln, code)
 
     def onContextMenu(self, x, y):
         it = self.getIndicatorByPoint(x, y)
@@ -1375,7 +1376,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '300204'
+    CODE = '881166'
     win = kline_utils.createKLineWindowByCode(CODE)
     win.changeCode(CODE)
     win32gui.PumpMessages()
