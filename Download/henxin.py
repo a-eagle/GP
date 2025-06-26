@@ -356,7 +356,7 @@ class HexinUrl(Henxin):
                 url = self.getTodayKLineUrl(code)
                 todayRs = self.loadUrlData(url)
                 if todayRs and todayRs['data']:
-                    if last.day == int(klineRs['today']):
+                    if last.day == todayRs['data'].day:
                         data.pop(-1)
                     data.append(todayRs['data'])
             return klineRs
