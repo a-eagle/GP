@@ -57,6 +57,11 @@ class StockTable extends UIListener {
         this.tlMgr = new TimeLineUIManager();
         this.config = {elipseNum: 40};
         this.init()
+        let thiz = this;
+        this.viewsMgr = {};
+        setInterval(() => {
+            thiz.checkTimelineView();
+        }, 1000);
     }
 
     setTradeDays(days) {
@@ -72,6 +77,10 @@ class StockTable extends UIListener {
         this.table = $('<table class="my-stoks-table" > </table>');;
         this.initHeadersDefault();
         this.buildHeadersUI();
+    }
+
+    checkTimelineView() {
+        $(this.table)
     }
 
     createTimeLineView(code, width, height) {

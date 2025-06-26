@@ -476,13 +476,13 @@ class Server:
             url = 'https://x-quote.cls.cn/web_quote/plate/stocks?' + cls.ClsUrl().signParams(params)
             data = memcache.cache.getCache(url)
             if not data:
-                resp = requests.get(url, proxies = cls.PROXY)
+                resp = requests.get(cls.getProxyUrl(url))
                 if resp.status_code != 200:
                     return []
                 js = json.loads(resp.content.decode())
                 data = js['data']['stocks']
                 memcache.cache.saveCache(url, data, 60 * 60 * 8)
-            self._calcPlate(data, day, period, subByHots)
+            # self._calcPlate(data, day, period, subByHots)
             return data
         except Exception as e:
             traceback.print_exc()
@@ -500,7 +500,7 @@ class Server:
                 info['secu_code'] = ('sh'if info['code'][0] == '6' else 'sz') + info['code']
                 info['secu_name'] = info['name']
                 data.append(info)
-        self._calcPlate(data, day, period, subByHots)
+        # self._calcPlate(data, day, period, subByHots)
         return data
     
     def _calcPlate(self, stocks : list, day, period, subByHots):

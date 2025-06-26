@@ -1,3 +1,33 @@
+// 判断元素是否在网页可见区域内
+$.fn.isOnHtmlScreen = function() {
+    var win = $(window);
+    var viewport = {
+        top : 0,
+        left : 0
+    };
+    viewport.right = viewport.left + win.width();
+    viewport.bottom = viewport.top + win.height();
+    var bounds = this.offset();
+    bounds.right = bounds.left + this.outerWidth();
+    bounds.bottom = bounds.top + this.outerHeight();
+    return (!(viewport.right < bounds.left || viewport.left > bounds.right || viewport.bottom < bounds.top || viewport.top > bounds.bottom)); 
+};
+
+// 判断元素是否在人眼可见区域内
+$.fn.isOnVisibleScreen = function() {
+    var win = $(window);
+    var viewport = {
+        top : win.scrollTop(),
+        left : win.scrollLeft()
+    };
+    viewport.right = viewport.left + document.body.clientWidth;
+    viewport.bottom = viewport.top + document.body.clientHeight;
+    var bounds = this.offset();
+    bounds.right = bounds.left + this.width();
+    bounds.bottom = bounds.top + this.height();
+    return (!(viewport.right < bounds.left || viewport.left > bounds.right || viewport.bottom < bounds.top || viewport.top > bounds.bottom));
+};
+
 class Listener {
     constructor() {
         this.listeners = {};

@@ -46,14 +46,12 @@
                 margin-right: 10px;
                 padding: 3px 10px;
                 border: 1px solid;
-             }
-             .plate-up-and-down-icon {
+            }
+            .plate-up-and-down-icon {
                 margin-right: 5px;
                 vertical-align: middle;
                 width: 18px;
-             }
-
-
+            }
             .subject-item {
                 border-bottom: solid #e6e7ea 1px;
                 padding-bottom: 20px;
@@ -103,12 +101,21 @@
             .green {
                 color: #52c2a3;
             }
+            .toggle-nav-box {color: #747474; font-size: 14px; width: 100%; height: 39px; line-height: 38px; border-bottom: 1px solid #e6e7ea; }
+            .toggle-nav-box > div {float: left; width: 110px; background-color: #f9fafc; text-align: center; border: 1px solid #e6e7ea; border-bottom: none; border-right: none; cursor: pointer;}
+            .toggle-nav-box > div.toggle-nav-active {font-weight: bold; color: #222; background-color: #fff; border-top-width: 2px; border-top-color: #222;}
         </style>
     </head>
 
     <body>
         <div class="outer">
             <div style="width:1250px; " id="main">
+                <div name="headers"></div>
+                <div class="toggle-nav-box">
+                    <div class="toggle-nav-active">新闻</div>  <div>个股</div>
+                </div>
+                <div class="toggle-nav-contents">
+                </div>
             </div>
         </div>
     </body>
@@ -118,6 +125,14 @@
             let ww = $(document.body).width() - $('#main').width();
             let left = - ww * 0.3;
             $('#main').css('margin-left',  String(left) + 'px');
+
+            $('.toggle-nav-box > div').click(function() {
+			if (! $(this).hasClass('toggle-nav-active')) {
+				$('.toggle-nav-box > .toggle-nav-active').removeClass('toggle-nav-active');
+				$(this).addClass('toggle-nav-active');
+			}
+			loadTabNavi($(this).text().trim());
+		});
         });
     </script>
     

@@ -9,11 +9,11 @@ class PlateMgr {
         this.detailUI = $('<div class="stock-detail"> </div>');
         this.columnUI = $(`<div class="plate-column-box"> </div>`);
         this.zfUI = $(`<div class="plate-column-box" style="font-size:16px;"> </div>`);
-        $('#main').append(this.detailUI).append(this.columnUI).append(this.zfUI);
+        $('#main > div[name=headers]').append(this.detailUI).append(this.columnUI).append(this.zfUI);
         let thiz = this;
         let code = getLocationParams('code');
         $.get(`/plate-info/${code}`, function(data) {
-            console.log('[PlateMgr]', data);
+            // console.log('[PlateMgr]', data);
             thiz.data = data;
             if (data.code != 200)
                 return;
@@ -55,7 +55,7 @@ class SubjectMgr {
         let thiz = this;
         let title = getLocationParams('name');
         $.get(`/subject/${title}`, function(data) {
-            console.log('[SubjectMgr]', data);
+            // console.log('[SubjectMgr]', data);
             thiz.data = data;
             thiz.buildUI(data.data);
         });
@@ -67,7 +67,7 @@ class SubjectMgr {
             let sb = this.createSubject(it);
             this.ui.append(sb);
         }
-        $('#main').append(this.ui);
+        $('.toggle-nav-contents').append(this.ui);
     }
 
     createSubject(data) {
@@ -102,11 +102,73 @@ class SubjectMgr {
     }
 }
 
+class StocksManager {
+    constructor() {
+        this.ui = $('<div> </div>');
+    }
+
+    buildUI() {
+        let hotRender = function(rowIdx, rowData, head, tdObj) {
+            let val = rowData[head.name];
+            if (val) val += '°';
+            else val = '';
+            tdObj.text(val);
+        }
+        let changeRender = function(rowIdx, rowData, head, tdObj) {
+            let val = rowData[head.name];
+            if (! isNaN(val)) val = String((val * 100).toFixed(2)) + '%';
+            else val = '';
+            tdObj.text(val);
+        }
+
+        let hd = [
+            {text: '标记', 'name': 'mark_color', width: 40, defined: true, sortable: true},
+            {text: '股票/代码', 'name': 'code', width: 80},
+            {text: '涨跌幅', 'name': 'change', width: 70, sortable: true, defined: false, cellRender: changeRender},
+            {text: '最高热度', 'name': 'maxHot', width: 70, sortable: true, defined: true, cellRender: hotRender},
+            {text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
+            {text: '成交额', 'name': 'amount', width: 50, sortable: true, defined: true},
+            {text: '流通市值', 'name': 'cmc', width: 70, sortable: true},
+        ];
+        if (getLocationParams('refThsCode')) {
+            hd.push({text: '行业', 'name': 'hy', width: 250, sortable: true});
+        } else {
+            hd.push({text: '领涨次数', 'name': 'head_num', width: 70, sortable: true});
+            hd.push({text: '资金流向', 'name': 'fundflow', width: 90, sortable: true});
+            hd.push({text: '简介', 'name': 'assoc_desc', width: 250});
+        }
+        hd.push({text: '分时图', 'name': 'fs', width: 300});
+        let st = new StockTable(hd);
+        st.initStyle();
+        this.ui.append(st.table);
+        let code = getLocationParams('code');
+        $.get(`/plate/${code}`, function(data) {
+            console.log(data);
+            st.setData(data);
+            st.buildUI();
+        });
+        $('.toggle-nav-contents').append(this.ui);
+    }
+}
+
+function loadTabNavi(name) {
+    $('.toggle-nav-contents > div').hide();
+    if (name == '新闻') {
+        window.subMgr.ui.show();
+    } else {
+        if (! window.stocksMgr) {
+            window.stocksMgr = new StocksManager();
+            window.stocksMgr.buildUI();
+        }
+        window.stocksMgr.ui.show();
+    }
+}
+
 $(document).ready(function() {
     let pm = new PlateMgr();
     pm.loadData();
-    let sm = new SubjectMgr();
-    sm.loadData();
+    window.subMgr = new SubjectMgr();
+    window.subMgr.loadData();
 });
 
     
