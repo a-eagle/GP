@@ -1,4 +1,4 @@
-import threading, sys, traceback, datetime, json, logging
+import threading, sys, traceback, datetime, json, logging, copy
 import flask, flask_cors, requests
 import win32con, win32gui, peewee as pw
 
@@ -363,7 +363,12 @@ class Server:
             day = lastTradeDay
         day = day.replace('-', '')
         rs = {'code': code, 'pre': 0, 'line': None}
-        if today == lastTradeDay and day == today: # load from server
+        # load from local file first
+        df = datafile.T_DataModel(code)
+        df.loadLocalData(day)
+        rs['pre'] = df.pre
+        rs['line'] = df.data
+        if not df.data and today == lastTradeDay and day == today: # load from server
             if (code[0 : 3] == 'cls'):
                 data = cls.ClsUrl().loadHistory5FenShi(code)
                 lines = data['line']
@@ -378,11 +383,6 @@ class Server:
                 data = hx.loadUrlData(hx.getFenShiUrl(code))
                 rs['pre'] = data['pre']
                 rs['line'] = data['line']
-        else:
-            df = datafile.T_DataModel(code)
-            df.loadLocalData(day)
-            rs['pre'] = df.pre
-            rs['line'] = df.data
         if not rs['line']:
             return rs
         rsd = []
@@ -471,7 +471,6 @@ class Server:
         try:
             day = flask.request.args.get('day', None)
             period = flask.request.args.get('period', 30)
-            subByHots = flask.request.args.get('subByMaxHots', '')
             params = f'app=CailianpressWeb&os=web&rever=1&secu_code={code}&sv=8.4.6&way=last_px'
             url = 'https://x-quote.cls.cn/web_quote/plate/stocks?' + cls.ClsUrl().signParams(params)
             data = memcache.cache.getCache(url)
@@ -481,8 +480,12 @@ class Server:
                     return []
                 js = json.loads(resp.content.decode())
                 data = js['data']['stocks']
+                for i in range(len(data) - 1, -1, -1):
+                    if data[i]['secu_code'][0] != 's':
+                        data.pop(i)
                 memcache.cache.saveCache(url, data, 60 * 60 * 8)
-            # self._calcPlate(data, day, period, subByHots)
+            data = copy.deepcopy(data)
+            self._calcPlate(data, day, period, False)
             return data
         except Exception as e:
             traceback.print_exc()
@@ -491,29 +494,31 @@ class Server:
     def getPlateThs(self, code):
         day = flask.request.args.get('day', None)
         period = flask.request.args.get('period', 30)
-        subByHots = flask.request.args.get('subByMaxHots', '')
+        KS = ('0', '3', '6')
         data = []
         for c in gn_utils.ths_gntc_s:
             info = gn_utils.ths_gntc_s[c]
-            if code in info['gn_code'] or code == info['hy_2_code'] or code == info['hy_3_code']:
-                info['cmc'] = (info.get('ltsz', 0) or 0)* 100000000
-                info['secu_code'] = ('sh'if info['code'][0] == '6' else 'sz') + info['code']
-                info['secu_name'] = info['name']
-                data.append(info)
-        # self._calcPlate(data, day, period, subByHots)
+            if (code not in info['gn_code']) and (code != info['hy_2_code']) and (code != info['hy_3_code']):
+                continue
+            if info['code'][0] not in KS:
+                continue
+            if 'st' in info['name'] or 'ST' in info['name']:
+                continue
+            info = copy.copy(info)
+            info['cmc'] = (info.get('ltsz', 0) or 0) * 100000000
+            info['secu_code'] = ('sh' if info['code'][0] == '6' else 'sz') + info['code']
+            info['secu_name'] = info['name']
+            data.append(info)
+        self._calcPlate(data, day, period, False)
         return data
     
     def _calcPlate(self, stocks : list, day, period, subByHots):
-        subByHots = subByHots == 'true'
         period = int(period)
         if not day or len(day) < 8:
             day = datetime.date.today()
         else:
             day = int(day.replace('-', ''))
             day = datetime.date(day // 10000, day // 100 % 100, day % 100)
-        # check hots
-        cs = {s['secu_code'][2 : ] : 0 for s in stocks if len(s['secu_code']) == 8 and s['secu_code'][2] in ('0', '3', '6')}
-        # scode = ('sh' if code[0] == '6' else 'sz') + code
         endDayInt = int(day.strftime('%Y%m%d'))
         tradeDays = ths_iwencai.getTradeDays(500)
         if endDayInt > int(tradeDays[-1]):
@@ -524,25 +529,9 @@ class Server:
                 break
         si = i - period + 1
         fromDayInt = int(tradeDays[si])
+        self._calcPlateMaxHots(stocks, endDayInt)
 
-        self._calcPlateByHots(cs, fromDayInt, endDayInt)
-        self._calcPlateByZS(cs, fromDayInt, endDayInt)
-        self._calcPlateByZT(cs, fromDayInt, endDayInt)
-        self._calcPlateByMaxHots(stocks, endDayInt)
-        for i in range(len(stocks) - 1, -1, -1):
-            st = stocks[i]
-            code = st['secu_code'][2 : ]
-            name = st.get('secu_name', '')
-            snum = cs.get(code, 0)
-            st['_snum_'] = snum
-            if len(code) != 6 or 'st' in name or 'ST' in name: # snum < 1 or 
-                stocks.pop(i)
-                continue
-            if subByHots and not st.get('maxHot', 0):
-                stocks.pop(i)
-        stocks.sort(key = lambda a: a['_snum_'], reverse = True)
-
-    def _calcPlateByMaxHots(self, stocks : list, endDayInt):
+    def _calcPlateMaxHots(self, stocks : list, endDayInt):
         hots = {}
         istoks = [s['secu_code'][2 : ] for s in stocks if len(s['secu_code']) == 8 and s['secu_code'][2] in ('0', '3', '6')]
         endDay = datetime.date(endDayInt // 10000, endDayInt // 100 % 100, endDayInt % 100)
@@ -559,38 +548,6 @@ class Server:
             if code in hots:
                 st['maxHot'] = hots[code]
 
-    def _calcPlateByHots(self, stocks : dict, fromDayInt, endDayInt):
-        qr = ths_orm.THS_HotZH.select(ths_orm.THS_HotZH.code, pw.fn.count()).where(ths_orm.THS_HotZH.day >= fromDayInt, ths_orm.THS_HotZH.day <= endDayInt).group_by(ths_orm.THS_HotZH.code).tuples()
-        for it in qr:
-            code = f'{it[0] :06d}'
-            if code in stocks:
-                stocks[code] += it[1]
-        hotMaxZHDay = ths_orm.THS_HotZH.select(pw.fn.max(ths_orm.THS_HotZH.day)).scalar()
-        lastTradeDay = hot_utils.getLastTradeDay()
-        if lastTradeDay == hotMaxZHDay or fromDayInt > lastTradeDay or lastTradeDay > endDayInt:
-            return
-        hz = hot_utils.DynamicHotZH.instance().getNewestHotZH()
-        for it in hz:
-            code = f'{it :06d}'
-            if code in stocks:
-                stocks[code] += 1
-
-    def _calcPlateByZS(self, stocks : dict, fromDayInt, endDayInt):
-        qr = d_orm.LocalSpeedModel.select(d_orm.LocalSpeedModel.code, pw.fn.count()).where(d_orm.LocalSpeedModel.day >= fromDayInt, d_orm.LocalSpeedModel.day <= endDayInt).group_by(d_orm.LocalSpeedModel.code).tuples()
-        for it in qr:
-            code = it[0]
-            if code in stocks:
-                stocks[code] += it[1]
-
-    def _calcPlateByZT(self, stocks : dict, fromDayInt, endDayInt):
-        fromDayStr = f"{fromDayInt // 10000}-{fromDayInt // 100 % 100 :02d}-{fromDayInt % 100 :02d}"
-        endDayStr = f"{endDayInt // 10000}-{endDayInt // 100 % 100 :02d}-{endDayInt % 100 :02d}"
-        qr = cls_orm.CLS_UpDown.select(cls_orm.CLS_UpDown.secu_code, pw.fn.count()).where(cls_orm.CLS_UpDown.day >= fromDayStr, cls_orm.CLS_UpDown.day <= endDayStr).group_by(cls_orm.CLS_UpDown.secu_code).tuples()
-        for it in qr:
-            code = it[0][2 : ]
-            if code in stocks:
-                stocks[code] += it[1]
-    
     def getIndustryCls(self, code):
         try:
             day = flask.request.args.get('day', None)

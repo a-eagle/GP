@@ -57,8 +57,8 @@ class StockTable extends UIListener {
         this.tlMgr = new TimeLineUIManager();
         this.config = {elipseNum: 40};
         this.init()
+        this.viewsMgr = {}; // {code : TimelineView}
         let thiz = this;
-        this.viewsMgr = {};
         setInterval(() => {
             thiz.checkTimelineView();
         }, 1000);
@@ -80,15 +80,33 @@ class StockTable extends UIListener {
     }
 
     checkTimelineView() {
-        $(this.table)
+        let table = this.table.get(0);
+        let rect = table.getBoundingClientRect();
+        let HEIGHT = Math.min(window.innerHeight, rect.bottom);
+        for (let i = 1; i < table.children.length; i++) {
+            let tr = table.children[i];
+            let trRect = tr.getBoundingClientRect();
+            if (trRect.bottom <= 0)
+                continue;
+            if (trRect.top >= HEIGHT)
+                break;
+            let code = tr.getAttribute('code');
+            let timelineView = this.viewsMgr[code];
+            if (timelineView._loaded)
+                continue;
+            timelineView.reloadData();
+        }
     }
 
     createTimeLineView(code, width, height) {
         width = width || 300;
         height = height || 60;
         let view = new TimeLineView(width, height);
+        view._loaded = false;
+        view.code = code;
+        view.day = this.day;
         this.tlMgr.add(view);
-        view.loadData(code, this.day);
+        this.viewsMgr[code] = view;
         return view;
     }
 
@@ -221,7 +239,8 @@ class StockTable extends UIListener {
                 btn.text(evt.date.substring(5) + ' ' + ss.charAt(dd.getDay()));
                 for (let view of thiz.tlMgr.views) {
                     view.day = evt.date;
-                    view.reloadData();
+                    view._loaded = false;
+                    // view.reloadData();
                 }
             });
             window.dpFS.openFor(this);
