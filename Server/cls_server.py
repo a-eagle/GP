@@ -184,9 +184,9 @@ class Server:
             self.downloadInfos[f'zs-zd-{day}'] = flag
             time.sleep(60)
         if curTime >= '15:10' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
-            idx += 1
+            # idx += 1
             self.downloadInfos[f'ztpk-{day}'] = True
-            self.downloadZT_PanKou(f'[{idx}/{NUM}]')
+            # self.downloadZT_PanKou(f'[{idx}/{NUM}]')
         if curTime >= '15:10' and (not self.downloadInfos.get(f'hot-tc-{day}', False)):
             idx += 1
             flag = self.downloadHotTcOfLastDay(f'[{idx}/{NUM}]')

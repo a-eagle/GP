@@ -291,11 +291,12 @@ class Server:
             self.downloadInfos[f'zh-hots-{day}'] = True
             hot_utils.calcAllHotZHAndSave()
             console.writeln_1(console.GREEN, f'[1/6] [THS-ZH-hot] {self.formatNowTime(False)}', ' calc hot ZH success')
+            time.sleep(60)
         # 下载成交量前100信息
         if curTime >= '15:05' and not self.downloadInfos.get(f'vol-top100-{day}', False):
             self.downloadInfos[f'vol-top100-{day}'] = True
             self.downloadSaveVolTop100('[2/6]')
-            time.sleep(50)
+            time.sleep(60)
         # 下载同花顺指数涨跌信息
         if curTime >= '15:05' and not self.downloadInfos.get(f'zs-{day}', False):
             self.downloadInfos[f'zs-{day}'] = True
@@ -308,7 +309,7 @@ class Server:
                 self.download_hygn('[4/6]')
             else:
                 console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn] skip, only week 2 download')
-            time.sleep(50)
+            time.sleep(60)
         # 下载个股PeTTM
         if (curTime >= '20:00') and not self.downloadInfos.get(f'hygn_ttm-{day}', False):
             if now.weekday() == 2: # 每周三
@@ -317,18 +318,18 @@ class Server:
             else:
                 self.downloadInfos[f'hygn_ttm-{day}'] = True
                 console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn-PeTtm] skip, only week 3 download')
-            time.sleep(50)
+            time.sleep(60)
         # 下载个股跌停
         if (curTime >= '22:00') and not self.downloadInfos.get(f'dt-{day}', False):
             ok = self.download_dt('[5/6]')
             self.downloadInfos[f'dt-{day}'] = ok
-            time.sleep(50)
+            time.sleep(60)
         # 下载同花顺涨停信息
         if (curTime >= '22:00') and not self.downloadInfos.get(f'zt-{day}', False):
             ok = self.downloadZT(day)
             self.downloadInfos[f'zt-{day}'] = ok
             console.writeln_1(console.GREEN, f'[6/6] [THS-ZT] {self.formatNowTime(True)}  {ok}')
-            time.sleep(50)
+            time.sleep(60)
 
     def loadHotsOneTime(self):
         now = datetime.datetime.now()
