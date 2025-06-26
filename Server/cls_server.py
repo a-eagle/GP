@@ -156,7 +156,7 @@ class Server:
             self.downloadClsZT()
 
         idx, NUM = 1, 7
-        if curTime > '15:10' and (not self.downloadInfos.get(f'clszt-{day}', False)):
+        if curTime > '21:30' and (not self.downloadInfos.get(f'clszt-{day}', False)):
             self.downloadClsZT()
             self.downloadInfos[f'clszt-{day}'] = True
             time.sleep(60)
