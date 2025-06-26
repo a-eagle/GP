@@ -152,7 +152,7 @@ class Server:
         curTime = now.strftime('%H:%M')
         day = now.strftime('%Y-%m-%d')
 
-        if curTime >= '15:00' and curTime <= '15:05':
+        if curTime >= '09:25' and curTime <= '15:05':
             self.downloadClsZT()
 
         idx, NUM = 1, 7
