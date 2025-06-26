@@ -90,8 +90,10 @@ class Server:
         try:
             rs = self._downloadClsZT()
             self.saveCls_ZT_List(rs)
+            console.writeln_1(console.CYAN, f'[CLS-ZT]', self.formatNowTime(False), ' success, num ', len(rs))
         except Exception as e:
             traceback.print_exc()
+            console.writeln_1(console.CYAN, f'[CLS-ZT]', self.formatNowTime(False), ' fail')
 
     def downloadDegree(self):
         try:
