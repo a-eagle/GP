@@ -145,17 +145,16 @@ class Server:
             cls_orm.CLS_SCQX_Time.create(day = day, time = time, zhqd = degree)
     
     def loadOneTime(self):
-        if time.time() - self._lastLoadTime < 5 * 60:
-            return
-        self._lastLoadTime = time.time()
         now = datetime.datetime.now()
         if not ths_iwencai.isTradeDay():
             return
         curTime = now.strftime('%H:%M')
         day = now.strftime('%Y-%m-%d')
 
-        if curTime >= '09:25' and curTime <= '15:05':
-            self.downloadClsZT()
+        if (curTime >= '09:30' and curTime <= '11:30') or (curTime >= '13:00' and curTime <= '15:10'):
+            if time.time() - self._lastLoadTime >= 5 * 60:
+                self._lastLoadTime = time.time()
+                self.downloadClsZT()
 
         idx, NUM = 1, 7
         if curTime > '21:30' and (not self.downloadInfos.get(f'clszt-{day}', False)):
