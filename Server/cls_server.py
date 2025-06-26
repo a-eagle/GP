@@ -274,11 +274,11 @@ class Server:
             if not days:
                 return False
             num = self._loadHotTcOfDay(days[-1])
-            console.writeln_1(console.CYAN, f'[Cls-HotTc] {tag} {self.formatNowTime(True)} num {num}')
+            console.writeln_1(console.CYAN, f'{tag} [Cls-HotTc] {self.formatNowTime(True)} num {num}')
             return num > 0
         except Exception as e:
             traceback.print_exc()
-            console.writeln_1(console.CYAN, f'[Cls-HotTc] {tag} Fail')
+            console.writeln_1(console.CYAN, f'{tag} [Cls-HotTc] Fail')
         return False
 
     # 指数（板块概念）

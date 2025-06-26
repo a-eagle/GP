@@ -162,7 +162,8 @@ class Client:
                 datas.append(it)
                 it['updateTime'] = str(it['updateTime'])
             resp = requests.post(f"http://113.44.136.221:8090/pushUpdateData/{ormFile}/{ormClass}", json = datas)
-            console.writeln_1(console.RED, f'Push datas {ormFile}.{ormClass} --> num: {len(datas)} time: {maxTime} ', resp.content.decode())
+            rjs = json.loads(resp.content.decode())
+            console.writeln_1(console.RED, f'Push datas {ormFile}.{ormClass} --> num: {len(datas)} time: {maxTime} =>', rjs['msg'])
         except Exception as e:
             traceback.print_exc()
 
