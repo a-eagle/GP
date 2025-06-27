@@ -94,6 +94,7 @@ class StockTable extends UIListener {
             let timelineView = this.viewsMgr[code];
             if (timelineView._loaded)
                 continue;
+            timelineView._loaded = true;
             timelineView.reloadData();
         }
     }
@@ -584,7 +585,7 @@ class StockTable extends UIListener {
         }
     }
 
-    formatDay (date) {
+    formatDay(date) {
         let y = date.getFullYear();
         let m = date.getMonth() + 1;
         let d = date.getDate();
