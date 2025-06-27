@@ -405,19 +405,13 @@ class Server:
             return f'sh{code}'
         return f'sz{code}'
 
-    # {cols?:[ztReason, hots:[yyyy-mm-dd] ], codes:[]}
+    # {day: '' | 'YYYY-MM-DD', cols?:[xx_ztReason, hots], codes:[]}
     def queryCodesInfo(self):
         from utils import hot_utils
-        params = flask.request.data
-        js = json.loads(params.decode())
-        cols = js.get('cols', ['ztReason', 'hots'])
-        mcols = {}
-        for c in cols:
-            if 'hots:' in c:
-                mcols['hots'] =  c[c.index(':') + 1 : ].strip()
-            else:
-                mcols[c] = True
-        codes = js['codes']
+        params = json.loads(flask.request.data.decode())
+        day = params.get('day', '')
+        cols = set(params.get('cols', []))
+        codes = params['codes']
         ncodes = []
         SS =  ('sz', 'sh')
         for c in codes:
@@ -434,20 +428,24 @@ class Server:
             cl = gn_utils.cls_gntc_s.get(code, None) or {}
             th = gn_utils.ths_gntc_s.get(code, None) or {}
             it['name'] = cl.get('name', '') or th.get('name', '')
-            it['cls_hy'] = cl.get('hy', '')
-            it['ths_hy'] = th.get('hy', '')
-            it['ltsz'] = th.get('ltsz', 0) # 流通市值
-            if 'hots' in mcols:
-                day = mcols['hots']
-                if not day or day == True or len(day) < 8:
+            if 'cls_hy' in cols:
+                it['cls_hy'] = cl.get('hy', '')
+            if 'ths_hy' in cols:
+                it['ths_hy'] = th.get('hy', '')
+            if 'ltsz' in cols:
+                it['ltsz'] = th.get('ltsz', 0) # 流通市值
+            if 'hots' in cols:
+                if not day or len(day) < 8:
                     day = None
                 if zh is None:
                     zh = dynHotZH.getHotsZH(day) or {}
                 hc = zh.get(int(code), None) if zh else None
                 it['hots'] = 0 if not hc else hc['zhHotOrder']
-            if 'ztReason' in mcols:
+            if 'ths_ztReason' in cols:
                 zt = gn_utils.get_CLS_THS_ZT_Reason(code)
                 it['ths_ztReason'] = zt['ths_ztReason'] if zt else ''
+            if 'cls_ztReason' in cols:
+                zt = gn_utils.get_CLS_THS_ZT_Reason(code)
                 it['cls_ztReason'] = zt['cls_ztReason'] if zt else ''
         return rs
 
@@ -537,7 +535,7 @@ class Server:
         hots = {}
         istoks = [s['secu_code'][2 : ] for s in stocks if len(s['secu_code']) == 8 and s['secu_code'][2] in ('0', '3', '6')]
         endDay = datetime.date(endDayInt // 10000, endDayInt // 100 % 100, endDayInt % 100)
-        fromDay = endDay - datetime.timedelta(days = 60)
+        fromDay = endDay - datetime.timedelta(days = 30)
         fromDay = int(fromDay.strftime('%Y%m%d'))
         qr = ths_orm.THS_HotZH.select(ths_orm.THS_HotZH.code, pw.fn.min(ths_orm.THS_HotZH.zhHotOrder)) \
             .where(ths_orm.THS_HotZH.code.in_(istoks), ths_orm.THS_HotZH.day >= fromDay)\
@@ -577,14 +575,3 @@ class Server:
 if __name__ == '__main__':
     svr = Server()
     svr.start()
-
-    cu = cls.ClsUrl()
-    body = {"os": "web", "sv":"8.4.6", "app": "CailianpressWeb"}
-    params = cu.signParams(body)
-    print(params)
-    url = 'https://www.cls.cn/api/subject/固态电池/schema?' + params
-    resp = requests.get(url, headers = cls.ClsUrl.reqHeaders)
-    print(resp.content.decode())
-    url = 'https://www.cls.cn/api/subject/detail/3025?' + params
-    resp = requests.get(url, headers = cls.ClsUrl.reqHeaders)
-    print(resp.content.decode())

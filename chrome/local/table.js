@@ -786,18 +786,16 @@ class StockTable extends UIListener {
         let day = this.day || ''
         let cols = [];
         for (let i = 0; i < this.headers.length; i++) {
-            if (this.headers[i].name == 'hots' && this.headers[i].defined) {
-                cols.push('hots:' + day);
-            }
-            if (this.headers[i].name.indexOf('_ztReason') > 0 && this.headers[i].defined) {
-                cols.push('ztReason');
-            }
+            if (this.headers[i].defined)
+                cols.push(this.headers[i].name);
         }
+        if (cols.length == 0)
+            return;
         $.ajax({
             url: '/query-codes-info',
             type: 'POST',
             contentType: "application/json",
-            data: JSON.stringify({cols: cols, codes: this.getCodeList()}),
+            data: JSON.stringify({day, cols, codes: this.getCodeList()}),
             success: function(resp) {
                 thiz.mergeCodesInfo(resp);
             }
