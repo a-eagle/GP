@@ -425,8 +425,9 @@ class Server:
                 ncodes.append(c)
             elif len(c) == 8 and c[0 : 2] in SS:
                 ncodes.append(c[2 : ])
-        hz = hot_utils.DynamicHotZH.instance()
+        dynHotZH = hot_utils.DynamicHotZH.instance()
         rs = {}
+        zh = None
         for code in ncodes:
             it = {'code': code, 'secu_code': self._getSecuCode(code)}
             rs[it['secu_code']] = it
@@ -440,8 +441,9 @@ class Server:
                 day = mcols['hots']
                 if not day or day == True or len(day) < 8:
                     day = None
-                hh = hz.getHotsZH(day)
-                hc = hh.get(int(code), None) if hh else None
+                if zh is None:
+                    zh = dynHotZH.getHotsZH(day) or {}
+                hc = zh.get(int(code), None) if zh else None
                 it['hots'] = 0 if not hc else hc['zhHotOrder']
             if 'ztReason' in mcols:
                 zt = gn_utils.get_CLS_THS_ZT_Reason(code)

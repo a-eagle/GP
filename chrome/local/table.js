@@ -34,7 +34,7 @@ class UIListener {
  */
 class StockTable extends UIListener {
     // headers = [ {text: 'xxx', name: 'xx', width: 60, sortable: true,
-    //              sortVal?: function(rowData), defined? : true,
+    //              sortVal?: function(rowData, asc), defined? : true,
     //              cellRender?: function(rowIdx, rowData, header, tdObj) },
     //              headerRender? : function(colIdx, header, thObj),
     //           ...]
@@ -286,8 +286,11 @@ class StockTable extends UIListener {
             let k = this.headers[i].name;
             let header = this.headers[i];
             if (k == 'hots' && !header.sortVal) {
-                header.sortVal = function(rowData) {
-                    return rowData.hots && rowData.hots > 0 ? 1000 - rowData.hots : 0
+                header.sortVal = function(rowData, asc) {
+                    if (asc == true) {
+                        return rowData.hots || 10000;
+                    }
+                    return rowData.hots || 0;
                 }
             }
             if (! header.cellRender) {
@@ -717,7 +720,7 @@ class StockTable extends UIListener {
 
     compare(list, name, asc) {
         let type = this.getAttrType(list, name);
-        let get_val = function(a) {return a[name];}
+        let get_val = function(a, asc) {return a[name];}
         for (let i = 0; i < this.headers.length; i++) {
             if (this.headers[i].name == name && this.headers[i].sortVal) {
                 get_val = this.headers[i].sortVal;
@@ -726,16 +729,16 @@ class StockTable extends UIListener {
         }
         if (type == "number") {
             return function(a, b) {
-                let an = get_val(a) || 0;
-                let bn = get_val(b) || 0;
+                let an = get_val(a, asc) || 0;
+                let bn = get_val(b, asc) || 0;
                 let v = an - bn; 
                 return asc ? v : -v;
             };
         }
         if (type == "string") {
             return function(a, b) {
-                let an = get_val(a) || '';
-                let bn = get_val(b) || '';
+                let an = get_val(a, asc) || '';
+                let bn = get_val(b, asc) || '';
                 let v = an.localeCompare(bn); 
                 return asc ? v : -v;
             };
@@ -743,6 +746,7 @@ class StockTable extends UIListener {
         return function(a, b) {return 0;};
     }
 
+    // asc : boolean
     _sortBy(name, asc) {
         //console.log('[sortNumberBy]', name, asc);
         if (!this.datas || !this.table) {

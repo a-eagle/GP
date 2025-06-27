@@ -114,6 +114,12 @@ class StocksManager {
             else val = '';
             tdObj.text(val);
         }
+        let hotSortVal = function(rowData, asc) {
+            if (asc == true) {
+                return rowData.maxHot || 10000;
+            }
+            return rowData.maxHot || 0;
+        }
         let changeRender = function(rowIdx, rowData, head, tdObj) {
             let val = rowData[head.name];
             if (! isNaN(val)) val = String((val * 100).toFixed(2)) + '%';
@@ -124,8 +130,9 @@ class StocksManager {
         let hd = [
             {text: '标记', 'name': 'mark_color', width: 40, defined: true, sortable: true},
             {text: '股票/代码', 'name': 'code', width: 80},
+            {text: '同花顺行业', 'name': 'ths_hy', width: 120, defined: true},
             {text: '涨跌幅', 'name': 'change', width: 70, sortable: true, defined: false, cellRender: changeRender},
-            {text: '最高热度', 'name': 'maxHot', width: 70, sortable: true, defined: true, cellRender: hotRender},
+            {text: '最高热度', 'name': 'maxHot', width: 70, sortable: true, defined: true, cellRender: hotRender, sortVal: hotSortVal},
             {text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
             {text: '成交额', 'name': 'amount', width: 50, sortable: true, defined: true},
             {text: '流通市值', 'name': 'cmc', width: 70, sortable: true},
@@ -133,7 +140,7 @@ class StocksManager {
         if (getLocationParams('refThsCode')) {
             hd.push({text: '行业', 'name': 'hy', width: 250, sortable: true});
         } else {
-            hd.push({text: '领涨次数', 'name': 'head_num', width: 70, sortable: true});
+            // hd.push({text: '领涨次数', 'name': 'head_num', width: 70, sortable: true});
             hd.push({text: '资金流向', 'name': 'fundflow', width: 90, sortable: true});
             hd.push({text: '简介', 'name': 'assoc_desc', width: 250});
         }
@@ -143,7 +150,6 @@ class StocksManager {
         this.ui.append(st.table);
         let code = getLocationParams('code');
         $.get(`/plate/${code}`, function(data) {
-            console.log(data);
             st.setData(data);
             st.buildUI();
         });

@@ -1644,6 +1644,8 @@ class Code_ZT_NumIndicator(ZS_ZT_NumIndicator):
             items : list = self.cdata[day]['items']
             ztItems = [d for d in items if d['limit_up_days'] > 0]
             ztItems.sort(key = lambda d : d['time'])
+            for cur in ztItems:
+                cur['order'] = None
             for idx, cur in enumerate(ztItems):
                 if cur['limit_up_days'] == 0:
                     break
@@ -1659,6 +1661,8 @@ class Code_ZT_NumIndicator(ZS_ZT_NumIndicator):
     
     def _changeCode(self):
         CustomIndicator._changeCode(self)
+        if self.refCode:
+            self.changeZSCode(self.refCode)
 
     def onDblClick(self, x, y):
         if not self.refCode:
