@@ -9,15 +9,35 @@
         <script src="table.js"></script>
         <script src="vue.js"></script>
         <script src="utils.js"></script>
-        <link rel="c.css" type="text/css"> </link>
+        <link rel="stylesheet" type="text/css" href="c.css"> </link>
         <style>
-           
+            .my-info-item {border-bottom: solid 1px #222; margin-bottom: 10px; margin-top: 5px; width: 100%; } 
+            .my-info-item table { border-collapse: collapse; border: 1px solid #ddd; width:100%; text-align: center; cursor:hander; } 
+            .my-info-item table th {border: 1px solid #ddd; background-color: #ECECEC; height: 30px; font-weight: normal; color: #6A6B70;} 
+            .my-info-item table td {border: 1px solid #ddd;}
+            .my-info-item .red {color: #990000;}
+            .my-info-item .green {color: #009900;}
+            .my-info-item .selcol {background-color: #EEE9E9;} 
+            .w-1200 {width: 1400px;}
+            .popup-container .anchors-wrap {position:absolute; width: 800px; height: 250px; background-color: #fcfcfc; border: solid 1px #aaa;}
+            .anchor-list a {text-decoration: none; color: #202020; }
+            .anchor-list .anchor-arrow {float:right; width:15px; text-align:center; border-left:1px solid #c0c0c0; background-color:#c0c0c0; width:15px; height:25px;}
+            .anchor-list .true {background-color: #FFD8D8;}
+            .anchor-list .false {background-color: #A0F1DC;}
         </style>
     </head>
 
     <body>
         <div class="outer">
             <div style="width:1250px; " id="main">
+                <div id="my-group-items"> </div>
+                <div class="my-info-item" name="global-item"></div>
+                <div class="my-info-item" name="time-degree-item" > </div>
+                <div class="my-info-item" name="zdfb-item"> </div>
+                <div class="my-info-item" style="height: 400px;" name="anchor-fs-item" > </div>
+                <div class="my-info-item" name="anchor-list-item" ></div>
+                <div class="toggle-nav-box" name="tab-nav-item"> </div>
+                <div class="my-info-item" style="" name="tab-nav-cnt-item">  </div>
             </div>
         </div>
     </body>

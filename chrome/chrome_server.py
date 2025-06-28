@@ -358,7 +358,6 @@ class Server:
     
     def _getFenShi(self, code, day):
         lastTradeDay = ths_iwencai.getTradeDays()[-1]
-        today = datetime.date.today().strftime('%Y%m%d')
         if not day:
             day = lastTradeDay
         day = day.replace('-', '')
@@ -368,7 +367,7 @@ class Server:
         df.loadLocalData(day)
         rs['pre'] = df.pre
         rs['line'] = df.data
-        if not df.data and today == lastTradeDay and day == today: # load from server
+        if not df.data and day == lastTradeDay: # load from server
             if (code[0 : 3] == 'cls'):
                 data = cls.ClsUrl().loadHistory5FenShi(code)
                 lines = data['line']

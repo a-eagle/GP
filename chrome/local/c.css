@@ -19,3 +19,16 @@
 .toggle-nav-box > div.toggle-nav-active {
     font-weight: bold; color: #222; background-color: #fff; border-top-width: 2px; border-top-color: #222;
 }
+
+.popup-container {
+    z-index: 81100; display: none;  position: fixed; padding: 0; outline: 0; left:0px; top: 0px;width:100%;height:100%;
+}
+.popup-container .content {
+    position:absolute; background-color: #fcfcfc; border: solid 1px #d0d0d0;
+}
+.popup-container p {
+    padding: 0 20px 0 10px; 
+}
+.popup-container p:hover {
+    background-color: #f0f0f0; 
+}

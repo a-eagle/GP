@@ -1,18 +1,16 @@
 class InitMgr {
 	constructor(vue) {
-		this.initUIEnd = false;
 		this.vue = vue;
 		this.init();
 	}
 
 	isReady() {
 		let model = this.vue.data;
-		return  model.tradeDays && this.initUIEnd;
+		return  !!model.tradeDays;
 	}
 
 	init() {
-		this._initRequest();
-		this._initUI();
+		this._loadTradeDays(false);
 	}
 
 	// load trade days
@@ -26,39 +24,6 @@ class InitMgr {
 			model.tradeDays = data;
 			model.initMgrReady = thiz.isReady();
 		}});
-	}
-
-	_initRequest() {
-		this._loadTradeDays(false);
-	}
-
-	_initUI() {
-		let thiz = this;
-		let LEFT_CNT = '#main';
-		let style = document.createElement('style');
-		let css = `.my-info-item {border-bottom: solid 1px #222; margin-bottom: 10px; margin-top: 5px; width: 100%; } \n\
-				.my-info-item table { border-collapse: collapse; border: 1px solid #ddd; width:100%; text-align: center; cursor:hander; } \n\
-				.my-info-item table th {border: 1px solid #ddd; background-color: #ECECEC; height: 30px; font-weight: normal; color: #6A6B70;} \n\
-				.my-info-item table td {border: 1px solid #ddd;} \n\
-				.my-info-item .red {color: #990000;} \n\
-				.my-info-item .green {color: #009900;} \n\
-				.my-info-item .selcol {background-color: #EEE9E9;} \n\
-				.w-1200 {width: 1400px;} \n\
-				`;
-		style.appendChild(document.createTextNode(css));
-		document.head.appendChild(style);
-		let group = $('<div id="my-group-items"> </div>');
-		let md1 = $('<div class="my-info-item" name="global-item"></div>');
-		let md2 = $('<div class="my-info-item" name="time-degree-item" > </div>');
-		let md3 = $('<div class="my-info-item" style="heightx: 90px;" name="zdfb-item"> </div>');
-		let md4 = $('<div class="my-info-item" style="height: 400px;" name="anchor-fs-item" > </div>');
-		let md5 = $('<div class="my-info-item" name="anchor-list-item" ></div>');
-		let md6 = $('<div class="my-info-item toggle-nav-box" name="tab-nav-item"> </div>');
-		let md7 = $('<div class="my-info-item" style="" name="tab-nav-cnt-item">  </div>');
-		group.append(md1).append(md2).append(md3).append(md4).append(md5).append(md6).append(md7);
-		$(`${LEFT_CNT}`).append(group);
-		this.initUIEnd = true;
-		this.vue.data.initMgrReady = this.isReady();
 	}
 }
 
@@ -542,21 +507,6 @@ class AnchorsMgr {
 		let table = $('<table class="anchor-list" style="border-collapse: separate;border-spacing: 15px 10px;"> </table>');
 		$('div[name=anchor-list-item]').append(table);
 		this.table = table;
-
-		let style = document.createElement('style');
-		let css = "\
-				.popup-container {z-index: 81100; display: none;  position: fixed; padding: 0; outline: 0; left:0px; top: 0px;width:100%;height:100%;}\n\
-				.popup-container .content {position:absolute; background-color: #fcfcfc; border: solid 1px #d0d0d0;} \n\
-				.popup-container p {padding: 0 20px 0 10px; } \n\
-				.popup-container p:hover {background-color: #f0f0f0; } \n\
-				.popup-container .anchors-wrap {position:absolute; width: 800px; height: 250px; background-color: #fcfcfc; border: solid 1px #aaa;} \n\
-				.anchor-list a {text-decoration: none; color: #202020; } \n\
-				.anchor-list .anchor-arrow {float:right; width:15px; text-align:center; border-left:1px solid #c0c0c0; background-color:#c0c0c0; width:15px; height:25px;} \n\
-				.anchor-list .true {background-color: #FFD8D8;} \n\
-				.anchor-list .false {background-color: #A0F1DC;} \n\
-				";
-		style.appendChild(document.createTextNode(css));
-		document.head.appendChild(style);
 		let popup = $('<div class="popup-container"> </div>');
 		$(document.body).append(popup);
 		popup.click(function() {$(this).css('display', 'none')});
@@ -821,13 +771,6 @@ class TabNaviMgr {
 			}
 			thiz.loadTabNavi($(this).text().trim());
 		});
-
-		let style = document.createElement('style');
-		let css = `.toggle-nav-box {color: #747474; font-size: 14px; width: 100%; height: 39px; line-height: 38px; border-bottom: 1px solid #e6e7ea; } \n\
-				   .toggle-nav-box > div {float: left; width: 110px; background-color: #f9fafc; text-align: center; border: 1px solid #e6e7ea; border-bottom: none; border-right: none; cursor: pointer;} \n\
-				   .toggle-nav-box > div.toggle-nav-active {font-weight: bold; color: #222; background-color: #fff; border-top-width: 2px; border-top-color: #222;} \n`;
-		style.appendChild(document.createTextNode(css));
-		document.head.appendChild(style);
 	}
 
 	loadTabNavi(name) {

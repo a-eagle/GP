@@ -826,10 +826,10 @@ class TimeLineView extends Listener {
         }
         let thiz = this;
         let run = function (task, resolve) {
-            if (! $(thiz.canvas).is(":visible")) {
-                resolve();
-                return;
-            }
+            // if (! $(thiz.canvas).is(":visible")) {
+            //     resolve();
+            //     return;
+            // }
             thiz.loadData_2(code, day, callback, resolve);
         };
         let task = new Task(code, 0, run);

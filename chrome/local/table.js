@@ -92,7 +92,7 @@ class StockTable extends UIListener {
                 break;
             let code = tr.getAttribute('code');
             let timelineView = this.viewsMgr[code];
-            if (timelineView._loaded)
+            if (!timelineView || timelineView._loaded)
                 continue;
             timelineView._loaded = true;
             timelineView.reloadData();
