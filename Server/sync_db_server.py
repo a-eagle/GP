@@ -91,16 +91,16 @@ class Client:
 
     def start(self):
         while True:
-            if datetime.date.today().weekday() >= 5:
-                time.sleep(60 * 60 * 2)
-                continue
+            # if datetime.date.today().weekday() >= 5:
+            #     time.sleep(60 * 60 * 2)
+            #     continue
             hm = datetime.datetime.now().strftime('%H:%M')
-            if hm < '09:00' or hm > '23:00':
+            if hm < '07:00' or hm > '23:00':
                 time.sleep(5 * 60)
                 continue
-            if not ths_iwencai.isTradeDay():
-                time.sleep(60 * 60 * 2)
-                continue
+            # if not ths_iwencai.isTradeDay():
+            #     time.sleep(60 * 60 * 2)
+            #     continue
             self.checkOnce()
             time.sleep(5 * 60)
 
