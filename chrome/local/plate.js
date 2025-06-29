@@ -12,6 +12,8 @@ class PlateMgr {
         $('#main > div[name=headers]').append(this.detailUI).append(this.columnUI).append(this.zfUI);
         let thiz = this;
         let code = getLocationParams('code');
+        if (code.substring(0, 3) != 'cls')
+            return;
         $.get(`/plate-info/${code}`, function(data) {
             // console.log('[PlateMgr]', data);
             thiz.data = data;
@@ -54,7 +56,8 @@ class SubjectMgr {
     loadData() {
         let thiz = this;
         let title = getLocationParams('name');
-        $.get(`/subject/${title}`, function(data) {
+        let code = getLocationParams('code');
+        $.get(`/subject/${title}?code=${code}`, function(data) {
             // console.log('[SubjectMgr]', data);
             thiz.data = data;
             thiz.buildUI(data.data);

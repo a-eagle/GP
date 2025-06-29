@@ -79,6 +79,11 @@ class Server:
         return rs
 
     def getSubject(self, title):
+        code = flask.request.args.get('code', '')
+        if code[0 : 3] == '88':
+            obj = cls_orm.CLS_ZS.get_or_none(name = title)
+            if not obj:
+                return {}
         url = f'https://www.cls.cn/api/subject/{title}/schema?' + self.signParams()
         resp = requests.get(url, headers = cls.ClsUrl.reqHeaders)
         js = json.loads(resp.content.decode())
