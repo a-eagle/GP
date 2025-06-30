@@ -37,6 +37,7 @@ class BaseWindow(Listener):
     bindHwnds = {}
     def __init__(self) -> None:
         super().__init__()
+        self.mainWin = False # 是否是主窗口
         self.hwnd = None
         self.oldProc = None
         self.drawer = Drawer.instance()
@@ -73,12 +74,13 @@ class BaseWindow(Listener):
             win32gui.EndPaint(self.hwnd, ps)
             return True
         if msg == win32con.WM_DESTROY:
-            style = win32gui.GetWindowLong(hwnd, win32con.GWL_STYLE)
-            if (not (style & win32con.WS_POPUP)) and (not (style & win32con.WS_CHILD)):
-                owner = win32gui.GetWindow(self.hwnd, win32con.GW_OWNER)
-                if not owner:
-                    win32gui.PostQuitMessage(0)
-                return True
+            # style = win32gui.GetWindowLong(hwnd, win32con.GWL_STYLE)
+            # if (not (style & win32con.WS_POPUP)) and (not (style & win32con.WS_CHILD)):
+            #     owner = win32gui.GetWindow(self.hwnd, win32con.GW_OWNER)
+            #     if not owner:
+            #         win32gui.PostQuitMessage(0)
+            if self.mainWin:
+                win32gui.PostQuitMessage(0)
             self.onDestory()
             self.hwnd = None
             del BaseWindow.bindHwnds[hwnd]

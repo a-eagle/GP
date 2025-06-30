@@ -1159,11 +1159,11 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
     def onOpenKLine(self):
         if self.curCode and self.curCode[0 : 2] == '88':
             data = {'code': self.curCode, 'day': None}
-            kline_utils.openInCurWindow(self, data)
+            kline_utils.openInCurWindow(None, data)
             return
         if self.data and 'code' in self.data and self.data['code']:
             data = {'code': self.data['code'], 'day': None}
-            kline_utils.openInCurWindow(self, data)
+            kline_utils.openInCurWindow(None, data)
 
     def onChar(self, char):
         if char >= ord('0') and char <= ord('9'):
