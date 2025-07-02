@@ -1180,7 +1180,7 @@ class AnchrosView extends Listener {
             }
         }
         if (! day) day = '';
-        $.get(`/load-one-anchor?day=${day}`, function(data) {
+        $.get(`/get-hot-tc-by-day?day=${day}`, function(data) {
             rs.anchors = data;
             mcb();
         });

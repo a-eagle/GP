@@ -523,7 +523,7 @@ class AnchorsMgr {
 		}
 		if (newVal == this.vue.data.lastTradeDay) {
 		}
-		$.ajax({url: `/get-anchors?days=20&curDay=${newVal}`, async: true, success: function(data) {
+		$.ajax({url: `/get-all-hot-tc?days=20&curDay=${newVal}`, async: true, success: function(data) {
 			model.anchros = data;
 			model.anchorGroup = thiz.calcGroups(newVal);
 			thiz.loadAnchorOfDay(newVal);

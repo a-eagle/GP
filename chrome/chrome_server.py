@@ -41,8 +41,10 @@ class Server:
         self.app.add_url_rule('/mynote', view_func = self.myNote, methods = [ 'POST'])
         self.app.add_url_rule('/plate/<code>', view_func = self.getPlate)
         self.app.add_url_rule('/industry/<code>', view_func = self.getIndustry)
-        self.app.add_url_rule('/get-anchors', view_func = self.getAnchors)
-        self.app.add_url_rule('/load-one-anchor', view_func = self.getOneAnchor)
+        self.app.add_url_rule('/get-all-hot-tc', view_func = self.getAllHotTc)
+        self.app.add_url_rule('/get-hot-tc-by-day', view_func = self.getHotTcByDay)
+        self.app.add_url_rule('/get-hot-tc-by-code', view_func = self.getHotTcByCode)
+
         self.app.add_url_rule('/load-kline/<code>', view_func = self.loadKLine)
         self.app.add_url_rule('/cls-proxy/', view_func = self.clsProxy)
         self.app.add_url_rule('/subject/<title>', view_func = self.getSubject)
@@ -128,7 +130,7 @@ class Server:
             datas.append(obj)
         return datas
     
-    def getOneAnchor(self):
+    def getHotTcByDay(self):
         day = flask.request.args.get('day', '')
         if not day:
             day = ths_iwencai.getTradeDays()[-1]
@@ -160,7 +162,7 @@ class Server:
             newDatas.append(item)
         return newDatas
         
-    def getAnchors(self):
+    def getAllHotTc(self):
         tds = ths_iwencai.getTradeDays()
         days = int(flask.request.args.get('days', None) or 10)
         curDay = flask.request.args.get('curDay', None) or tds[-1]
@@ -187,6 +189,13 @@ class Server:
             one.append(it)
         rs.sort(key = lambda item : item[0]['day'], reverse = True)
         return rs
+    
+    def getHotTcByCode(self):
+        tds = ths_iwencai.getTradeDays()
+        code = flask.request.args.get('code', None)
+        days = int(flask.request.args.get('days', None) or 10)
+        curDay = flask.request.args.get('curDay', None) or tds[-1]
+        pass
 
     def _openUI_Timeline(self, code, day):
         win = timeline.TimelinePanKouWindow()
