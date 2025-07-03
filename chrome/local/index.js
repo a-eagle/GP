@@ -513,6 +513,8 @@ class AnchorsMgr {
 		popup.on('mousewheel', function(event) {event.preventDefault();});
 
 		this.anchorView = new AnchrosView(canvas.get(0));
+		this.chart = null;
+		this.chartOrgData = null;
 	}
 
 	_onChangeDay(newVal, oldVal) {
@@ -644,51 +646,16 @@ class AnchorsMgr {
 	}
 
 	openChart(elem) {
+		let thiz = this;
 		elem = $(elem);
 		let code = elem.attr('code');
 		let model = this.vue.data;
-		// console.log(code);
-		let rs = this.getAnchrosByCode(code, model.curDay, 20);
-		if (! rs) {
-			return;
-		}
-		let up = rs.up;
-		let down = rs.down;
-	
-		function getDays() {
-			rs.days.sort();
-			return rs.days;
-		}
-		function simpleDays(days) {
-			let rs = [];
-			for (let i = 0; i < days.length; i++) {
-				rs.push(days[i].substring(5));
-			}
-			return rs;
-		}
-		function getDatas(ud) {
-			let rs = [];
-			let ds = getDays();
-			for (let i = 0; i < ds.length; i++) {
-				rs.push(0);
-			}
-			if (! ud) {
-				return rs;
-			}
-			for (let i = 0; i < ds.length; i++) {
-				let num = 0;
-				for (let j = 0; j < ud.length; ++j) {
-					let day = ud[j].day;
-					if (day <= ds[i]) {
-						num++;
-					}
-				}
-				rs[i] = num;
-			}
-			return rs;
-		}
-		let upset = getDatas(up);
-		let downset = getDatas(down);
+		this._loadChartData(code, model.curDay, function(cdata) {
+			thiz._openChartUI(elem, cdata);
+		});
+	}
+
+	_loadChartData(code, day, cb) {
 		function skipped(ctx, set, val) {
 			if (set[ctx.p0DataIndex] == set[ctx.p1DataIndex]) {
 				return val;
@@ -702,26 +669,36 @@ class AnchorsMgr {
 			}
 			return rs;
 		}
-		function pbc() {
-			let rs = [];
-			rs.push('#0000ff');
-			for (let i = 0; i < 4; i++)
-				rs.push(Chart.defaults.borderColor);
-			return rs;
-		}
-		
-		let cdata = {
-			labels: simpleDays(getDays()),
-			datasets: [
-				{label: 'UP', data: upset, fill: false, borderColor: '#FF3333', segment: ss(upset), spanGaps: true},
-				{label: 'DOWN', data: downset, fill: false, borderColor: '#33ff33', segment: ss(downset), spanGaps: true},
-			],
-		};
+		let thiz = this;
+		$.get(`/get-hot-tc-by-code?code=${code}&curDay=${day}&days=20`, function(data) {
+			thiz.chartOrgData = data;
+			let upset = data.up;
+			let downset = data.down;
+			let cdata = {
+				labels: data.sdays,
+				datasets: [
+					{label: 'UP', data: upset, fill: false, borderColor: '#FF3333', segment: ss(upset), spanGaps: true},
+					{label: 'DOWN', data: downset, fill: false, borderColor: '#33ff33', segment: ss(downset), spanGaps: true},
+				],
+			};
+			cb(cdata);
+		});
+	}
+
+	_openChartUI(elem, cdata) {
+		let thiz = this;
+		elem = $(elem);
 		let ui = $('<div class="anchors-wrap"> </div>');
+		let btns = $('<div class="header"> <button class="left"> &lt;&lt; </button>  <button class="right"> &gt;&gt; </button> </div>');
+		btns.find('button').click(function() {
+			thiz.onClickChart($(this).attr('class'));
+		});
+		ui.append(btns);
 		let canvas = $('<canvas> </canvas> ');
 		$('.popup-container').empty();
 		$('.popup-container').css('display', 'block');
 		$('.popup-container').append(ui);
+		ui.click(function(event) {  event.stopPropagation(); return false; });
 		let tdRc = elem.parent().get(0).getBoundingClientRect();
 		let dw = $(window.document).width();
 		if (dw < tdRc.left + ui.width()) {
@@ -731,12 +708,30 @@ class AnchorsMgr {
 		}
 		ui.append(canvas);
 		canvas.width(ui.width());
-		canvas.height(ui.height());
-		canvas.attr('day', model.curDay);
-		new Chart(canvas.get(0), {type: 'line', data: cdata, options: {
-			plugins: {legend: {display: true, title: {display: false}}},
+		canvas.height(ui.height() - btns.height() - 10);
+		// canvas.attr('day', day);
+		function pbc() {
+			let rs = [];
+			rs.push('#0000ff');
+			for (let i = 0; i < 4; i++)
+				rs.push(Chart.defaults.borderColor);
+			return rs;
+		}
+		this.chart = new Chart(canvas.get(0), {type: 'line', data: cdata, options: {
+			plugins: {legend: {display: false, title: {display: false}}},
 			scales: {x: {grid : {color : pbc()}}}
 		}});
+	}
+
+	onClickChart(name) {
+		let thiz = this;
+		let day = name == 'left' ? this.chartOrgData.preDay : this.chartOrgData.nextDay;
+		if (! day) return;
+		this._loadChartData(this.chartOrgData.code, day, function(cdata) {
+			thiz.chart.data.labels = cdata.labels;
+			thiz.chart.data.datasets = cdata.datasets;
+			thiz.chart.update();
+		});
 	}
 }
 

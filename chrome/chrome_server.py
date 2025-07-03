@@ -18,6 +18,7 @@ class Server:
         # log.disabled = True
         flask_cors.CORS(self.app)
         self.uiThread = None
+        self.cache = {}
 
     def start(self):
         #th = threading.Thread(target = self.runner, daemon = True)
@@ -149,6 +150,7 @@ class Server:
         rs = self._clsProxy(url, 60)
         datas = rs['data']
         if not datas:
+            self.cache[f'HotTC-Newest'] = None
             return []
         newDatas = []
         for d in datas:
@@ -160,6 +162,7 @@ class Server:
             item['name'] = d['symbol_name']
             item['up'] = d['float'] == 'up'
             newDatas.append(item)
+        self.cache[f'HotTC-Newest'] = newDatas
         return newDatas
         
     def getAllHotTc(self):
@@ -189,13 +192,47 @@ class Server:
             one.append(it)
         rs.sort(key = lambda item : item[0]['day'], reverse = True)
         return rs
-    
+
     def getHotTcByCode(self):
         tds = ths_iwencai.getTradeDays()
         code = flask.request.args.get('code', None)
-        days = int(flask.request.args.get('days', None) or 10)
+        daysNum = int(flask.request.args.get('days', None) or 20)
         curDay = flask.request.args.get('curDay', None) or tds[-1]
-        pass
+        curDay = curDay.replace('-', '')
+        eidx = tds.index(curDay)
+        fidx = eidx - daysNum + 1
+        fromDay = gn_utils.formatDate(tds[fidx])
+        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day >= fromDay, cls_orm.CLS_HotTc.day <= curDay, cls_orm.CLS_HotTc.code == code).dicts()
+        days = tds[fidx : eidx + 1]
+        preDay = tds[fidx - 1] if fidx > 0 else None
+        nextIdx = min(eidx + daysNum, len(tds))
+        nextDay = tds[nextIdx] if eidx < len(tds) - 1 else None
+        rs = {'code': code,
+              'days': [gn_utils.formatDate(d) for d in days],
+              'sdays': [gn_utils.formatDate(d)[5 : ] for d in days],
+              'preDay': gn_utils.formatDate(preDay),
+              'nextDay': gn_utils.formatDate(nextDay),
+              'up': [], 'down': []}
+        hotsTc = [q for q in qr]
+        # merge today newest
+        cacheData = self.cache.get('HotTC-Newest', None)
+        fmtCurDay = gn_utils.formatDate(curDay)
+        if cacheData and cacheData[0]['day'] == fmtCurDay:
+            tmp = {d['ctime'] : d for d in cacheData if d['code'] == code}
+            for i in range(len(hotsTc) - 1, -1, -1):
+                if hotsTc[i]['day'] != fmtCurDay:
+                    break
+                if hotsTc[i]['ctime'] in tmp:
+                    tmp.pop(hotsTc[i]['ctime'])
+            hotsTc.extend(tmp.values())
+        for day in rs['days']:
+            upNum, downNum = 0, 0
+            for tc in hotsTc:
+                if tc['day'] <= day and tc['up']: upNum += 1
+                if tc['day'] <= day and not tc['up']: downNum += 1
+            rs['up'].append(upNum)
+            rs['down'].append(downNum)
+        return rs
 
     def _openUI_Timeline(self, code, day):
         win = timeline.TimelinePanKouWindow()
