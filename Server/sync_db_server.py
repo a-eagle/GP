@@ -257,11 +257,12 @@ class DbTableManager:
                 obj = getattr(m, name)
                 if not isinstance(obj, type.__class__) or not issubclass(obj, pw.Model):
                     continue
-                if hasattr(obj, 'updateTime'):
-                    fn = m.__name__
-                    if '.' in fn:
-                        fn = fn[fn.index('.') + 1 : ]
-                    rs.append({'ormFileName': fn, 'ormFile': m, 'ormClass': obj, 'ormClassName': obj.__name__})
+                if not hasattr(obj, 'updateTime') or obj == ths_orm.THS_Hot:
+                    continue
+                fn = m.__name__
+                if '.' in fn:
+                    fn = fn[fn.index('.') + 1 : ]
+                rs.append({'ormFileName': fn, 'ormFile': m, 'ormClass': obj, 'ormClassName': obj.__name__})
         return rs
     
     # return datetime object
