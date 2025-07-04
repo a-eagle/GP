@@ -264,29 +264,19 @@ class ContextMenuManager:
             obj.color = scolor
             obj.save()
 
-    def _openRefClsZs(self, code, day):
-        # pip install websockets
-        url = f'https://www.cls.cn/plate?code={code}&day={day}'
-        pyperclip.copy(url)
-        win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
-
-    def _openRefThsZs(self, code, day):
-        obj = ths_orm.THS_ZS.get_or_none(ths_orm.THS_ZS.code == code)
-        name = obj.name if obj else ''
-        url = f'https://www.cls.cn/plate?code=0&day={day}&refThsCode={code}&refThsName={name}'
-        pyperclip.copy(url)
-        win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
-
     def openRefZs(self, code, day):
         if not code:
             return
         if code[0 : 2] == '88':
-            self._openRefThsZs(code, day)
-        elif code[0 : 3] == 'cls':
-            self._openRefClsZs(code, day)
+            obj = ths_orm.THS_ZS.get_or_none(ths_orm.THS_ZS.code == code)
+        else:
+            obj = cls_orm.CLS_ZS.get_or_none(cls_orm.CLS_ZS.code == code)
+        name = obj.name if obj else ''
+        url = f'http://localhost:8080/local/plate.html?code={code}&day={day}&name={name}'
+        win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
 
     def openRefGlobal(self, day):
-        url = f'https://www.cls.cn/finance?day={day}'
+        url = f'http://localhost:8080/local/index.html?day={day}'
         pyperclip.copy(url)
         win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
 
@@ -1379,4 +1369,5 @@ if __name__ == '__main__':
     CODE = '300801'
     win = kline_utils.createKLineWindowByCode(CODE)
     win.changeCode(CODE)
+    win.mainWin = True
     win32gui.PumpMessages()

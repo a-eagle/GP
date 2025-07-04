@@ -1544,9 +1544,21 @@ class ZS_ZT_NumIndicator(CustomIndicator):
             return
         kcode = self.win.klineIndicator.model.code
         tab = TableWindow()
+        def defaultRender(win, hdc, row, col, colName, value, rowData, rect):
+            if not value:
+                return
+            color = 0xFF007F if rowData['code'] == kcode else 0
+            header = win.getHeaderByName(colName)
+            align = header.get('textAlign', win32con.DT_LEFT | win32con.DT_SINGLELINE | win32con.DT_VCENTER)
+            Drawer.instance().drawText(hdc, str(value), rect, color, align)
+
+        def hotFormater(colName, val, rowData):
+            return f'{val}°' if val else ''
+        
         headers = [{'name': '#idx', 'width': 30, 'textAlign': win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE},
-                   {'name': 'mcode', 'width': 80, 'title': '代码', 'textAlign': win32con.DT_WORDBREAK | win32con.DT_VCENTER},
-                   {'name': 'curKCode', 'width': 15, 'title': ''},{'name': 'lb', 'width': 50, 'title': '连板'},
+                   {'name': 'mcode', 'width': 80, 'title': '代码', 'textAlign': win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'render': defaultRender},
+                   {'name': 'lb', 'width': 50, 'title': '连板'},
+                   {'name': 'hots', 'width': 50, 'title': '热度', 'formater': hotFormater},
                    {'name': 'fs', 'width': 80, 'stretch': 1},
                    {'name': 'up_reason', 'width': 100, 'textAlign': win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'paddings': (0, 0, 3, 0)}]
         tab.rowHeight = 50
@@ -1563,6 +1575,7 @@ class ZS_ZT_NumIndicator(CustomIndicator):
             qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day).order_by(cls_orm.CLS_UpDown.time).dicts()
         model = []
         zt, zb, dt = [], [], []
+        hotsZH = hot_utils.DynamicHotZH.instance().getHotsZH(day)
         for it in qr:
             code = it['secu_code'][2 : ]
             fd = gn_utils.hasRefZs(code, zsCode)
@@ -1576,7 +1589,9 @@ class ZS_ZT_NumIndicator(CustomIndicator):
                 reason = reason[0 : reason.index('|')]
             else:
                 reason = reason[0 : 20]
-            itemx = {'code': code, 'mcode': code + '\n' + it['secu_name'], 'name': it['secu_name'], 'day': day, 'lb': lb, 'up_reason': reason}
+            hots = hotsZH.get(int(code), None)
+            if hots: hots = hots['zhHotOrder']
+            itemx = {'code': code, 'mcode': code + '\n' + it['secu_name'], 'name': it['secu_name'], 'day': day, 'lb': lb, 'up_reason': reason, 'hots': hots}
             if itemx['code'] == kcode:
                 itemx['curKCode'] = '*'
             if it['limit_up_days'] > 0:
