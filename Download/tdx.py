@@ -30,10 +30,11 @@ class TdxGuiDownloader:
         os.system('taskkill /F /IM TdxW.exe')
 
     # x, y is relative position hwnd
-    def click(self, hwnd, x, y):
+    def click(self, hwnd, x, y, seconds = 2):
         win32api.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, 0, y * 65536 + x)
         time.sleep(0.1)
         win32api.PostMessage(hwnd, win32con.WM_LBUTTONUP, 0, y * 65536 + x)
+        time.sleep(seconds)
 
     def inputs(self, hwnd, chars):
         for ch in chars:
@@ -170,11 +171,14 @@ class TdxGuiDownloader:
         # win32gui.SetForegroundWindow(hwnd)
         tabWin = win32gui.FindWindowEx(hwnd, None, 'SysTabControl32', 'Tab2')
         self.click(tabWin, 110, 10)
-        time.sleep(2)
         oneFsBtn = win32gui.FindWindowEx(hwnd, None, 'Button', '1分钟线数据')
-        print(f'oneFsBtn = {oneFsBtn :x}')
-        self.click(oneFsBtn, 10, 5)
-
+        checked = win32gui.SendMessage(oneFsBtn, win32con.BM_GETCHECK, 0, 0)
+        if not checked:
+            self.click(oneFsBtn, 10, 5)
+        allBtn = win32gui.FindWindowEx(hwnd, None, 'Button', '下载所有AB股类品种的分钟线数据')
+        checked = win32gui.SendMessage(allBtn, win32con.BM_GETCHECK, 0, 0)
+        if not checked:
+            self.click(allBtn, 10, 5)
         fromDayCtrl = win32gui.GetDlgItem(hwnd, 0x4D5)
         print(f'fromDayCtrl={fromDayCtrl:X}')
         if not fromDayCtrl:
@@ -336,5 +340,8 @@ class Main:
             self.runLoop()
 
 if __name__ == '__main__':
+    #dd = TdxGuiDownloader()
+    #dd.startDownloadForTimeMinute()
+
     mm = Main()
     mm.start()
