@@ -1,1 +1,1 @@
-python D:\vscode-home\GP\download\tdx.py --once
+python download\tdx.py --once
