@@ -257,7 +257,7 @@ class DbTableManager:
                 obj = getattr(m, name)
                 if not isinstance(obj, type.__class__) or not issubclass(obj, pw.Model):
                     continue
-                if not hasattr(obj, 'updateTime') or obj == ths_orm.THS_Hot:
+                if not hasattr(obj, 'updateTime'):
                     continue
                 fn = m.__name__
                 if '.' in fn:
