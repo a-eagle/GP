@@ -271,7 +271,7 @@ class Writer:
         if not datas:
             return True
         if len(datas) % datafile.T_DataModel.MINUTES_IN_DAY != 0:
-            print('[Writer._writeToNetFile_T] invalid data length', code, path)
+            print('[Writer._writeToNetFile_T] invalid data length', code)
             return False
         path = datafile.T_DataModel(code).getLocalPath('TIME')
         filesize = 0
