@@ -106,25 +106,26 @@ class THS_ZT(pw.Model):
     class Meta:
         database = db_ths
 
-# db_codes = pw.SqliteDatabase(f'{path}GP/db/codes.db')
-# # 个股信息
-# class CodesInfo(pw.Model):
-#     code = pw.CharField()
-#     name = pw.CharField(null = True)
-#     zgb = pw.FloatField() # 总股本 股
-#     ltag = pw.FloatField() # 流通a股 股
-#     pe = pw.FloatField() # 市盈率
-#     peTTM = pw.FloatField() # 市盈率(pe,ttm)
+db_ths_codes = pw.SqliteDatabase(f'{path}GP/db/THS_Codes.db')
+# 个股信息
+class THS_CodesInfo(pw.Model):
+    code = pw.CharField()
+    name = pw.CharField(null = True)
 
-#     class Meta:
-#         database = db_codes
+    jrl = pw.CharField(null = True) # 近3年净利润
+    jrl_2 = pw.CharField(null = True) # 近4季度净利润
+    yysr = pw.CharField(null = True) # 近3年营业收入
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+
+    class Meta:
+        database = db_ths_codes
 
 db_hot.create_tables([THS_Hot])
 db_hot_zh.create_tables([THS_HotZH])
 db_thszs.create_tables([THS_ZS_ZD])
 db_gntc.create_tables([THS_GNTC])
 db_ths.create_tables([THS_ZT])
-
+db_ths_codes.create_tables([THS_CodesInfo])
 
 if __name__ == '__main__':
     pass

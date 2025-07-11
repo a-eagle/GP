@@ -290,30 +290,30 @@ class Server:
         if curTime >= '15:05' and (not self.downloadInfos.get(f'zh-hots-{day}', False)):
             self.downloadInfos[f'zh-hots-{day}'] = True
             hot_utils.calcAllHotZHAndSave()
-            console.writeln_1(console.GREEN, f'[1/6] [THS-ZH-hot] {self.formatNowTime(False)}', ' calc hot ZH success')
+            console.writeln_1(console.GREEN, f'[1/7] [THS-ZH-hot] {self.formatNowTime(False)}', ' calc hot ZH success')
             time.sleep(60)
         # 下载成交量前100信息
         if curTime >= '15:05' and not self.downloadInfos.get(f'vol-top100-{day}', False):
             self.downloadInfos[f'vol-top100-{day}'] = True
-            self.downloadSaveVolTop100('[2/6]')
+            self.downloadSaveVolTop100('[2/7]')
             time.sleep(60)
         # 下载同花顺指数涨跌信息
         if curTime >= '15:05' and not self.downloadInfos.get(f'zs-{day}', False):
             self.downloadInfos[f'zs-{day}'] = True
-            self.downloadSaveZs('[3/6]')
+            self.downloadSaveZs('[3/7]')
             time.sleep(50)
         # 下载个股板块概念信息
         if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False):
             self.downloadInfos[f'hygn-{day}'] = True
             if now.weekday() == 1: # 每周二
-                self.download_hygn('[4/6]')
+                self.download_hygn('[4/7]')
             else:
                 console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn] skip, only week 2 download')
             time.sleep(60)
         # 下载个股PeTTM
         if (curTime >= '20:00') and not self.downloadInfos.get(f'hygn_ttm-{day}', False):
             if now.weekday() == 2: # 每周三
-                ok = self.download_hygn_ttm('[4/6]')
+                ok = self.download_hygn_ttm('[4/7]')
                 self.downloadInfos[f'hygn_ttm-{day}'] = ok
             else:
                 self.downloadInfos[f'hygn_ttm-{day}'] = True
@@ -321,15 +321,24 @@ class Server:
             time.sleep(60)
         # 下载个股跌停
         if (curTime >= '22:00') and not self.downloadInfos.get(f'dt-{day}', False):
-            ok = self.download_dt('[5/6]')
+            ok = self.download_dt('[5/7]')
             self.downloadInfos[f'dt-{day}'] = ok
             time.sleep(60)
         # 下载同花顺涨停信息
         if (curTime >= '22:00') and not self.downloadInfos.get(f'zt-{day}', False):
             ok = self.downloadZT(day)
             self.downloadInfos[f'zt-{day}'] = ok
-            console.writeln_1(console.GREEN, f'[6/6] [THS-ZT] {self.formatNowTime(True)}  {ok}')
+            console.writeln_1(console.GREEN, f'[6/7] [THS-ZT] {self.formatNowTime(True)}  {ok}')
             time.sleep(60)
+        #下载营收、净利润
+        if (curTime >= '22:00') and not self.downloadInfos.get(f'jrl-{day}', False):
+            self.downloadInfos[f'jrl-{day}'] = True
+            accept = not self.downloadInfos.get(f'jrl-month-{day[0 : 6]}', False)
+            self.downloadInfos[f'jrl-month-{day[0 : 6]}'] = True
+            if now.weekday() == 3 and accept: # 每周四
+                self.download_jrl('[7/7] THS-Jrl')
+            else:
+                console.writeln_1(console.GREEN, f'[7/7] [THS-Jrl] skip, only week 4 download')
 
     def loadHotsOneTime(self):
         now = datetime.datetime.now()
@@ -343,6 +352,34 @@ class Server:
             if (now.minute % 5 <= 1) and (time.time() - self.last_hot_time >= 3 * 60):
                 self.last_hot_time = time.time()
                 self.downloadSaveHot()
+
+    # 净利润 营收
+    def download_jrl(self, tag):
+        jrlData = ths_iwencai.download_jrl()
+        jrlData2 = ths_iwencai.download_jrl_2()
+        jrlData += jrlData2
+        ud = datetime.datetime.now()
+        ex = {}
+        def diff(obj, new):
+            changed = False
+            for k in new:
+                if getattr(obj, k, None) != new[k]:
+                    changed = True
+                    setattr(obj, k, new[k])
+                    obj.updateTime = ud
+            return changed
+
+        for it in ths_orm.THS_CodesInfo.select():
+            ex[it.code] = it
+        for it in jrlData:
+            if it['code'] not in ex:
+                item = ths_orm.THS_CodesInfo.create(**it)
+                ex[item.code] = item
+            else:
+                item = ex[it['code']]
+                if diff(item, it):
+                    item.save()
+        console.writeln_1(console.GREEN, f'{tag} Success')
 
 if __name__ == '__main__':
     #autoLoadHistory(20240708)
@@ -358,5 +395,7 @@ if __name__ == '__main__':
     #         continue
     #     time.sleep(1)
     #     s.downloadSaveVolTop100(d, d)
-    s.download_dt('a', '2025-04-29')
+    #s.download_dt('a', '2025-04-29')
+    # s.download_jrl('[8/8]')
 
+   

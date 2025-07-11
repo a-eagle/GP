@@ -550,6 +550,51 @@ def download_vol_top100(day = None):
         rs.append(obj)
     return rs
 
+# 近三年净利润
+def download_jrl():
+    datas = iwencai_load_list('近3年净利润', maxPage = None)
+    rs = []
+    for idx, it in enumerate(datas):
+        obj = {}
+        column = ThsColumns(it)
+        obj['code'] = it['code']
+        obj['name'] = it['股票简称']
+        yysl = column.getColumnValue('营业收入', float, listValue = True)
+        yyslVal = []
+        for y in yysl:
+            yd = column.getColumnDay(y[0])
+            yyslVal.append((yd, y[1]))
+        jrl = column.getColumnValue('归属于母公司所有者的净利润', float, listValue = True)
+        jrlVal = []
+        for y in jrl:
+            yd = column.getColumnDay(y[0])
+            jrlVal.append((yd, y[1]))
+        yyslVal.sort(key = lambda k: k[0], reverse = True)
+        jrlVal.sort(key = lambda k: k[0], reverse = True)
+        obj['yysr'] = json.dumps(yyslVal)
+        obj['jrl'] = json.dumps(jrlVal)
+        rs.append(obj)
+    return rs
+
+# 近四季度净利润
+def download_jrl_2():
+    datas = iwencai_load_list('近4季度净利润', maxPage = None)
+    rs = []
+    for idx, it in enumerate(datas):
+        obj = {}
+        column = ThsColumns(it)
+        obj['code'] = it['code']
+        obj['name'] = it['股票简称']
+        jrl = column.getColumnValue('归属于母公司所有者的净利润', float, listValue = True)
+        jrlVal = []
+        for y in jrl:
+            yd = column.getColumnDay(y[0])
+            jrlVal.append((yd, y[1]))
+        jrlVal.sort(key = lambda k: k[0], reverse = True)
+        obj['jrl_2'] = json.dumps(jrlVal)
+        rs.append(obj)
+    return rs
+
 def isTradeDay():
     lastDay = getTradeDays()[-1]
     today = datetime.date.today().strftime('%Y%m%d')
@@ -560,5 +605,7 @@ if __name__ == '__main__':
     # ds = download_codes(20250401)
     #iwencai_load_list('个股热度排名<=200且个股热度从大到小排名')
     #num = download_hygn()
-    num2 = download_hygn_pe()
+    #num2 = download_hygn_pe()
+
+    download_jrl_2()
     

@@ -1560,7 +1560,8 @@ class ZS_ZT_NumIndicator(CustomIndicator):
                    {'name': 'lb', 'width': 50, 'title': '连板'},
                    {'name': 'hots', 'width': 50, 'title': '热度', 'formater': hotFormater},
                    {'name': 'fs', 'width': 80, 'stretch': 1},
-                   {'name': 'up_reason', 'width': 100, 'textAlign': win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'paddings': (0, 0, 3, 0)}]
+                   {'name': 'up_reason', 'width': 100, 'textAlign': win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'paddings': (0, 0, 3, 0)},
+                   {'name': 'hy', 'width': 100, 'textAlign': win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'paddings': (0, 0, 3, 0), 'fontSize': 12}]
         tab.rowHeight = 50
         tab.css['selBgColor'] = 0xEAD6D6 # 0xEAD6D6 #0xf0a0a0
         tab.headers = headers
@@ -1591,7 +1592,10 @@ class ZS_ZT_NumIndicator(CustomIndicator):
                 reason = reason[0 : 20]
             hots = hotsZH.get(int(code), None)
             if hots: hots = hots['zhHotOrder']
-            itemx = {'code': code, 'mcode': code + '\n' + it['secu_name'], 'name': it['secu_name'], 'day': day, 'lb': lb, 'up_reason': reason, 'hots': hots}
+            hy = gn_utils.get_THS_GNTC_Attr(code, 'hy') or ''
+            hy = hy.replace('-', '-\n')
+            itemx = {'code': code, 'mcode': code + '\n' + it['secu_name'], 'name': it['secu_name'], 
+                     'day': day, 'lb': lb, 'up_reason': reason, 'hots': hots, 'hy': hy}
             if itemx['code'] == kcode:
                 itemx['curKCode'] = '*'
             if it['limit_up_days'] > 0:
@@ -1602,7 +1606,7 @@ class ZS_ZT_NumIndicator(CustomIndicator):
                 zb.append(itemx)
         model = zt + zb + dt
         popup = dialog.Dialog()
-        W, H = 650, 350
+        W, H = 750, 400
         style = win32con.WS_POPUP | win32con.WS_CAPTION | win32con.WS_SYSMENU | win32con.WS_SIZEBOX
         popup.createWindow(self.win.hwnd, (0, 0, W, H), style, title = f'{day}')
         tab.createWindow(popup.hwnd, (0, 0, 1, 1))
