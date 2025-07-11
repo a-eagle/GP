@@ -1,5 +1,5 @@
 import win32gui, win32con , win32api, win32ui # pip install pywin32
-import threading, time, datetime, sys, os, threading, copy, traceback
+import threading, time, datetime, sys, os, threading, copy, traceback, json
 import sys, pyautogui
 import peewee as pw
 import types
@@ -1011,6 +1011,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.MIN_SIZE = (60, 30)
         self.maxMode = True
         self.inputs = ''
+        self.detailWin = None
         base_win.ThreadPool.instance().start()
 
     def show(self, x, y):
@@ -1165,6 +1166,98 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
             data = {'code': self.data['code'], 'day': None}
             kline_utils.openInCurWindow(None, data)
 
+    class DetailWindow(base_win.NoActivePopupWindow):
+        def __init__(self) -> None:
+            super().__init__()
+            self.css['bgColor'] = 0x0
+            self.css['borderColor'] = 0xFFCC99
+            self.destroyOnHide = False
+            self.code = None
+            self.data = None
+
+        def formatMoney(self, val):
+            if type(val) != float:
+                return '-'
+            if val >= 100000000:
+                return f'{int(val / 100000000)}亿'
+            if val >= 10000:
+                return f'{int(val / 10000)}万'
+            return int(val)
+        
+        def formatYearMonth(self, val, year):
+            val = str(val)
+            if year:
+                return val[0 : 4] + '年'
+            return val[0 : 4] + '-' + val[4 : 6]
+
+        def onDraw(self, hdc):
+            if not self.data:
+                return
+            ITEM_H = 25
+            COL_NUM = 4
+            W, H = self.getClientSize()
+            titleColor = 0xFFCC99
+            self.drawer.fillRect(hdc, (1, 1, W-1, ITEM_H), 0x202020)
+            V_CENTER = win32con.DT_VCENTER | win32con.DT_SINGLELINE
+            VH_CENTER = V_CENTER | win32con.DT_CENTER
+            self.drawer.drawText(hdc, '营业收入', (15, 0, W, ITEM_H), color = titleColor, align = VH_CENTER)
+            y = ITEM_H
+            self.drawer.fillRect(hdc, (1, ITEM_H, W-1, y + ITEM_H - 1), 0x202020)
+            WC = W / COL_NUM
+
+            for idx, it in enumerate(self.data['yysr']):
+                sx = int(idx * WC)
+                ex = int(sx + WC)
+                self.drawer.drawText(hdc, self.formatYearMonth(it[0], True), (sx, y, ex, y + ITEM_H), color = titleColor, align = VH_CENTER)
+                self.drawer.drawText(hdc, self.formatMoney(it[1]), (sx, y + ITEM_H, ex, y + ITEM_H * 2), color = 0xaaaaaa, align = VH_CENTER)
+
+            y += ITEM_H * 2
+            self.drawer.fillRect(hdc, (1, y, W-1, y + ITEM_H), 0x202020)
+            self.drawer.drawText(hdc, '净利润', (15, y, W, y + ITEM_H), color = titleColor, align = VH_CENTER)
+            y += ITEM_H
+            self.drawer.fillRect(hdc, (1, y, W-1, y + ITEM_H - 1), 0x202020)
+            for idx, it in enumerate(self.data['jrl']):
+                sx = int(idx * WC)
+                ex = int(sx + WC)
+                self.drawer.drawText(hdc, self.formatYearMonth(it[0], True), (sx, y, ex, y + ITEM_H), color = titleColor, align = VH_CENTER)
+                self.drawer.drawText(hdc, self.formatMoney(it[1]), (sx, y + ITEM_H, ex, y + ITEM_H * 2), color = 0xaaaaaa, align = VH_CENTER)
+
+            y += ITEM_H * 2
+            self.drawer.fillRect(hdc, (1, y, W-1, y + ITEM_H), 0x202020)
+            self.drawer.drawText(hdc, '净利润', (15, y, W, y + ITEM_H), color = titleColor, align = VH_CENTER)
+            y += ITEM_H
+            self.drawer.fillRect(hdc, (1, y, W-1, y + ITEM_H - 1), 0x202020)
+            for idx, it in enumerate(self.data['jrl_2']):
+                sx = int(idx * WC)
+                ex = int(sx + WC)
+                self.drawer.drawText(hdc, self.formatYearMonth(it[0], False), (sx, y, ex, y + ITEM_H), color = titleColor, align = VH_CENTER)
+                self.drawer.drawText(hdc, self.formatMoney(it[1]), (sx, y + ITEM_H, ex, y + ITEM_H * 2), color = 0xaaaaaa, align = VH_CENTER)
+
+        def loadData(self, code):
+            if self.code == code:
+                return
+            obj = ths_orm.THS_CodesInfo.get_or_none(code = code)
+            if not obj:
+                self.data = None
+            else:
+                self.data = obj.__data__
+                self.data['jrl'] = json.loads(self.data['jrl']) if self.data['jrl'] else []
+                self.data['jrl_2'] = json.loads(self.data['jrl_2']) if self.data['jrl_2'] else []
+                self.data['yysr'] = json.loads(self.data['yysr']) if self.data['yysr'] else []
+            self.invalidWindow()
+
+    def onOpenDetail(self):
+        if not self.curCode or self.curCode[0] not in ('0', '3', '6'):
+            return
+        if self.curCode[0 : 3] == '399':
+            return
+        if not self.detailWin:
+            self.detailWin = self.DetailWindow()
+            self.detailWin.createWindow(self.hwnd, (0, 0, 300, 235))
+        self.detailWin.loadData(self.curCode)
+        self.detailWin.show(*win32gui.GetCursorPos())
+        self.detailWin.msgLoop()
+
     def onChar(self, char):
         if char >= ord('0') and char <= ord('9'):
             self.inputs += chr(char)
@@ -1188,6 +1281,9 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
             return True
         if msg == win32con.WM_LBUTTONDOWN:
             win32gui.SetFocus(self.hwnd)
+            return True
+        if msg == win32con.WM_RBUTTONDOWN:
+            self.onOpenDetail()
             return True
         if msg == win32con.WM_CHAR:
             self.onChar(wParam)
@@ -1276,6 +1372,12 @@ if __name__ == '__main__':
     #win.changeCode('688800')
     #win.changeLastDay(20250102)
     #win32gui.PumpMessages()
+
+    win = CodeBasicWindow()
+    win.createWindow(None)
+    win.changeCode('001298')
+    win.show(300, 500)
+    win32gui.PumpMessages()
 
     import ths_win
     thsWin = ths_win.ThsWindow()
