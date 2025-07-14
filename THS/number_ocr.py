@@ -4,7 +4,9 @@ import win32gui, win32con , win32api, win32ui # pip install pywin32
 import easyocr
 
 # pip install pytesseract
-# https://github.com/UB-Mannheim/tesseract/wiki 下载
+# https://github.com/UB-Mannheim/tesseract/wiki 
+#  下载中文训练数据文件。中文训练数据文件可以从Tesseract的GitHub仓库下载，文件名为chi_sim.traineddata（简体中文）或chi_tra.traineddata（繁体中文）。
+#  将下载的文件放到Tesseract安装目录下的tessdata文件夹中
 import pytesseract
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'

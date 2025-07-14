@@ -81,7 +81,7 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         return True
     
     def parsePrice(self, img : Image, rs):
-        img.save('D:/price.bmp')
+        #img.save('D:/price.bmp')
         text = number_ocr.readTextfromImage(img)
         text = text.replace('. ', '.').strip()
         ps = text.split(' ')
