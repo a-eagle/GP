@@ -1,14 +1,35 @@
-import time, os, platform, io
+import time, os, platform, io, re
 from PIL import Image
 import win32gui, win32con , win32api, win32ui # pip install pywin32
 import easyocr
 
+# pip install pytesseract
+# https://github.com/UB-Mannheim/tesseract/wiki 下载
+import pytesseract
+
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 _ecor = None
-def eocr():
+
+def readTextfromImage(img : Image, **kwargs):
+    return pytesseract.image_to_string(img)
+
+def readCodeFromImage(img : Image, **kwargs):
+    result = pytesseract.image_to_string(img)
+    if not result:
+        return False
+    cc = re.compile('\d{6}')
+    ms = cc.findall(result)
+    if not ms:
+        return False
+    code = ms[0]
+    return code
+
+# allowlist = '0123456789'
+def readTextfromBits(bits, **kwargs):
     global _ecor
     if not _ecor:
         _ecor = easyocr.Reader(['ch_sim'], download_enabled = True ) # ch_sim  en
-    return _ecor
+    return _ecor.readtext(bits, kwargs)
 
 class RGBImage:
     def __init__(self, oimg : Image) -> None:

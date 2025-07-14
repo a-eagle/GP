@@ -14,7 +14,6 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
     def __init__(self) -> None:
         self.titleHwnds = set()
         self.wbOcr = number_ocr.NumberOCR('wb', '+-.%0123456789')
-        self.ocr = number_ocr.eocr()
         self.codeOcr = CnOcr(cand_alphabet = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
 
     # wb = 委比 28.45
@@ -72,62 +71,23 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
     
     def parseCodeName(self, img : Image, rs):
         # img.save('D:/code.bmp')
-        eimg = number_ocr.BaseEImage(img, lambda v : 0 if v <= 30 else 255)
-        splists = eimg.splitVertical()
-        destImg = eimg.expand(splists[-6 : ], 20)
-        # destImg.save('D:/code-extend.bmp')
-        # result = self.codeOcr.ocr(img)
-
-        bmpBytes = io.BytesIO()
-        destImg.save(bmpBytes, format = 'bmp')
-        bits = bmpBytes.getvalue()
-        result = self.ocr.readtext(bits, allowlist = '0123456789')
-        if not result:
+        code = number_ocr.readCodeFromImage(img)
+        if not code:
             return False
-        code = result[0][1]
-        if len(code) < 6:
-            return False
-        rs['code'] = code[-6 : ]
+        rs['code'] = code
         rs['name'] = ''
         if rs['code'][0 : 2] not in ('00', '30', '60', '68', '88'):
             return False
         return True
     
     def parsePrice(self, img : Image, rs):
-        eimg = number_ocr.EImage(img)
-        items = eimg.split()
-        if not items:
+        img.save('D:/price.bmp')
+        text = number_ocr.readTextfromImage(img)
+        text = text.replace('. ', '.').strip()
+        ps = text.split(' ')
+        if not ps:
             return False
-        maxHeight, sn = 0, 0
-        first = items[0]
-        rect = [first[0], 0, 0, img.height]
-        for it in items:
-            h = it[3] - it[1]
-            if maxHeight < h:
-                maxHeight = h
-            if maxHeight - h >= 4:
-                sn += 1
-            if sn > 1:
-                rect[2] = it[0]
-                break
-        W = rect[2] - rect[0]
-        if W <= 0:
-            return False
-        priceImg = img.crop(tuple(rect))
-        bmpBytes = io.BytesIO()
-        priceImg.save(bmpBytes, format = 'bmp')
-        bits = bmpBytes.getvalue()
-        result = self.ocr.readtext(bits, allowlist = '0123456789.')
-        if not result:
-            return False
-        price = ''
-        for r in result:
-            price += r[1]
-        if len(price) < 3:
-            return False
-        if '.' not in price:
-            price = price[0 : -2] + '.' + price[-2 : ]
-        rs['price'] = float(price)
+        rs['price'] = float(ps[0])
         return True
         
         # zhang die & zhang fu
@@ -470,6 +430,7 @@ if __name__ == '__main__':
     print(f'mainWin={thsWin.mainHwnd :X}')
     while True:
         rs = s.runOcr(thsWin.mainHwnd)
+        print(rs)
         time.sleep(3)
         break
     # time.sleep(100)

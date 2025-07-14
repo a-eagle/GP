@@ -18,7 +18,6 @@ class ThsWindow(base_win.BaseWindow):
         self.level2CodeHwnd = None
         self.selDayHwnd = None
         self.numberOcr = number_ocr.NumberOCR('day', '0123456789')
-        self.ocr = number_ocr.eocr()
 
     @classmethod
     def ins(clazz):
@@ -222,7 +221,7 @@ class ThsWindow(base_win.BaseWindow):
         rc = (sx, 0, ex + 5, img.height)
         img = img.crop(rc)
         #img.save('D:/a.bmp')
-        rs = self.ocr.readtext(dwu.imgToBmpBytes(img), allowlist = '0123456789')
+        rs = number_ocr.readTextfromBits(dwu.imgToBmpBytes(img), allowlist = '0123456789')
         if not rs:
             return ''
         code = rs[0][1]
@@ -230,7 +229,6 @@ class ThsWindow(base_win.BaseWindow):
             return code
         return ''
 
-        
 class ThsFuPingWindow(ThsWindow):
     def __init__(self) -> None:
         super().__init__()

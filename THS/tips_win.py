@@ -1176,11 +1176,11 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
             self.data = None
 
         def formatMoney(self, val):
-            if type(val) != float:
+            if type(val) != float and type(val) != int:
                 return '-'
-            if val >= 100000000:
+            if abs(val) >= 100000000:
                 return f'{int(val / 100000000)}亿'
-            if val >= 10000:
+            if abs(val) >= 10000:
                 return f'{int(val / 10000)}万'
             return int(val)
         
