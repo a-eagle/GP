@@ -206,28 +206,11 @@ class ThsWindow(base_win.BaseWindow):
         rc = win32gui.GetClientRect(self.mainHwnd)
         w = rc[2] - rc[0]
         img = dwu.dumpImg(self.mainHwnd, (int(w * 0.4), 52, int(w * 0.7), 85))
-        VER_LINE_COLOR = (0x66, 0, 0)
-        rimg = number_ocr.RGBImage(img)
-        sx = rimg.horSearchBoxColor(0, 0, 1, img.height, VER_LINE_COLOR)
-        if sx < 0:
+        # img.save('D:/lhb-code.bmp')
+        code = number_ocr.readCodeFromImage(img)
+        if not code:
             return ''
-        BG_COLOR = (0, 0, 0)
-        sx = rimg.horSearchBoxColor(sx + 30, 0, 10, img.height, BG_COLOR)
-        if sx < 0:
-            return ''
-        ex = rimg.horSearchBoxColor(sx + 40, 0, 10, img.height, BG_COLOR)
-        if ex < 0:
-            return ''
-        rc = (sx, 0, ex + 5, img.height)
-        img = img.crop(rc)
-        #img.save('D:/a.bmp')
-        rs = number_ocr.readTextfromBits(dwu.imgToBmpBytes(img), allowlist = '0123456789')
-        if not rs:
-            return ''
-        code = rs[0][1]
-        if len(code) == 6:
-            return code
-        return ''
+        return code
 
 class ThsFuPingWindow(ThsWindow):
     def __init__(self) -> None:
