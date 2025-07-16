@@ -131,6 +131,7 @@ class Server:
             else:
                 obj.fb = json.dumps(fb)
                 obj.zhqd = degree
+                obj.updateTime = datetime.datetime.now()
                 obj.save()
             console.writeln_1(console.CYAN, f'{tag} [CLS-Degree]', day, ' -> ', degree)
             return True
