@@ -387,6 +387,7 @@ class T_DataModel(DataModel):
                 self.pre = pre
             self.data = rs
         f.close()
+        self.calcAvgPrice()
         return len(rs) > 0
 
     def _parseMiniteItem(self, bs):

@@ -205,7 +205,7 @@ class Server:
         qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day >= fromDay, cls_orm.CLS_HotTc.day <= curDay, cls_orm.CLS_HotTc.code == code).dicts()
         days = tds[fidx : eidx + 1]
         preDay = tds[fidx - 1] if fidx > 0 else None
-        nextIdx = min(eidx + daysNum, len(tds))
+        nextIdx = min(eidx + daysNum, len(tds) - 1)
         nextDay = tds[nextIdx] if eidx < len(tds) - 1 else None
         rs = {'code': code,
               'days': [gn_utils.formatDate(d) for d in days],
@@ -440,7 +440,7 @@ class Server:
         for ln in rs['line']:
             item = {}
             for k in KS: 
-                item[k] = getattr(ln, k)
+                item[k] = getattr(ln, k, None)
             rsd.append(item)
         rs['line'] = rsd
         return rs
