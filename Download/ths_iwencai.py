@@ -518,6 +518,12 @@ def getTradeDays(prev = 600):
         traceback.print_exc()
     return None
 
+def getTradeDaysInt(prev = 600):
+    days = getTradeDays(prev)
+    if not days:
+        return days
+    return [int(d) for d in days]
+
 # 查找前100个股成交量
 # day = int | str
 def download_vol_top100(day = None):

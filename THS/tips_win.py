@@ -834,13 +834,12 @@ class HotZHCardView(ListView):
             if 'HX_zhangFu_Native' in data:
                 del data['HX_zhangFu_Native']
             return
-        dt = datafile.DataFile(code, datafile.DataFile.DT_DAY)
-        dt.loadData(datafile.DataFile.FLAG_ALL)
-        idx = dt.getItemIdx(self.curSelDay)
-        if idx <= 0:
+        dt = datafile.T_DataModel(code)
+        dt.loadLocalData(self.curSelDay)
+        if not dt.data:
             return
-        pre = dt.data[idx - 1].close
-        cur = dt.data[idx].close
+        pre = dt.pre
+        cur = dt.data[-1].price
         data['HX_curPrice_Native'] = cur / 100
         data['HX_prePrice_Native'] = pre / 100
         data['HX_zhangFu_Native'] = (cur - pre) / pre * 100
@@ -939,7 +938,8 @@ class HotZHCardView(ListView):
             self.windowTitle = f'HotZH'
             win32gui.SetWindowText(self.hwnd, self.windowTitle)
         else:
-            tradeDays = hot_utils.getTradeDaysByHot()
+            from download import ths_iwencai
+            tradeDays = ths_iwencai.getTradeDaysInt()
             bef = 0
             for i in range(len(tradeDays) - 1, 0, -1):
                 if selDay < tradeDays[i]:
