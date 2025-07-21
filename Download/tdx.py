@@ -5,7 +5,7 @@ import peewee as pw
 from multiprocessing import shared_memory # python 3.8+
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from download.tdx_datafile import *
+from download.datafile import *
 from orm import d_orm
 from ui import fx
 
@@ -271,10 +271,6 @@ class Main:
         print(f'download end... {flag}')
         # self.resetLockScreen()
         if flag:
-            print('Merge mimute time line data begin...')
-            ld = Writer()
-            ld.writeAll()
-            print('Merge mimute time line data end')
             ld = fx.FenXiLoader()
             ld.fxAll_2()
         print('-----------End----------\n\n')

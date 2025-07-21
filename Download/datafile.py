@@ -1,9 +1,10 @@
-import os, sys, requests, json, traceback, datetime, struct, time
+import os, sys, requests, json, traceback, datetime, struct, time, copy
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
 class PathManager:
-    NET_BASE_PATH = r'D:\GP_Net_Data'
+    TDX_BASE_PATH = r'D:\new_tdx\vipdoc'
+    NET_BASE_PATH = f'{TDX_BASE_PATH}\\NetData'
     NET_LDAY_PATH = NET_BASE_PATH + '\\lday'
     NET_MINLINE_PATH = NET_BASE_PATH + '\\minline'
     NET_CLS_MINLINE_PATH = NET_BASE_PATH + '\\cls-minline'
@@ -14,6 +15,11 @@ class PathManager:
         for d in (self.NET_LDAY_PATH, self.NET_MINLINE_PATH, self.NET_CLS_MINLINE_PATH, self.NET_THS_MINLINE_PATH):
             if not os.path.exists(d):
                 os.makedirs(d)
+        for s in ('sh', 'sz'):
+            for f in ('lday', 'minline'):
+                path = f'{self.TDX_BASE_PATH}\\{s}\\{f}'
+                if not os.path.exists(path):
+                    os.makedirs(path)
 
 if not PathManager._ins:
     PathManager._ins = PathManager()
@@ -100,11 +106,20 @@ class DataModel:
         else: # GP
             if code[0 : 2] in ('sz', 'sh'):
                 code = code[2 : ]
+                tag = 'sh' if code[0] == '6' else 'sz'
+                if code == '999999' or code == '1A0001':
+                    code = '999999'
+                    tag = 'sh'
             if dataType == 'DAY':
-                bp = os.path.join(PathManager.NET_LDAY_PATH, f'{code}.day')
+                bp = os.path.join(PathManager.TDX_BASE_PATH, f'\\{tag}\\lday\\{tag}{code}.day')
             else:
-                bp = os.path.join(PathManager.NET_MINLINE_PATH, f'{code}.lc1')
+                bp = os.path.join(PathManager.TDX_BASE_PATH, f'\\{tag}\\minline\\{tag}{code}.lc1')
         return bp
+
+    def isNormalCode(self):
+        if not self.code:
+            return False
+        return self.code == '999999' or self.code == '1A0001' or (len(self.code) == 6 and self.code[0] in ('6', '3', '0'))
 
 class K_DataModel(DataModel):
     def __init__(self, code):
@@ -156,6 +171,14 @@ class K_DataModel(DataModel):
             setattr(self.data[i], 'zhangFu', zhangFu)
 
     def loadLocalData(self):
+        code = self.code
+        if not code:
+            return False
+        if self.isNormalCode():
+            return self._loadLocalData_Tdx()
+        return self._loadLocalData_NetData()
+
+    def _loadLocalData_NetData(self):
         self.data = None
         path = self.getLocalPath('DAY')
         if not os.path.exists(path):
@@ -175,6 +198,28 @@ class K_DataModel(DataModel):
             bs = f.read(RL)
             item = struct.unpack('l5f2l', bs)
             rs.append(ItemData(day = item[0], open = item[1], high = item[2], low = item[3], close = item[4], amount = item[5], vol = item[6]))
+        self.data = rs
+        f.close()
+        return len(rs) > 0
+    
+    def _loadLocalData_Tdx(self):
+        self.data = None
+        path = self.getLocalPath('DAY')
+        if not os.path.exists(path):
+            return False
+        rs = []
+        f = open(path, 'rb')
+        while f.readable():
+            bs = f.read(32)
+            if len(bs) != 32:
+                break
+            ritem = struct.unpack('5Lf2L', bs)
+            item = ItemData(day = ritem[0], open = ritem[1], high = ritem[2], low = ritem[3], close = ritem[4], amount = ritem[5], vol = ritem[6])
+            item.open /= 100
+            item.close /= 100
+            item.low /= 100
+            item.high /= 100
+            rs.append(item)
         self.data = rs
         f.close()
         return len(rs) > 0
@@ -234,8 +279,17 @@ class T_DataModel(DataModel):
         cc = self.data[-1].price
         self.zhangFu = (cc - self.pre) / self.pre * 100
 
-    # day: int
+    # day = str | int
     def loadLocalData(self, day):
+        if type(day) == str:
+            day = day.replace('-', '')
+            day = int(day)
+        if self.isNormalCode():
+            return self._loadLocalData_Tdx(day)
+        return self._loadLocalData_NetData(day)
+
+    # day: int
+    def _loadLocalData_NetData(self, day):
         self.data = None
         if not day:
             return False
@@ -250,7 +304,7 @@ class T_DataModel(DataModel):
             return False
         RL = 24
         if filesize % (RL * self.MINUTES_IN_DAY) != 0:
-            print('[TDataFile.loadData] invalid file size ', self.code, path)
+            print('[TDataModel.loadData_NetData] invalid file size ', self.code, path)
             return False
         f = open(path, 'rb')
         maxDays = filesize // (RL * self.MINUTES_IN_DAY)
@@ -284,7 +338,76 @@ class T_DataModel(DataModel):
         f.close()
         return len(rs) > 0
     
+    # day: int
+    def _loadLocalData_Tdx(self, day):
+        TDX_MINUTES_IN_DAY = 240
+        self.data = None
+        path = self.getLocalPath('TIME')
+        if not os.path.exists(path):
+            return False
+        filesize = os.path.getsize(path)
+        if filesize == 0:
+            return False
+        RL = 32
+        if filesize % (RL * 240) != 0:
+            print('[TDataModel.loadData_Tdx] invalid file size ', self.code, path)
+            return False
+        f = open(path, 'rb')
+        maxDays = filesize // (RL * TDX_MINUTES_IN_DAY)
+        PAGE = RL * TDX_MINUTES_IN_DAY
+        rs = []
+        for i in range(maxDays):
+            pos = PAGE * (i + 1)
+            n = f.seek(-pos, 2)
+            bs = f.read(RL)
+            item = self._parseMiniteItem(bs)
+            if day > item.day:
+                break
+            if day < item.day:
+                continue
+            pre = 0
+            if i != maxDays - 1:
+                n = f.seek(-pos - RL, 2)
+                bs = f.read(RL)
+                item = self._parseMiniteItem(bs)
+                pre = item.price
+            n = f.seek(-pos, 2)
+            for k in range(TDX_MINUTES_IN_DAY):
+                bs = f.read(RL)
+                item = self._parseMiniteItem(bs)
+                if item.time == 931:
+                    t930 = copy.copy(item)
+                    t930.time = 930
+                    t930.vol = t930.amount = 0
+                    rs.append(t930)
+                rs.append(item)
+            if pre == 0:
+                self.pre = rs[0].price
+            else:
+                self.pre = pre
+            self.data = rs
+        f.close()
+        return len(rs) > 0
+
+    def _parseMiniteItem(self, bs):
+        ritem = struct.unpack('2H5f2l', bs)
+        item = ItemData(day = ritem[0], time = ritem[1], open = ritem[2], high = ritem[3], low = ritem[4], close = ritem[5], amount = ritem[6], vol = ritem[7])
+        year = item.day // 2048 + 2004
+        month = item.day % 2048 // 100
+        day = item.day % 2048 % 100
+        item.day = year * 10000 + month * 100 + day
+        hour = item.time // 60
+        minute = item.time % 60
+        item.time = hour * 100 + minute
+        item.price = item.close
+        return item
+
     def getLocalLatestDay(self):
+        if self.isNormalCode():
+            return self._getLocalLatestDay_Tdx()
+        return self._getLocalLatestDay_NetData()
+
+    def _getLocalLatestDay_NetData(self):
         path = self.getLocalPath('TIME')
         if not os.path.exists(path):
             return None
@@ -293,7 +416,7 @@ class T_DataModel(DataModel):
             return None
         RL = 24
         if filesize % (RL * self.MINUTES_IN_DAY) != 0:
-            print('[TDataFile.getLocalLatestDay] invalid file size ', self.code, path)
+            print('[TDataModel.getLocalLatestDay_NetData] invalid file size ', self.code, path)
             return None
         f = open(path, 'rb')
         n = f.seek(-RL, 2)
@@ -301,6 +424,24 @@ class T_DataModel(DataModel):
         day, *_ = struct.unpack('2l4f', bs)
         f.close()
         return day
+    
+    def _getLocalLatestDay_Tdx(self):
+        path = self.getLocalPath('TIME')
+        if not os.path.exists(path):
+            return None
+        filesize = os.path.getsize(path)
+        if filesize == 0:
+            return None
+        RL = 32
+        if filesize % (RL * 240) != 0:
+            print('[TDataModel.getLocalLatestDay_Tdx] invalid file size ', self.code, path)
+            return None
+        f = open(path, 'rb')
+        n = f.seek(-RL, 2)
+        bs = f.read(RL)
+        f.close()
+        item = self._parseMiniteItem(bs)
+        return item.day
 
 class Ths_K_DataModel(K_DataModel):
     def __init__(self, code):
@@ -398,6 +539,104 @@ class Cls_T_DataModel(T_DataModel):
         else:
             self.pre = line[pos].price
 
+class Writer:
+    def writeToFile_K(self, code):
+        srcDf = K_DataModel(code)
+        srcDf.loadLocalData()
+        if not srcDf.data:
+            return
+        self._writeToNetFile_K(code, srcDf.data)
+
+    def _writeToNetFile_K(self, code, datas):
+        if not datas:
+            return True
+        path = K_DataModel(code).getLocalPath('DAY')
+        filesize = 0
+        RL = 32
+        if os.path.exists(path):
+            filesize = os.path.getsize(path)
+            if filesize % RL != 0:
+                print('[Writer._writeToNetFile_K] invalid file size ', code, path)
+                return False
+        f = open(path, 'a+b')
+        # get last day
+        lastDay = 0
+        if filesize > 0:
+            n = f.seek(-RL, 2)
+            bs = f.read(RL)
+            lastDay, *_ = struct.unpack('l5f2l', bs)
+        for idx, item in enumerate(datas):
+            if item.day <= lastDay:
+                continue
+            buf = struct.pack('l5f2l', item.day, item.open, item.high, item.low, item.close, item.amount, item.vol, 0)
+            f.write(buf)
+        f.close()
+        return True
+
+    # def writeToFile_T(self, code):
+    #     srcDf = T_DataModel(code)
+    #     # srcDf.loadLocalData()
+    #     if not srcDf.data:
+    #         return
+    #     self._writeToNetFile_T(code, srcDf.data)
+
+    def _writeToNetFile_T(self, code, datas):
+        RL = 24
+        if not datas:
+            return True
+        if len(datas) % T_DataModel.MINUTES_IN_DAY != 0:
+            print('[Writer._writeToNetFile_T] invalid data length', code)
+            return False
+        path = T_DataModel(code).getLocalPath('TIME')
+        filesize = 0
+        if os.path.exists(path):
+            filesize = os.path.getsize(path)
+            if filesize % (RL * T_DataModel.MINUTES_IN_DAY) != 0:
+                print('[Writer._writeToNetFile_T] invalid file size ', code, path)
+                return False
+        f = open(path, 'a+b')
+        # get last day
+        lastDay = 0
+        if filesize > 0:
+            n = f.seek(-RL, 2)
+            bs = f.read(RL)
+            lastDay, *_ = struct.unpack('2l4f', bs)
+        for idx, item in enumerate(datas):
+            if item.day <= lastDay:
+                continue
+            buf = struct.pack('2l4f', item.day, item.time, item.price, item.avgPrice, item.amount, item.vol)
+            f.write(buf)
+        f.close()
+        return True
+
+    # tag = lday | minline
+    def getLocalCodes(self, tag):
+        codes = []
+        path = PathManager.TDX_BASE_PATH + f'\\sh\\{tag}'
+        dirs = os.listdir(path)
+        c999999 = None
+        for name in dirs:
+            if name[0 : 2] == 'sh' and name[2] == '6':
+                codes.append(name[2 : 8])
+            if name[2 : 8] == '999999':
+                c999999 = '999999'
+        path = PathManager.TDX_BASE_PATH + f'\\sz\\{tag}'
+        dirs = os.listdir(path)
+        for name in dirs:
+            if name[0 : 2] == 'sz' and name[2] in ('0', '3'):
+                codes.append(name[2 : 8])
+        if c999999:
+            codes.append('999999')
+        return codes
+
+    def writeAll(self):
+        codes = self.getLocalCodes('lday')
+        # for c in codes:
+            # self.writeToFile_K(c)
+
+        codes = self.getLocalCodes('minline')
+        # for c in codes:
+        #     self.writeToFile_T(c)
 
 if __name__ == '__main__':
     df = Cls_T_DataModel('300260')
