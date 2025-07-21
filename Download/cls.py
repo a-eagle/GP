@@ -54,7 +54,7 @@ class ClsUrl:
             return 'sh' + code
         if code[0] == '0' or code[0] == '3':
             return 'sz' + code
-        if code == '999999':
+        if code == '999999' or code == '1A0001':
             return 'sh000001'
         return code
     

@@ -419,7 +419,7 @@ class Server:
         rs['pre'] = df.pre
         rs['line'] = df.data
         if not df.data and day == lastTradeDay: # load from server
-            if (code[0 : 3] == 'cls'):
+            if (code[0 : 3] == 'cls') or code == '999999' or code == '1A0001':
                 data = cls.ClsUrl().loadHistory5FenShi(code)
                 lines = data['line']
                 if lines[-1].time == 1500:
