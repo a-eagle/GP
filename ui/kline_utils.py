@@ -75,7 +75,7 @@ def openTimeLineWindow(evt, parent : base_win.BaseWindow):
         if zs:
             win.loadRef(zs.code)
     if evt.code[0 : 3] == 'cls':
-            win.loadRef(evt.code)
+        win.loadRef(evt.code)
     return win
 
 def openInThsWindow(data):

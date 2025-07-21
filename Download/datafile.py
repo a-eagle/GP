@@ -106,14 +106,14 @@ class DataModel:
         else: # GP
             if code[0 : 2] in ('sz', 'sh'):
                 code = code[2 : ]
-                tag = 'sh' if code[0] == '6' else 'sz'
-                if code == '999999' or code == '1A0001':
-                    code = '999999'
-                    tag = 'sh'
+            tag = 'sh' if code[0] == '6' else 'sz'
+            if code == '999999' or code == '1A0001':
+                code = '999999'
+                tag = 'sh'
             if dataType == 'DAY':
-                bp = os.path.join(PathManager.TDX_BASE_PATH, f'\\{tag}\\lday\\{tag}{code}.day')
+                bp = os.path.join(PathManager.TDX_BASE_PATH, f'{tag}\\lday\\{tag}{code}.day')
             else:
-                bp = os.path.join(PathManager.TDX_BASE_PATH, f'\\{tag}\\minline\\{tag}{code}.lc1')
+                bp = os.path.join(PathManager.TDX_BASE_PATH, f'{tag}\\minline\\{tag}{code}.lc1')
         return bp
 
     def isNormalCode(self):
