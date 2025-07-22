@@ -104,8 +104,6 @@ class DataModel:
             else:
                 bp = os.path.join(PathManager.NET_THS_MINLINE_PATH, f'{code}.lc1')
         else: # GP
-            if code[0 : 2] in ('sz', 'sh'):
-                code = code[2 : ]
             tag = 'sh' if code[0] == '6' else 'sz'
             if code == '999999' or code == '1A0001':
                 code = '999999'
@@ -224,6 +222,27 @@ class K_DataModel(DataModel):
         f.close()
         return len(rs) > 0
 
+    def getLocalLatestDay(self):
+        path = self.getLocalPath('day')
+        if not os.path.exists(path):
+            return None
+        filesize = os.path.getsize(path)
+        if filesize == 0:
+            return None
+        RL = 32 if self.isNormalCode() else 24
+        if filesize % RL != 0:
+            print('[KDataModel.getLocalLatestDay] invalid file size ', self.code, path)
+            return None
+        f = open(path, 'rb')
+        n = f.seek(-RL, 2)
+        bs = f.read(RL)
+        f.close()
+        if self.isNormalCode():
+            day, *_ = struct.unpack('5Lf2L', bs)
+        else:
+            day, *_ = struct.unpack('2l4f', bs)
+        return day
+    
 class T_DataModel(DataModel):
     MINUTES_IN_DAY = 241
 
@@ -360,7 +379,7 @@ class T_DataModel(DataModel):
             pos = PAGE * (i + 1)
             n = f.seek(-pos, 2)
             bs = f.read(RL)
-            item = self._parseMiniteItem(bs)
+            item = self._parseMiniteItem_Tdx(bs)
             if day > item.day:
                 break
             if day < item.day:
@@ -369,12 +388,12 @@ class T_DataModel(DataModel):
             if i != maxDays - 1:
                 n = f.seek(-pos - RL, 2)
                 bs = f.read(RL)
-                item = self._parseMiniteItem(bs)
+                item = self._parseMiniteItem_Tdx(bs)
                 pre = item.price
             n = f.seek(-pos, 2)
             for k in range(TDX_MINUTES_IN_DAY):
                 bs = f.read(RL)
-                item = self._parseMiniteItem(bs)
+                item = self._parseMiniteItem_Tdx(bs)
                 if item.time == 931:
                     t930 = copy.copy(item)
                     t930.time = 930
@@ -390,7 +409,7 @@ class T_DataModel(DataModel):
         self.calcAvgPrice()
         return len(rs) > 0
 
-    def _parseMiniteItem(self, bs):
+    def _parseMiniteItem_Tdx(self, bs):
         ritem = struct.unpack('2H5f2l', bs)
         item = ItemData(day = ritem[0], time = ritem[1], open = ritem[2], high = ritem[3], low = ritem[4], close = ritem[5], amount = ritem[6], vol = ritem[7])
         year = item.day // 2048 + 2004
@@ -441,7 +460,7 @@ class T_DataModel(DataModel):
         n = f.seek(-RL, 2)
         bs = f.read(RL)
         f.close()
-        item = self._parseMiniteItem(bs)
+        item = self._parseMiniteItem_Tdx(bs)
         return item.day
 
 class Ths_K_DataModel(K_DataModel):
@@ -640,6 +659,9 @@ class Writer:
         #     self.writeToFile_T(c)
 
 if __name__ == '__main__':
+    df = K_DataModel('999999')
+    day = df.getLocalLatestDay()
+
     df = Cls_T_DataModel('300260')
     df.loadData(20250403)
     print(df)

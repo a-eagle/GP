@@ -114,7 +114,7 @@ class TdxGuiDownloader:
 
     def getStartDayForDay(self):
         maxday = 20250612
-        df = K_DataFile('999999')
+        df = K_DataModel('999999')
         df.loadData()
         if df.data:
             maxday = df.data[-1].day
@@ -124,7 +124,7 @@ class TdxGuiDownloader:
     
     def getStartDayForTimemimute(self):
         maxday = 20250612
-        df = T_DataFile('999999')
+        df = T_DataModel('999999')
         df.loadData()
         if df.data:
             maxday = df.data[-1].day
@@ -201,11 +201,10 @@ class TdxGuiDownloader:
 
     def checkNeedDownload(self, dataFileType):
         kdf = dataFileType('999999')
-        kdf.loadData()
-        today = datetime.date.today()
-        if not kdf.days:
+        fd = kdf.getLocalLatestDay()
+        if not fd:
             return True
-        fd = int(kdf.days[-1])
+        today = datetime.date.today()
         fromDay = datetime.date(fd // 10000, fd // 100 % 100, fd % 100)
         days = 0
         while fromDay < today:
@@ -222,9 +221,9 @@ class TdxGuiDownloader:
         try:
             self.login()
             self.openDownloadDialog()
-            # if self.checkNeedDownload(K_DataFile):
+            # if self.checkNeedDownload(K_DataModel):
             #     self.startDownloadForDay()
-            if self.checkNeedDownload(T_DataFile):
+            if self.checkNeedDownload(T_DataModel):
                 self.startDownloadForTimeMinute()
             ok = True
         except:
