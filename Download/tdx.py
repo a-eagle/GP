@@ -112,22 +112,16 @@ class TdxGuiDownloader:
         # win32gui.SetForegroundWindow(mainWnd)
         time.sleep(5)
 
-    def getStartDayForDay(self):
+    def getStartDayFor(self, isDay : bool):
         maxday = 20250612
-        df = K_DataModel('999999')
-        df.loadData()
-        if df.data:
-            maxday = df.data[-1].day
-        dt = datetime.datetime.strptime(str(maxday), '%Y%m%d')
-        dt = dt + datetime.timedelta(days = 1)
-        return dt
-    
-    def getStartDayForTimemimute(self):
-        maxday = 20250612
-        df = T_DataModel('999999')
-        df.loadData()
-        if df.data:
-            maxday = df.data[-1].day
+        if isDay:
+            df = K_DataModel('999999')
+        else:
+            df = T_DataModel('999999')
+        lday = df.getLocalLatestDay()
+        if not lday:
+            return maxday
+        maxday = lday
         dt = datetime.datetime.strptime(str(maxday), '%Y%m%d')
         dt = dt + datetime.timedelta(days = 1)
         return dt
@@ -145,7 +139,7 @@ class TdxGuiDownloader:
         if not fromDayCtrl:
             raise Exception('Not find fromDayCtrl')
         fromDayCtrl = DateTimePickerWrapper(fromDayCtrl)
-        startDay = self.getStartDayForDay()
+        startDay = self.getStartDayFor(True)
         fromDayCtrl.set_time(year = startDay.year, month = startDay.month, day = startDay.day)
 
         startBtn = win32gui.FindWindowEx(hwnd, None, 'Button', '开始下载')
@@ -184,7 +178,7 @@ class TdxGuiDownloader:
         if not fromDayCtrl:
             raise Exception('Not find fromDayCtrl')
         fromDayCtrl = DateTimePickerWrapper(fromDayCtrl)
-        startDay = self.getStartDayForTimemimute()
+        startDay = self.getStartDayFor(False)
         fromDayCtrl.set_time(year=startDay.year, month=startDay.month, day = startDay.day)
         print('start minutes day: ', startDay.strftime("%Y-%m-%d"))
         startBtn = win32gui.FindWindowEx(hwnd, None, 'Button', '开始下载')
@@ -199,8 +193,11 @@ class TdxGuiDownloader:
             if win32gui.GetWindowText(startBtn) == '开始下载':
                 break
 
-    def checkNeedDownload(self, dataFileType):
-        kdf = dataFileType('999999')
+    def checkNeedDownload(self, isDay : bool):
+        if isDay:
+            kdf = K_DataModel('999999')
+        else:
+            kdf = T_DataModel('999999')
         fd = kdf.getLocalLatestDay()
         if not fd:
             return True
@@ -221,9 +218,9 @@ class TdxGuiDownloader:
         try:
             self.login()
             self.openDownloadDialog()
-            # if self.checkNeedDownload(K_DataModel):
+            # if self.checkNeedDownload(True):
             #     self.startDownloadForDay()
-            if self.checkNeedDownload(T_DataModel):
+            if self.checkNeedDownload(False):
                 self.startDownloadForTimeMinute()
             ok = True
         except:
