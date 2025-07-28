@@ -82,26 +82,18 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
     
     def parsePrice(self, img : Image, rs):
         #img.save('D:/price.bmp')
-        text = number_ocr.readTextfromImage(img)
-        text = text.replace('. ', '.').strip()
-        ps = text.split(' ')
-        if not ps:
-            return False
-        rs['price'] = float(ps[0])
-        return True
-        
-        # zhang die & zhang fu
-        rect[0] = rect[2]
-        rect[2] = img.width
-        zdzfImg = img.crop(tuple(rect))
-        result2 = self.wbOcr.match(zdzfImg)
-        if not result2:
-            return False
-        ma = re.match(r'([-+]\d+\.\d{2})([-+]\d+\.\d{2})%', result2)
-        if not ma:
-            return False
-        rs['zd'] = float(ma.group(1))
-        rs['zf'] = float(ma.group(2))
+        text = number_ocr.readTextfromImage(img, whitelist = '0123456789+-.')
+        text = text.strip()
+        ps = text.split('+')
+        if len(ps) == 3:
+            rs['price'] = float(ps[0])
+            return True
+        ps = text.split('-')
+        if len(ps) == 3:
+            rs['price'] = float(ps[0])
+            return True
+        pd = text.index('.')
+        rs['price'] = float(text[0 : pd + 3])
         return True
 
     def parseWeiBi(self, wbImg, rs):

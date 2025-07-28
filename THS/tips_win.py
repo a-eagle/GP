@@ -5,7 +5,7 @@ import peewee as pw
 import types
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
-from download import datafile, henxin, cls
+from download import datafile, henxin, cls, ths_iwencai
 from utils import hot_utils
 from ui import bkgn_view, dialog, base_win, kline_utils
 from orm import d_orm, def_orm, ths_orm, cls_orm
@@ -782,19 +782,13 @@ class HotZHCardView(ListView):
         if not foreUpdate and lt - self.updateDataTime < 60:
             return
         self.updateDataTime = lt
-        maxHotDay = ths_orm.THS_Hot.select(pw.fn.max(ths_orm.THS_Hot.day)).scalar()
-        maxHotZhDay = ths_orm.THS_HotZH.select(pw.fn.max(ths_orm.THS_HotZH.day)).scalar()
-        self.maxHotDay = maxHotDay
-        if self.curSelDay == 0 or self.curSelDay == maxHotDay or self.curSelDay == maxHotZhDay:
-            if maxHotDay == maxHotZhDay:
-                qr = ths_orm.THS_HotZH.select().where(ths_orm.THS_HotZH.day == maxHotZhDay).order_by(ths_orm.THS_HotZH.zhHotOrder.asc())
-                self.data = [d.__data__ for d in qr]
-            else:
-                self.data = hot_utils.calcHotZHOnDay(maxHotDay)
-        else:
-            # is history 
-            qr = ths_orm.THS_HotZH.select().where(ths_orm.THS_HotZH.day == self.curSelDay).order_by(ths_orm.THS_HotZH.zhHotOrder.asc())
-            self.data = [d.__data__ for d in qr]
+        today = ths_iwencai.getTradeDaysInt()[-1] #ths_orm.THS_Hot.select(pw.fn.max(ths_orm.THS_Hot.day)).scalar()
+        self.maxHotDay = today
+        if self.curSelDay == 0:
+            self.curSelDay = today
+        self.setWindowTitle(self.curSelDay)
+        datas = hot_utils.DynamicHotZH.instance().getHotsZH(self.curSelDay)
+        self.data = [datas[k] for k in datas]
 
     def loadCodeInfoNet(self, code):
         try:
@@ -934,22 +928,23 @@ class HotZHCardView(ListView):
         self.curSelDay = selDay
         self.selIdx = -1
         self.pageIdx = 0
-        if selDay == self.maxHotDay:
-            self.windowTitle = f'HotZH'
-            win32gui.SetWindowText(self.hwnd, self.windowTitle)
-        else:
-            from download import ths_iwencai
-            tradeDays = ths_iwencai.getTradeDaysInt()
-            bef = 0
-            for i in range(len(tradeDays) - 1, 0, -1):
-                if selDay < tradeDays[i]:
-                    bef += 1
-                else:
-                    break
-            self.windowTitle = f'HotZH   {selDay}   {bef}天前'
-            win32gui.SetWindowText(self.hwnd, self.windowTitle)
+        self.setWindowTitle(selDay)
         self.updateData(True)
         win32gui.InvalidateRect(self.hwnd, None, True)
+
+    def setWindowTitle(self, day : int):
+        tradeDays = ths_iwencai.getTradeDaysInt()
+        bef = 0
+        for i in range(len(tradeDays) - 1, 0, -1):
+            if day < tradeDays[i]:
+                bef += 1
+            else:
+                break
+        if bef == 0:
+            self.windowTitle = f'HotZH {day // 100 % 100 :02d}-{day % 100: 02d} 今日'
+        else:
+            self.windowTitle = f'HotZH {day // 100 % 100 :02d}-{day % 100: 02d} {bef}天前'
+        win32gui.SetWindowText(self.hwnd, self.windowTitle)
 
 class SimpleHotZHWindow(CardWindow):
     def __init__(self) -> None:
@@ -992,8 +987,11 @@ class SimpleHotZHWindow(CardWindow):
                 self.DP.destroyOnHide = False
                 self.DP.createWindow(hwnd)
                 self.DP.addListener(self.onDayChanged, 'DatePicker')
-            rc = win32gui.GetWindowRect(hwnd)
-            self.DP.show(x = rc[0] + 8, y = rc[1] + 30)
+            if win32gui.IsWindowVisible(self.DP.hwnd):
+                self.DP.setVisible(False)
+            else:
+                rc = win32gui.GetWindowRect(hwnd)
+                self.DP.show(x = rc[0] + 8, y = rc[1] + 30)
             return False
         return super().winProc(hwnd, msg, wParam, lParam)
     

@@ -12,8 +12,12 @@ import pytesseract
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 _ecor = None
 
-def readTextfromImage(img : Image, **kwargs):
-    return pytesseract.image_to_string(img, **kwargs)
+# whitelist
+def readTextfromImage(img : Image, whitelist = None):
+    cfg = None
+    if whitelist:
+        cfg = f'-c tessedit_char_whitelist={whitelist}'
+    return pytesseract.image_to_string(img, config = cfg)
 
 def readCodeFromImage(img : Image, **kwargs):
     result = pytesseract.image_to_string(img, **kwargs)

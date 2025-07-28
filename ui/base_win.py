@@ -2174,7 +2174,7 @@ class DatePopupWindow(NoActivePopupWindow):
             if isinstance(day, datetime.date) and day == today:
                 self.drawer.drawText(hdc, txt, rc, 0x5555ff)
             else:
-                self.drawer.drawText(hdc, txt, rc, 0xcccccc)
+                self.drawer.drawText(hdc, txt, rc, 0xcccccc if c < 5 else 0x303030)
 
     def calcDays(self, year, month):
         weeky, num = calendar.monthrange(year, month)
@@ -2256,6 +2256,9 @@ class DatePopupWindow(NoActivePopupWindow):
                     iday = self.curSelDay.year * 10000 + self.curSelDay.month * 100 + self.curSelDay.day
                     sday = self.curSelDay.strftime('%Y-%m-%d')
                     self.notifyListener(self.Event('Select', self, day = iday, sday = sday))
+            return True
+        if msg == win32con.WM_RBUTTONUP:
+            self.setVisible(False)
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
 
@@ -3632,6 +3635,11 @@ def testPopMenu():
     btn.addListener(back, None)
 
 if __name__ == '__main__':
+    dp = DatePopupWindow()
+    dp.createWindow(None)
+    dp.show(100, 100)
+    win32gui.PumpMessages()
+
     #testGridLayout()
     #testPopMenu()
     label = Label('Hello')
