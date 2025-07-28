@@ -558,7 +558,7 @@ def download_vol_top100(day = None):
 
 # 近三年净利润
 def download_jrl():
-    datas = iwencai_load_list('近3年净利润', maxPage = None)
+    datas = iwencai_load_list('近4年净利润', maxPage = None)
     rs = []
     for idx, it in enumerate(datas):
         obj = {}

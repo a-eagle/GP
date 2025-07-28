@@ -333,9 +333,9 @@ class Server:
         #下载营收、净利润
         if (curTime >= '22:00') and not self.downloadInfos.get(f'jrl-{day}', False):
             self.downloadInfos[f'jrl-{day}'] = True
-            accept = not self.downloadInfos.get(f'jrl-month-{day[0 : 6]}', False)
+            # accept = not self.downloadInfos.get(f'jrl-month-{day[0 : 6]}', False)
             self.downloadInfos[f'jrl-month-{day[0 : 6]}'] = True
-            if now.weekday() == 3 and accept: # 每周四
+            if now.weekday() == 3: # 每周四
                 self.download_jrl('[7/7] THS-Jrl')
             else:
                 console.writeln_1(console.GREEN, f'[7/7] [THS-Jrl] skip, only week 4 download')
