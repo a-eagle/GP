@@ -30,7 +30,22 @@ class Server:
         self.app.add_url_rule('/getMaxUpdateTimeAll', view_func = self.getMaxUpdateTimeAll, methods = ['GET', 'POST'])
         self.app.add_url_rule('/cls-proxy', view_func = self.loadClsProxy, methods = ['GET'])
         self.app.add_url_rule('/pushUpdateData/<ormFile>/<ormClass>', view_func = self.pushUpdateData, methods = ['POST'])
+        self.app.add_url_rule('/remote', view_func = self.remote, methods = ['GET'])
         self.app.run('0.0.0.0', 8090, use_reloader = False, debug = False)
+
+    def remote(self):
+        func = flask.request.args.get('func', None)
+        params = flask.request.args.get('params', '')
+        code = flask.request.args.get('code', '')
+        if not func or not params:
+            return {'status': 'Fail', 'msg': 'No func, or no params'}
+        params = params.split(',')
+        rparams = [flask.request.args.get(d, None) for d in params]
+        from download import datafile
+        stub = datafile.RemoteStub(code)
+        rfunc = getattr(stub, func)
+        rs = rfunc(rparams)
+        return rs
 
     def loadClsProxy(self):
         url = flask.request.args.get('url', None)

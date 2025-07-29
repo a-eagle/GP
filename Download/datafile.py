@@ -1,4 +1,4 @@
-import os, sys, requests, json, traceback, datetime, struct, time, copy
+import os, sys, requests, json, traceback, datetime, struct, time, copy, base64, platform
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
@@ -110,6 +110,195 @@ class DataModel:
         if not self.code:
             return False
         return self.code == '999999' or self.code == '1A0001' or (len(self.code) == 6 and self.code[0] in ('6', '3', '0'))
+
+class RemoteStub:
+    def __init__(self, code) -> None:
+        self.code = code
+
+    def getLocalPath(self, _type):
+        dm = DataModel(self.code)
+        path = dm.getLocalPath(_type)
+        path = 'c' + path[1:]
+        return path
+
+    def loadLocalData_Day(self):
+        path = self.getLocalPath(self.code, 'DAY')
+        if not os.path.exists(path):
+            return {'status': 'Fail', 'msg': 'No file', 'data': None}
+        filesize = os.path.getsize(path)
+        if filesize % 32 != 0:
+            return {'status': 'Fail', 'msg': 'Invalid file size', 'data': None}
+        f = open(path, 'rb')
+        bs = f.read(filesize)
+        f.close()
+        data = base64.decodebytes(bs)
+        return {'status': 'OK', 'msg': 'Success', 'data': str(data)}
+
+    def getLocalLatestDay_Day(self):
+        path = self.getLocalPath(self.code, 'DAY')
+        if not os.path.exists(path):
+            return {'status': 'Fail', 'msg': 'No file', 'data': None}
+        filesize = os.path.getsize(path)
+        if filesize % 32 != 0:
+            return {'status': 'Fail', 'msg': 'Invalid file size', 'data': None}
+        f = open(path, 'rb')
+        RL = 32
+        n = f.seek(-RL, 2)
+        bs = f.read(RL)
+        f.close()
+        day, *_ = struct.unpack('5Lf2L', bs)
+        return {'status': 'OK', 'msg': 'Success', 'data': day}
+    
+    def unpackTdxData(self, bs):
+        ritem = struct.unpack('2H5f2l', bs)
+        item = ItemData(day = ritem[0], time = ritem[1], open = ritem[2], high = ritem[3], low = ritem[4], close = ritem[5], amount = ritem[6], vol = ritem[7])
+        # ritem[8] 是什么? 指数有内容，非指数为0
+        year = item.day // 2048 + 2004
+        month = item.day % 2048 // 100
+        day = item.day % 2048 % 100
+        item.day = year * 10000 + month * 100 + day
+        hour = item.time // 60
+        minute = item.time % 60
+        item.time = hour * 100 + minute
+        item.price = item.close
+        return item
+    
+    def loadLocalData_Time(self, day):
+        if type(day) == str:
+            day = day.replace('-', '')
+            day = int(day)
+        TDX_MINUTES_IN_DAY = 240
+        path = self.getLocalPath('TIME')
+        if not os.path.exists(path):
+            return {'status': 'Fail', 'msg': 'No file', 'data': None}
+        filesize = os.path.getsize(path)
+        if filesize == 0:
+            return {'status': 'Fail', 'msg': 'Invalid file size', 'data': None}
+        RL = 32
+        if filesize % (RL * 240) != 0:
+            return {'status': 'Fail', 'msg': 'Invalid file size', 'data': None}
+        rs = {'status': 'OK', 'msg': 'Success', 'pre': 0, 'data': None}
+        f = open(path, 'rb')
+        maxDays = filesize // (RL * TDX_MINUTES_IN_DAY)
+        PAGE = RL * TDX_MINUTES_IN_DAY
+        for i in range(maxDays):
+            pos = PAGE * (i + 1)
+            n = f.seek(-pos, 2)
+            bs = f.read(RL)
+            item = self.unpackTdxData(bs)
+            if day > item.day:
+                break
+            if day < item.day:
+                continue
+            pre = 0
+            if i != maxDays - 1:
+                n = f.seek(-pos - RL, 2)
+                bs = f.read(RL)
+                item = self.unpackTdxData(bs)
+                pre = item.price
+            n = f.seek(-pos, 2)
+            bs = f.read(RL * TDX_MINUTES_IN_DAY)
+            if pre == 0:
+                first = self.unpackTdxData(bs)
+                pre = first.price
+            rs['data'] = str(base64.encodebytes(bs))
+            rs['pre'] = pre
+            break
+        f.close()
+        return rs
+
+    def getLocalLatestDay_Time(self):
+        path = self.getLocalPath('TIME')
+        if not os.path.exists(path):
+            return {'status': 'Fail', 'msg': 'No file', 'data': None}
+        filesize = os.path.getsize(path)
+        if filesize == 0:
+            return {'status': 'Fail', 'msg': 'Invalid file size', 'data': None}
+        RL = 32
+        if filesize % (RL * 240) != 0:
+            return {'status': 'Fail', 'msg': 'Invalid file size', 'data': None}
+        f = open(path, 'rb')
+        n = f.seek(-RL, 2)
+        bs = f.read(RL)
+        f.close()
+        item = self.unpackTdxData(bs)
+        return {'status': 'OK', 'msg': 'Success', 'data': item.day}
+
+class RemoteProxy:
+    def __init__(self, code) -> None:
+        self.code = code
+
+    def accept(self):
+        return platform.node() != 'hcss-ecs-3865'
+
+    def loadLocalData_Day(self, destObj):
+        if not self.accept():
+            return False
+        resp = requests.get(f'http://113.44.136.221:8090/remote?func=loadLocalData_Day&code={self.code}&params=code')
+        cnt = resp.content.decode()
+        js = json.loads(cnt)
+        if js['status'] != 'OK':
+            return False
+        data = js['data']
+        bs = base64.decodestring(data)
+        rs = []
+        for i in range(len(bs) // 32):
+            ritem = struct.unpack_from('5Lf2L', bs, i * 32)
+            item = ItemData(day = ritem[0], open = ritem[1], high = ritem[2], low = ritem[3], close = ritem[4], amount = ritem[5], vol = ritem[6])
+            item.open /= 100
+            item.close /= 100
+            item.low /= 100
+            item.high /= 100
+            rs.append(item)
+        destObj.data = rs
+        return True
+        
+    def getLocalLatestDay_Day(self):
+        if not self.accept():
+            return None
+        resp = requests.get(f'http://113.44.136.221:8090/remote?func=getLocalLatestDay_Day&code={self.code}&params=code')
+        cnt = resp.content.decode()
+        js = json.loads(cnt)
+        if js['status'] != 'OK':
+            return None
+        day = js['data']
+        return day
+
+    def loadLocalData_Time(self, day, destObj):
+        if not self.accept():
+            return False
+        resp = requests.get(f'http://113.44.136.221:8090/remote?func=loadLocalData_Time&code={self.code}&day={day}&params=code,day')
+        cnt = resp.content.decode()
+        js = json.loads(cnt)
+        if js['status'] != 'OK':
+            return False
+        data = js['data']
+        rbs = base64.decodestring(data)
+        rs = []
+        for i in range(len(bs) // 32):
+            bs = rbs[i * 32 : i * 32 + 32]
+            item = destObj.unpackTdxData(bs)
+            if item.time == 931:
+                t930 = copy.copy(item)
+                t930.time = 930
+                t930.vol = t930.amount = 0
+                rs.append(t930)
+            rs.append(item)
+        destObj.data = rs
+        destObj.pre = js['pre']
+        destObj.calcAvgPrice()
+        return True
+
+    def getLocalLatestDay_Time(self):
+        if not self.accept():
+            return None
+        resp = requests.get(f'http://113.44.136.221:8090/remote?func=getLocalLatestDay_Time&code={self.code}&params=code')
+        cnt = resp.content.decode()
+        js = json.loads(cnt)
+        if js['status'] != 'OK':
+            return None
+        day = js['data']
+        return day
 
 class K_DataModel(DataModel):
     def __init__(self, code):
@@ -258,8 +447,15 @@ class T_DataModel(DataModel):
         cc = self.data[-1].price
         self.zhangFu = (cc - self.pre) / self.pre * 100
 
-    # day = str | int
     def loadLocalData(self, day):
+        ok = self._loadLocalData(day)
+        if not ok:
+            rp = RemoteProxy(self.code)
+            ok = rp.loadLocalData_Time(day, self)
+        return ok
+
+    # day = str | int
+    def _loadLocalData(self, day):
         if type(day) == str:
             day = day.replace('-', '')
             day = int(day)
