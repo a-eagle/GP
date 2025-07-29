@@ -307,7 +307,7 @@ class Main:
             sday = today.strftime('%Y-%m-%d')
             if sday not in tryDays:
                 tryDays[sday] = {'15': False, 'num' : 0, 'success': False}
-            if today.hour == 15 and not tryDays[sday]['15']:
+            if today.hour == 15 and not tryDays[sday]['15'] and isServerMachine():
                 tryDays[sday]['15'] = True
                 if self.runOnce():
                     tryDays[sday]['success'] = True

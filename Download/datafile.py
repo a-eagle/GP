@@ -2,7 +2,9 @@ import os, sys, requests, json, traceback, datetime, struct, time, copy, base64,
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
-REMOTE_NODE = 'hcss-ecs-3865'
+def isServerMachine():
+    REMOTE_NODE = 'hcss-ecs-3865'
+    return platform.node() == REMOTE_NODE
 
 class PathManager:
     REMOTE_TDX_BASE_PATH = r'C:\new_tdx\vipdoc'
@@ -13,7 +15,7 @@ class PathManager:
     _ins = None
 
     def __init__(self) -> None:
-        if platform.node() == REMOTE_NODE:
+        if isServerMachine():
             PathManager.TDX_BASE_PATH = self.REMOTE_TDX_BASE_PATH
         if not os.path.exists(self.TDX_BASE_PATH):
             return
@@ -238,11 +240,8 @@ class RemoteProxy:
     def __init__(self, code) -> None:
         self.code = code
 
-    def accept(self):
-        return platform.node() != REMOTE_NODE
-
     def loadLocalData_Day(self, destObj):
-        if not self.accept():
+        if isServerMachine():
             return False
         resp = requests.get(f'http://113.44.136.221:8090/remote?func=loadLocalData_Day&code={self.code}&params=')
         cnt = resp.content.decode()
@@ -250,7 +249,7 @@ class RemoteProxy:
         if js['status'] != 'OK':
             return False
         data = js['data']
-        bs = base64.decodestring(data)
+        bs = base64.decodestring(data.encode())
         rs = []
         for i in range(len(bs) // 32):
             ritem = struct.unpack_from('5Lf2L', bs, i * 32)
@@ -282,10 +281,10 @@ class RemoteProxy:
         js = json.loads(cnt)
         if js['status'] != 'OK':
             return False
-        data = js['data']
-        rbs = base64.decodestring(data)
+        data : str = js['data']
+        rbs = base64.decodestring(data.encode())
         rs = []
-        for i in range(len(bs) // 32):
+        for i in range(len(rbs) // 32):
             bs = rbs[i * 32 : i * 32 + 32]
             item = destObj.unpackTdxData(bs)
             if item.time == 931:
