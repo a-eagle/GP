@@ -37,8 +37,8 @@ class Server:
         func = flask.request.args.get('func', None)
         params = flask.request.args.get('params', '')
         code = flask.request.args.get('code', '')
-        if not func or not params:
-            return {'status': 'Fail', 'msg': 'No func, or no params'}
+        if not func or not params or not code:
+            return {'status': 'Fail', 'msg': 'No func, or no code, or no params'}
         params = params.split(',')
         rparams = [flask.request.args.get(d, None) for d in params]
         from download import datafile
