@@ -209,7 +209,7 @@ class RemoteStub:
             n = f.seek(-pos, 2)
             bs = f.read(RL * TDX_MINUTES_IN_DAY)
             if pre == 0:
-                first = self.unpackTdxData(bs)
+                first = self.unpackTdxData(bs[0 : RL])
                 pre = first.price
             rs['data'] = str(base64.encodebytes(bs))
             rs['pre'] = pre
@@ -751,7 +751,8 @@ class Writer:
 if __name__ == '__main__':
     proxy = RemoteProxy('601208')
     lday = proxy.getLocalLatestDay_Time()
-    proxy.loadLocalData_Time(20250729)
+    df = T_DataModel('601208')
+    proxy.loadLocalData_Time(20250729, df)
 
     df = T_DataModel('601208') # 999999
     path = df.getLocalPath('TIME')
