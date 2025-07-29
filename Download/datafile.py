@@ -244,7 +244,7 @@ class RemoteProxy:
     def loadLocalData_Day(self, destObj):
         if not self.accept():
             return False
-        resp = requests.get(f'http://113.44.136.221:8090/remote?func=loadLocalData_Day&code={self.code}&params=code')
+        resp = requests.get(f'http://113.44.136.221:8090/remote?func=loadLocalData_Day&code={self.code}&params=')
         cnt = resp.content.decode()
         js = json.loads(cnt)
         if js['status'] != 'OK':
@@ -266,7 +266,7 @@ class RemoteProxy:
     def getLocalLatestDay_Day(self):
         if not self.accept():
             return None
-        resp = requests.get(f'http://113.44.136.221:8090/remote?func=getLocalLatestDay_Day&code={self.code}&params=code')
+        resp = requests.get(f'http://113.44.136.221:8090/remote?func=getLocalLatestDay_Day&code={self.code}&params=')
         cnt = resp.content.decode()
         js = json.loads(cnt)
         if js['status'] != 'OK':
@@ -277,7 +277,7 @@ class RemoteProxy:
     def loadLocalData_Time(self, day, destObj):
         if not self.accept():
             return False
-        resp = requests.get(f'http://113.44.136.221:8090/remote?func=loadLocalData_Time&code={self.code}&day={day}&params=code,day')
+        resp = requests.get(f'http://113.44.136.221:8090/remote?func=loadLocalData_Time&code={self.code}&day={day}&params=day')
         cnt = resp.content.decode()
         js = json.loads(cnt)
         if js['status'] != 'OK':
@@ -302,7 +302,7 @@ class RemoteProxy:
     def getLocalLatestDay_Time(self):
         if not self.accept():
             return None
-        resp = requests.get(f'http://113.44.136.221:8090/remote?func=getLocalLatestDay_Time&code={self.code}&params=code')
+        resp = requests.get(f'http://113.44.136.221:8090/remote?func=getLocalLatestDay_Time&code={self.code}&params=')
         cnt = resp.content.decode()
         js = json.loads(cnt)
         if js['status'] != 'OK':
