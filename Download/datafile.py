@@ -141,7 +141,7 @@ class RemoteStub:
         f = open(path, 'rb')
         bs = f.read(filesize)
         f.close()
-        data = base64.decodebytes(bs)
+        data = base64.decodebytes(bs).decode()
         return {'status': 'OK', 'msg': 'Success', 'data': str(data)}
 
     def getLocalLatestDay_Day(self):
@@ -211,7 +211,7 @@ class RemoteStub:
             if pre == 0:
                 first = self.unpackTdxData(bs[0 : RL])
                 pre = first.price
-            rs['data'] = str(base64.encodebytes(bs))
+            rs['data'] = base64.encodebytes(bs).decode()
             rs['pre'] = pre
             break
         f.close()
