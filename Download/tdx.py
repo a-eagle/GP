@@ -23,7 +23,10 @@ class TdxGuiDownloader:
         return False
 
     def startProcess(self):
-        subprocess.Popen('D:\\new_tdx\\TdxW.exe', shell=True)
+        path = 'D:\\new_tdx\\TdxW.exe'
+        if isServerMachine():
+            path = 'C' + path[1 : ]
+        subprocess.Popen(path, shell=True)
         time.sleep(15)
 
     def killProcess(self):
