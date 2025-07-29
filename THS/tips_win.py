@@ -257,17 +257,16 @@ class HotCardView(CardView):
         self.selectDay = selDay
 
     def onDraw(self, hdc):
-        rect = win32gui.GetClientRect(self.hwnd)
-        if not self.hotData:
-            win32gui.SetTextColor(hdc, 0xdddddd)
-            win32gui.DrawText(hdc, '无Hot信息', -1, rect, win32con.DT_CENTER)
-            return
+        drawer : base_win.Drawer = base_win.Drawer.instance()
         rr = win32gui.GetClientRect(self.hwnd)
+        if not self.hotData:
+            drawer.drawText(hdc, '无Hot信息', rr, 0xdddddd)
+            return
         win32gui.SetTextColor(hdc, 0xdddddd)
 
-        RH = rect[3] - rect[1]
-        RW = rect[2] - rect[0]
-        MAX_ROWS = RH // self.ROW_HEIGHT
+        RH = rr[3] - rr[1]
+        RW = rr[2] - rr[0]
+        MAX_ROWS = RH // self.ROW_HEIGHT - 1
         MIN_COL_WIDTH = 80
         MAX_COLS = max(RW // MIN_COL_WIDTH, 1)
         COL_WIDTH = RW // MAX_COLS
@@ -293,46 +292,18 @@ class HotCardView(CardView):
             idx = i - fromIdx
             col = idx // MAX_ROWS
             row = idx % MAX_ROWS
-            y = row * self.ROW_HEIGHT
+            y = row * self.ROW_HEIGHT + self.ROW_HEIGHT
             x = col * COL_WIDTH
             rect = (x + 4, y, x + COL_WIDTH, y + self.ROW_HEIGHT)
             win32gui.DrawText(hdc, line, len(line), rect, win32con.DT_LEFT | win32con.DT_SINGLELINE | win32con.DT_VCENTER)
             self.hotsInfo[i - fromIdx] = {'data': hot, 'rect': rect}
-        pen = win32gui.CreatePen(win32con.PS_SOLID, 1, 0xaaccaa)
-        win32gui.SelectObject(hdc, pen)
-        win32gui.MoveToEx(hdc, RW // 2, 0)
-        win32gui.LineTo(hdc, RW // 2, rr[3])
-        self.drawTip(hdc)
-        win32gui.DeleteObject(pen)
-
-    def drawTip(self, hdc):
-        tipRect = self.tipInfo['rect']
-        if not tipRect:
-            return
-        hotDetail = self.tipInfo['detail']
-        if not hotDetail:
-            return
-        bk = win32gui.CreateSolidBrush(0)
-        ps = win32gui.CreatePen(win32con.PS_SOLID, 1, 0x00ffff)
-        win32gui.SelectObject(hdc, ps)
-        win32gui.SelectObject(hdc, bk)
-        win32gui.Rectangle(hdc, *tipRect)
-        si1 = max(self.showStartIdx, 0)
-        si2 = max(0, len(hotDetail) - 5)
-        si = min(si1, si2)
-        self.showStartIdx = si
-        win32gui.SetTextColor(hdc, 0x3333CD)
-        for i in range(si, len(hotDetail)):
-            hot = hotDetail[i]
-            txt = f" {hot['time'] // 100 :02d}:{hot['time'] % 100 :02d}  {hot['hotValue'] :>3d}万  {hot['hotOrder'] :>3d}"
-            y = (i - si) * self.ROW_HEIGHT + 5
-            rc = (tipRect[0], y, tipRect[2], y + self.ROW_HEIGHT)
-            win32gui.DrawText(hdc, txt, len(txt), rc, win32con.DT_CENTER)
-        rc = self.tipInfo['hotRect']
-        win32gui.MoveToEx(hdc, rc[0], rc[3] - 2)
-        win32gui.LineTo(hdc, rc[2], rc[3] - 2)
-        win32gui.DeleteObject(bk)
-        win32gui.DeleteObject(ps)
+        drawer.fillRect(hdc, (0, 0, rr[2], self.ROW_HEIGHT), 0x202020)
+        drawer.drawLine(hdc, RW // 2, self.ROW_HEIGHT, RW // 2, rr[3], 0xaaccaa)
+        # top
+        topHots = 99999
+        for d in self.hotData:
+            topHots = min(topHots, d['zhHotOrder'])
+        drawer.drawText(hdc, f'  最高  {topHots}', (0, 0, rr[2], self.ROW_HEIGHT), 0x44cc44, win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
     def updateCode(self, code):
         self.showStartIdx = 0
@@ -370,20 +341,6 @@ class HotCardView(CardView):
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_LBUTTONUP:
             return False
-            self.showStartIdx = 0
-            x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
-            if self.isInRect(x, y, self.tipInfo['rect']):
-                self.resetTipInfo()
-                win32gui.InvalidateRect(hwnd, None, True)
-                return True
-            for hot in self.hotsInfo:
-                if hot and self.isInRect(x, y, hot['rect']):
-                    if self.tipInfo['hotRect'] == hot['rect']:
-                        self.resetTipInfo()
-                    else:
-                        self.setTip(hot)
-                    win32gui.InvalidateRect(hwnd, None, True)
-                    return True
         if msg == win32con.WM_MOUSEWHEEL:
             delta = (wParam >> 16) & 0xffff
             if delta & 0x8000:
@@ -1371,13 +1328,17 @@ if __name__ == '__main__':
     #win.changeLastDay(20250102)
     #win32gui.PumpMessages()
 
-    win = CodeBasicWindow()
-    win.createWindow(None)
-    win.changeCode('001298')
-    win.show(300, 500)
-    win32gui.PumpMessages()
+    # win = CodeBasicWindow()
+    # win.createWindow(None)
+    # win.changeCode('001298')
+    # win.show(300, 500)
+    # win32gui.PumpMessages()
 
     import ths_win
     thsWin = ths_win.ThsWindow()
     thsWin.init()
+    win = SimpleWindow('HOT')
+    win.createWindow(thsWin.mainHwnd)
+    win.changeCode('603716')
+    win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
     win32gui.PumpMessages()

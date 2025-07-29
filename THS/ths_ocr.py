@@ -84,14 +84,6 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         #img.save('D:/price.bmp')
         text = number_ocr.readTextfromImage(img, whitelist = '0123456789+-.')
         text = text.strip()
-        ps = text.split('+')
-        if len(ps) == 3:
-            rs['price'] = float(ps[0])
-            return True
-        ps = text.split('-')
-        if len(ps) == 3:
-            rs['price'] = float(ps[0])
-            return True
         pd = text.index('.')
         rs['price'] = float(text[0 : pd + 3])
         return True
