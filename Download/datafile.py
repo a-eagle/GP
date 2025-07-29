@@ -2,14 +2,24 @@ import os, sys, requests, json, traceback, datetime, struct, time, copy, base64,
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
+REMOTE_NODE = 'hcss-ecs-3865'
+
 class PathManager:
+    REMOTE_TDX_BASE_PATH = r'C:\new_tdx\vipdoc'
     TDX_BASE_PATH = r'D:\new_tdx\vipdoc'
-    NET_BASE_PATH = f'{TDX_BASE_PATH}\\NetData'
-    NET_LDAY_PATH = NET_BASE_PATH + '\\lday'
-    NET_MINLINE_PATH = NET_BASE_PATH + '\\minline'
+    NET_BASE_PATH = f'\\NetData'
+    NET_LDAY_PATH = '\\lday'
+    NET_MINLINE_PATH = '\\minline'
     _ins = None
 
     def __init__(self) -> None:
+        if platform.node() == REMOTE_NODE:
+            PathManager.TDX_BASE_PATH = self.REMOTE_TDX_BASE_PATH
+        if not os.path.exists(self.TDX_BASE_PATH):
+            return
+        PathManager.NET_BASE_PATH = PathManager.TDX_BASE_PATH + PathManager.NET_BASE_PATH
+        PathManager.NET_LDAY_PATH = PathManager.TDX_BASE_PATH + PathManager.NET_LDAY_PATH
+        PathManager.NET_MINLINE_PATH = PathManager.TDX_BASE_PATH + PathManager.NET_MINLINE_PATH
         for d in (self.NET_LDAY_PATH, self.NET_MINLINE_PATH):
             if not os.path.exists(d):
                 os.makedirs(d)
@@ -229,7 +239,7 @@ class RemoteProxy:
         self.code = code
 
     def accept(self):
-        return platform.node() != 'hcss-ecs-3865'
+        return platform.node() != REMOTE_NODE
 
     def loadLocalData_Day(self, destObj):
         if not self.accept():
@@ -739,6 +749,10 @@ class Writer:
         #     self.writeToFile_T(c)
 
 if __name__ == '__main__':
+    proxy = RemoteProxy('601208')
+    lday = proxy.getLocalLatestDay_Time()
+    proxy.loadLocalData_Time(20250729)
+
     df = T_DataModel('601208') # 999999
     path = df.getLocalPath('TIME')
     f = open(path, 'rb')
