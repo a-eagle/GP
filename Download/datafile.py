@@ -263,7 +263,7 @@ class RemoteProxy:
         return True
         
     def getLocalLatestDay_Day(self):
-        if not self.accept():
+        if isServerMachine():
             return None
         resp = requests.get(f'http://113.44.136.221:8090/remote?func=getLocalLatestDay_Day&code={self.code}&params=')
         cnt = resp.content.decode()
@@ -274,7 +274,7 @@ class RemoteProxy:
         return day
 
     def loadLocalData_Time(self, day, destObj):
-        if not self.accept():
+        if isServerMachine():
             return False
         resp = requests.get(f'http://113.44.136.221:8090/remote?func=loadLocalData_Time&code={self.code}&day={day}&params=day')
         cnt = resp.content.decode()
@@ -299,7 +299,7 @@ class RemoteProxy:
         return True
 
     def getLocalLatestDay_Time(self):
-        if not self.accept():
+        if isServerMachine():
             return None
         resp = requests.get(f'http://113.44.136.221:8090/remote?func=getLocalLatestDay_Time&code={self.code}&params=')
         cnt = resp.content.decode()

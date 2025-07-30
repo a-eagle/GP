@@ -846,7 +846,6 @@ class HotZHCardView(ListView):
             win32gui.SetTextColor(hdc, color)
             win32gui.DrawText(hdc, zf, len(zf), rect, win32con.DT_RIGHT)
         
-
     def onDraw(self, hdc):
         self.updateData()
         if not self.data:
@@ -900,6 +899,9 @@ class HotZHCardView(ListView):
             self.windowTitle = f'HotZH {day // 100 % 100 :02d}-{day % 100: 02d} {bef}天前'
         win32gui.SetWindowText(self.hwnd, self.windowTitle)
 
+    def onRButtonUp(self):
+        pass
+
 class SimpleHotZHWindow(CardWindow):
     def __init__(self) -> None:
         super().__init__((170, 310), (80, 30))
@@ -947,6 +949,11 @@ class SimpleHotZHWindow(CardWindow):
                 rc = win32gui.GetWindowRect(hwnd)
                 self.DP.show(x = rc[0] + 8, y = rc[1] + 30)
             return False
+        if msg == win32con.WM_RBUTTONUP:
+            cv = self.getCurCardView()
+            r = getattr(cv, 'onRButtonUp', None)
+            if r: r()
+            return True
         return super().winProc(hwnd, msg, wParam, lParam)
     
 class CodeBasicWindow(base_win.NoActivePopupWindow):

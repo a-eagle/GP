@@ -24,8 +24,10 @@ class TdxGuiDownloader:
 
     def startProcess(self):
         path = 'D:\\new_tdx\\TdxW.exe'
-        if isServerMachine():
+        if not os.path.exists(path):
             path = 'C' + path[1 : ]
+            if not os.path.exists(path):
+                return
         subprocess.Popen(path, shell=True)
         time.sleep(15)
 
@@ -66,24 +68,27 @@ class TdxGuiDownloader:
         if not hwnd:
             raise Exception('Not find Tdx login window')
         # win32gui.SetForegroundWindow(hwnd)
-        time.sleep(3)
-        loginBtn = win32gui.GetDlgItem(hwnd, 0x1)
-        self.click(loginBtn, 0, 0)
 
         # pwdEditer = win32gui.GetDlgItem(hwnd, 0x422)
         # self.click(pwdEditer, 0, 0)
         # time.sleep(0.5)
         # self.enter(pwdEditer)
 
-        # pwdPos = (250, 300)
-        # pwdPos = self.getScreenPos(hwnd, *pwdPos)
-        # pyautogui.click(*pwdPos, duration=0.5)
-        # for i in range(20):
-            # pyautogui.press('backspace')
-        # pyautogui.typewrite('gaoyan2012')
+        if isServerMachine():
+            pwdPos = (250, 300)
+            pwdPos = self.getScreenPos(hwnd, *pwdPos)
+            pyautogui.click(*pwdPos, duration=0.5)
+            for i in range(20):
+                pyautogui.press('backspace')
+            pyautogui.typewrite('gaoyan2012')
+
         # loginBtnPos = (200, 370)
         # loginBtnPos = self.getScreenPos(hwnd, *loginBtnPos)
         # pyautogui.click(*loginBtnPos, duration=0.5)
+
+        time.sleep(3)
+        loginBtn = win32gui.GetDlgItem(hwnd, 0x1)
+        self.click(loginBtn, 0, 0)
         time.sleep(15)
 
     def getTdxMainWindow(self):
