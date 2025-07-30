@@ -817,6 +817,8 @@ class HotZHCardView(ListView):
         rect = self.getItemRect(idx)
         if not rect:
             return
+        if self.selIdx == idx:
+            base_win.Drawer.instance().fillRect(hdc, rect, 0x202020)
         code = f"{data['code'] :06d}"
         info = self.getCodeInfo(code)
         name = ''
@@ -843,12 +845,7 @@ class HotZHCardView(ListView):
             color = 0x00ff00 if  '-' in zf else 0x0000ff
             win32gui.SetTextColor(hdc, color)
             win32gui.DrawText(hdc, zf, len(zf), rect, win32con.DT_RIGHT)
-        if self.selIdx == idx:
-            ps = win32gui.CreatePen(win32con.PS_SOLID, 1, 0x00ffff)
-            win32gui.SelectObject(hdc, ps)
-            win32gui.MoveToEx(hdc, rect[0], rect[3] - 2)
-            win32gui.LineTo(hdc, rect[2], rect[3] - 2)
-            win32gui.DeleteObject(ps)
+        
 
     def onDraw(self, hdc):
         self.updateData()
