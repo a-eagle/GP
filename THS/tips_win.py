@@ -93,6 +93,8 @@ class CardWindow(base_win.NoActivePopupWindow):
         st = state.get('settings', None)
         if st:
             self.settings = st
+        for cv in self.cardViews:
+            cv.settings = st
         if state['maxMode']:
             self.move(x, y)
             self.resize(*self.MAX_SIZE)
@@ -119,6 +121,8 @@ class CardWindow(base_win.NoActivePopupWindow):
     def changeCardView(self):
         idx = self.curCardViewIdx
         self.curCardViewIdx = (idx + 1) % len(self.cardViews)
+        cv = self.getCurCardView()
+        cv.settings = self.settings
         if self.curCardViewIdx != idx:
             cv = self.getCurCardView()
             title = cv.getWindowTitle()
@@ -666,6 +670,9 @@ class ListView(CardView):
         pyautogui.press('enter')
         #win32gui.SetActiveWindow(self.hwnd)
         self.thread.addTask('AW', self.activeWindow)
+
+    def openCode(self, code):
+        self.openTHSCode(code)
     
     def activeWindow(self):
         time.sleep(1)
@@ -693,7 +700,7 @@ class ListView(CardView):
             if not self.data or selIdx < 0 or selIdx >= len(self.data):
                 return False
             code = self.data[selIdx]['code']
-            self.openTHSCode(code)
+            self.openCode(code)
             return True
         if msg == win32con.WM_KEYDOWN:
             if wParam == win32con.VK_DOWN:
@@ -902,10 +909,25 @@ class HotZHCardView(ListView):
     def onRButtonUp(self):
         pass
 
+    def openCode(self, code):
+        st = getattr(self, 'settings', [])
+        openInThs = True
+        for c in st:
+            if c['name'] == 'OPEN_IN_THS':
+                openInThs = c['checked']
+        if openInThs:
+            return self.openTHSCode(code)
+        win = kline_utils.openInCurWindow(None, {'code': code, 'day': self.curSelDay})
+        codes = [f"{d['code'] :06d}" for d in self.data]
+        win.setCodeList(codes)
+
 class SimpleHotZHWindow(CardWindow):
     def __init__(self) -> None:
         super().__init__((170, 310), (80, 30))
         self.maxMode = True #  是否是最大化的窗口
+        self.settings = [
+            {'name': 'OPEN_IN_THS', 'title': '同花顺中打开', 'checked': True},
+        ]
 
     def createWindow(self, parentWnd):
         style = win32con.WS_POPUP | win32con.WS_CAPTION
