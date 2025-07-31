@@ -9,6 +9,8 @@ from download.datafile import *
 from orm import d_orm
 from ui import fx
 
+pyautogui.FAILSAFE = False
+
 class TdxGuiDownloader:
     def __init__(self) -> None:
         pass
