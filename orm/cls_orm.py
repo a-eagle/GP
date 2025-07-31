@@ -76,6 +76,7 @@ class CLS_SCQX(pw.Model):
 
 # 综合强度(分时)
 class CLS_SCQX_Time(pw.Model):
+    keys = ('day', 'time')
     day = pw.CharField() # YYYY-MM-DD
     time = pw.CharField() # HH:MM
     zhqd = pw.IntegerField(column_name='综合强度')
@@ -86,6 +87,7 @@ class CLS_SCQX_Time(pw.Model):
 
 # 财联社热度题材
 class CLS_HotTc(pw.Model):
+    keys = ('code', 'day')
     day = pw.CharField() # YYYY-MM-DD
     code = pw.CharField(null = True, default = "")
     name = pw.CharField()

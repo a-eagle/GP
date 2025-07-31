@@ -47,6 +47,7 @@ class THS_Hot(pw.Model):
 
 # 同花顺--个股热度综合排名
 class THS_HotZH(pw.Model):
+    keys = ('day', 'code')
     day = pw.IntegerField(column_name = '日期') # 刷新日期
     code = pw.IntegerField() #股票代码
     avgHotValue = pw.IntegerField(column_name = '平均热度值_万' )
@@ -71,6 +72,7 @@ class THS_ZS(pw.Model):
 
 # 同花顺指数涨跌信息
 class THS_ZS_ZD(pw.Model):
+    keys = ('day', 'code')
     day = pw.CharField() # YYYY-MM-DD
     code = pw.CharField() #指数代码
     name = pw.CharField(null = True) #指数名称
@@ -109,6 +111,7 @@ class THS_ZT(pw.Model):
 db_ths_codes = pw.SqliteDatabase(f'{path}GP/db/THS_Codes.db')
 # 个股信息
 class THS_CodesInfo(pw.Model):
+    keys = ('code', )
     code = pw.CharField()
     name = pw.CharField(null = True)
 

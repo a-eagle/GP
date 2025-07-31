@@ -6,6 +6,7 @@ db_pankou = pw.SqliteDatabase(f'{path}GP/db/PanKou.db')
 
 # 涨停盘口(收盘)
 class ZT_PanKou(pw.Model):
+    keys = ('day', 'code')
     day = pw.CharField() # YYYY-MM-DD
     code = pw.CharField()
     info = pw.CharField()
@@ -17,6 +18,7 @@ class ZT_PanKou(pw.Model):
 db_hotvol = pw.SqliteDatabase(f'{path}GP/db/HotVol.db')
 #热度股成交量前100信息
 class HotVol(pw.Model):
+    keys = ('day', )
     day = pw.CharField() # YYYY-MM-DD
     p1 = pw.IntegerField() # 第一  亿元
     p10 = pw.IntegerField() # 第20
@@ -36,6 +38,7 @@ class HotVol(pw.Model):
 db_zhangsu = pw.SqliteDatabase(f'{path}GP/db/ZhangSu.db')
 # Local涨速
 class LocalSpeedModel(pw.Model):
+    keys = ('day', 'code')
     day = pw.IntegerField() # 日期
     code = pw.CharField() #股票代码
     fromMinute = pw.IntegerField()

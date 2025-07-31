@@ -272,7 +272,7 @@ class Main:
         flag = tdx.run()
         print(f'download end... {flag}')
         # self.resetLockScreen()
-        if flag:
+        if flag and isServerMachine():
             ld = fx.FenXiLoader()
             ld.fxAll_2()
         print('-----------End----------\n\n')
