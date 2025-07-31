@@ -72,13 +72,13 @@ class TdxGuiDownloader:
         # time.sleep(0.5)
         # self.enter(pwdEditer)
 
-        if isServerMachine():
-            pwdPos = (250, 300)
-            pwdPos = self.getScreenPos(hwnd, *pwdPos)
-            pyautogui.click(*pwdPos, duration=0.5)
-            for i in range(20):
-                pyautogui.press('backspace')
-            pyautogui.typewrite('gaoyan2012')
+        # if isServerMachine():
+        #     pwdPos = (250, 300)
+        #     pwdPos = self.getScreenPos(hwnd, *pwdPos)
+        #     pyautogui.click(*pwdPos, duration=0.5)
+        #     for i in range(20):
+        #         pyautogui.press('backspace')
+        #     pyautogui.typewrite('gaoyan2012')
 
         # loginBtnPos = (200, 370)
         # loginBtnPos = self.getScreenPos(hwnd, *loginBtnPos)
