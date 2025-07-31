@@ -7,32 +7,29 @@ def isServerMachine():
     return platform.node() == REMOTE_NODE
 
 class PathManager:
-    REMOTE_TDX_BASE_PATH = r'C:\new_tdx\vipdoc'
-    TDX_BASE_PATH = r'D:\new_tdx\vipdoc'
-    NET_BASE_PATH = f'\\NetData'
-    NET_LDAY_PATH = '\\lday'
-    NET_MINLINE_PATH = '\\minline'
-    _ins = None
+    TDX_BASE_PATH = ''
+    TDX_VIP_PATH = ''
+    NET_LDAY_PATH = ''
+    NET_MINLINE_PATH = ''
 
     def __init__(self) -> None:
-        if isServerMachine():
-            PathManager.TDX_BASE_PATH = self.REMOTE_TDX_BASE_PATH
-        if not os.path.exists(self.TDX_BASE_PATH):
-            return
-        PathManager.NET_BASE_PATH = PathManager.TDX_BASE_PATH + PathManager.NET_BASE_PATH
-        PathManager.NET_LDAY_PATH = PathManager.TDX_BASE_PATH + PathManager.NET_LDAY_PATH
-        PathManager.NET_MINLINE_PATH = PathManager.TDX_BASE_PATH + PathManager.NET_MINLINE_PATH
+        pt = 'D:\\new_tdx'
+        if not os.path.exists(pt):
+            pt = 'C:\\new_tdx'
+        PathManager.TDX_BASE_PATH = pt
+        PathManager.TDX_VIP_PATH = os.path.join(self.TDX_BASE_PATH, 'vipdoc')
+        PathManager.NET_LDAY_PATH = os.path.join(self.TDX_VIP_PATH, 'NetData\\lday')
+        PathManager.NET_MINLINE_PATH = os.path.join(self.TDX_VIP_PATH, 'NetData\\minline')
         for d in (self.NET_LDAY_PATH, self.NET_MINLINE_PATH):
             if not os.path.exists(d):
                 os.makedirs(d)
         for s in ('sh', 'sz'):
             for f in ('lday', 'minline'):
-                path = f'{self.TDX_BASE_PATH}\\{s}\\{f}'
+                path = f'{self.TDX_VIP_PATH}\\{s}\\{f}'
                 if not os.path.exists(path):
                     os.makedirs(path)
 
-if not PathManager._ins:
-    PathManager._ins = PathManager()
+PathManager()
 
 class ItemData:
     # KLine ('day', 'open', 'high', 'low', 'close', 'amount', 'vol') MA5, MA10
@@ -108,9 +105,9 @@ class DataModel:
         if self.isNormalCode():
             tag = 'sh' if code[0] in ('6', '9') else 'sz'
             if dataType == 'DAY':
-                bp = os.path.join(PathManager.TDX_BASE_PATH, f'{tag}\\lday\\{tag}{code}.day')
+                bp = os.path.join(PathManager.TDX_VIP_PATH, f'{tag}\\lday\\{tag}{code}.day')
             else:
-                bp = os.path.join(PathManager.TDX_BASE_PATH, f'{tag}\\minline\\{tag}{code}.lc1')
+                bp = os.path.join(PathManager.TDX_VIP_PATH, f'{tag}\\minline\\{tag}{code}.lc1')
         else: # cls zs |  # ths zs
             if dataType == 'DAY':
                 bp = os.path.join(PathManager.NET_LDAY_PATH, f'{code}.day')
@@ -249,6 +246,8 @@ class RemoteProxy:
         if js['status'] != 'OK':
             return False
         data = js['data']
+        if not data:
+            return False
         bs = base64.decodestring(data.encode())
         rs = []
         for i in range(len(bs) // 32):
@@ -282,6 +281,8 @@ class RemoteProxy:
         if js['status'] != 'OK':
             return False
         data : str = js['data']
+        if not data:
+            return False
         rbs = base64.decodestring(data.encode())
         rs = []
         for i in range(len(rbs) // 32):
@@ -721,7 +722,7 @@ class Writer:
     # tag = lday | minline
     def getLocalCodes(self, tag):
         codes = []
-        path = PathManager.TDX_BASE_PATH + f'\\sh\\{tag}'
+        path = PathManager.TDX_VIP_PATH + f'\\sh\\{tag}'
         dirs = os.listdir(path)
         c999999 = None
         for name in dirs:
@@ -729,7 +730,7 @@ class Writer:
                 codes.append(name[2 : 8])
             if name[2 : 8] == '999999':
                 c999999 = '999999'
-        path = PathManager.TDX_BASE_PATH + f'\\sz\\{tag}'
+        path = PathManager.TDX_VIP_PATH + f'\\sz\\{tag}'
         dirs = os.listdir(path)
         for name in dirs:
             if name[0 : 2] == 'sz' and name[2] in ('0', '3'):

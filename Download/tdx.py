@@ -25,11 +25,7 @@ class TdxGuiDownloader:
         return False
 
     def startProcess(self):
-        path = 'D:\\new_tdx\\TdxW.exe'
-        if not os.path.exists(path):
-            path = 'C' + path[1 : ]
-            if not os.path.exists(path):
-                return
+        path = os.path.join(PathManager.TDX_BASE_PATH, 'TdxW.exe')
         subprocess.Popen(path, shell=True)
         time.sleep(15)
 
