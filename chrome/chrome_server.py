@@ -111,13 +111,17 @@ class Server:
         item = memcache.cache.getCache(url)
         if item:
             return item
-        purl = cls.getProxyUrl(url)
-        resp = requests.get(purl)
-        txt = resp.content.decode()
-        js = json.loads(txt)
-        if resp.status_code == 200:
-            memcache.cache.saveCache(url, js, cachetime)
-        return js
+        try:
+            purl = cls.getProxyUrl(url)
+            resp = requests.get(purl)
+            txt = resp.content.decode()
+            js = json.loads(txt)
+            if resp.status_code == 200:
+                memcache.cache.saveCache(url, js, cachetime)
+            return js
+        except Exception as e:
+            traceback.print_exc()
+        return None
 
     def loadKLine(self, code):
         hx = henxin.HexinUrl()
@@ -148,12 +152,11 @@ class Server:
         # is trading now
         url = cls.ClsUrl().getHotTCUrl(day)
         rs = self._clsProxy(url, 60)
-        datas = rs['data']
-        if not datas:
+        if not rs or not rs['data']:
             self.cache[f'HotTC-Newest'] = None
             return []
         newDatas = []
-        for d in datas:
+        for d in rs['data']:
             item = {}
             ts = d['c_time'].split(' ')
             item['day'] = ts[0]
@@ -404,8 +407,12 @@ class Server:
 
     def getFenShi(self, code):
         day = flask.request.args.get('day', None)
-        fs = self._getFenShi(code, day)
-        return fs
+        try:
+            fs = self._getFenShi(code, day)
+            return fs
+        except Exception as e:
+            traceback.print_exc()
+        return None
     
     def _getFenShi(self, code, day):
         lastTradeDay = ths_iwencai.getTradeDays()[-1]

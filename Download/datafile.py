@@ -283,7 +283,7 @@ class RemoteProxy:
         data : str = js['data']
         if not data:
             return False
-        rbs = base64.decodestring(data.encode())
+        rbs = base64.decodebytes(data.encode())
         rs = []
         for i in range(len(rbs) // 32):
             bs = rbs[i * 32 : i * 32 + 32]
