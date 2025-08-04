@@ -1,6 +1,6 @@
 import win32gui, win32ui, win32con, re, io, traceback, sys, datetime, time, copy
 from PIL import Image
-from cnocr import CnOcr
+#from cnocr import CnOcr
 
 # pip install cnocr -i  https://pypi.tuna.tsinghua.edu.cn/simple
 # https://blog.csdn.net/bugang4663/article/details/131687243?spm=1001.2014.3001.5501
@@ -14,7 +14,7 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
     def __init__(self) -> None:
         self.titleHwnds = set()
         self.wbOcr = number_ocr.NumberOCR('wb', '+-.%0123456789')
-        self.codeOcr = CnOcr(cand_alphabet = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
+        #self.codeOcr = CnOcr(cand_alphabet = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
 
     # wb = 委比 28.45
     # diff = 委差

@@ -61,7 +61,7 @@ class WinStateMgr:
     def read(self):
         if not os.path.exists(self.fileName):
             return
-        file = open(self.fileName, 'r')
+        file = open(self.fileName, 'r', encoding = 'utf-8')
         txt = file.read().strip()
         file.close()
         if txt:
@@ -81,25 +81,27 @@ def updateWindowInfo(thsWin, stateMgr : WinStateMgr):
     if stateMgr.curPageName!= curPageName: # changed page
         stateMgr.curPageName = curPageName
         if curPageName not in winsInfo:
-            winsInfo[curPageName] = {'s1': None, 's2': None, 's3': None, 's4': None, 's5': None}
+            winsInfo[curPageName] = {'HOT_WIN': None, 'ZT_WIN': None, "HOT_ZH_WIN": None,
+                                     'CODE_BASIC_WIN': None, 'BK_GN_WIN': None}
         cp = winsInfo[curPageName]
-        simpleWindow.setWindowState(cp.get('s1', None))
-        simpleWindow2.setWindowState(cp.get('s3', None))
-        simpleHotZHWindow.setWindowState(cp.get('s2', None))
-        codeBasicWindow.setWindowState(cp.get('s4', None))
-        bkGnWin.setWindowState(cp.get('s6', None))
+        simpleWindow.setWindowState(cp.get('HOT_WIN', None))
+        simpleWindow2.setWindowState(cp.get('ZT_WIN', None))
+        simpleHotZHWindow.setWindowState(cp.get('HOT_ZH_WIN', None))
+        codeBasicWindow.setWindowState(cp.get('CODE_BASIC_WIN', None))
+        bkGnWin.setWindowState(cp.get('BK_GN_WIN', None))
         if curPageName == '技术分析':
             ths_win.ThsSmallF10Window.adjustPos()
     else:
         if curPageName not in winsInfo:
-            winsInfo[curPageName] = {'s1': None, 's2': None, 's3': None}
+            winsInfo[curPageName] = {'HOT_WIN': None, 'ZT_WIN': None, 'HOT_ZH_WIN': None,
+                                        'CODE_BASIC_WIN': None, 'BK_GN_WIN': None}
         cp = winsInfo[curPageName]
         cp2 = {}
-        cp2['s1'] = simpleWindow.getWindowState()
-        cp2['s2'] = simpleHotZHWindow.getWindowState()
-        cp2['s3'] = simpleWindow2.getWindowState()
-        cp2['s4'] = codeBasicWindow.getWindowState()
-        cp2['s6'] = bkGnWin.getWindowState()
+        cp2['HOT_WIN'] = simpleWindow.getWindowState()
+        cp2['ZT_WIN'] = simpleWindow2.getWindowState()
+        cp2['HOT_ZH_WIN'] = simpleHotZHWindow.getWindowState()
+        cp2['CODE_BASIC_WIN'] = codeBasicWindow.getWindowState()
+        cp2['BK_GN_WIN'] = bkGnWin.getWindowState()
         if cp != cp2:
             cp.update(cp2)
             stateMgr.save()
