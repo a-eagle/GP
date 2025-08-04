@@ -291,7 +291,7 @@ class TimeDegreeMgr {
 class ZdfbMgr {
 	constructor(vue) {
 		this.vue = vue;
-		this.table = null;
+		this.ui = null;
 		let thiz = this;
 		let r = function(elem, bindName, obj, attrName) {
 			thiz._renderDegree(elem, bindName, obj, attrName);
@@ -305,7 +305,7 @@ class ZdfbMgr {
 
 	_onChangeDay(newVal, oldVal) {
 		let thiz = this;
-		if (! this.table) {
+		if (! this.ui) {
 			this._buildUI();
 		}
 		let model = this.vue.data;
@@ -340,22 +340,23 @@ class ZdfbMgr {
 	}
 
 	_buildUI() {
-		this.table = $('<table class="zdfb">'+
-			"<tr class='red'> <th> 日期 </th> <th rowspan=2 :bind='zdfb.degree' :render='zdfb.r' style='width:165px; background-color:#fff;' >  </th>  " +
-			"<th> 上涨数 </th> <td :bind='zdfb.up'> </td>  <th> 涨停 </th> " +
-			"<td :bind='zdfb.zt'> </td> <th> 涨幅>8% </th> <td :bind='zdfb.up_8'> </td> </tr>" +
-			"<tr class='green'> <th :bind='zdfb.day'> </th>        <th> 下跌数 </th> " +
-			"<td :bind='zdfb.down'> </td>  <th> 跌停 </th> <td :bind='zdfb.dt'> </td> <th> 跌幅>8% </th>" +
-			"<td :bind='zdfb.down_8'> </td> </tr>" +
-			" <tr style='height: 20px;'> <td></td> <td></td> <td></td> <td colspan=5 :bind='zdfb.czd' :render='zdfb.czdFunc'></td> </tr> </table> ");
+		this.ui = $('<div style="height:220px;">' +
+					'<table class="zdfb" style="float:left; width:300px; height:215px;">' +
+						"<tr class='red'> <th> 日期 </th> <th style=''>涨停 </th> </tr>" + 
+						"<tr class='green'> <th :bind='zdfb.day'> </th> <th :bind='zdfb.zt' style='color:red;'> </th> </tr>" + 
+						"<tr> <th :bind='zdfb.degree' :render='zdfb.r' style='width:165px; background-color:#fff;' rowspan=2>  </th> <th>跌停</th>  </tr>  " +
+						"<tr> <th :bind='zdfb.dt' style='color:green;'> </th> </tr>" +
+					"</table>" +
+					"<div name='' style='width: 700px; height:215px; float:left; margin-left:120px;' :bind='zdfb.czd' :render='zdfb.czdFunc'> "+
+					"</div>");
 		// this.table.find('td').css('width', '120px');
-		$('div[name="zdfb-item"]').append(this.table);
+		$('div[name="zdfb-item"]').append(this.ui);
 		let style = document.createElement('style');
-		let css = `.zdfb th {width: 130px;} \n\
+		let css = `.zdfb th {width: 110px;} \n\
 				`;
 		style.appendChild(document.createTextNode(css));
 		document.head.appendChild(style);
-		this.vue.mount(this.table);
+		this.vue.mount(this.ui);
 	}
 
 	_renderDegree(elem, bindName, data, attrName) {
@@ -389,19 +390,14 @@ class ZdfbMgr {
 	_render_czd(elem, bindName, data, attrName) {
 		elem = $(elem);
 		elem.empty();
-		let SPACE = 10;
-		let width = elem.width() - 10 - SPACE * 2;
 		if (typeof(data.up) != 'number' || typeof(data.zero) != 'number' || typeof(data.down) != 'number')
 			return;
 		let total = data.up + data.down + data.zero;
-		if (total == 0) return;
-		let upUI = $('<span style="background-color: #f00; height: 10px; display: inline-block;"> </span>');
-		let zeroUI = $(`<span style="background-color: #aaa; height: 10px; display: inline-block;margin-left: ${SPACE}px; margin-right: ${SPACE}px;; height: 10px;"> </span>`);
-		let downUI = $(`<span style="background-color: #0f0; display: inline-block; height: 10px;"> </span>`);
-		upUI.width(parseInt(data.up / total * width));
-		downUI.width(parseInt(data.down / total * width));
-		zeroUI.width(parseInt(data.zero / total * width));
-		elem.append(upUI).append(zeroUI).append(downUI);
+		data.total = total;
+		let canvas = $('<canvas> </canvas>');
+		elem.append(canvas);
+		let view = new ZdfbView(canvas.get(0));
+		view.draw(data);
 	}
 
 	// 涨跌分布
@@ -481,6 +477,7 @@ class ZdfbMgr {
 			if (k.indexOf('-') >= 0) down += zdfb[k];
 			else if (k != '0') up += zdfb[k];
 		}
+		model.zdfb = zdfb;
 		model.up = numToStr(up);
 		model.down = numToStr(down);
 		model.zero = numToStr(zdfb['0']);
