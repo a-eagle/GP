@@ -91,6 +91,7 @@ class ContextMenuManager:
               {'title': '删除直线', 'name': 'del-draw-line', 'day': selDay},
               {'title': 'LINE'},
               {'title': '标记', 'name': 'mark-color', 'sub-menu': self.getMarkColors},
+              {'title': '简单指标', 'name': 'simple-indicator', 'checked': self.win.simpleIndicator},
         ])
         return mm
     
@@ -247,6 +248,12 @@ class ContextMenuManager:
             self.win.lineMgr.delLine(evt.item['day'])
         elif name == 'mark-color':
             self.markColor(evt.item)
+        elif name == 'simple-indicator':
+            v = self.win.simpleIndicator = not self.win.simpleIndicator
+            TS = (ThsZT_Indicator, ClsZT_Indicator)
+            for it in self.win.indicators:
+                it.visible = (not v) or (type(it) not in TS)
+            self.win.calcIndicatorsRect()
 
     def markColor(self, item):
         code = self.win.klineIndicator.model.code
@@ -731,6 +738,7 @@ class KLineWindow(base_win.BaseWindow):
         self.selIdxOnClick = False
         self.refIndicatorVisible = True
         self.klineIndicatorVisible = True
+        self.simpleIndicator = False
         self.refIndicator = RefIndicator(self)
         self.klineIndicator = KLineIndicator(self, {'height': -1, 'margins': (30, 20)})
         self.indicators.append(self.klineIndicator)
@@ -752,6 +760,8 @@ class KLineWindow(base_win.BaseWindow):
         fixHeight = 0
         for i in range(0, len(self.indicators)):
             cf : Indicator = self.indicators[i]
+            if not cf.visible:
+                continue
             fixHeight += cf.getMargins(0) + cf.getMargins(1)
             if cf.config['height'] >= 0:
                 fixHeight += cf.config['height']
@@ -759,6 +769,8 @@ class KLineWindow(base_win.BaseWindow):
         y = 0
         for i in range(0, len(self.indicators)):
             cf = self.indicators[i]
+            if not cf.visible:
+                continue
             cf.x = self.LEFT_MARGIN
             y = y + cf.getMargins(0)
             cf.y = y
@@ -774,11 +786,15 @@ class KLineWindow(base_win.BaseWindow):
         self.refIndicator.height = self.klineIndicator.height
     
     def isPointInIndicator(self, x, y, indicator):
+        if not indicator.visible:
+            return False
         return (x >= indicator.x and x < indicator.x + indicator.width and
                 y >= indicator.y and y < indicator.y + indicator.height)
 
     def getIndicatorByPoint(self, x, y):
         for it in self.indicators:
+            if not it.visible:
+                continue
             if self.isPointInIndicator(x, y, it):
                 return it
         return None
@@ -897,7 +913,8 @@ class KLineWindow(base_win.BaseWindow):
 
     def onMouseLeave(self):
         for it in self.indicators:
-            it.onMouseLeave()
+            if it.visible:
+                it.onMouseLeave()
         self.invalidWindow()
 
     def onMouseClick(self, x, y):
@@ -985,6 +1002,8 @@ class KLineWindow(base_win.BaseWindow):
         w, h = self.getClientSize()
         # draw background
         for i, idt in enumerate(self.indicators):
+            if not idt.visible:
+                continue
             sdc = win32gui.SaveDC(hdc)
             win32gui.SetViewportOrgEx(hdc, idt.x, idt.y)
             idt.drawBackground(hdc, self.drawer)
@@ -994,6 +1013,8 @@ class KLineWindow(base_win.BaseWindow):
             win32gui.RestoreDC(hdc, sdc)
         # draw Hilights
         for i, idt in enumerate(self.indicators):
+            if not idt.visible:
+                continue
             sdc = win32gui.SaveDC(hdc)
             win32gui.SetViewportOrgEx(hdc, idt.x, idt.y)
             idt.drawIdxHilight(hdc, self.drawer, self.selIdx)
@@ -1009,6 +1030,8 @@ class KLineWindow(base_win.BaseWindow):
             win32gui.RestoreDC(hdc, sdc)
         for i, idt in enumerate(self.indicators):
             if idt == self.klineIndicator and not self.klineIndicatorVisible:
+                continue
+            if not idt.visible:
                 continue
             sdc = win32gui.SaveDC(hdc)
             win32gui.SetViewportOrgEx(hdc, idt.x, idt.y)
@@ -1078,9 +1101,9 @@ class KLineWindow(base_win.BaseWindow):
         win.addIndicator(HotIndicator(win))
         win.addIndicator(ThsZT_Indicator(win))
         win.addIndicator(ClsZT_Indicator(win))
-        win.addIndicator(GnLdIndicator(win))
         win.addIndicator(ZhangSuIndicator(win))
         win.addIndicator(LhbIndicator(win))
+        win.addIndicator(GnLdIndicator(win))
         win.addIndicator(Code_ZT_NumIndicator(win))
         return win
 

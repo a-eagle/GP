@@ -52,6 +52,7 @@ class Indicator:
     def __init__(self, win, config = None) -> None:
         self.win = win
         self.config = config or {}
+        self.visible = True
         self.data = None
         self.period = None
         self.valueRange = None
