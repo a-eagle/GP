@@ -120,6 +120,7 @@ class Server:
                 memcache.cache.saveCache(url, js, cachetime)
             return js
         except Exception as e:
+            print('Error: url=', url)
             traceback.print_exc()
         return None
 
@@ -134,6 +135,16 @@ class Server:
                 obj[k] = getattr(d, k, 0)
             datas.append(obj)
         return datas
+
+    def getHotTcByDay_Local(self, day):
+        day = str(day)
+        if len(day) == 8:
+            day = day[0 : 4] + '-' + day[4 : 6] + '-' + day[6 : 8]
+        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day == day).dicts()
+        rs = []
+        for it in qr:
+            rs.append(it)
+        return rs
     
     def getHotTcByDay(self):
         day = flask.request.args.get('day', '')
@@ -144,17 +155,13 @@ class Server:
         today = datetime.date.today().strftime('%Y-%m-%d')
         now = datetime.datetime.now().strftime('%H:%M')
         if now >= '15:10' or today != day:
-            qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day == day).dicts()
-            rs = []
-            for it in qr:
-                rs.append(it)
-            return rs
+            return self.getHotTcByDay_Local(day)
         # is trading now
         url = cls.ClsUrl().getHotTCUrl(day)
         rs = self._clsProxy(url, 60)
         if not rs or not rs['data']:
             self.cache[f'HotTC-Newest'] = None
-            return []
+            return self.getHotTcByDay_Local(day)
         newDatas = []
         for d in rs['data']:
             item = {}
