@@ -290,6 +290,7 @@ class Server:
         if curTime >= '15:05' and (not self.downloadInfos.get(f'zh-hots-{day}', False)):
             self.downloadInfos[f'zh-hots-{day}'] = True
             hot_utils.calcAllHotZHAndSave()
+            hot_utils.removeUnusedHots()
             console.writeln_1(console.GREEN, f'[1/7] [THS-ZH-hot] {self.formatNowTime(False)}', ' calc hot ZH success')
             time.sleep(60)
         # 下载成交量前100信息

@@ -44,6 +44,15 @@ def calcAllHotZHAndSave():
         zhDatas = [THS_HotZH(**d) for d in rowDatas]
         THS_HotZH.bulk_create(zhDatas, 50)
 
+def removeUnusedHots():
+    qr = THS_Hot.select(THS_Hot.day).distinct().tuples()
+    hotDays = set([d[0] for d in qr])
+    qr = THS_HotZH.select(THS_HotZH.day).distinct().tuples()
+    for d in qr:
+        day = d[0]
+        if day in hotDays:
+            THS_Hot.delete().where(THS_Hot.day == day).execute()
+
 def calcHotZHAndSave(day):
     rowDatas = calcHotZHOnDay(day)
     zhDatas = [THS_HotZH(**d) for d in rowDatas]
@@ -163,6 +172,8 @@ def loadFromFile():
 
 
 if __name__ == '__main__':
+    removeUnusedHots()
+
     rs = DynamicHotZH.ins.getNewestHotZH()
     #getLastTradeDay()
     #calcAllHotZHAndSave()
