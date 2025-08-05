@@ -749,7 +749,7 @@ class Writer:
         #     self.writeToFile_T(c)
 
 if __name__ == '__main__':
-    proxy = RemoteProxy('601208')
+    proxy = RemoteProxy('999999')
     lday = proxy.getLocalLatestDay_Time()
     df = T_DataModel('601208')
     proxy.loadLocalData_Time(20250729, df)

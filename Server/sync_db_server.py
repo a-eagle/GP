@@ -9,6 +9,8 @@ from download import console, ths_iwencai, cls
 
 MIN_UPDATE_TIME = datetime.datetime(2025, 6, 11, 8, 0, 0)
 
+IGNORE_PUSH_ORM = ['THS_Hot']
+
 class Server:
     def __init__(self) -> None:
         self.app = flask.Flask(__name__)
@@ -87,6 +89,8 @@ class Server:
         return rs
     
     def pushUpdateData(self, ormFile, ormClass):
+        if ormClass in IGNORE_PUSH_ORM:
+            return
         mgr = DbTableManager()
         model = mgr.getOrmClass(ormFile, ormClass)
         if not model:
@@ -161,6 +165,8 @@ class Client:
         try:
             mgr = DbTableManager()
             ormFile, ormClass, updateTime = item['ormFile'], item['ormClass'], item['updateTime']
+            if ormClass in IGNORE_PUSH_ORM:
+                return
             model = mgr.getOrmClass(ormFile, ormClass)
             if not model:
                 print(f"[Client.pushUpdateData] Not find model: {ormFile} {ormClass}")
