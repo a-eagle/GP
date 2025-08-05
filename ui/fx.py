@@ -82,26 +82,17 @@ class FenXiLoader:
     def __init__(self) -> None:
         pass
 
-    def loadAllCodes_Local(self):
-        cs = os.listdir(PathManager.NET_MINLINE_PATH)
-        rs = []
-        FL = ('3', '0', '6')
-        for name in cs:
-            code = name[0 : 6]
-            if code[0] in FL and code[0 : 3] != '399':
-                rs.append(code)
-        return rs
-
     def loadAllCodes(self):
-        from orm import ths_orm
         rs = []
-        FL = ('3', '0', '6')
-        for n in os.listdir(PathManager.NET_MINLINE_PATH):
-            if len(n) != 10 or not n.endswith('.lc1'):
-                continue
-            code = n[0 : 6]
-            if code[0] in FL and code[0 : 3] != '399':
-                rs.append(code)
+        KS = {'sz': ['0', '3'], 'sh': ['6']}
+        for s in KS:
+            path = f'{PathManager.TDX_VIP_PATH}\\{s}\\minline'
+            accept = KS[s]
+            cs = os.listdir(path)
+            for name in cs:
+                code = name[2 : 8]
+                if code[0] in accept and code[0 : 3] != '399':
+                    rs.append(code)
         return rs
 
     def save(self, code, rs):
@@ -134,26 +125,10 @@ class FenXiLoader:
             fromDay += datetime.timedelta(days = 1)
 
     def fxAll(self, day):
-        print('---begin fenxi zhang su----')
-        x, y = console.getCursorPos()
         cs = self.loadAllCodes()
-        now = datetime.datetime.now()
-        print('start', now.strftime('%Y-%m-%d %H:%M:%S'))
-        startTime = time.time()
         for i, code in enumerate(cs):
-            flag = self.fxOneOfDay(code, day)
-            if not flag:
-                x, y = console.getCursorPos()
-            console.setCursorPos(x, y)
-            diffTime = int(time.time() - startTime)
-            h = diffTime // 3600
-            m = diffTime % 3600 // 60
-            s = diffTime % 60
-            ut = f'{h}:{m :02d}:{s :02d}'
-            print(f'Loading {i} / {len(cs)}, {ut}')
-        now = datetime.datetime.now()
-        print('end', now.strftime('%Y-%m-%d %H:%M:%S'))
-        print('---end fenxi zhang su----')
+            self.fxOneOfDay(code, day)
+        print(f'Fenxi zhang su for [{day}] end')
 
     def fxOneOfDay(self, code, day):
         try:
