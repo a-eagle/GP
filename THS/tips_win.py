@@ -245,6 +245,8 @@ class HotCardView(CardView):
     def __init__(self, cardWindow):
         super().__init__(cardWindow)
         self.hotData = None
+        self.maxHot_1 = None # history top
+        self.maxHot_2 = None # 2 month top
         self.ROW_HEIGHT = 18
         self.hotsInfo = [None] * 25  # {data: , rect: (), }
         self.tipInfo = {} # {rect:(), hotInfo: xx, detail:[], }
@@ -304,10 +306,7 @@ class HotCardView(CardView):
         drawer.fillRect(hdc, (0, 0, rr[2], self.ROW_HEIGHT), 0x202020)
         drawer.drawLine(hdc, RW // 2, self.ROW_HEIGHT, RW // 2, rr[3], 0xaaccaa)
         # top
-        topHots = 99999
-        for d in self.hotData:
-            topHots = min(topHots, d['zhHotOrder'])
-        drawer.drawText(hdc, f'  最高  {topHots}', (0, 0, rr[2], self.ROW_HEIGHT), 0x44cc44, win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+        drawer.drawText(hdc, f'历史最高  {self.maxHot_1}  近两月 {self.maxHot_2}', (0, 0, rr[2], self.ROW_HEIGHT), 0x44cc44, win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
     def updateCode(self, code):
         self.showStartIdx = 0
@@ -325,6 +324,10 @@ class HotCardView(CardView):
             data = newest[code]
             if not self.hotData or self.hotData[-1]['day'] != data['day']:
                 self.hotData.append(data)
+        self.maxHot_1 = ths_orm.THS_HotZH.select(pw.fn.min(ths_orm.THS_HotZH.zhHotOrder)).where(ths_orm.THS_HotZH.code == code).scalar()
+        fromDay = datetime.date.today() - datetime.timedelta(days = 60)
+        fromDay = int(fromDay.strftime('%Y%m%d'))
+        self.maxHot_2 = ths_orm.THS_HotZH.select(pw.fn.min(ths_orm.THS_HotZH.zhHotOrder)).where(ths_orm.THS_HotZH.code == code, ths_orm.THS_HotZH.day >= fromDay).scalar()
         win32gui.SetWindowText(self.hwnd, self.getWindowTitle())
 
     def getWindowTitle(self):
@@ -1359,6 +1362,9 @@ if __name__ == '__main__':
     # win.changeCode('001298')
     # win.show(300, 500)
     # win32gui.PumpMessages()
+    fromDay = datetime.date.today() - datetime.timedelta(days = 60)
+    fromDay = int(fromDay.strftime('%Y%m%d'))
+    maxHot_2 = ths_orm.THS_HotZH.select(pw.fn.min(ths_orm.THS_HotZH.zhHotOrder)).where(ths_orm.THS_HotZH.code == 603716, ths_orm.THS_HotZH.day >= fromDay).scalar()
 
     import ths_win
     thsWin = ths_win.ThsWindow()
