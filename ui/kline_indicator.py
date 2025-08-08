@@ -937,7 +937,7 @@ class HotIndicator(CustomIndicator):
         if not self.cdata or day not in self.cdata:
             return
         drawer.use(hdc, drawer.getFont(fontSize = 15, weight = 500))
-        drawer.drawText(hdc,f"{self.cdata[day]}", rc, 0x00dddd, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+        drawer.drawText(hdc,f"{self.cdata[day]}°", rc, 0x00dddd, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
     def drawBackground(self, hdc, drawer):
         drawer.fillRect(hdc, (0, 1, self.width - 1, self.height - 1), 0x151515)
@@ -1038,14 +1038,14 @@ class ClsZT_Indicator(CustomIndicator):
         drawer.drawRect(hdc, rc, 0xa0f0a0)
         win32gui.ReleaseDC(self.win.hwnd, hdc)
 
-#概念联动
+#Cls概念联动
 class GnLdIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
             config['height'] = 30
         super().__init__(win, config)
-        self.config['title'] = '[联动]'
+        self.config['title'] = '[Cls联动]'
         self.clsGntc = None
         self.curGntc = ''
         self.win.addNamedListener('Ref-Model-Changed', self.onRefChanged)
@@ -1087,7 +1087,7 @@ class GnLdIndicator(CustomIndicator):
         if self.curGntc == gntc and not force:
             return
         self.curGntc = gntc or ''
-        self.config['title'] = f'[联动-{self.curGntc}]'
+        self.config['title'] = f'[Cls联动-{self.curGntc}]'
 
         qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.name == self.curGntc).dicts()
         maps = {}

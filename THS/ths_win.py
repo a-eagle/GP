@@ -170,7 +170,7 @@ class ThsWindow(base_win.BaseWindow):
     def init(self):
         def callback(hwnd, lparam):
             title = win32gui.GetWindowText(hwnd)
-            if ('同花顺(v' in title) and ('副屏' not in title):
+            if ('同花顺(' in title) and ('副屏' not in title):
                 self.topHwnd = hwnd
             return True
         win32gui.EnumWindows(callback, None)

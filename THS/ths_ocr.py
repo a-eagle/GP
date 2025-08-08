@@ -38,6 +38,8 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         if (not thsMainWin) or (not win32gui.IsWindow(thsMainWin)) or (not win32gui.IsWindowVisible(thsMainWin)):
             return None
         hwnd = self.findWindow(thsMainWin, 'stock_title_page', '')
+        if not hwnd:
+            return None
         rc = win32gui.GetWindowRect(hwnd)
         w, h = rc[2] - rc[0], rc[3] - rc[1]
         WB_WIN_HEIGHT = 30
