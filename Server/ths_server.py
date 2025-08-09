@@ -337,7 +337,8 @@ class Server:
             # accept = not self.downloadInfos.get(f'jrl-month-{day[0 : 6]}', False)
             self.downloadInfos[f'jrl-month-{day[0 : 6]}'] = True
             if now.weekday() == 3: # 每周四
-                self.download_jrl('[7/7] THS-Jrl')
+                self.download_jrl('[7/7] THS-Jrl-年度', True)
+                self.download_jrl('[7/7] THS-Jrl-季度', False)
             else:
                 console.writeln_1(console.GREEN, f'[7/7] [THS-Jrl] skip, only week 4 download')
 
@@ -355,10 +356,11 @@ class Server:
                 self.downloadSaveHot()
 
     # 净利润 营收
-    def download_jrl(self, tag):
-        jrlData = ths_iwencai.download_jrl()
-        jrlData2 = ths_iwencai.download_jrl_2()
-        jrlData += jrlData2
+    def download_jrl(self, tag, isYear):
+        if isYear:
+            jrlData = ths_iwencai.download_jrl()
+        else:
+            jrlData = ths_iwencai.download_jrl_2()
         ud = datetime.datetime.now()
         ex = {}
         def diff(obj, new):
@@ -397,6 +399,6 @@ if __name__ == '__main__':
     #     time.sleep(1)
     #     s.downloadSaveVolTop100(d, d)
     #s.download_dt('a', '2025-04-29')
-    # s.download_jrl('[8/8]')
+    s.download_jrl('[8/8]', True)
 
    

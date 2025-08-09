@@ -115,9 +115,9 @@ class THS_CodesInfo(pw.Model):
     code = pw.CharField()
     name = pw.CharField(null = True)
 
-    jrl = pw.CharField(null = True) # 近3年净利润
+    jrl = pw.CharField(null = True) # 近4年净利润
     jrl_2 = pw.CharField(null = True) # 近4季度净利润
-    yysr = pw.CharField(null = True) # 近3年营业收入
+    yysr = pw.CharField(null = True) # 近4年营业收入
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
