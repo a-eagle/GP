@@ -1195,6 +1195,18 @@ class CodeWindow(BaseWindow):
         rz = self.getModelAttr(klineModel, 'rate')
         if rz is not None:
             self.drawer.drawText(hdc, f'{int(rz)} %', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        # 异动
+        y += RH
+        self.drawer.drawText(hdc, '10日异动', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        rz = self.getYiDongInfo(klineModel, 10)
+        if rz is not None:
+            self.drawer.drawText(hdc, f'{int(rz[0])}% ({int(rz[1])}%)', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        y += RH
+        self.drawer.drawText(hdc, '30日异动', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        rz = self.getYiDongInfo(klineModel, 30)
+        if rz is not None:
+            self.drawer.drawText(hdc, f'{int(rz[0])}% ({int(rz[1])}%)', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        # 区间统计
         if not self.rangeSelData:
             return
         y += RH
@@ -1267,6 +1279,22 @@ class CodeWindow(BaseWindow):
         self.rangeSelData = evt.data
         self.invalidWindow()
 
+    def getYiDongInfo(self, model, days):
+        datas = model.data
+        if not datas or not self.selData:
+            return None
+        day = self.selData.day
+        idx = model.getItemIdx(day)
+        if idx < 0 or idx < days:
+            return None
+        pre = datas[idx - days].close
+        cur = datas[idx].close
+        zf = (cur - pre) / pre * 100
+        maxZF = 100 if days == 10 else 200
+        maxPrice = (maxZF + 100) / 100 * datas[idx - days + 1].close
+        lessZF = (maxPrice - cur) / cur * 100
+        return zf, lessZF
+
 class KLineCodeWindow(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -1287,7 +1315,7 @@ class KLineCodeWindow(base_win.BaseWindow):
         self.layout.setContent(0, 0, self.klineWin)
 
         rightLayout = base_win.FlowLayout()
-        self.codeWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 450))
+        self.codeWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 550))
         rightLayout.addContent(self.codeWin, {'margins': (0, 5, 0, 5)})
         btn = base_win.Button({'title': '<<', 'name': 'LEFT'})
         btn.createWindow(self.hwnd, (0, 0, 40, 30))
@@ -1389,7 +1417,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '300801'
+    CODE = '600410'
     win = kline_utils.createKLineWindowByCode(CODE)
     win.changeCode(CODE)
     win.mainWin = True

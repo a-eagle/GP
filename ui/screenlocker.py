@@ -53,6 +53,7 @@ class ScreenLocker(base_win.BaseWindow):
     def unlock(self):
         if win32gui.IsWindow(self.hwnd):
             win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
+            win32api.ShowCursor(True)
 
     def lock(self):
         if not win32gui.IsWindow(self.hwnd):
@@ -66,6 +67,7 @@ class ScreenLocker(base_win.BaseWindow):
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
         self.invalidWindow()
+        win32api.ShowCursor(False)
 
     def onDraw(self, hdc):
         W, H = self.getClientSize()
