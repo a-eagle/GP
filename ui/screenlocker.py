@@ -54,6 +54,7 @@ class ScreenLocker(base_win.BaseWindow):
         if win32gui.IsWindow(self.hwnd):
             win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
             win32api.ShowCursor(True)
+            self.startExplorer()
 
     def lock(self):
         if not win32gui.IsWindow(self.hwnd):
@@ -68,7 +69,14 @@ class ScreenLocker(base_win.BaseWindow):
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
         self.invalidWindow()
         win32api.ShowCursor(False)
+        self.killExplorer()
 
+    def killExplorer(self):
+        os.system('taskkill /F /IM explorer.exe')
+
+    def startExplorer(self):
+        os.system('start explorer.exe')
+    
     def onDraw(self, hdc):
         W, H = self.getClientSize()
         # box
