@@ -68,9 +68,9 @@ class WinStateMgr:
             self.windowsInfo = json.loads(txt)
 
     def save(self):
-        file = open(self.fileName, 'w')
+        file = open(self.fileName, 'wb')
         txt = json.dumps(self.windowsInfo, ensure_ascii = False)
-        file.write(txt)
+        file.write(txt.encode('utf-8'))
         file.close()
 
 def updateWindowInfo(thsWin, stateMgr : WinStateMgr):

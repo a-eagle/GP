@@ -105,8 +105,6 @@ class CardWindow(base_win.NoActivePopupWindow):
         self.maxMode = state['maxMode']
         st = state.get('settings', None)
         self.mergeSettings(st)
-        for cv in self.cardViews:
-            cv.settings = st
         if state['maxMode']:
             self.move(x, y)
             self.resize(*self.MAX_SIZE)
@@ -739,8 +737,8 @@ class ListView(CardView):
 
 #-------------小窗口（全热度）----------------------------------------------
 class HotZHCardView(ListView):
-    def __init__(self, hwnd) -> None:
-        super().__init__(hwnd)
+    def __init__(self, cardWindow) -> None:
+        super().__init__(cardWindow)
         self.codeInfos = {}
         qr = ths_orm.THS_GNTC.select()
         for q in qr:
@@ -925,12 +923,8 @@ class HotZHCardView(ListView):
         pass
 
     def openCode(self, code):
-        st = getattr(self, 'settings', [])
-        openInThs = True
-        for c in st:
-            if c['name'] == 'OPEN_IN_THS':
-                openInThs = c['checked']
-        if openInThs:
+        item = self.cardWindow.getSetting('OPEN_IN_THS')
+        if item and item['checked']:
             return self.openTHSCode(code)
         win = kline_utils.openInCurWindow(None, {'code': code, 'day': self.curSelDay})
         codes = [f"{d['code'] :06d}" for d in self.data]
