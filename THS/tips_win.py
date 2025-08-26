@@ -85,14 +85,26 @@ class CardWindow(base_win.NoActivePopupWindow):
         rs = {'maxMode': self.maxMode, 'pos': (rc[0], rc[1]), 'settings': self.settings}
         return rs
     
+    def mergeSettings(self, setings):
+        if not setings:
+            return
+        if not self.settings:
+            self.settings = []
+        for st in setings:
+            name = st['name']
+            cur = self.getSetting(name)
+            if not cur:
+                self.settings.append(st)
+            else:
+                cur.update(st)
+    
     def setWindowState(self, state):
         if not state:
             return
         x, y = state['pos']
         self.maxMode = state['maxMode']
         st = state.get('settings', None)
-        if st:
-            self.settings = st
+        self.mergeSettings(st)
         for cv in self.cardViews:
             cv.settings = st
         if state['maxMode']:
@@ -928,9 +940,7 @@ class SimpleHotZHWindow(CardWindow):
     def __init__(self) -> None:
         super().__init__((170, 310), (80, 30))
         self.maxMode = True #  是否是最大化的窗口
-        self.settings = [
-            {'name': 'OPEN_IN_THS', 'title': '同花顺中打开', 'checked': True},
-        ]
+        self.settings = [{ "name": "OPEN_IN_THS", "title": "同花顺中打开", "checked": False }]
 
     def createWindow(self, parentWnd):
         style = win32con.WS_POPUP | win32con.WS_CAPTION

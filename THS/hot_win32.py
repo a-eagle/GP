@@ -69,7 +69,7 @@ class WinStateMgr:
 
     def save(self):
         file = open(self.fileName, 'w')
-        txt = json.dumps(self.windowsInfo)
+        txt = json.dumps(self.windowsInfo, ensure_ascii = False)
         file.write(txt)
         file.close()
 
