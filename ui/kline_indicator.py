@@ -1300,7 +1300,7 @@ class LhbIndicator(CustomIndicator):
                 lw = 1
                 lc = 0xa0f0a0
             drawer.drawLine(hdc, rect[0] + 1, int(sy), rect[2] - 1, int(sy), lc, width = lw)
-            cs = (self.getYzName(d), d.get('mrje', 0), d.get('mcje', 0), d.get('jme', 0))
+            cs = (self.getYzName(d), self.fmtMoney(d, 'mrje'), self.fmtMoney(d, 'mcje'), self.fmtMoney(d, 'jme'))
             for i in range(len(cs)):
                 drawer.drawText(hdc, cs[i], (sx + 2, int(sy), sx + ws[i], int(sy + IH)), color = 0xd0d0d0, align = VCENTER)
                 sx += ws[i]
@@ -1312,6 +1312,15 @@ class LhbIndicator(CustomIndicator):
         for i in range(len(sumInfo)):
             drawer.drawText(hdc, sumInfo[i], (sx + 2, int(sy), rect[2], int(sy + IH)), color = 0xd0d0d0, align = VCENTER)
             sy += IH
+
+    def fmtMoney(self, item, name):
+        money = int(item.get(name, 0)) // 100 * 100
+        if money >= 10000:
+            money /= 10000
+            return f'{money :.1f} 亿'
+        if not money:
+            return ''
+        return f'{money}'
 
 # 指数涨跌排名
 class ZsZdPmIndicator(CustomIndicator):

@@ -53,9 +53,7 @@ class ScreenLocker(base_win.BaseWindow):
     def unlock(self):
         if win32gui.IsWindow(self.hwnd):
             win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
-            win32api.ShowCursor(True)
-            self.showToolBar(True)
-            # self.startExplorer()
+            self._lock(False)
 
     def lock(self):
         if not win32gui.IsWindow(self.hwnd):
@@ -69,9 +67,7 @@ class ScreenLocker(base_win.BaseWindow):
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
         self.invalidWindow()
-        win32api.ShowCursor(False)
-        # self.killExplorer()
-        self.showToolBar(False)
+        self._lock(True)
 
     def killExplorer(self):
         os.system('taskkill /F /IM explorer.exe')
@@ -79,12 +75,19 @@ class ScreenLocker(base_win.BaseWindow):
     def startExplorer(self):
         os.system('start explorer.exe')
 
-    def showToolBar(self, show : bool):
+    def _lock(self, flag : bool):
+        win32api.ShowCursor(not flag)
         wnd = win32gui.FindWindow('Shell_TrayWnd', None)
-        if show:
-            win32gui.ShowWindow(wnd, win32con.SW_SHOW)
-        else:
+        if flag:
+            # win32api.ClipCursor((0, 0, 10, 10))
             win32gui.ShowWindow(wnd, win32con.SW_HIDE)
+            # win32gui.SetCapture(self.hwnd)
+        else:
+            # W = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
+            # H = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
+            # win32api.ClipCursor((0, 0, W, H))
+            win32gui.ShowWindow(wnd, win32con.SW_SHOW)
+            # win32gui.ReleaseCapture()
     
     def onDraw(self, hdc):
         W, H = self.getClientSize()
