@@ -814,7 +814,6 @@ class HotZHCardView(ListView):
         data['zf'] = (cur - pre) / pre * 100
         data['day'] = day
         data['updateTime'] = time.time()
-        if 'zf' in data: del data['zf']
         win32gui.InvalidateRect(self.hwnd, None, True)
 
     def getCodeInfo(self, code):
@@ -883,7 +882,7 @@ class HotZHCardView(ListView):
             return
         if self.curSelDay == selDay:
             return
-        qr = ths_orm.THS_GNTC.select(ths_orm.THS_GNTC.name)
+        qr = ths_orm.THS_GNTC.select(ths_orm.THS_GNTC.code, ths_orm.THS_GNTC.name)
         self.codeInfos.clear()
         for q in qr:
             self.codeInfos[q.code] = {'name': q.name}
