@@ -503,6 +503,9 @@ class RefIndicator(Indicator):
         else:
             drawer.fillRect(hdc, rect, color)
 
+    def isValid(self):
+        return self.model != None
+
 class AttrIndicator(Indicator):
     def __init__(self, attrName, win, config) -> None:
         super().__init__(win, config)

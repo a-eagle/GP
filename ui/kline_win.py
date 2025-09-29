@@ -69,8 +69,8 @@ class ContextMenuManager:
             mm.extend([
               {'title': '叠加指数 THS', 'name': 'add-ref-zs', 'sub-menu': self.getThsZsList(selDay)},
               {'title': '叠加指数 CLS', 'name': 'add-ref-zs', 'sub-menu': self.getClsZsList(selDay)},
-              {'title': '查看指数', 'name': 'open-cur-ref-zs'},
-              {'title': '查看板块', 'name': 'open-cur-ref-zs-bk', 'enable': selDay > 0, 'day': selDay},
+              {'title': '查看指数', 'name': 'open-cur-ref-zs', 'enable': self.win.refIndicator.isValid()},
+              {'title': '查看板块', 'name': 'open-cur-ref-zs-bk', 'enable': selDay > 0 and self.win.refIndicator.isValid(), 'day': selDay,},
               #{'title': 'LINE'},
               #{'title': '查看板块个股 THS', 'name': 'open-ref-thszs', 'sub-menu': self.getThsZsList(selDay)},
               #{'title': '查看板块个股 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList(selDay)},
@@ -79,7 +79,7 @@ class ContextMenuManager:
         else:
             mm.extend([
                 {'title': 'LINE'},
-                {'title': '查看板块个股', 'name': 'open-cur-zs', 'day': selDay},
+                {'title': '查看板块个股', 'name': 'open-cur-zs', 'day': selDay, 'enable': selDay > 0 and self.win.refIndicator.isValid()},
             ])
         mm.extend([
               {'title': 'LINE'},
