@@ -130,6 +130,8 @@ class Main:
 
         hk = system_hotkey.SystemHotkey()
         hk.register(('alt', 'l'), callback = self.doHotKey, overwrite = True)
+        # stop or restart auto time lock 2 hourse
+        hk.register(('alt', 'k'), callback = self.doHotKey_StopRestart, overwrite = True)
 
     def doHotKey(self, args):
         self.reset()
@@ -137,6 +139,15 @@ class Main:
             self.locker.unlock()
         else:
             self.locker.lock()
+
+    def doHotKey_StopRestart(self, args):
+        noLockTime = self.readIntData(self.NO_LOCK_TIME_IDX)
+        if noLockTime <= win32api.GetTickCount(): 
+            HOUR_2 = 60 * 60 * 1000 # ms
+            self.writeIntData(self.NO_LOCK_TIME_IDX, win32api.GetTickCount() + HOUR_2)
+        else:
+            self.writeIntData(self.NO_LOCK_TIME_IDX, 0)
+       
     
     def writeIntData(self, pos, data):
         if not self.shm:
