@@ -494,6 +494,8 @@ class ClsUrl:
 if __name__ == '__main__':
     print(platform.node())
     cu = ClsUrl()
-    # rs = cu.loadHotTC(20250609) # OK
-    rs = cu.loadDegree()
-    print(rs)
+    fs = cu.loadIndexFenShi('1A0001', 20251201)
+    pass
+    fs2 = cu.loadFenShi('1A0001')
+    fs3 = cu.loadFenShi('399001')
+    pass

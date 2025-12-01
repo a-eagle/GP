@@ -1185,7 +1185,9 @@ class AmountCompare {
 	constructor(vue) {
 		this.vue = vue;
 		this.data = null;
+		this.result = null;
 		let thiz = this;
+		this.canvas = null;
 		this.vue.addWatch('curDay', function(a, b) {thiz._onChangeDay(a, b);});
 	}
 
@@ -1197,7 +1199,161 @@ class AmountCompare {
 		let thiz = this;
 		$.get('/compare-amount/'+day, function(data) {
 			thiz.data = data;
+			thiz.calc();
+			thiz._buildUI();
 		});
+	}
+
+	_buildUI() {
+		if (! this.canvas) {
+			let c = $('<canvas> </canvas>');
+			this.canvas = c.get(0);
+			$('div[name="amount-item"]').append(c);
+			let p = c.parent();
+			this.canvas.width = p.width();
+			this.canvas.height = p.height();
+		}
+		this.draw();
+	}
+
+	calc() {
+		this.result = {data: [], time: this.data.time, curSum: this.data.cursum, preSum: this.data.presum};
+		let maxRate = 0, minRate = 0;
+		for (let i = 0; i < this.data.cur.length; i++) {
+			let cur = this.data.cur[i];
+			let pre = this.data.pre[i];
+			if (i != 0) {
+				cur += this.result.data[i - 1].cur;
+				pre += this.result.data[i - 1].pre;
+			}
+			let rate = pre ? (cur - pre) / pre * 100 : 1;
+			let obj = {cur, pre, rate};
+			this.result.data.push(obj);
+			if (i == 0) {
+				maxRate = minRate = rate;
+			} else {
+				maxRate = rate > maxRate ? rate : maxRate;
+				minRate = rate < minRate ? rate : minRate;
+			}
+		}
+		if (maxRate <= 0) {
+			maxRate = 0;
+		} else if (minRate >= 0) {
+			minRate = 0;
+		} else {
+			let m = Math.abs(maxRate) > Math.abs(minRate);
+			if (m) minRate = - Math.abs(maxRate);
+			else maxRate = Math.abs(minRate);
+		}
+		this.result.maxRate = maxRate;
+		this.result.minRate = minRate;
+	}
+
+	draw() {
+		if (! this.result || !this.result.data.length)
+			return;
+        let ctx = this.canvas.getContext("2d");
+		let width = this.canvas.width;
+		let height = this.canvas.height;
+		const PAD_LEFT = 80;
+		const PAD_RIGHT = 300;
+		const PAD_TOP = 5;
+		const PAD_BOTTOM = 30;
+		const AW = width - PAD_LEFT - PAD_RIGHT;
+		const AH = height - PAD_TOP - PAD_BOTTOM;
+		const PX = AW / 240;
+		const MM = this.result.maxRate - this.result.minRate;
+		function getRateY(result, rate) {
+			let r = rate - result.minRate;
+			let rr = r / MM;
+			return AH - rr * AH + PAD_TOP;
+		}
+		
+		ctx.clearRect(0, 0, width, height);
+
+		ctx.beginPath();
+		ctx.strokeStyle = '#FC9938';
+		ctx.font = 'normal 12px Arial';
+		ctx.lineWidth = 2;
+		for (let i = 0; i < this.result.data.length; i++) {
+			let x = PAD_LEFT + i * PX;
+			let y = getRateY(this.result, this.result.data[i].rate);
+			if (i == 0) ctx.moveTo(x, y);
+			else ctx.lineTo(x, y);
+		}
+		ctx.stroke();
+		ctx.closePath();
+
+		ctx.beginPath();
+		ctx.fillStyle = '#FFF2E5';
+		for (let i = 0; i < this.result.data.length; i++) {
+			let x = PAD_LEFT + i * PX;
+			let y = getRateY(this.result, this.result.data[i].rate);
+			if (i == 0) ctx.moveTo(x, y);
+			else ctx.lineTo(x, y);
+		}
+		ctx.lineTo(this.result.data.length * PX + PAD_LEFT, getRateY(this.result, this.result.minRate) - 1);
+		ctx.lineTo(PAD_LEFT, getRateY(this.result, this.result.minRate) - 1);
+		ctx.fill();
+		ctx.closePath();
+
+		// draw bg
+		let rpx = (this.result.maxRate - this.result.minRate) / 4;
+		for (let i = 0; i < 5; i++) {
+			let v = this.result.maxRate - i * rpx;
+			v = parseInt(v);
+			ctx.beginPath();
+			ctx.font = 'normal 12px Arial';
+			if (v == 0) ctx.fillStyle = '#555';
+			else if (v > 0) ctx.fillStyle = '#f55';
+			else ctx.fillStyle = '#5c5';
+			let text = v != 0 ? String(v) + '%' : String(v);
+			let ww = ctx.measureText(text).width;
+			ctx.fillText(text, PAD_LEFT - ww - 5, PAD_TOP + AH / 4 * i + 5);
+			let y = getRateY(this.result, v);
+			ctx.moveTo(PAD_LEFT, y)
+			ctx.lineTo(width - PAD_RIGHT, y);
+			ctx.strokeStyle = '#ddd';
+			ctx.lineWidth = 1;
+			ctx.setLineDash([4, 4]);
+			ctx.stroke();
+			ctx.closePath();
+		}
+		ctx.setLineDash([]);
+
+		// zero line bule
+		ctx.beginPath();
+		ctx.strokeStyle = '#00c';
+		// ctx.lineWidth = 2;
+		ctx.moveTo(PAD_LEFT, getRateY(this.result, 0))
+		ctx.lineTo(width - PAD_RIGHT, getRateY(this.result, 0));
+		ctx.stroke();
+		ctx.closePath();
+
+		// right tip text
+		ctx.fillStyle = '#000';
+		ctx.font = 'normal 20px Arial';
+		let text = '实际量能  ' +  parseInt(this.result.curSum / 100000000) + '亿';
+		ctx.fillText(text, width - PAD_RIGHT + 10, PAD_TOP + 40);
+		let z = (this.result.curSum - this.result.preSum);
+		let flag = this.result.curSum >= this.result.preSum ? '增量 ' : '缩量 ';
+		text = flag + parseInt(z / 100000000) + '亿';
+		let zr = parseInt(z / this.result.preSum * 100);
+		text += '   ' + zr + '%';
+		if (z > 0) ctx.fillStyle = '#c00';
+		else if (z < 0) ctx.fillStyle = '#0c0';
+		else ctx.fillStyle = '#000';
+		ctx.fillText(text, width - PAD_RIGHT + 10, PAD_TOP + 80);
+
+		ctx.fillStyle = '#aaa';
+		ctx.font = 'normal 12px Arial';
+		let time = ['09:30', '10:30', '11:30', '14:00', '15:00'];
+		for (let i = 0; i < time.length; i++) {
+			let x = PAD_LEFT + i * AW / 4;
+			if (i == time.length - 1)
+				x -= ctx.measureText(time[i]).width;
+			ctx.fillText(time[i], x, height - PAD_BOTTOM + 15);
+		}
 	}
 }
 
@@ -1219,7 +1375,7 @@ class AmountCompare {
 	new ZdfbMgr(vue);
 	new AnchorsMgr(vue);
 	new TabNaviMgr(vue);
-	// new AmountCompare(vue);
+	new AmountCompare(vue);
 	window.vue = vue;
 	setTimeout(function() {changeCurDay(initMgr, globalMgr);}, 500);
 })();

@@ -68,13 +68,28 @@ class Server:
         rsPre, rsCur = [], []
         shPre = self._getFenShi('999999', preDay)
         szPre = self._getFenShi('399001', preDay)
+        x930 = 0
+        tm = []
         for it in zip(shPre['line'], szPre['line']):
-            rsPre.append(it[0].amount + it[1].amount)
+            m = it[0]['amount'] + it[1]['amount']
+            tm.append(it[0]['time'])
+            if it[0]['time'] == 930:
+                x930 = m
+                continue
+            if it[0]['time'] == 931:
+                m += x930
+            rsPre.append(m)
         shPre = self._getFenShi('999999', day)
         szPre = self._getFenShi('399001', day)
         for it in zip(shPre['line'], szPre['line']):
-            rsCur.append(it[0].amount + it[1].amount)
-        return {'pre': rsPre, 'cur': rsCur}
+            m = it[0]['amount'] + it[1]['amount']
+            if it[0]['time'] == 930:
+                x930 = m
+                continue
+            if it[0]['time'] == 931:
+                m += x930
+            rsCur.append(m)
+        return {'pre': rsPre, 'cur': rsCur, 'presum': sum(rsPre), 'cursum': sum(rsCur), 'time': tm}
 
     def getPlateInfo(self, code):
         url = f'https://x-quote.cls.cn/web_quote/plate/info?' + self.signParams(secu_code = code)
@@ -433,7 +448,7 @@ class Server:
         rs['pre'] = df.pre
         rs['line'] = df.data
         if not df.data and day == lastTradeDay: # load from server
-            if (code[0 : 3] == 'cls') or code == '999999' or code == '1A0001':
+            if (code[0 : 3] == 'cls') or code == '999999' or code == '1A0001' or code == '399001':
                 data = cls.ClsUrl().loadHistory5FenShi(code)
                 lines = data['line']
                 if lines[-1].time == 1500:
