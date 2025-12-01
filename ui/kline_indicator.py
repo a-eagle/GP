@@ -287,7 +287,7 @@ class KLineIndicator(Indicator):
         if not self.visibleRange or not self.valueRange:
             return
         self.drawKLines(hdc, drawer)
-        self.drawMA(hdc, drawer, 'MA5', 0x00ffff, 1)
+        self.drawMA(hdc, drawer, 'MA5', 0x00ee00, 2)
         self.drawMA(hdc, drawer, 'MA10', 0xee00ee, 2)
     
     def drawMouse(self, hdc, drawer, x, y):
