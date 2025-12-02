@@ -1210,14 +1210,14 @@ class AmountCompare {
 			this.canvas = c.get(0);
 			$('div[name="amount-item"]').append(c);
 			let p = c.parent();
-			this.canvas.width = p.width();
+			this.canvas.width = p.width() * 0.8;
 			this.canvas.height = p.height();
 		}
 		this.draw();
 	}
 
 	calc() {
-		this.result = {data: [], time: this.data.time, curSum: this.data.cursum, preSum: this.data.presum};
+		this.result = {data: [], time: this.data.time, curSum: 0, preSum: 0};
 		let maxRate = 0, minRate = 0;
 		for (let i = 0; i < this.data.cur.length; i++) {
 			let cur = this.data.cur[i];
@@ -1235,6 +1235,8 @@ class AmountCompare {
 				maxRate = rate > maxRate ? rate : maxRate;
 				minRate = rate < minRate ? rate : minRate;
 			}
+			this.result.curSum = cur;
+			this.result.preSum = pre;
 		}
 		if (maxRate <= 0) {
 			maxRate = 0;
@@ -1256,7 +1258,7 @@ class AmountCompare {
 		let width = this.canvas.width;
 		let height = this.canvas.height;
 		const PAD_LEFT = 80;
-		const PAD_RIGHT = 300;
+		const PAD_RIGHT = 200;
 		const PAD_TOP = 5;
 		const PAD_BOTTOM = 30;
 		const AW = width - PAD_LEFT - PAD_RIGHT;
