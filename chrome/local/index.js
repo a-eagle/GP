@@ -246,11 +246,11 @@ class TimeDegreeMgr {
 	}
 
 	_buildUI(d) {
-		if (! this.canvas) {
-			this.canvas = $('<canvas> </canvas>');
-			$('div[name="time-degree-item"]').append(this.canvas);
+		if (this.canvas) {
+			this.canvas.remove();
 		}
-		let canvas = this.canvas;
+		this.canvas = $('<canvas> </canvas>');
+		$('div[name="time-degree-item"]').append(this.canvas);
 		let xl = [];
 		let xv = [];
 		let v50 = [];
@@ -275,16 +275,17 @@ class TimeDegreeMgr {
 				//{label: '50', data: v50, fill: false, borderColor: '#505050'},
 			],
 		};
-		if (! this.chart) {
-			let cc = this.canvas.parent();
-			canvas.attr('width', cc.width());
-			canvas.attr('height', cc.height());
-			this.chart = new Chart(canvas.get(0), {type: 'line', data: cdata, options: {plugins: {legend: {display: false}}}});
-			this.chart.resize(cc.width(), cc.height());
-		} else {
-			this.chart.data = cdata;
-			this.chart.update();
-		}
+		let cc = this.canvas.parent();
+		if (! this.PCW) this.PCW = cc.width();
+		if (! this.PCH) this.PCH = cc.height();
+
+		if (this.chart)
+			this.chart.destroy();
+		let cw = parseInt(this.PCW * d.length / 26);
+		this.canvas.width(cw);
+		this.canvas.height(this.PCH);
+		this.chart = new Chart(this.canvas.get(0), {type: 'line', data: cdata, options: {plugins: {legend: {display: false}}}});
+		this.chart.resize(cw, this.PCH);
 	}
 }
 
