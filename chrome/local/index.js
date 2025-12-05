@@ -1304,16 +1304,15 @@ class AmountCompare {
 		let rpx = (this.result.maxRate - this.result.minRate) / 4;
 		for (let i = 0; i < 5; i++) {
 			let v = this.result.maxRate - i * rpx;
-			v = parseInt(v);
 			ctx.beginPath();
 			ctx.font = 'normal 12px Arial';
 			if (v == 0) ctx.fillStyle = '#555';
 			else if (v > 0) ctx.fillStyle = '#f55';
 			else ctx.fillStyle = '#5c5';
-			let text = v != 0 ? String(v) + '%' : String(v);
+			let text = v != 0 ? v.toFixed(1) + '%' : String(v);
 			let ww = ctx.measureText(text).width;
-			ctx.fillText(text, PAD_LEFT - ww - 5, PAD_TOP + AH / 4 * i + 5);
 			let y = getRateY(this.result, v);
+			ctx.fillText(text, PAD_LEFT - ww - 5, y + 5);
 			ctx.moveTo(PAD_LEFT, y)
 			ctx.lineTo(width - PAD_RIGHT, y);
 			ctx.strokeStyle = '#ddd';
@@ -1341,7 +1340,7 @@ class AmountCompare {
 		let z = (this.result.curSum - this.result.preSum);
 		let flag = this.result.curSum >= this.result.preSum ? '增量 ' : '缩量 ';
 		text = flag + parseInt(z / 100000000) + '亿';
-		let zr = parseInt(z / this.result.preSum * 100);
+		let zr = (z / this.result.preSum * 100).toFixed(1);
 		text += '   ' + zr + '%';
 		if (z > 0) ctx.fillStyle = '#c00';
 		else if (z < 0) ctx.fillStyle = '#0c0';
