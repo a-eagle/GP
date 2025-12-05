@@ -249,14 +249,21 @@ class TimeDegreeMgr {
 		if (this.canvas) {
 			this.canvas.remove();
 		}
-		this.canvas = $('<canvas> </canvas>');
+		this.canvas = $('<canvas style="padding-left:60px;"> </canvas>');
 		$('div[name="time-degree-item"]').append(this.canvas);
 		let xl = [];
 		let xv = [];
 		let v50 = [];
+		let lastTime = null;
 		for (let i = 0; d && i < d.length; i++) {
-			if (d[i].time.charAt(4) == '0') { // d[i].time <= '10:00' || 
-				xl.push(d[i].time);
+			if (d[i].time.charAt(4) == '0') {
+				let ctime = d[i].time;
+				let mtime = ctime;
+				if (lastTime && lastTime.substring(0, 2) == ctime.substring(0, 2)) {
+					mtime = ctime.substring(3);
+				}
+				lastTime = ctime;
+				xl.push(mtime);
 				xv.push(d[i].degree);
 				v50.push(50);
 			}
@@ -276,7 +283,7 @@ class TimeDegreeMgr {
 			],
 		};
 		let cc = this.canvas.parent();
-		if (! this.PCW) this.PCW = cc.width();
+		if (! this.PCW) this.PCW = 1100; //cc.width();
 		if (! this.PCH) this.PCH = cc.height();
 
 		if (this.chart)
@@ -1211,7 +1218,7 @@ class AmountCompare {
 			this.canvas = c.get(0);
 			$('div[name="amount-item"]').append(c);
 			let p = c.parent();
-			this.canvas.width = p.width() * 0.8;
+			this.canvas.width = 1200;
 			this.canvas.height = p.height();
 		}
 		this.draw();
@@ -1352,8 +1359,13 @@ class AmountCompare {
 		let time = ['09:30', '10:30', '11:30', '14:00', '15:00'];
 		for (let i = 0; i < time.length; i++) {
 			let x = PAD_LEFT + i * AW / 4;
-			if (i == time.length - 1)
-				x -= ctx.measureText(time[i]).width;
+			let ww = ctx.measureText(time[i]).width;
+			if (i == 0)
+				x = PAD_LEFT;
+			else if (i == time.length - 1)
+				x -= ww;
+			else
+				x -= ww / 2;
 			ctx.fillText(time[i], x, height - PAD_BOTTOM + 15);
 		}
 	}
