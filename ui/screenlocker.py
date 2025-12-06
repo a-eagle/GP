@@ -51,9 +51,16 @@ class ScreenLocker(base_win.BaseWindow):
         return locked
     
     def unlock(self):
-        if win32gui.IsWindow(self.hwnd):
-            win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
-            self._lock(False)
+        if not win32gui.IsWindow(self.hwnd):
+            return
+        keys = self.keys
+        self.keys = ''
+        if len(keys) < 2:
+            return
+        if keys[-1] != keys[-2]:
+            return
+        win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
+        self._lock(False)
 
     def lock(self):
         if not win32gui.IsWindow(self.hwnd):
