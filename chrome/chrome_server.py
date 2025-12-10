@@ -324,6 +324,8 @@ class Server:
         qr = cls_orm.CLS_SCQX_Time.select().where(cls_orm.CLS_SCQX_Time.day == day).dicts()
         rs = []
         for q in qr:
+            if q['time'] == '13:00':
+                continue
             q['degree'] = q['zhqd']
             rs.append(q)
         return rs

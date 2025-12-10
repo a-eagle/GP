@@ -283,13 +283,13 @@ class TimeDegreeMgr {
 			],
 		};
 		let cc = this.canvas.parent();
-		cc.css('padding-left', '55px');
-		if (! this.PCW) this.PCW = 960; //cc.width();
+		cc.css('padding-left', '52px');
+		if (! this.PCW) this.PCW = 920;
 		if (! this.PCH) this.PCH = cc.height();
 
 		if (this.chart)
 			this.chart.destroy();
-		let cw = parseInt(this.PCW * d.length / 26);
+		let cw = parseInt(this.PCW * (d.length - 1) / 24) + 40;
 		this.canvas.width(cw);
 		this.canvas.height(this.PCH);
 		this.chart = new Chart(this.canvas.get(0), {type: 'line', data: cdata, options: {plugins: {legend: {display: false}}}});
@@ -1220,7 +1220,7 @@ class AmountCompare {
 			$('div[name="amount-item"]').append(c);
 			let p = c.parent();
 			this.canvas.width = 1200;
-			this.canvas.height = p.height();
+			this.canvas.height = 200; //p.height();
 		}
 		this.draw();
 	}
@@ -1252,9 +1252,17 @@ class AmountCompare {
 		} else if (minRate >= 0) {
 			minRate = 0;
 		} else {
-			let m = Math.abs(maxRate) > Math.abs(minRate);
-			if (m) minRate = - Math.abs(maxRate);
-			else maxRate = Math.abs(minRate);
+			let m1 = maxRate; // maxRate > 0
+			let m2 = -minRate; // minRate < 0
+			if (m1 >= m2) {
+				let mm = m1 / m2;
+				if (mm >= 3) minRate = - maxRate / 3;
+				else minRate = - maxRate;
+			} else {
+				let mm = m2 / m1;
+				if (mm >= 3) maxRate = - minRate / 3;
+				else maxRate = - minRate;
+			}
 		}
 		this.result.maxRate = maxRate;
 		this.result.minRate = minRate;
@@ -1282,6 +1290,7 @@ class AmountCompare {
 		
 		ctx.clearRect(0, 0, width, height);
 
+		// draw line
 		ctx.beginPath();
 		ctx.strokeStyle = '#FC9938';
 		ctx.font = 'normal 12px Arial';
@@ -1295,8 +1304,10 @@ class AmountCompare {
 		ctx.stroke();
 		ctx.closePath();
 
+		// fill line area
 		ctx.beginPath();
 		ctx.fillStyle = '#FFF2E5';
+		// console.log(this.result);
 		for (let i = 0; i < this.result.data.length; i++) {
 			let x = PAD_LEFT + i * PX;
 			let y = getRateY(this.result, this.result.data[i].rate);
@@ -1328,23 +1339,30 @@ class AmountCompare {
 			ctx.setLineDash([4, 4]);
 			ctx.stroke();
 			ctx.closePath();
+			ctx.setLineDash([]);
 		}
-		ctx.setLineDash([]);
 
 		// zero line bule
 		ctx.beginPath();
-		ctx.strokeStyle = '#00c';
-		// ctx.lineWidth = 2;
+		ctx.strokeStyle = '#9F79EE';
+		ctx.lineWidth = 2;
 		ctx.moveTo(PAD_LEFT, getRateY(this.result, 0))
 		ctx.lineTo(width - PAD_RIGHT, getRateY(this.result, 0));
 		ctx.stroke();
 		ctx.closePath();
-
+		
+		ctx.beginPath();
 		// right tip text
 		ctx.fillStyle = '#000';
-		ctx.font = 'normal 20px Arial';
+		ctx.font = 'normal 16px Arial';
 		let text = '实际量能  ' +  parseInt(this.result.curSum / 100000000) + '亿';
-		ctx.fillText(text, width - PAD_RIGHT + 10, PAD_TOP + 40);
+		ctx.fillText(text, width - PAD_RIGHT + 10, PAD_TOP + 20);
+
+		let zb = this.result.curSum / this.result.preAllSum * 100;
+		text = '昨日占比  ' + zb.toFixed(0) + '%';
+		ctx.fillStyle = '#000';
+		ctx.fillText(text, width - PAD_RIGHT + 10, PAD_TOP + 50);
+
 		let z = (this.result.curSum - this.result.preSum);
 		let flag = this.result.curSum >= this.result.preSum ? '增量 ' : '缩量 ';
 		text = flag + parseInt(z / 100000000) + '亿';
@@ -1354,26 +1372,27 @@ class AmountCompare {
 		else if (z < 0) ctx.fillStyle = '#0c0';
 		else ctx.fillStyle = '#000';
 		ctx.fillText(text, width - PAD_RIGHT + 10, PAD_TOP + 80);
-		let zb = this.result.curSum / this.result.preAllSum * 100;
-		text = '昨日占比  ' + zb.toFixed(0) + '%';
-		ctx.fillStyle = '#000';
-		ctx.fillText(text, width - PAD_RIGHT + 10, PAD_TOP + 120);
-
 
 		ctx.fillStyle = '#aaa';
+		ctx.strokeStyle = '#aaa';
 		ctx.font = 'normal 12px Arial';
-		let time = ['09:30', '10:30', '11:30', '14:00', '15:00'];
+		let time = ['09:30', '10:00', '10:30', '11:00', '11:30','13:30', '14:00', '14:30', '15:00'];
 		for (let i = 0; i < time.length; i++) {
-			let x = PAD_LEFT + i * AW / 4;
+			let cx = PAD_LEFT + i * AW / (time.length - 1);
 			let ww = ctx.measureText(time[i]).width;
+			let tx = cx;
 			if (i == 0)
-				x = PAD_LEFT;
+				tx = PAD_LEFT;
 			else if (i == time.length - 1)
-				x -= ww;
+				tx -= ww;
 			else
-				x -= ww / 2;
-			ctx.fillText(time[i], x, height - PAD_BOTTOM + 15);
+				tx -= ww / 2;
+			ctx.moveTo(cx, height - PAD_BOTTOM - 3);
+			ctx.lineTo(cx, height - PAD_BOTTOM);
+			ctx.stroke();
+			ctx.fillText(time[i], tx, height - PAD_BOTTOM + 15);
 		}
+		ctx.closePath();
 	}
 }
 
