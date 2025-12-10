@@ -249,7 +249,7 @@ class TimeDegreeMgr {
 		if (this.canvas) {
 			this.canvas.remove();
 		}
-		this.canvas = $('<canvas style="padding-left:60px;"> </canvas>');
+		this.canvas = $('<canvas> </canvas>');
 		$('div[name="time-degree-item"]').append(this.canvas);
 		let xl = [];
 		let xv = [];
@@ -283,7 +283,8 @@ class TimeDegreeMgr {
 			],
 		};
 		let cc = this.canvas.parent();
-		if (! this.PCW) this.PCW = 1100; //cc.width();
+		cc.css('padding-left', '55px');
+		if (! this.PCW) this.PCW = 960; //cc.width();
 		if (! this.PCH) this.PCH = cc.height();
 
 		if (this.chart)
@@ -1225,7 +1226,7 @@ class AmountCompare {
 	}
 
 	calc() {
-		this.result = {data: [], time: this.data.time, curSum: 0, preSum: 0};
+		this.result = {data: [], time: this.data.time, curSum: 0, preSum: 0, preAllSum: this.data.presum};
 		let maxRate = 0, minRate = 0;
 		for (let i = 0; i < this.data.cur.length; i++) {
 			let cur = this.data.cur[i];
@@ -1353,6 +1354,11 @@ class AmountCompare {
 		else if (z < 0) ctx.fillStyle = '#0c0';
 		else ctx.fillStyle = '#000';
 		ctx.fillText(text, width - PAD_RIGHT + 10, PAD_TOP + 80);
+		let zb = this.result.curSum / this.result.preAllSum * 100;
+		text = '昨日占比  ' + zb.toFixed(0) + '%';
+		ctx.fillStyle = '#000';
+		ctx.fillText(text, width - PAD_RIGHT + 10, PAD_TOP + 120);
+
 
 		ctx.fillStyle = '#aaa';
 		ctx.font = 'normal 12px Arial';
