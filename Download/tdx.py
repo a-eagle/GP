@@ -119,7 +119,7 @@ class TdxGuiDownloader:
         time.sleep(5)
 
     def getStartDayFor(self, isDay : bool):
-        maxday = datetime.date.today() - datetime.timedelta(days = 100)
+        maxday = datetime.date.today() - datetime.timedelta(days = 80)
         maxdayInt = int(maxday.strftime('%Y%m%d'))
         if isDay:
             df = K_DataModel('999999')
@@ -275,6 +275,9 @@ class Main:
         if flag and isServerMachine():
             ld = fx.FenXiLoader()
             ld.fxAll_2()
+            chuncker = TdxChuncker()
+            chuncker.removeNotCodes()
+            chuncker.chunckAll_T_ByLastDay(20)
         print('-----------End----------\n\n')
         return flag
 

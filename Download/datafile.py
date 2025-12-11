@@ -2,6 +2,8 @@ import os, sys, requests, json, traceback, datetime, struct, time, copy, base64,
 
 sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
 
+TDX_MINUTES_IN_DAY = 240
+
 def isServerMachine():
     REMOTE_NODE = 'hcss-ecs-3865'
     return platform.node() == REMOTE_NODE
@@ -470,7 +472,6 @@ class T_DataModel(DataModel):
             day = day.replace('-', '')
             day = int(day)
         self.day = day
-        TDX_MINUTES_IN_DAY = 240
         self.data = None
         path = self.getLocalPath('TIME')
         if not os.path.exists(path):
@@ -519,6 +520,30 @@ class T_DataModel(DataModel):
         f.close()
         self.calcAvgPrice()
         return len(rs) > 0
+
+    # [day, ...]
+    def loadDays(self):
+        path = self.getLocalPath('TIME')
+        if not os.path.exists(path):
+            return None
+        filesize = os.path.getsize(path)
+        if filesize == 0:
+            return None
+        RL = 32
+        PAGE = RL * TDX_MINUTES_IN_DAY
+        if filesize % PAGE != 0:
+            print('[T_DataModel.loadDays] invalid file size ', self.code, path)
+            return None
+        f = open(path, 'rb')
+        rs = []
+        maxDays = filesize // PAGE
+        for i in range(maxDays):
+            f.seek(i * PAGE, 0)
+            bs = f.read(RL)
+            item = self.unpackTdxData(bs)
+            rs.append(item.day)
+        f.close()
+        return rs
 
     def unpackTdxData(self, bs):
         ritem = struct.unpack('2H5f2l', bs)
@@ -654,71 +679,7 @@ class Cls_T_DataModel(T_DataModel):
         else:
             self.pre = line[pos].price
 
-class Writer:
-    def writeToFile_K(self, code, datas):
-        if not datas:
-            return True
-        path = K_DataModel(code).getLocalPath('DAY')
-        filesize = 0
-        RL = 32
-        if os.path.exists(path):
-            filesize = os.path.getsize(path)
-            if filesize % RL != 0:
-                print('[Writer.writeToFile_K] invalid file size ', code, path)
-                return False
-        f = open(path, 'a+b')
-        # get last day
-        lastDay = 0
-        if filesize > 0:
-            n = f.seek(-RL, 2)
-            bs = f.read(RL)
-            lastDay, *_ = struct.unpack('l5f2l', bs)
-        for idx, item in enumerate(datas):
-            if item.day <= lastDay:
-                continue
-            buf = struct.pack('l5f2l', item.day, item.open, item.high, item.low, item.close, item.amount, item.vol, 0)
-            f.write(buf)
-        f.close()
-        return True
-
-    def writeToFile_T(self, code, datas):
-        RL = 32
-        if not datas:
-            return True
-        if len(datas) % T_DataModel.MINUTES_IN_DAY != 0:
-            print('[Writer.writeToFile_T] invalid data length', code)
-            return False
-        dm = T_DataModel(code)
-        path = dm.getLocalPath('TIME')
-        filesize = 0
-        if os.path.exists(path):
-            filesize = os.path.getsize(path)
-            if filesize % (RL * T_DataModel.MINUTES_IN_DAY) != 0:
-                print('[Writer.writeToFile_T] invalid file size ', code, path)
-                return False
-        f = open(path, 'a+b')
-        # get last day
-        lastDay = 0
-        if filesize > 0:
-            n = f.seek(-RL, 2)
-            bs = f.read(RL)
-            ri = dm.unpackTdxData(bs)
-            lastDay = ri.day
-        for idx, item in enumerate(datas):
-            if item.day <= lastDay:
-                continue
-            if item.time == 930:
-                continue
-            self.merge930_931_data(datas[idx - 1], item)
-            buf = dm.packTdxData(item)
-            f.write(buf)
-        f.close()
-        return True
-
-    def merge930_931_data(self, data930, data931):
-        # TODO
-        pass
-
+class TdxChuncker:
     # tag = lday | minline
     def getLocalCodes(self, tag):
         codes = []
@@ -739,26 +700,85 @@ class Writer:
             codes.append('999999')
         return codes
 
-    def writeAll(self):
-        codes = self.getLocalCodes('lday')
-        # for c in codes:
-            # self.writeToFile_K(c)
+    # tag = lday | minline
+    # delete not GP code files
+    def _removeNotCodes(self, tag):
+        path = PathManager.TDX_VIP_PATH + f'\\sh\\{tag}'
+        dirs = os.listdir(path)
+        for name in dirs:
+            isCode = name[0 : 2] == 'sh' and (name[2] == '6' or name[2:4] == '99')
+            if not isCode:
+                os.remove(os.path.join(path, name))
+        path = PathManager.TDX_VIP_PATH + f'\\sz\\{tag}'
+        dirs = os.listdir(path)
+        for name in dirs:
+            isCode = name[0 : 2] == 'sz' and (name[2] == '0' or name[2] == '3')
+            if not isCode:
+                os.remove(os.path.join(path, name))
 
+    def removeNotCodes(self):
+        self._removeNotCodes('lday')
+        self._removeNotCodes('minline')
+
+    def chunckAll_T(self, fromDay, endDay):
         codes = self.getLocalCodes('minline')
-        # for c in codes:
-        #     self.writeToFile_T(c)
+        for c in codes:
+            self.chunck_T(c, fromDay, endDay)
+
+    def chunckAll_T_ByLastDay(self, lastDayNum):
+        df = T_DataModel('999999') # 999999
+        days = df.loadDays()
+        if lastDayNum <= len(days):
+            return
+        w.chunckAll_T(days[-lastDayNum], days[-1])
+
+    # [fromDay - endDay]
+    def chunck_T(self, code, fromDay, endDay):
+        df = T_DataModel(code)
+        path = df.getLocalPath('TIME')
+        days = df.loadDays()
+        fe = self._ajdustFromEndDay(days, fromDay, endDay)
+        if not fe:
+            if os.path.exists(path):
+                os.remove(path)
+            return
+        fromDay, endDay = fe
+        RL = 32
+        PAGE = RL * TDX_MINUTES_IN_DAY
+        # read
+        f = open(path, 'rb')
+        bpos = days.index(fromDay) * PAGE
+        dayNum = days.index(endDay) - days.index(fromDay) + 1
+        size = dayNum * PAGE
+        f.seek(bpos, 0)
+        bs = f.read(size)
+        f.close()
+        # write
+        f = open(path, 'wb')
+        f.write(bs)
+        f.close()
+
+    def _ajdustFromEndDay(self, days, fromDay, endDay):
+        if not days:
+            return None
+        # adjust from day
+        for i in range(len(days)):
+            if days[i] >= fromDay:
+                fromDay = days[i]
+                break
+        # adjust end day
+        ed = endDay
+        for i in range(len(days)):
+            if days[i] <= ed:
+                endDay = days[i]
+        if (fromDay > endDay) or (fromDay not in days) or (endDay not in days):
+            return None
+        return (fromDay, endDay)
 
 if __name__ == '__main__':
-    proxy = RemoteProxy('999999')
-    lday = proxy.getLocalLatestDay_Time()
-    df = T_DataModel('601208')
-    proxy.loadLocalData_Time(20250729, df)
+    w = TdxChuncker()
+    w.removeNotCodes('minline')
+    
 
-    df = T_DataModel('601208') # 999999
-    path = df.getLocalPath('TIME')
-    f = open(path, 'rb')
-    f.seek(-32 * 240, 2)
-    for i in range(240):
-        bs = f.read(32)
-        item = df.unpackTdxData(bs)
-        print(item)
+
+
