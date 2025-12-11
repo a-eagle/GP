@@ -119,16 +119,16 @@ class TdxGuiDownloader:
         time.sleep(5)
 
     def getStartDayFor(self, isDay : bool):
-        maxday = 20250612
+        maxday = datetime.date.today() - datetime.timedelta(days = 100)
+        maxdayInt = int(maxday.strftime('%Y%m%d'))
         if isDay:
             df = K_DataModel('999999')
         else:
             df = T_DataModel('999999')
         lday = df.getLocalLatestDay()
-        if not lday:
+        if not lday or lday <= maxdayInt:
             return maxday
-        maxday = lday
-        dt = datetime.datetime.strptime(str(maxday), '%Y%m%d')
+        dt = datetime.datetime.strptime(str(lday), '%Y%m%d')
         dt = dt + datetime.timedelta(days = 1)
         return dt
     
@@ -344,4 +344,5 @@ if __name__ == '__main__':
     #dd.startDownloadForTimeMinute()
 
     mm = Main()
+    # mm.runOnce()
     mm.start()
