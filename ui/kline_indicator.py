@@ -364,7 +364,7 @@ class KLineIndicator(Indicator):
         title = {'day': '日线', 'week': '周线', 'month': '月线'}
         title = '【' + title[self.period] + '】'
         drawer.use(hdc, drawer.getFont(fontSize = 18))
-        rc = (5, self.height, 100, self.height + 20)
+        rc = (self.width - 60, self.height, self.width, self.height + 20)
         # drawer.fillRect(hdc, rc, 0x0)
         drawer.drawText(hdc, title, rc, color = 0x00dddd, align = win32con.DT_LEFT)
 
