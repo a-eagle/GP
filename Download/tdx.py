@@ -290,13 +290,12 @@ class Main:
         if lock:
             win32api.CloseHandle(lock)
 
-    # seconds
-    def checkUserNoInputTime(self):
+    def checkUserNoInputTime(self, seconds):
         a = win32api.GetLastInputInfo()
         cur = win32api.GetTickCount()
         diff = cur - a
         sec = diff / 1000
-        return sec >= 5 * 60
+        return sec >= seconds
 
     def runLoop(self):
         os.system('') # fix win10
@@ -307,29 +306,23 @@ class Main:
                 time.sleep(60 * 60)
                 continue
             ts = f"{today.hour:02d}:{today.minute:02d}"
-            if ts < '15:35':
+            if ts < '15:40':
                 time.sleep(3 * 60)
                 continue
             sday = today.strftime('%Y-%m-%d')
             if sday not in tryDays:
-                tryDays[sday] = {'15': False, 'num' : 0, 'success': False}
-            if today.hour == 15 and not tryDays[sday]['15'] and isServerMachine():
-                tryDays[sday]['15'] = True
-                if self.runOnce():
-                    tryDays[sday]['success'] = True
-                continue
-            if ts < '19:00' or tryDays[sday]['success']:
+                tryDays[sday] = {'num' : 0, 'success': False}
+            
+            if tryDays[sday]['success']:
                 time.sleep(10 * 60)
                 continue
-            # lock = self.getDesktopGUILock()
-            # if not lock:
-            #     time.sleep(3 * 60)
-            #     continue
+            if not self.checkUserNoInputTime(10 * 60):
+                time.sleep(10 * 60)
+                continue
             tryDays[sday]['num'] += 1
             if tryDays[sday]['num'] <= 2:
                 if self.runOnce():
                     tryDays[sday]['success'] = True
-            # self.releaseDesktopGUILock(lock)
             time.sleep(10 * 60)
 
     def start(self):
