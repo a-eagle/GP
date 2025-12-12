@@ -30,7 +30,7 @@ class CLS_ZS(pw.Model):
     class Meta:
         database = db_gntc
 
-db_cls = pw.SqliteDatabase(f'{path}GP/db/CLS.db')
+db_cls = pw.SqliteDatabase(f'{path}/db/CLS.db')
 # 财联社涨停
 class CLS_ZT(pw.Model):
     keys = ('code', 'day')

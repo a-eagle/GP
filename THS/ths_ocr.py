@@ -1,4 +1,4 @@
-import win32gui, win32ui, win32con, re, io, traceback, sys, datetime, time, copy
+import win32gui, win32ui, win32con, re, io, traceback, sys, datetime, time, copy, os
 from PIL import Image
 #from cnocr import CnOcr
 

@@ -1,6 +1,7 @@
-import sys, win32con, win32gui, win32api
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+import sys, win32con, win32gui, win32api, os
 from ui import base_win
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 class Dialog(base_win.BaseWindow):
     def __init__(self) -> None:

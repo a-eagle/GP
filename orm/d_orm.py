@@ -15,7 +15,7 @@ class ZT_PanKou(pw.Model):
     class Meta:
         database = db_pankou
 
-db_hotvol = pw.SqliteDatabase(f'{path}GP/db/HotVol.db')
+db_hotvol = pw.SqliteDatabase(f'{path}/db/HotVol.db')
 #热度股成交量前100信息
 class HotVol(pw.Model):
     keys = ('day', )
@@ -35,7 +35,7 @@ class HotVol(pw.Model):
     class Meta:
         database = db_hotvol
 
-db_zhangsu = pw.SqliteDatabase(f'{path}GP/db/ZhangSu.db')
+db_zhangsu = pw.SqliteDatabase(f'{path}/db/ZhangSu.db')
 # Local涨速
 class LocalSpeedModel(pw.Model):
     keys = ('day', 'code')
