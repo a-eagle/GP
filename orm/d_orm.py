@@ -1,8 +1,8 @@
 import peewee as pw
-import sys, datetime
+import sys, datetime, os
 
-path = __file__[0 : __file__.upper().index('GP')]
-db_pankou = pw.SqliteDatabase(f'{path}GP/db/PanKou.db')
+path = os.path.dirname(os.path.dirname(__file__))
+db_pankou = pw.SqliteDatabase(f'{path}/db/PanKou.db')
 
 # 涨停盘口(收盘)
 class ZT_PanKou(pw.Model):

@@ -1,8 +1,8 @@
 import peewee as pw
-import sys, datetime
+import sys, datetime, os
 
-path = __file__[0 : __file__.upper().index('GP')]
-db_def = pw.SqliteDatabase(f'{path}GP/db/Def.db') # 题材库
+path = os.path.dirname(os.path.dirname(__file__))
+db_def = pw.SqliteDatabase(f'{path}/db/Def.db') # 题材库
 
 # 画线
 class TextLine(pw.Model):

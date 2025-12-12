@@ -1,8 +1,9 @@
-import threading, sys, traceback, datetime, json, logging, copy
+import threading, sys, traceback, datetime, json, logging, copy, os
 import flask, flask_cors, requests
 import win32con, win32gui, peewee as pw
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 from ui import base_win, timeline, kline_utils, kline_win
 from download import ths_iwencai, datafile, ths_iwencai, henxin, cls, memcache
 from orm import d_orm, def_orm, cls_orm, chrome_orm, lhb_orm, ths_orm

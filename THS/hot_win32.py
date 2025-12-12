@@ -5,7 +5,7 @@ from multiprocessing.shared_memory import SharedMemory
 import system_hotkey
 #pip install system_hotkey
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from THS import ths_win, ths_ocr, tips_win
 from ui import base_win
 

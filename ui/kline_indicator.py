@@ -2,7 +2,7 @@ import os, sys, functools, copy, datetime, json, time, traceback
 import win32gui, win32con
 import requests, peewee as pw
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download.datafile import *
 from ui.base_win import *
 from utils import hot_utils, gn_utils

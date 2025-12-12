@@ -5,7 +5,7 @@ from PIL import Image
 # pip install cnocr -i  https://pypi.tuna.tsinghua.edu.cn/simple
 # https://blog.csdn.net/bugang4663/article/details/131687243?spm=1001.2014.3001.5501
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from THS import ths_win, number_ocr
 from ui import base_win
 

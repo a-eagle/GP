@@ -4,7 +4,7 @@ from multiprocessing import Process
 from PIL import Image # pip install pillow
 # import easyocr
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from THS import number_ocr
 from ui import base_win
 

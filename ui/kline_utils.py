@@ -2,7 +2,7 @@ import win32gui, win32con , win32api, win32ui # pip install pywin32
 import threading, time, datetime, sys, os, copy, pyautogui
 import os, sys, requests, traceback
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from ui import timeline, kline_win, base_win, kline_indicator
 from THS import ths_win
 

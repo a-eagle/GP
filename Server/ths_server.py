@@ -4,7 +4,7 @@ import requests, json, traceback
 import datetime, time, sys, os, re
 
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from orm import d_orm, ths_orm, cls_orm
 from download import henxin, console, ths_iwencai
 from utils import hot_utils

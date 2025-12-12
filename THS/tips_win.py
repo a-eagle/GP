@@ -4,7 +4,7 @@ import sys, pyautogui
 import peewee as pw
 import types
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import datafile, henxin, cls, ths_iwencai
 from utils import hot_utils
 from ui import bkgn_view, dialog, base_win, kline_utils

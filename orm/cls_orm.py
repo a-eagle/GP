@@ -1,9 +1,9 @@
 import peewee as pw
-import sys, datetime
+import sys, datetime, os
 
-path = __file__[0 : __file__.upper().index('GP')]
+path = os.path.dirname(os.path.dirname(__file__))
 
-db_gntc = pw.SqliteDatabase(f'{path}GP/db/CLS_GNTC.db')
+db_gntc = pw.SqliteDatabase(f'{path}/db/CLS_GNTC.db')
 
 # 财联社--个股概念题材
 class CLS_GNTC(pw.Model):

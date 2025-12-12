@@ -1,9 +1,9 @@
 import peewee as pw
-import sys, datetime
+import sys, datetime, os
 
-path = __file__[0 : __file__.upper().index('GP')]
+path = os.path.dirname(os.path.dirname(__file__))
 
-db_chrome = pw.SqliteDatabase(f'{path}GP/db/Chrome.db')
+db_chrome = pw.SqliteDatabase(f'{path}/db/Chrome.db')
 
 # 笔记
 class MyNote(pw.Model):

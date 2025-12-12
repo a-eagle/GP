@@ -3,7 +3,7 @@ import threading, time, datetime, sys, os, copy, traceback
 import os, sys, requests, json
 import win32gui, win32con
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import datafile, cls, ths_iwencai
 from orm import d_orm, ths_orm, cls_orm
 from ui import fx, base_win

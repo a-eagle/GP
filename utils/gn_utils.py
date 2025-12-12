@@ -2,7 +2,7 @@ import win32gui, win32con , win32api, win32ui, pyautogui # pip install pywin32
 import threading, time, datetime, sys, os, copy
 import os, sys, requests, peewee as pw
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from orm import ths_orm, cls_orm
 
 ths_gntc_s = {}

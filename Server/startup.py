@@ -1,7 +1,7 @@
 import time, os, threading, datetime, traceback
 import json, os, sys, platform
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from Server import cls_server, ths_server, lhb_server
 from download import ths_iwencai
 

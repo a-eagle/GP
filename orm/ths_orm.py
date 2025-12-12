@@ -1,9 +1,9 @@
 import peewee as pw
-import sys, datetime
+import sys, datetime, os
 
-path = __file__[0 : __file__.upper().index('GP')]
+path = os.path.dirname(os.path.dirname(__file__))
 
-db_gntc = pw.SqliteDatabase(f'{path}GP/db/THS_GNTC.db')
+db_gntc = pw.SqliteDatabase(f'{path}/db/THS_GNTC.db')
 # 同花顺--概念题材
 class THS_GNTC(pw.Model):
     keys = ('code', )
@@ -29,8 +29,8 @@ class THS_GNTC(pw.Model):
         database = db_gntc
         table_name = '概念题材'
 
-db_hot = pw.SqliteDatabase(f'{path}GP/db/THS_Hot.db')
-db_hot_zh = pw.SqliteDatabase(f'{path}GP/db/THS_HotZH.db')
+db_hot = pw.SqliteDatabase(f'{path}/db/THS_Hot.db')
+db_hot_zh = pw.SqliteDatabase(f'{path}/db/THS_HotZH.db')
 
 # 同花顺--个股热度排名
 class THS_Hot(pw.Model):
@@ -59,7 +59,7 @@ class THS_HotZH(pw.Model):
         database = db_hot_zh
         table_name = '个股热度综合排名'
 
-db_thszs = pw.SqliteDatabase(f'{path}GP/db/THS_ZS.db')
+db_thszs = pw.SqliteDatabase(f'{path}/db/THS_ZS.db')
 class THS_ZS(pw.Model):
     code = pw.CharField() #指数代码
     name = pw.CharField() #指数名称
@@ -92,7 +92,7 @@ class THS_ZS_ZD(pw.Model):
         database = db_thszs
         table_name = '同花顺指数涨跌信息'
 
-db_ths = pw.SqliteDatabase(f'{path}GP/db/THS.db')
+db_ths = pw.SqliteDatabase(f'{path}/db/THS.db')
 # 同花顺涨停
 class THS_ZT(pw.Model):
     keys = ('code', 'day')
@@ -108,7 +108,7 @@ class THS_ZT(pw.Model):
     class Meta:
         database = db_ths
 
-db_ths_codes = pw.SqliteDatabase(f'{path}GP/db/THS_Codes.db')
+db_ths_codes = pw.SqliteDatabase(f'{path}/db/THS_Codes.db')
 # 个股信息
 class THS_CodesInfo(pw.Model):
     keys = ('code', )

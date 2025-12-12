@@ -1,6 +1,7 @@
 import peewee as pw
+import os, sys
 
-path = __file__[0 : __file__.upper().index('GP')]
+path = os.path.dirname(os.path.dirname(__file__))
 
 # move table from a database to another database
 def move_table_data(fromDb, modelClass : pw.Model):
@@ -36,7 +37,7 @@ def move_table_data(fromDb, modelClass : pw.Model):
 
 def move_cls():
     import cls_orm
-    db_tck = pw.SqliteDatabase(f'{path}GP/db/tck.db')
+    db_tck = pw.SqliteDatabase(f'{path}/db/tck.db')
     move_table_data(db_tck, cls_orm.CLS_UpDown)
     move_table_data(db_tck, cls_orm.CLS_SCQX)
     move_table_data(db_tck, cls_orm.CLS_SCQX_Time)
@@ -45,18 +46,13 @@ def move_cls():
 
 def move_ths():
     import ths_orm
-    db = pw.SqliteDatabase(f'{path}GP/db/TCK.db')
+    db = pw.SqliteDatabase(f'{path}/db/TCK.db')
     move_table_data(db, ths_orm.THS_ZT)
 
 def move_def():
     import def_orm
-    db = pw.SqliteDatabase(f'{path}GP/db/TCK_def.db')
+    db = pw.SqliteDatabase(f'{path}/db/TCK_def.db')
     move_table_data(db, def_orm.MySettings)
-
-def move_z():
-    import z_orm
-    db = pw.SqliteDatabase(f'{path}GP/db/TCK.db')
-    move_table_data(db, z_orm.ZT_PanKou)
 
 if __name__ == '__main__':
     pass

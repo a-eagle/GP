@@ -3,7 +3,7 @@ import traceback
 import requests, json, logging
 import peewee as pw
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from orm import cls_orm, d_orm, ths_orm
 from download import console, cls, ths_iwencai
 

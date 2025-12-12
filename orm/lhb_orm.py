@@ -1,10 +1,9 @@
 import peewee as pw
-import sys, datetime
+import sys, datetime, os
 
-path = sys.argv[0]
-path = path[0 : path.index('GP') ]
+path = os.path.dirname(os.path.dirname(__file__))
 
-db_lhb = pw.SqliteDatabase(f'{path}/GP/db/LHB.db')
+db_lhb = pw.SqliteDatabase(f'{path}/db/LHB.db')
 
 class TdxLHB(pw.Model):
     keys = ('code', 'day')

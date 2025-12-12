@@ -1,5 +1,5 @@
 import sys, win32con, win32gui, win32api
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from ui import base_win
 
 class Dialog(base_win.BaseWindow):

@@ -3,7 +3,7 @@ import traceback
 import requests, json, logging
 import peewee as pw, flask, flask_cors
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from orm import chrome_orm, cls_orm, d_orm, def_orm, lhb_orm, ths_orm
 from download import console, ths_iwencai, cls
 
