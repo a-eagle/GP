@@ -1,1 +1,1 @@
-python ../GP/download\tdx.py --once
+python download\tdx.py --once
