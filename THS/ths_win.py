@@ -154,8 +154,9 @@ class ThsWindow(base_win.BaseWindow):
         #monthImg.save('D:/m.bmp')
         selYear = self.numberOcr.match(yearImg)
         selDay = self.numberOcr.match(monthImg)
-        #print('selYear=', selYear, 'selDay=', selDay)
-
+        # print('selYear=', selYear, 'selDay=', selDay)
+        if not selYear or not selDay or len(selYear) != 4 or len(selDay) != 4:
+            return ''
         sd = selYear + '-' + selDay[0 : 2] + '-' + selDay[2 : 4]
         #check is a day
         sd2 = sd.replace('-', '')

@@ -19,7 +19,9 @@ def readTextfromImage(img : Image, whitelist = None):
     cfg = None
     if whitelist:
         cfg = f'-c tessedit_char_whitelist={whitelist}'
-    return pytesseract_image_to_string(img, config = cfg)
+    txt =  pytesseract_image_to_string(img, config = cfg)
+    if txt: txt = txt.strip()
+    return txt
 
 def readCodeFromImage(img : Image, **kwargs):
     result = pytesseract_image_to_string(img, **kwargs)
@@ -223,7 +225,7 @@ class NumberOCR:
         plat = platform.node()
         bn = os.path.basename(__file__)
         p = __file__[0 : - len(bn)]
-        self.templateImg = EImage(Image.open(f'{p}img/{baseName}-{plat}.bmp'))
+        # self.templateImg = EImage(Image.open(f'{p}img/{baseName}-{plat}.bmp'))
         self.templateDigit = templateDigit
 
     def _matchOne(self, oimg : EImage, oRect, minSimilarVal):
@@ -232,12 +234,16 @@ class NumberOCR:
             return self.templateDigit[idx]
         return '#'
 
-    def match(self, oimg : Image, minSimilarVal = 90):
+    def _match(self, oimg : Image, minSimilarVal = 90):
         rimg = EImage(oimg)
         rs = ''
         for rect in rimg.itemsRect:
             rs += self._matchOne(rimg, rect, minSimilarVal)
         return ''.join(rs)
+    
+    def match(self, img : Image):
+        txt = readTextfromImage(img, whitelist = self.templateDigit)
+        return txt
 
 class BuildTemplateImage:
     def __init__(self, hwnd):
