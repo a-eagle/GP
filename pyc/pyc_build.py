@@ -40,12 +40,12 @@ def copyFiles(srcRootPath, srcName):
 
 def buildPyc():
     listTopDir(ROOT_PATH, buildPyFiles)
-    copyDataFiles()
 
 def copyDataFiles():
     copyFiles(ROOT_PATH, 'THS\\img')
     copyFiles(ROOT_PATH, 'db')
-    copyFiles(ROOT_PATH, 'download\\cls-sign.dll')
+    # copyFiles(ROOT_PATH, 'download\\cls-sign.dll')
 
 if __name__ == '__main__':
-    buildPyc()
+    # buildPyc()
+    copyDataFiles()

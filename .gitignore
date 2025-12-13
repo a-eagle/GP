@@ -43,3 +43,4 @@ THS/*.json
 db
 pyc/*/
 !pyc/*.py
+pyc/test.py
