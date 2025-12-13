@@ -41,5 +41,5 @@ THS/*.json
 .vscode
 *.db
 db
-pyc
+pyc/*/
 !pyc/*.py
