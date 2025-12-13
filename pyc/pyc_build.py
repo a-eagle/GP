@@ -42,7 +42,7 @@ def buildPyc():
     listTopDir(ROOT_PATH, buildPyFiles)
 
 def copyDataFiles():
-    copyFiles(ROOT_PATH, 'THS\\img')
+    # copyFiles(ROOT_PATH, 'THS\\img')
     copyFiles(ROOT_PATH, 'db')
     # copyFiles(ROOT_PATH, 'download\\cls-sign.dll')
 
