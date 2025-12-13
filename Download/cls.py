@@ -2,13 +2,13 @@ import ctypes, os, sys, requests, json, traceback, datetime, platform
 import urllib
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from download import memcache
+from download import memcache, clssign
 
-PX = os.path.join(os.path.dirname(__file__), 'cls-sign.dll')
-mydll = ctypes.CDLL(PX)
+# PX = os.path.join(os.path.dirname(__file__), 'cls-sign.dll')
+# mydll = ctypes.CDLL(PX)
 
 def signByStr(s : str):
-    return _c_digest(s)
+    return clssign.signByStr(s)
 
 def signByDict(params : dict):
     if not params:
@@ -18,19 +18,18 @@ def signByDict(params : dict):
     for k in ks:
         sl.append(f'{k}={ks[k]}')
     s = '&'.join(sl)
-    rs = _c_digest(s)
+    rs = clssign.signByStr(s)
     return rs
 
-def _c_digest(s : str):
-    digest = mydll.digest # 
-    digest.restype = ctypes.c_char_p
-    digest.argtypes = [ctypes.c_char_p]
+# def _c_digest(s : str):
+#     digest = mydll.digest # 
+#     digest.restype = ctypes.c_char_p
+#     digest.argtypes = [ctypes.c_char_p]
 
-    bs = s.encode('utf-8')
-    rs : bytes = digest(bs) # ctypes.c_char_p(bs)
-    r = rs.decode('utf-8')
-    #print('[_c_digest]', r)
-    return r
+#     bs = s.encode('utf-8')
+#     rs : bytes = digest(bs) # ctypes.c_char_p(bs)
+#     r = rs.decode('utf-8')
+#     return r
 
 def getProxyUrl(url):
     if platform.node() != 'DESKTOP-P6GAAMF':

@@ -871,7 +871,7 @@ class LsAmountIndicator(CustomIndicator):
         hdc = win32gui.GetDC(self.win.hwnd)
         W, H = 250, 150
         ix = (idx - self.visibleRange[0]) * (self.getItemWidth() + self.getItemSpace())
-        drawer : Drawer = self.win.drawer
+        drawer = self.win.drawer
         if ix + W <= self.width:
             sx = self.x + ix
         else:
@@ -886,7 +886,7 @@ class LsAmountIndicator(CustomIndicator):
         win32gui.ReleaseDC(self.win.hwnd, hdc)
 
     def drawHotValInfo(self, hdc, rc, itemData, idx):
-        drawer : Drawer = self.win.drawer
+        drawer = self.win.drawer
         VCENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER
         W, H = rc[2] - rc[0], rc[3] - rc[1]
         IW, IH = W / 4, H / 6
@@ -1029,7 +1029,7 @@ class ClsZT_Indicator(CustomIndicator):
     
     def drawDetail(self, detail):
         hdc = win32gui.GetDC(self.win.hwnd)
-        drawer : Drawer = self.win.drawer
+        drawer = self.win.drawer
         W, H = int(0.5 * self.width), 60
         x = (self.width - W) // 2
         y = self.y - H
@@ -1252,7 +1252,7 @@ class LhbIndicator(CustomIndicator):
         hdc = win32gui.GetDC(self.win.hwnd)
         W, H = 400, 240
         ix = (si - self.visibleRange[0]) * (self.getItemWidth() + self.getItemSpace())
-        drawer : Drawer = self.win.drawer
+        drawer = self.win.drawer
         if ix + W <= self.width:
             sx = self.x + ix
         else:
@@ -1271,7 +1271,7 @@ class LhbIndicator(CustomIndicator):
         win32gui.ReleaseDC(self.win.hwnd, hdc)
         return True
 
-    def drawItemDetail(self, drawer : Drawer, hdc, rect, itemData):
+    def drawItemDetail(self, drawer, hdc, rect, itemData):
         detail = itemData['detail']
         if not detail:
             return
@@ -1388,7 +1388,7 @@ class CLS_HotTcIndicator(CustomIndicator):
                 maps[day].append(d)
         self.cdata = maps
 
-    def drawItem(self, hdc, drawer : Drawer, idx, x):
+    def drawItem(self, hdc, drawer, idx, x):
         super().drawItem(hdc, drawer, idx, x)
         iw = self.config['itemWidth']
         day = self.data[idx].day
@@ -1514,7 +1514,7 @@ class ZS_ZT_NumIndicator(CustomIndicator):
                 maxVal = max(maxVal, item['ZT'], item['ZB'], item['DT'])
         self.valueRange = (0, maxVal)
 
-    def drawItem(self, hdc, drawer : Drawer, idx, x):
+    def drawItem(self, hdc, drawer, idx, x):
         super().drawItem(hdc, drawer, idx, x)
         W = self.config['itemWidth']
         IW = 15
@@ -1706,7 +1706,7 @@ class Code_ZT_NumIndicator(ZS_ZT_NumIndicator):
         self.showZT_List(curData, self.refCode)
         return True
 
-    def drawItem(self, hdc, drawer : Drawer, idx, x):
+    def drawItem(self, hdc, drawer, idx, x):
         super().drawItem(hdc, drawer, idx, x)
         W = self.config['itemWidth']
         day = self.data[idx].day

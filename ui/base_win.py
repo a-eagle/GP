@@ -1547,23 +1547,6 @@ class TableWindow(BaseWindow):
             # go through, no return
         return super().winProc(hwnd, msg, wParam, lParam)
 
-
-        if not self.data:
-            return
-        rowNum = self.getRowNum()
-        colNum = self.columnCount
-        begin, end = self.getVisibleRange()
-        for i in range(begin, end):
-            idx = i - begin
-            colIdx = idx // rowNum
-            rowIdx = idx % rowNum
-            if colIdx >= colNum:
-                continue
-            itemData = self.data[i]
-            self.drawItemData(hdc, colIdx, rowIdx, i, itemData)
-        for i in range(0, colNum):
-            self.drawColumnHead(hdc, i)
-
 # listeners : Select = {src, group, groupIdx}
 class GroupButton(BaseWindow):
     def __init__(self, groups) -> None:

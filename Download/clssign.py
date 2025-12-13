@@ -673,9 +673,9 @@ dig = Digest()
 b2h = Bin2Hex()
 
 def signByStr(urlParam):
-	dx = dig.digest(urlParam)
-	rs = b2h.run(dx)
-	return rs
+    dx = dig.digest(urlParam)
+    rs = b2h.run(dx)
+    return rs
 
 if __name__ == '__main__':
     import cls
