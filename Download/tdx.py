@@ -120,7 +120,7 @@ class TdxGuiDownloader:
         time.sleep(5)
 
     def getStartDayFor(self, isDay : bool):
-        maxday = datetime.date.today() - datetime.timedelta(days = 80)
+        maxday = datetime.date.today() - datetime.timedelta(days = 20)
         maxdayInt = int(maxday.strftime('%Y%m%d'))
         if isDay:
             df = K_DataModel('999999')

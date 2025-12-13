@@ -776,8 +776,15 @@ class TdxChuncker:
         return (fromDay, endDay)
 
 if __name__ == '__main__':
-    w = TdxChuncker()
-    w.removeNotCodes('minline')
+    #w = TdxChuncker()
+    #w.removeNotCodes('minline')
+    
+    f = open(r'C:\Users\GaoYan\Desktop\sz000030.lc1', 'rb')
+    bs = f.read(32)
+    tm = T_DataModel('000030')
+    ritem = tm.unpackTdxData(bs)
+    print(ritem)
+    f.close()
     
 
 
