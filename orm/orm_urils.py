@@ -4,7 +4,7 @@ import os, sys
 path = os.path.dirname(os.path.dirname(__file__))
 
 # move table from a database to another database
-def move_table_data(fromDb, modelClass : pw.Model):
+def move_table_data(fromDb, modelClass : pw.Model, ops = None):
     cols = [] # (field.name, column_name)
     for k in modelClass._meta.columns:
         field = modelClass._meta.columns[k]
@@ -26,11 +26,13 @@ def move_table_data(fromDb, modelClass : pw.Model):
         #print(params)
         item = modelClass(**params)
         inserts.append(item)
+        if ops:
+            ops(item)
     modelClass.bulk_create(inserts, 50)
     
-    rs = modelClass.select()
-    for r in rs:
-        print(r.__data__)
+    # rs = modelClass.select()
+    # for r in rs:
+        # print(r.__data__)
 
 # import ths_orm
 # move_table_data(ths_orm.db_hot, ths_orm.THS_HotZH)

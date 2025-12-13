@@ -152,7 +152,7 @@ class Server:
             rs['mcje'] /= 10000
             rs['jme'] /= 10000
             rs['cjje'] /= 10000
-            rs['detail'] = json.dumps(rs['detail'])
+            rs['detail'] = json.dumps(rs['detail'], ensure_ascii = False)
             datas.append(rs)
         return datas
 

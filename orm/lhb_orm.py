@@ -1,5 +1,5 @@
 import peewee as pw
-import sys, datetime, os
+import sys, datetime, os, json
 
 path = os.path.dirname(os.path.dirname(__file__))
 
@@ -21,7 +21,7 @@ class TdxLHB(pw.Model):
     mcje = pw.DecimalField(column_name = '卖出金额_亿' , null=True, decimal_places = 1, max_digits = 10) #  (亿元)
     #mcjeRate = pw.IntegerField(column_name = '卖出金额_占比' , null=True) #  (占总成交比例%)
     jme = pw.DecimalField(column_name = '净买额_亿' , null=True, decimal_places = 1, max_digits = 10) #  (亿元)
-    famous = pw.CharField(column_name = '知名游资' , null=True)
+    # famous = pw.CharField(column_name = '知名游资' , null=True)
     detail = pw.CharField(column_name = '详细', null = True)
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
@@ -33,6 +33,9 @@ db_lhb.create_tables([TdxLHB])
 
 
 if __name__ == '__main__':
-    pass
-    
-
+    def trs(it):
+        detail = json.loads(it.detail)
+        it.detail = json.dumps(detail, ensure_ascii = False)
+    import orm_urils
+    lhbOld = pw.SqliteDatabase(f'{orm_urils.path}/db/LHB-old.db')
+    orm_urils.move_table_data(lhbOld, TdxLHB, trs)
