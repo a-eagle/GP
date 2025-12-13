@@ -1,4 +1,5 @@
 pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple pywin32
+pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple pywinauto
 pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple flask
 pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple flask_cors
 pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple requests
@@ -6,6 +7,7 @@ pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple peewee
 pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple pyautogui
 pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple system_hotkey
 pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple pyperclip
+pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple psutil
 pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple pytesseract
 pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple pillow
 rem # https://github.com/UB-Mannheim/tesseract/wiki 

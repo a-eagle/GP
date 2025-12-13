@@ -2,8 +2,6 @@ import win32gui, win32con , win32api, win32ui # pip install pywin32
 import threading, time, datetime, sys, os, json, copy
 from multiprocessing import Process
 from multiprocessing.shared_memory import SharedMemory
-import system_hotkey
-#pip install system_hotkey
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from THS import ths_win, ths_ocr, tips_win
@@ -257,6 +255,7 @@ class MarkMain(base_win.BaseWindow):
         win32gui.PostMessage(self.hwnd, self.MSG_N, None, None)
 
     def reg(self):
+        import system_hotkey #pip install system_hotkey
         hk = system_hotkey.SystemHotkey()
         hk.register(('control', 'alt', 'm'), callback = self.doMarkKey_1, overwrite = True)
         hk.register(('control', 'alt', 'n'), callback = self.doMarkKey_2, overwrite = True)
