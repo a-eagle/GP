@@ -1,7 +1,8 @@
 import re, sys, datetime, traceback
 import time, os, platform, sys, struct
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 from download import datafile, cls, henxin, console
 from orm import ths_orm, cls_orm
 from ui import fx

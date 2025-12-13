@@ -1,6 +1,7 @@
-import sys, peewee as pw, requests, json, re, traceback, time, datetime
+import sys, peewee as pw, requests, json, re, traceback, time, datetime, os
 
-sys.path.append(__file__[0 : __file__.upper().index('GP') + 2])
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 from orm import ths_orm
 from download import henxin, memcache
 
