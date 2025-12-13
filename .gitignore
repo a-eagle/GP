@@ -42,3 +42,4 @@ THS/*.json
 *.db
 db
 pyc
+!pyc/*.py
