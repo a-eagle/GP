@@ -279,6 +279,7 @@ class Main:
             chuncker = TdxChuncker()
             chuncker.removeNotCodes()
             chuncker.chunckAll_T_ByLastDay(20)
+            chuncker.removeInvalidCodes()
         print('-----------End----------\n\n')
         return flag
 
