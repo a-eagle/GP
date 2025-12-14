@@ -728,9 +728,9 @@ class TdxChuncker:
     def chunckAll_T_ByLastDay(self, lastDayNum):
         df = T_DataModel('999999') # 999999
         days = df.loadDays()
-        if lastDayNum <= len(days):
+        if lastDayNum >= len(days):
             return
-        w.chunckAll_T(days[-lastDayNum], days[-1])
+        self.chunckAll_T(days[-lastDayNum], days[-1])
 
     # [fromDay - endDay]
     def chunck_T(self, code, fromDay, endDay):
@@ -776,15 +776,16 @@ class TdxChuncker:
         return (fromDay, endDay)
 
 if __name__ == '__main__':
-    #w = TdxChuncker()
-    #w.removeNotCodes('minline')
+    w = TdxChuncker()
+    w.removeNotCodes()
+    w.chunckAll_T_ByLastDay(10)
     
-    f = open(r'C:\Users\GaoYan\Desktop\sz000030.lc1', 'rb')
-    bs = f.read(32)
-    tm = T_DataModel('000030')
-    ritem = tm.unpackTdxData(bs)
-    print(ritem)
-    f.close()
+    # f = open(r'C:\Users\GaoYan\Desktop\sz000030.lc1', 'rb')
+    # bs = f.read(32)
+    # tm = T_DataModel('000030')
+    # ritem = tm.unpackTdxData(bs)
+    # print(ritem)
+    # f.close()
     
 
 
