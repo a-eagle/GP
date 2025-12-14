@@ -101,7 +101,7 @@ class DataModel:
         return -1
 
     # dataType = 'DAY' | 'TIME'
-    def getLocalPath(self, dataType):
+    def _getLocalPath(self, dataType):
         code = self.code
         dataType = dataType.upper()
         if self.isNormalCode():
@@ -128,7 +128,7 @@ class RemoteStub:
 
     def getLocalPath(self, _type):
         dm = DataModel(self.code)
-        path = dm.getLocalPath(_type)
+        path = dm._getLocalPath(_type)
         path = 'c' + path[1:]
         return path
 
@@ -361,12 +361,15 @@ class K_DataModel(DataModel):
                 zhangFu = (cc - pc) / pc * 100
             setattr(self.data[i], 'zhangFu', zhangFu)
 
+    def getLocalPath(self):
+        return self._getLocalPath('DAY')
+
     def loadLocalData(self): # tdx data
         self.data = None
         code = self.code
         if not code:
             return False
-        path = self.getLocalPath('DAY')
+        path = self.getLocalPath()
         if not os.path.exists(path):
             return False
         rs = []
@@ -386,8 +389,20 @@ class K_DataModel(DataModel):
         f.close()
         return len(rs) > 0
 
+    def isLocalFileValid(self):
+        path = self.getLocalPath()
+        if not os.path.exists(path):
+            return False
+        filesize = os.path.getsize(path)
+        if filesize == 0:
+            return False
+        RL = 32
+        if filesize % RL != 0:
+            return False
+        return True
+
     def getLocalLatestDay(self):
-        path = self.getLocalPath('day')
+        path = self.getLocalPath()
         if not os.path.exists(path):
             return None
         filesize = os.path.getsize(path)
@@ -466,6 +481,9 @@ class T_DataModel(DataModel):
             ok = rp.loadLocalData_Time(day, self)
         return ok
 
+    def getLocalPath(self):
+        return self._getLocalPath('TIME')
+
     # day = str | int
     def _loadLocalData(self, day):
         if type(day) == str:
@@ -473,7 +491,7 @@ class T_DataModel(DataModel):
             day = int(day)
         self.day = day
         self.data = None
-        path = self.getLocalPath('TIME')
+        path = self.getLocalPath()
         if not os.path.exists(path):
             return False
         filesize = os.path.getsize(path)
@@ -521,9 +539,22 @@ class T_DataModel(DataModel):
         self.calcAvgPrice()
         return len(rs) > 0
 
+    def isLocalFileValid(self):
+        path = self.getLocalPath()
+        if not os.path.exists(path):
+            return False
+        filesize = os.path.getsize(path)
+        if filesize == 0:
+            return False
+        RL = 32
+        PAGE = RL * TDX_MINUTES_IN_DAY
+        if filesize % PAGE != 0:
+            return False
+        return True
+
     # [day, ...]
     def loadDays(self):
-        path = self.getLocalPath('TIME')
+        path = self.getLocalPath()
         if not os.path.exists(path):
             return None
         filesize = os.path.getsize(path)
@@ -566,7 +597,7 @@ class T_DataModel(DataModel):
         return bs
 
     def getLocalLatestDay(self):
-        path = self.getLocalPath('TIME')
+        path = self.getLocalPath()
         if not os.path.exists(path):
             return None
         filesize = os.path.getsize(path)
@@ -735,7 +766,7 @@ class TdxChuncker:
     # [fromDay - endDay]
     def chunck_T(self, code, fromDay, endDay):
         df = T_DataModel(code)
-        path = df.getLocalPath('TIME')
+        path = df.getLocalPath()
         days = df.loadDays()
         fe = self._ajdustFromEndDay(days, fromDay, endDay)
         if not fe:
@@ -774,6 +805,14 @@ class TdxChuncker:
         if (fromDay > endDay) or (fromDay not in days) or (endDay not in days):
             return None
         return (fromDay, endDay)
+
+    def removeInvalidCodes(self):
+        codes = self.getLocalCodes('minline')
+        for c in codes:
+            m = T_DataModel(c)
+            if os.path.exists(m.getLocalPath()) and not m.isLocalFileValid():
+                os.remove(m.getLocalPath())
+        pass
 
 if __name__ == '__main__':
     w = TdxChuncker()

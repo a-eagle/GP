@@ -14,7 +14,7 @@ class TimelineDataFile(datafile.T_DataModel):
         super().__init__(code)
 
     def loadLocalLastDay(self):
-        path = self.getLocalPath('TIME')
+        path = self.getLocalPath()
         if not os.path.exists(path):
             return 0
         f = open(path, 'rb')
@@ -31,7 +31,7 @@ class TimelineDataFile(datafile.T_DataModel):
 
     def getLocalDays(self):
         days = []
-        path = self.getLocalPath('TIME')
+        path = self.getLocalPath()
         if not os.path.exists(path):
             return days
         filesize = os.path.getsize(path)
@@ -51,7 +51,7 @@ class TimelineDataFile(datafile.T_DataModel):
         return days
 
     def isValidLocalFile(self):
-        path = self.getLocalPath('TIME')
+        path = self.getLocalPath()
         if not os.path.exists(path):
             return True
         filesize = os.path.getsize(path)
@@ -77,7 +77,7 @@ class KlineDataFile(datafile.K_DataModel):
         super().__init__(code)
 
     def loadLocalLastDay(self):
-        path = self.getLocalPath('DAY')
+        path = self.getLocalPath()
         if not os.path.exists(path):
             return 0
         f = open(path, 'rb')
@@ -206,7 +206,7 @@ class TimelineDataFileLoader:
         dst = TimelineDataFile(code)
         lastDay = dst.loadLocalLastDay()
         mode = 'ab' if lastDay > 0 else 'wb'
-        f = open(dst.getLocalPath('TIME'), mode)
+        f = open(dst.getLocalPath(), mode)
         arr = bytearray(24)
         i = 0
         while i < len(minlineDatas):
@@ -322,7 +322,7 @@ class KlineDataFileLoader:
     
     def writeToFile(self, code, klineDatas):
         dst = datafile.K_DataModel(code)
-        f = open(dst.getLocalPath('DAY'), 'wb')
+        f = open(dst.getLocalPath(), 'wb')
         arr = bytearray(32)
         for d in klineDatas:
             struct.pack_into('l5f2l', arr, 0, d.day, d.open, d.high, d.low, d.close, d.amount, int(d.vol / 10000), 0)
