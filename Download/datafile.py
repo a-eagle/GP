@@ -817,7 +817,8 @@ class TdxChuncker:
 if __name__ == '__main__':
     w = TdxChuncker()
     w.removeNotCodes()
-    w.chunckAll_T_ByLastDay(10)
+    w.chunckAll_T_ByLastDay(22)
+    w.removeInvalidCodes()
     
     # f = open(r'C:\Users\GaoYan\Desktop\sz000030.lc1', 'rb')
     # bs = f.read(32)
