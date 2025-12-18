@@ -1198,6 +1198,12 @@ class AmountCompare {
 		let thiz = this;
 		this.canvas = null;
 		this.vue.addWatch('curDay', function(a, b) {thiz._onChangeDay(a, b);});
+		this.selTime = null;
+
+		this.PAD_LEFT = 80;
+		this.PAD_RIGHT = 200;
+		this.PAD_TOP = 5;
+		this.PAD_BOTTOM = 30;
 	}
 
 	_onChangeDay(newVal, oldVal) {
@@ -1214,6 +1220,7 @@ class AmountCompare {
 	}
 
 	_buildUI() {
+		let thiz = this;
 		if (! this.canvas) {
 			let c = $('<canvas> </canvas>');
 			this.canvas = c.get(0);
@@ -1221,6 +1228,38 @@ class AmountCompare {
 			let p = c.parent();
 			this.canvas.width = 1200;
 			this.canvas.height = 200; //p.height();
+			c.click(function(evt) {
+				thiz.onClick(evt);
+			});
+		}
+		this.draw();
+	}
+
+	onClick(evt) {
+		// console.log(evt);
+		let width = this.canvas.width;
+		let x = evt.offsetX;
+		let isOut = x < this.PAD_LEFT || x > width - this.PAD_RIGHT;
+		if (this.selTime || isOut) {
+			this.selTime = null;
+			this.draw();
+			return;
+		}
+		if (! this.result || !this.result.data.length) {
+			this.selTime = null;
+			this.draw();
+			return;
+		}
+		this.selTime = null;
+		const AW = width - this.PAD_LEFT - this.PAD_RIGHT;
+		const PX = AW / 240;
+		for (let i = 0; i < this.result.data.length; i++) {
+			let bx = this.PAD_LEFT + i * PX - PX / 2;
+			let ex = this.PAD_LEFT + i * PX + PX / 2;
+			if (x >= bx && x <= ex) {
+				this.selTime = i;
+				break;
+			}
 		}
 		this.draw();
 	}
@@ -1268,27 +1307,54 @@ class AmountCompare {
 		this.result.minRate = minRate;
 	}
 
+	getCurTime() {
+		if (this.selTime == null)
+			return '';
+		let time = String(this.result.time[this.selTime]);
+		if (time.length < 4) time = '0' + time;
+		time = time.substring(0, 2) + ':' + time.substring(2);
+		return '时间 ' + time;
+	}
+
+	getRealAmount() {
+		if (this.selTime == null)
+			return parseInt(this.result.curSum / 100000000);
+		return parseInt(this.result.data[this.selTime].cur / 100000000);
+	}
+
+	getYestodayRate() {
+		if (this.selTime == null)
+			return this.result.curSum / this.result.preAllSum * 100;
+		let amount = this.result.data[this.selTime].cur;
+		return amount / this.result.preAllSum * 100;
+	}
+
+	getDiffSum() {
+		let idx = this.selTime == null ? this.result.data.length - 1 : this.selTime;
+		let curSumAmount = this.result.data[idx].cur;
+		let preSumAmount = this.result.data[idx].pre;
+		let diff = curSumAmount - preSumAmount;
+		let rate = diff / preSumAmount * 100;
+		return {diff, rate};
+	}
+
 	draw() {
-		if (! this.result || !this.result.data.length)
-			return;
+		let thiz = this;
         let ctx = this.canvas.getContext("2d");
 		let width = this.canvas.width;
 		let height = this.canvas.height;
-		const PAD_LEFT = 80;
-		const PAD_RIGHT = 200;
-		const PAD_TOP = 5;
-		const PAD_BOTTOM = 30;
-		const AW = width - PAD_LEFT - PAD_RIGHT;
-		const AH = height - PAD_TOP - PAD_BOTTOM;
+		ctx.clearRect(0, 0, width, height);
+		if (! this.result || !this.result.data.length)
+			return;
+		const AW = width - this.PAD_LEFT - this.PAD_RIGHT;
+		const AH = height - this.PAD_TOP - this.PAD_BOTTOM;
 		const PX = AW / 240;
 		const MM = this.result.maxRate - this.result.minRate;
 		function getRateY(result, rate) {
 			let r = rate - result.minRate;
 			let rr = r / MM;
-			return AH - rr * AH + PAD_TOP;
+			return AH - rr * AH + thiz.PAD_TOP;
 		}
-		
-		ctx.clearRect(0, 0, width, height);
 
 		// draw line
 		ctx.beginPath();
@@ -1296,7 +1362,7 @@ class AmountCompare {
 		ctx.font = 'normal 12px Arial';
 		ctx.lineWidth = 2;
 		for (let i = 0; i < this.result.data.length; i++) {
-			let x = PAD_LEFT + i * PX;
+			let x = this.PAD_LEFT + i * PX;
 			let y = getRateY(this.result, this.result.data[i].rate);
 			if (i == 0) ctx.moveTo(x, y);
 			else ctx.lineTo(x, y);
@@ -1309,13 +1375,13 @@ class AmountCompare {
 		ctx.fillStyle = '#FFF2E5';
 		// console.log(this.result);
 		for (let i = 0; i < this.result.data.length; i++) {
-			let x = PAD_LEFT + i * PX;
+			let x = this.PAD_LEFT + i * PX;
 			let y = getRateY(this.result, this.result.data[i].rate);
 			if (i == 0) ctx.moveTo(x, y);
 			else ctx.lineTo(x, y);
 		}
-		ctx.lineTo(this.result.data.length * PX + PAD_LEFT, getRateY(this.result, this.result.minRate) - 1);
-		ctx.lineTo(PAD_LEFT, getRateY(this.result, this.result.minRate) - 1);
+		ctx.lineTo(this.result.data.length * PX + this.PAD_LEFT, getRateY(this.result, this.result.minRate) - 1);
+		ctx.lineTo(this.PAD_LEFT, getRateY(this.result, this.result.minRate) - 1);
 		ctx.fill();
 		ctx.closePath();
 
@@ -1331,9 +1397,9 @@ class AmountCompare {
 			let text = v != 0 ? v.toFixed(1) + '%' : String(v);
 			let ww = ctx.measureText(text).width;
 			let y = getRateY(this.result, v);
-			ctx.fillText(text, PAD_LEFT - ww - 5, y + 5);
-			ctx.moveTo(PAD_LEFT, y)
-			ctx.lineTo(width - PAD_RIGHT, y);
+			ctx.fillText(text, this.PAD_LEFT - ww - 5, y + 5);
+			ctx.moveTo(this.PAD_LEFT, y)
+			ctx.lineTo(width - this.PAD_RIGHT, y);
 			ctx.strokeStyle = '#ddd';
 			ctx.lineWidth = 1;
 			ctx.setLineDash([4, 4]);
@@ -1346,8 +1412,8 @@ class AmountCompare {
 		ctx.beginPath();
 		ctx.strokeStyle = '#9F79EE';
 		ctx.lineWidth = 2;
-		ctx.moveTo(PAD_LEFT, getRateY(this.result, 0))
-		ctx.lineTo(width - PAD_RIGHT, getRateY(this.result, 0));
+		ctx.moveTo(this.PAD_LEFT, getRateY(this.result, 0))
+		ctx.lineTo(width - this.PAD_RIGHT, getRateY(this.result, 0));
 		ctx.stroke();
 		ctx.closePath();
 		
@@ -1355,44 +1421,58 @@ class AmountCompare {
 		// right tip text
 		ctx.fillStyle = '#000';
 		ctx.font = 'normal 16px Arial';
-		let text = '实际量能  ' +  parseInt(this.result.curSum / 100000000) + '亿';
-		ctx.fillText(text, width - PAD_RIGHT + 10, PAD_TOP + 20);
+		ctx.fillText(this.getCurTime(), width - this.PAD_RIGHT + 10, this.PAD_TOP + 20);
 
-		let zb = this.result.curSum / this.result.preAllSum * 100;
+		let text = '实际量能  ' +  this.getRealAmount() + '亿';
+		ctx.fillText(text, width - this.PAD_RIGHT + 10, this.PAD_TOP + 50);
+
+		let zb = this.getYestodayRate();
 		text = '昨日占比  ' + zb.toFixed(0) + '%';
 		ctx.fillStyle = '#000';
-		ctx.fillText(text, width - PAD_RIGHT + 10, PAD_TOP + 50);
+		ctx.fillText(text, width - this.PAD_RIGHT + 10, this.PAD_TOP + 80);
 
-		let z = (this.result.curSum - this.result.preSum);
-		let flag = this.result.curSum >= this.result.preSum ? '增量 ' : '缩量 ';
-		text = flag + parseInt(z / 100000000) + '亿';
-		let zr = (z / this.result.preSum * 100).toFixed(1);
+		let {diff, rate} = this.getDiffSum();
+		let flag = diff >= 0 ? '增量 ' : '缩量 ';
+		text = flag + parseInt(diff / 100000000) + '亿';
+		let zr = rate.toFixed(1);
 		text += '   ' + zr + '%';
-		if (z > 0) ctx.fillStyle = '#c00';
+		if (diff > 0) ctx.fillStyle = '#c00';
 		else if (z < 0) ctx.fillStyle = '#0c0';
 		else ctx.fillStyle = '#000';
-		ctx.fillText(text, width - PAD_RIGHT + 10, PAD_TOP + 80);
+		ctx.fillText(text, width - this.PAD_RIGHT + 10, this.PAD_TOP + 110);
 
 		ctx.fillStyle = '#aaa';
 		ctx.strokeStyle = '#aaa';
 		ctx.font = 'normal 12px Arial';
 		let time = ['09:30', '10:00', '10:30', '11:00', '11:30','13:30', '14:00', '14:30', '15:00'];
 		for (let i = 0; i < time.length; i++) {
-			let cx = PAD_LEFT + i * AW / (time.length - 1);
+			let cx = this.PAD_LEFT + i * AW / (time.length - 1);
 			let ww = ctx.measureText(time[i]).width;
 			let tx = cx;
 			if (i == 0)
-				tx = PAD_LEFT;
+				tx = this.PAD_LEFT;
 			else if (i == time.length - 1)
 				tx -= ww;
 			else
 				tx -= ww / 2;
-			ctx.moveTo(cx, height - PAD_BOTTOM - 3);
-			ctx.lineTo(cx, height - PAD_BOTTOM);
+			ctx.moveTo(cx, height - this.PAD_BOTTOM - 3);
+			ctx.lineTo(cx, height - this.PAD_BOTTOM);
 			ctx.stroke();
-			ctx.fillText(time[i], tx, height - PAD_BOTTOM + 15);
+			ctx.fillText(time[i], tx, height - this.PAD_BOTTOM + 15);
 		}
 		ctx.closePath();
+
+		// draw sel time
+		if (this.selTime != null) {
+			ctx.beginPath();
+			ctx.strokeStyle = '#7B68EE';
+			ctx.lineWidth = 1;
+			let cx = this.PAD_LEFT + this.selTime * PX;
+			ctx.moveTo(cx, this.PAD_TOP);
+			ctx.lineTo(cx, height - this.PAD_BOTTOM);
+			ctx.stroke();
+			ctx.closePath();
+		}
 	}
 }
 
