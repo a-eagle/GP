@@ -1437,7 +1437,7 @@ class AmountCompare {
 		let zr = rate.toFixed(1);
 		text += '   ' + zr + '%';
 		if (diff > 0) ctx.fillStyle = '#c00';
-		else if (z < 0) ctx.fillStyle = '#0c0';
+		else if (diff < 0) ctx.fillStyle = '#0c0';
 		else ctx.fillStyle = '#000';
 		ctx.fillText(text, width - this.PAD_RIGHT + 10, this.PAD_TOP + 110);
 
