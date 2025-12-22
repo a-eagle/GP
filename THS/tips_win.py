@@ -215,7 +215,13 @@ class ZSCardView(CardView):
             y = (idx % MAX_ROWS) * H + 2 + H
             x = (idx // MAX_ROWS) * COL_WIDTH
             rect = (x + 2, y, x + COL_WIDTH, y + H)
-            line = f'{day}    {zs["zdf_PM"] :< 4d}     {zs["zdf_topLevelPM"] :< 6d}'
+            zpm1 = str(zs["zdf_PM"]) if abs(zs["zdf_PM"]) <= 100 else ' '
+            if zpm1[0] != '-': zpm1 = ' ' + zpm1
+            zpm1 += ' ' * (4 - len(zpm1))
+            zpm2 = str(zs["zdf_topLevelPM"]) if abs(zs["zdf_topLevelPM"]) <= 100 else ' '
+            if zpm2[0] != '-': zpm2 = ' ' + zpm2
+            zpm2 += ' ' * (6 - len(zpm2))
+            line = f'{day}    {zpm1}     {zpm2}'
             win32gui.DrawText(hdc, line, len(line), rect, win32con.DT_LEFT | win32con.DT_SINGLELINE | win32con.DT_VCENTER)
         # draw title
         pen = win32gui.CreatePen(win32con.PS_SOLID, 1, 0xaaccaa)

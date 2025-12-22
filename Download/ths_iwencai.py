@@ -401,6 +401,8 @@ def save_zs_zd(datas):
         ex[it['code']] = True
     ndatas = []
     for it in datas:
+        # if abs(it.zdf_PM) > 100: # 排名100以后的不看
+            # continue
         if it.code not in ex:
             ndatas.append(it)
     ths_orm.THS_ZS_ZD.bulk_create(ndatas, 50)

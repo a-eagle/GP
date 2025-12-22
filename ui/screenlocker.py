@@ -150,7 +150,7 @@ class Main:
     def doHotKey_StopRestart(self, args):
         noLockTime = self.readIntData(self.NO_LOCK_TIME_IDX)
         if noLockTime <= win32api.GetTickCount(): 
-            HOUR_2 = 60 * 60 * 1000 # ms
+            HOUR_2 = 2 * 60 * 60 * 1000 # ms
             self.writeIntData(self.NO_LOCK_TIME_IDX, win32api.GetTickCount() + HOUR_2)
         else:
             self.writeIntData(self.NO_LOCK_TIME_IDX, 0)

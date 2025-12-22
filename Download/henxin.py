@@ -362,7 +362,20 @@ class HexinUrl(Henxin):
             return klineRs
         except Exception as e:
             traceback.print_exc()
+            print('[hexin.loadKLineData] code=', code)
         return None
+    
+    def parseValue(self, val, type, default):
+        if val is None:
+            return default
+        val = str(val).strip()
+        if not val:
+            return default
+        if type == int:
+            return int(val)
+        if type == float:
+            return float(val)
+        return val
     
     def parseTodayData(self, txt : str):
         from download.datafile import ItemData
@@ -372,13 +385,13 @@ class HexinUrl(Henxin):
             break
         item = ItemData()
         if js['1']:
-            setattr(item, 'day', int(js['1']))
+            setattr(item, 'day', self.parseValue(js['1'], int, 0))
         if js['13']:
-            setattr(item, 'vol', int(js['13']))
+            setattr(item, 'vol', self.parseValue(js['13'], int, 0))
         if js['19']:
-            setattr(item, 'amount', int(float(js['19'])))
+            setattr(item, 'amount', self.parseValue(js['19'], float, 0))
         if js['1968584']:
-            setattr(item, 'rate', float(js['1968584']))
+            setattr(item, 'rate', self.parseValue(js['1968584'], float, 0))
         
         keys = { 'open': '7', 'high':'8', 'low':'9', 'close':'11'} # vol: 单位股, amount:单位元 'amount':'19', 'rate':'1968584'  'vol':'13'  'day': '1',
         for k in keys:
@@ -388,7 +401,9 @@ class HexinUrl(Henxin):
                     del item
                     item = None
                     break
-            setattr(item, k, float(v))
+            setattr(item, k, self.parseValue(v, float, 0))
+        if not item.day:
+            item = None
         rs = {'name': js['name'], 'data': item}
         return rs
 
@@ -462,8 +477,7 @@ class HexinUrl(Henxin):
 
 if __name__ == '__main__':
     hx = HexinUrl()
-    url = hx.getFenShiUrl('999999')
-    rs = hx.loadUrlData(url)
+    rs = hx.loadKLineData('603300')
     print(rs)
 
 
