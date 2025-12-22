@@ -384,26 +384,19 @@ class HexinUrl(Henxin):
             js = js[k]
             break
         item = ItemData()
-        if js['1']:
-            setattr(item, 'day', self.parseValue(js['1'], int, 0))
-        if js['13']:
-            setattr(item, 'vol', self.parseValue(js['13'], int, 0))
-        if js['19']:
-            setattr(item, 'amount', self.parseValue(js['19'], float, 0))
-        if js['1968584']:
-            setattr(item, 'rate', self.parseValue(js['1968584'], float, 0))
-        
-        keys = { 'open': '7', 'high':'8', 'low':'9', 'close':'11'} # vol: 单位股, amount:单位元 'amount':'19', 'rate':'1968584'  'vol':'13'  'day': '1',
-        for k in keys:
-            v = js[keys[k]]
-            if type(v) == str:
-                if not v:
-                    del item
-                    item = None
-                    break
-            setattr(item, k, self.parseValue(v, float, 0))
-        if not item.day:
-            item = None
+        KEYS = {'7': 'open', '8': 'high', '9': 'low', '11': 'close', '19': 'amount', '1968584': 'rate', '13': 'vol', '1': 'day'} # vol: 单位股, amount:单位元
+        for k in js:
+            if k not in KEYS:
+                continue
+            attrName = KEYS[k]
+            _type = float
+            if attrName == 'day' or attrName == 'vol':
+                _type = int
+            setattr(item, attrName, self.parseValue(js[k], _type, 0))
+        VALID_ATTRS = ('day', 'open', 'close', 'low', 'high')
+        for a in VALID_ATTRS:
+            if item and not getattr(item, a, 0):
+                item = None
         rs = {'name': js['name'], 'data': item}
         return rs
 
