@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import console
 
 def loadDbFile(fileName):
-    print(f'Copy {fileName} ...')
+    print(f'Copy {fileName} ...', end = ' ')
     resp = requests.get(f'http://113.44.136.221:8090/load-db-file/{fileName}')
     txt = resp.content.decode()
     rs = json.loads(txt)
@@ -19,6 +19,7 @@ def loadDbFile(fileName):
     f = open(path, 'wb')
     f.write(bs)
     f.close()
+    print('--> OK')
 
 def listAllDbFiles():
     resp = requests.get(f'http://113.44.136.221:8090/list-db-files')
