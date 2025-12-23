@@ -19,6 +19,24 @@ class CLS_GNTC(pw.Model):
     class Meta:
         database = db_gntc
 
+    # return changed  False: no changed, Yes: changed
+    def diff(self, newObj):
+        if not newObj:
+            return False
+        changed = False
+        changed = self.diffStrAttr(newObj, 'name') or changed
+        changed = self.diffStrAttr(newObj, 'hy') or changed
+        changed = self.diffStrAttr(newObj, 'hy_code') or changed
+        changed = self.diffStrAttr(newObj, 'gn') or changed
+        changed = self.diffStrAttr(newObj, 'gn_code') or changed
+        return changed
+    
+    def diffStrAttr(self, newObj, attrName):
+        if getattr(self, attrName, '') != getattr(newObj, attrName, ''):
+            setattr(self, attrName, getattr(newObj, attrName, ''))
+            return True
+        return False
+
 # 材联社--指数(板块、概念)
 class CLS_ZS(pw.Model):
     keys = ('code', )

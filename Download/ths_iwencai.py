@@ -145,12 +145,14 @@ def iwencai_load_page_1(question, intent = 'stock', input_type = 'typewrite'):
     count = meta['extra']['code_count']
     #info = {'ret': meta['ret'], 'sessionid': meta['sessionid'], 'source': meta['source'], 'logid': js['logid'],
     #        }
-    moreUrl = components['config']['other_info']['footer_info']['url']
-    moreUrl = 'http://www.iwencai.com' + moreUrl
-    ma = re.match('^(.*?perpage=)\d+(.*)$', moreUrl)
-    moreUrl = ma.group(1) + '100' + ma.group(2)
-    ma = re.match('^(.*?[&?]page=)\d+(.*)$', moreUrl)
-    moreUrl = ma.group(1) + '###' + ma.group(2)
+    moreUrl = None
+    if 'other_info' in components['config']:
+        moreUrl = components['config']['other_info']['footer_info']['url']
+        moreUrl = 'http://www.iwencai.com' + moreUrl
+        ma = re.match('^(.*?perpage=)\d+(.*)$', moreUrl)
+        moreUrl = ma.group(1) + '100' + ma.group(2)
+        ma = re.match('^(.*?[&?]page=)\d+(.*)$', moreUrl)
+        moreUrl = ma.group(1) + '###' + ma.group(2)
     return data['datas'], moreUrl, count
 
 # 按页下载个股数据，每页100个（共5400余个股票）
@@ -194,6 +196,8 @@ def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite', maxP
         rs.extend(data1)
         if maxPage is None:
             maxPage = (count + 99) // 100
+        if not urlMore:
+            maxPage = 1
         for i in range(2, maxPage + 1):
             time.sleep(1)
             datas = iwencai_load_page_n(i, urlMore)
@@ -236,9 +240,9 @@ def download_hygn():
     for q in qr:
         zsInfos[q.name] = q.code
     GP_CODE = ('0', '3', '6')
-    ATTRS = ('code', 'name', 'hy', 'gn', 'zgb', 'ltag', 'xsg', 'ltsz', 'zsz')
-    ATTRS_D = ('code', '股票简称', '所属同花顺行业', '所属概念', '总股本', '流通a股', '限售股合计', 'a股市值(不含限售股)', '总市值')
-    ATTRS_D_T = (str, str, str, str, float, float, float, float, float, float)
+    ATTRS = ('code', 'name', 'hy', 'gn') #, 'zgb', 'ltag', 'xsg', 'ltsz', 'zsz')
+    ATTRS_D = ('code', '股票简称', '所属同花顺行业', '所属概念') #, '总股本', '流通a股', '限售股合计', 'a股市值(不含限售股)', '总市值')
+    ATTRS_D_T = (str, str, str, str) #float, float, float, float, float, float)
     for idx, line in enumerate(rs):
         columns = ThsColumns(line)
         dest = {}
@@ -255,8 +259,53 @@ def download_hygn():
         modify_hygn_code(obj, zsInfos)
         if changed:
             obj.updateTime = datetime.datetime.now()
-        obj.save()
+            obj.save()
     return len(rs)
+
+# 个股行业概念 
+# return 是否有修改
+def download_hygn_by_code(code):
+    if type(code) == int:
+        code = f'{code :06d}'
+    if code[0] not in '036':
+        return False
+    rs = iwencai_load_list(question = f'{code} 行业,概念,流通市值,总市值') # ,maxPage = 1
+    if not rs:
+        return False
+    info = rs[0]
+    ATTRS = ('name', 'hy', 'gn', 'zgb', 'ltsz', 'zsz')
+    ATTRS_D = ('股票简称', '所属同花顺行业', '所属概念', '总股本', 'a股市值(不含限售股)', '总市值')
+    ATTRS_D_T = (str, str, str, float, float, float, float)
+    columns = ThsColumns(info)
+    dest = {'code': code}
+    for k in info:
+        if (k not in ATTRS_D) or (not info[k]):
+            continue
+        idx = ATTRS_D.index(k)
+        dest[ATTRS[idx]] = columns.getColumnValue(ATTRS_D[idx], ATTRS_D_T[idx])
+    obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
+    if obj:
+        changed = modify_hygn_attrs(obj, dest, ATTRS)
+        if 'hy' in obj._dirty or 'gn' in obj._dirty:
+            modify_hygn_code_2(obj)
+        if changed:
+            obj.updateTime = datetime.datetime.now()
+            obj.save()
+    else:
+        obj = ths_orm.THS_GNTC(**dest)
+        changed = True
+        modify_hygn_code_2(obj)
+        obj.save()
+    return changed
+
+def modify_hygn_code_2(obj):
+    zsInfos = {}
+    qr = ths_orm.THS_ZS.select()
+    for q in qr:
+        zsInfos[q.name] = q.code
+    modify_hygn_code(obj, zsInfos)
+
+# download_hygn_by_code('002407')
 
 # 个股信息(市盈率 ttm)
 def download_hygn_pe():

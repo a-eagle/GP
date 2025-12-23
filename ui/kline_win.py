@@ -824,18 +824,10 @@ class KLineWindow(base_win.BaseWindow):
                 info.save()
                 self.bkgnView.changeCode(code)
                 return
-            update = False
-            if not obj.updateTime:
-                update = True
-            else:
-                now = datetime.datetime.now()
-                ds : datetime.timedelta = now - obj.updateTime
-                update = ds.days >= 1
-            if not update:
-                return
             info = cls.ClsUrl().loadBkGnOfCode(code)
-            info.id = obj.id
-            info.save()
+            if obj.diff(info):
+                obj.updateTime = datetime.datetime.now()
+                obj.save()
             self.bkgnView.changeCode(code)
         if code[0] in ('0', '3', '6', 's'):
             ThreadPool.instance().addTask_N(_ln, code)
