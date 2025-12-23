@@ -1079,22 +1079,42 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
             return
     
     def loadCodeBasic(self, code):
-        #url = cls.ClsUrl()
-        #data = url.loadBasic(code)
-        #self.cacheData[code] = data
-        #self._useCacheData(code)
         if code[0 : 2] == '88':
             obj = ths_orm.THS_ZS.get_or_none(ths_orm.THS_ZS.code == code)
-            if obj: self.data = obj.__data__
+            if obj:
+                self.data = obj.__data__
+            self.invalidWindow()
+            return
+        obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
+        if obj:
+            self.data = obj.__data__
+        # update cls basic info
+        cache = self.cacheData.get(code, None)
+        needLoad = True
+        if cache:
+            needLoad = False
+            diff : datetime.timedelta = datetime.datetime.now() - cache['updateTime']
+            if diff.seconds > 24 * 60 * 60: # one day
+                needLoad = True
+        if needLoad:
+            base_win.ThreadPool.instance().addTask(code + '-cls-basic', self._loadClsCodeBasic, code, self.data)
         else:
-            obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
-            if obj: self.data = obj.__data__
+            self.data.update(cache)
         self.invalidWindow()
 
-    def _useCacheData(self, code):
-        if code != self.curCode or code not in self.cacheData:
+    def _loadClsCodeBasic(self, code, data):
+        url = cls.ClsUrl()
+        rs = url.loadBasic(code)
+        if not rs:
             return
-        self.data = self.cacheData[code]
+        now = self.cacheData[code] = {
+            'ltsz': rs['流通市值'],
+            'zsz': rs['总市值'],
+            'pe' :rs['市盈率_静'],
+            'peTTM': rs['市盈率_TTM'],
+            'updateTime': datetime.datetime.now()
+        }
+        data.update(now)
         self.invalidWindow()
         
     def changeCode(self, code):
@@ -1107,10 +1127,6 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         if len(scode) != 6 or (code[0] not in ('0', '3', '6', '8')):
             self.invalidWindow()
             return
-        #if scode in self.cacheData:
-        #    self._useCacheData(scode)
-        #else:
-        #    base_win.ThreadPool.instance().addTask(scode, self.loadCodeBasic, scode)
         self.loadCodeBasic(scode)
 
     def getWindowState(self):
