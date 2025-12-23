@@ -314,11 +314,12 @@ class Server:
         # 下载个股PeTTM
         if (curTime >= '20:00') and not self.downloadInfos.get(f'hygn_ttm-{day}', False):
             if now.weekday() == 2: # 每周三
-                ok = self.download_hygn_ttm('[4/7]')
-                self.downloadInfos[f'hygn_ttm-{day}'] = ok
+                # ok = self.download_hygn_ttm('[4/7]')
+                # self.downloadInfos[f'hygn_ttm-{day}'] = ok
+                pass
             else:
                 self.downloadInfos[f'hygn_ttm-{day}'] = True
-                console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn-PeTtm] skip, only week 3 download')
+                console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn-PeTtm] skip, no download anymore') # only week 3 download
             time.sleep(60)
         # 下载个股跌停
         if (curTime >= '22:00') and not self.downloadInfos.get(f'dt-{day}', False):
