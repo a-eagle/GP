@@ -33,7 +33,7 @@ class Server:
         self.app.add_url_rule('/openui/<type_>/<code>', view_func = self.openUI, methods = ['GET', 'POST'])
         self.app.add_url_rule('/get-hots', view_func = self.getHots)
         self.app.add_url_rule('/get-time-degree', view_func = self.getTimeDegree)
-        self.app.add_url_rule('/query-by-sql/<dbName>', view_func = self.queryBySql)
+        self.app.add_url_rule('/query-by-sql/<dbName>', view_func = self.queryBySql, methods = ['POST'])
         self.app.add_url_rule('/get-trade-days', view_func = self.getTradeDays)
         self.app.add_url_rule('/iwencai', view_func = self.queryIWenCai)
         self.app.add_url_rule('/top100-vol', view_func = self.getTop100Vol)
@@ -343,12 +343,14 @@ class Server:
         dbs = self._getDBs()
         if dbName not in dbs:
             return {'code': 1, 'msg': f'Not find dbName: "{dbName}"'}
-        sql = flask.request.args.get('sql', None)
-        if not sql:
+        # sql = flask.request.args.get('sql', None)
+        params = flask.request.data
+        js = json.loads(params.decode())
+        if not js or not js.get('sql', None):
             return {'code': 1, 'msg': f'No sql'}
         db : pw.SqliteDatabase = dbs[dbName]
         c = db.cursor()
-        c.execute(sql)
+        c.execute(js['sql'])
         ds = c.description
         rs = c.fetchall()
         ex = []

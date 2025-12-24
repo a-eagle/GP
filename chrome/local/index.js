@@ -79,7 +79,9 @@ class GlobalMgr {
 		let sql = "select day, 综合强度 as degree, substr(day, 6) as sday, fb from CLS_SCQX where day >= '" + fday + "' and day <= '" + eday + "'";
 		$.ajax({
 			url: '/query-by-sql/cls',
-			data: {'sql': sql},
+			// data: {'sql': sql},
+			type: 'POST',
+			data: JSON.stringify({'sql': sql}),
 			success: function(resp) {
 				let ds = thiz._getDays(fday, eday);
 				thiz._mergeDays(ds, resp);
@@ -453,7 +455,9 @@ class ZdfbMgr {
 		let sql = `select day, 综合强度 as degree, substr(day, 6) as sday, fb, zdfb from CLS_SCQX where day = '${day}'`;
 		$.ajax({
 			url: '/query-by-sql/cls',
-			data: {'sql': sql},
+			// data: {'sql': sql},
+			type: 'POST',
+			data: JSON.stringify({'sql': sql}),
 			success: function(resp) {
 				let zdfb = resp[0].zdfb ? JSON.parse(resp[0].zdfb) : null;
 				let degree = resp[0].degree || '';
@@ -828,7 +832,9 @@ class TabNaviMgr {
 			else sql += ' and is_down = 1';
 			$.ajax({
 				url : ' /query-by-sql/cls',
-				data: {'sql': sql},
+				// data: {'sql': sql},
+				type: 'POST',
+				data: JSON.stringify({'sql': sql}),
 				success: function(resp) {
 					thiz.updateTabContentUI(name, resp);
 				}
@@ -973,7 +979,9 @@ class TabNaviMgr {
 		let opts = $('<button name="ths"> 同花顺指数 </button>  &nbsp; &nbsp; <button name="cls">财联社指数 </button>');
 		$.ajax({
 			url: ' /query-by-sql/' + db,
-			data: {'sql': sql},
+			// contentType: 'application/json',
+			type: 'POST',
+			data: JSON.stringify({'sql': sql}),
 			success: function(resp) {
 				for (let d of resp) {
 					d.secu_code = d.code;

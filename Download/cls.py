@@ -495,3 +495,7 @@ if __name__ == '__main__':
     fs2 = cu.loadFenShi('1A0001')
     fs3 = cu.loadFenShi('399001')
     pass
+    params = {'sql': 'select count(*) from CLS_SCQX'}
+    resp = requests.post('http://113.44.136.221:8080/query-by-sql/cls', json = params)
+    txt = resp.content.decode()
+    print(txt)
