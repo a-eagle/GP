@@ -52,7 +52,7 @@ class Server:
         self.app.add_url_rule('/subject/<title>', view_func = self.getSubject)
         self.app.add_url_rule('/plate-info/<code>', view_func = self.getPlateInfo)
         self.app.add_url_rule('/compare-amount/<day>', view_func = self.compareAmount)
-        self.app.run('127.0.0.1', 8085, use_reloader = False, debug = False)
+        self.app.run('127.0.0.1', 8080, use_reloader = False, debug = False)
 
     def signParams(self, **kargs):
         params : dict = self.BASE_CLS_PARAMS.copy()
