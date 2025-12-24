@@ -5,7 +5,7 @@ import win32con, win32gui, peewee as pw
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from ui import base_win, timeline, kline_utils, kline_win
-from download import ths_iwencai, datafile, ths_iwencai, henxin, cls, memcache
+from download import ths_iwencai, datafile, ths_iwencai, henxin, cls, memcache, cfg
 from orm import d_orm, def_orm, cls_orm, chrome_orm, lhb_orm, ths_orm
 from utils import hot_utils, gn_utils
 
@@ -282,6 +282,8 @@ class Server:
         win32gui.PumpMessages()
 
     def openUI(self, type_, code):
+        if cfg.isServerMachine():
+            return {'code': 0, 'msg': 'OK'}
         def run(func, *args):
             func(*args)
         if type_ == 'timeline':
@@ -431,6 +433,8 @@ class Server:
         return None
 
     def getFenShi(self, code):
+        if cfg.isServerMachine():
+            return None
         day = flask.request.args.get('day', None)
         try:
             fs = self._getFenShi(code, day)
