@@ -81,7 +81,7 @@ class GlobalMgr {
 			url: '/query-by-sql/cls',
 			// data: {'sql': sql},
 			type: 'POST',
-			data: JSON.stringify({'sql': sql}),
+			data: {'sql': sql}, // JSON.stringify(
 			success: function(resp) {
 				let ds = thiz._getDays(fday, eday);
 				thiz._mergeDays(ds, resp);
@@ -457,7 +457,7 @@ class ZdfbMgr {
 			url: '/query-by-sql/cls',
 			// data: {'sql': sql},
 			type: 'POST',
-			data: JSON.stringify({'sql': sql}),
+			data: {'sql': sql},
 			success: function(resp) {
 				let zdfb = resp[0].zdfb ? JSON.parse(resp[0].zdfb) : null;
 				let degree = resp[0].degree || '';
@@ -834,7 +834,7 @@ class TabNaviMgr {
 				url : ' /query-by-sql/cls',
 				// data: {'sql': sql},
 				type: 'POST',
-				data: JSON.stringify({'sql': sql}),
+				data: {'sql': sql}, // JSON.stringify(
 				success: function(resp) {
 					thiz.updateTabContentUI(name, resp);
 				}
@@ -981,7 +981,7 @@ class TabNaviMgr {
 			url: ' /query-by-sql/' + db,
 			// contentType: 'application/json',
 			type: 'POST',
-			data: JSON.stringify({'sql': sql}),
+			data: {'sql': sql}, // JSON.stringify(
 			success: function(resp) {
 				for (let d of resp) {
 					d.secu_code = d.code;
