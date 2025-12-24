@@ -44,6 +44,7 @@ def buildPyc():
 def copyDataFiles():
     # copyFiles(ROOT_PATH, 'THS\\img')
     copyFiles(ROOT_PATH, 'db')
+    copyFiles(ROOT_PATH, 'chrome\\local')
     # copyFiles(ROOT_PATH, 'download\\cls-sign.dll')
 
 if __name__ == '__main__':
