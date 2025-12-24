@@ -44,3 +44,4 @@ db
 pyc/*/
 !pyc/*.py
 !pyc/*.cmd
+*.zip
