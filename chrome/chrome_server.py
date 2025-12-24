@@ -433,8 +433,8 @@ class Server:
         return None
 
     def getFenShi(self, code):
-        if cfg.isServerMachine():
-            return {'code': code, 'pre': 0, 'line': None}
+        # if cfg.isServerMachine():
+            # return {'code': code, 'pre': 0, 'line': None}
         day = flask.request.args.get('day', None)
         try:
             fs = self._getFenShi(code, day)
