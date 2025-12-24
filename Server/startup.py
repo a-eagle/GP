@@ -51,8 +51,6 @@ def loop():
 
 LOAD_CLS = True
 LOAD_THS = True
-if platform.node() == 'DESKTOP-P6GAAMF':
-    LOAD_CLS = True
 
 if __name__ == '__main__':
     th = threading.Thread(target = runner, daemon = True)

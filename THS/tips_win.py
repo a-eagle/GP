@@ -771,7 +771,10 @@ class HotZHCardView(ListView):
             self.curSelDay = today
         self.setWindowTitle(self.curSelDay)
         datas = hot_utils.DynamicHotZH.instance().getHotsZH(self.curSelDay)
-        self.data = [datas[k] for k in datas]
+        if datas:
+            self.data = [datas[k] for k in datas]
+        else:
+            self.data = []
 
     def loadCodeInfoNet(self, code, day):
         try:

@@ -5,8 +5,8 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 TDX_MINUTES_IN_DAY = 240
 
 def isServerMachine():
-    REMOTE_NODE = 'hcss-ecs-3865'
-    return platform.node() == REMOTE_NODE
+    import cfg
+    return cfg.isServerMachine()
 
 class PathManager:
     TDX_BASE_PATH = ''

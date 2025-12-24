@@ -32,10 +32,8 @@ def signByDict(params : dict):
 #     return r
 
 def getProxyUrl(url):
-    if platform.node() != 'DESKTOP-P6GAAMF':
-        return url
-    url = urllib.parse.urlencode({'url': url})
-    return 'http://113.44.136.221:8090/cls-proxy?' + url
+    import cfg
+    return cfg.getProxyUrl(url)
 
 class ClsUrl:
     reqHeaders = {'Accept': 'text/plain, */*; q=0.01',
