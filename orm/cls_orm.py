@@ -105,7 +105,7 @@ class CLS_SCQX_Time(pw.Model):
 
 # 财联社热度题材
 class CLS_HotTc(pw.Model):
-    keys = ('code', 'day')
+    keys = ('id', )
     day = pw.CharField() # YYYY-MM-DD
     code = pw.CharField(null = True, default = "")
     name = pw.CharField()
@@ -118,6 +118,7 @@ class CLS_HotTc(pw.Model):
 
 # 材联社--指数涨跌(板块、概念)
 class CLS_ZS_ZD(pw.Model):
+    keys = ('code', 'day')
     code = pw.CharField() #指数代码
     name = pw.CharField(default = '') #指数名称
     type_ = pw.CharField() #指数类型 HY | GN
