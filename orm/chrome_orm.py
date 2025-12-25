@@ -7,7 +7,6 @@ db_chrome = pw.SqliteDatabase(f'{path}/db/Chrome.db')
 
 # 笔记
 class MyNote(pw.Model):
-    keys = ('id', )
     tag = pw.CharField() #
     cnt = pw.CharField(null = True) #
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
@@ -17,7 +16,7 @@ class MyNote(pw.Model):
 
 # 颜色标记
 class MyMarkColor(pw.Model):
-    keys = ('id', )
+    keys = ('code', 'day')
     code = pw.CharField() #
     secu_code = pw.CharField() #
     name = pw.CharField(null = True) #

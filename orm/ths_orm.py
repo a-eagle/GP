@@ -34,6 +34,7 @@ db_hot_zh = pw.SqliteDatabase(f'{path}/db/THS_HotZH.db')
 
 # 同花顺--个股热度排名
 class THS_Hot(pw.Model):
+    # no keys
     day = pw.IntegerField(column_name = '日期') # 刷新日期
     code = pw.IntegerField() #股票代码
     time = pw.IntegerField(column_name = '时间') # 刷新时间  HHMM
