@@ -94,7 +94,7 @@ class Server:
                 #'vol': getColInfo(totalColNames, r, 'cjl'),
                 'cjje': self.getColInfo(totalColNames, r, 'cje'), 
                 'title': title,
-                'mrje': 0, 'mcje': 0, 'jme': 0, 'famous': '', 'famousBuy':'', 'famousSell': '', 'detail': []} # 'mrjeRate': 0, 'mcjeRate': 0,
+                'mrje': 0, 'mcje': 0, 'jme': 0, 'detail': []} # 'mrjeRate': 0, 'mcjeRate': 0,
             results[ title ] = obj
 
         infos = rs['ResultSets'][1]
@@ -125,23 +125,6 @@ class Server:
             curInfo['mrje'] += mrje
             curInfo['mcje'] += mcje
             curInfo['jme'] += jme
-
-            if not yzDesc:
-                continue
-            jme /= 10000
-            if bs == 'B':
-                famousBuy = f'{yzDesc}(+{jme:.1f}); '
-                curInfo['famousBuy'] += famousBuy
-            elif bs == 'S':
-                famousSell = f'{yzDesc}({jme:.1f}); '
-                curInfo['famousSell'] += famousSell
-
-        for k, v in results.items():
-            if v['famousBuy'] or v['famousSell']:
-                v['famous'] = v['famousBuy'] + ' // ' + v['famousSell']
-            del v['famousBuy']
-            del v['famousSell']
-            #print(curInfo['title'], curInfo['mrje'], curInfo['mcje'], curInfo['jme'], curInfo['famous'], sep=' / ')
 
         datas = []
         for k in results:
