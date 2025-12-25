@@ -97,7 +97,7 @@ class SubjectMgr {
         let stocks = $(`<div class="stock-plate"> </div>`);
         for (let sk of data.stock_list) {
             let color = sk.RiseRange >= 0 ? 'red' : 'green';
-            let a = $(`<a href="/stock?code=${sk.StockID}" target=_blank > <span> ${sk.name}</span> <span class="${color}"> ${sk.RiseRange.toFixed(2)}%</span> </a> `);
+            let a = $(`<a href="https://www.cls.cn/stock?code=${sk.StockID}" target=_blank > <span> ${sk.name}</span> <span class="${color}"> ${sk.RiseRange.toFixed(2)}%</span> </a> `);
             stocks.append(a);
         }
         item.append(stocks);
