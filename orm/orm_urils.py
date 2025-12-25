@@ -56,5 +56,39 @@ def move_def():
     db = pw.SqliteDatabase(f'{path}/db/TCK_def.db')
     move_table_data(db, def_orm.MySettings)
 
+def diffDb(dbName):
+    newDb = pw.SqliteDatabase(f'db/{dbName}')
+    oldDb = pw.SqliteDatabase(f'db/OLD/{dbName}')
+    # newDb.connect()
+    # oldDb.connect()
+    rs = newDb.execute_sql("SELECT name FROM sqlite_master WHERE type='table'")
+    tables = []
+    for r in rs:
+        tables.append(r[0])
+    for t in tables:
+        sql = f'select count(*) from {t}'
+        rs = newDb.execute_sql(sql)
+        new = next(iter(rs))[0]
+        rs = oldDb.execute_sql(sql)
+        old = next(iter(rs))[0]
+        # print(t, new, old)
+        if new != old:
+            print(t, new, old)
+
+
+# diff all db & db/OLD *.db  of tables record count
+def diffDbs():
+    dbNames = os.listdir('db')
+    for n in range(len(dbNames) - 1, 0, -1):
+        if '.db' not in dbNames[n]:
+            dbNames.pop(n)
+    print(dbNames)
+
+    for d in dbNames:
+        if d == 'codes.db':
+            continue
+        print('--------', d, '---------')
+        diffDb(d)
+
 if __name__ == '__main__':
-    pass
+    diffDbs()
