@@ -129,7 +129,7 @@ class Server:
             return item
         try:
             purl = cls.getProxyUrl(url)
-            resp = requests.get(purl)
+            resp = requests.get(purl, headers = cls.ClsUrl.reqHeaders)
             txt = resp.content.decode()
             js = json.loads(txt)
             if resp.status_code == 200:
@@ -563,7 +563,7 @@ class Server:
             url = 'https://x-quote.cls.cn/web_quote/plate/stocks?' + cls.ClsUrl().signParams(params)
             data = memcache.cache.getCache(url)
             if not data:
-                resp = requests.get(cls.getProxyUrl(url))
+                resp = requests.get(cls.getProxyUrl(url), headers = cls.ClsUrl.reqHeaders)
                 if resp.status_code != 200:
                     return []
                 js = json.loads(resp.content.decode())
