@@ -16,6 +16,7 @@ class MarksManager:
     def clearMarkDay(self):
         self.data.clear()
 
+    # day = int | str | date | list | tuple
     def setMarkDay(self, day, tip = None):
         if not day:
             return
@@ -24,6 +25,9 @@ class MarksManager:
         elif isinstance(day, datetime.date):
             dd : datetime.date = day
             day = dd.year * 10000 + dd.month * 100 + dd.day
+        elif type(day) == list or type(day) == tuple:
+            for d in day:
+                self.setMarkDay(d)
         if type(day) != int:
             return
         if day not in self.data:
@@ -286,6 +290,36 @@ class ContextMenuManager:
         url = f'http://localhost:8080/local/index.html?day={day}'
         pyperclip.copy(url)
         win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
+
+class IndicatorVisibleManager:
+    def __init__(self, win) -> None:
+        self.win = win
+        self.model = []
+
+    def getMenuModel(self):
+        if self.model:
+            return self.model
+        for i in range(1, len(self.win.indicators)):
+            it = self.win.indicators[i]
+            self.model.append({'title': it.config['title'], 'checked': True, 'index': i, 'indicator': it})
+            if isinstance(it, AmountIndicator):
+                self.model.append({'title': 'LINE'})
+        return self.model
+
+    def show(self, x, y):
+        mm = self.getMenuModel()
+        if not mm:
+            return
+        menu = base_win.PopupMenu.create(self.win.hwnd, mm)
+        menu.VISIBLE_MAX_ITEM = 20
+        x, y = win32gui.GetCursorPos()
+        menu.addNamedListener('Select', self.onMemuItem)
+        menu.show(x, y)
+
+    def onMemuItem(self, evt, args):
+        evt.item['indicator'].visible = evt.item['checked']
+        self.win.calcIndicatorsRect()
+        self.win.invalidWindow()
 
 class TextLineManager:
     class Pos:
@@ -745,6 +779,7 @@ class KLineWindow(base_win.BaseWindow):
         self.bkgnView = bkgn_view.BkGnView()
         self.marksMgr = MarksManager(self)
         self.contextMenuMgr = ContextMenuManager(self)
+        self.indicatorVisibleMgr = IndicatorVisibleManager(self)
         self.lineMgr = TextLineManager(self)
         self.rangeSelMgr = RangeSelectorManager(self)
         self.dayLongMgr = DayLongManager(self)
@@ -834,10 +869,15 @@ class KLineWindow(base_win.BaseWindow):
 
     def onContextMenu(self, x, y):
         it = self.getIndicatorByPoint(x, y)
-        if it and it.onContextMenu(x - it.x, y - it.y):
+        if not it:
             return
-        # default deal
-        self.contextMenuMgr.show(x, y)
+        if it.onContextMenu(x - it.x, y - it.y):
+            return
+        if it == self.klineIndicator:
+            self.contextMenuMgr.show(x, y)
+        else:
+            # show or hide Indicator
+            self.indicatorVisibleMgr.show(x, y)
 
     def onDblClick(self, x, y):
         it = self.getIndicatorByPoint(x, y)

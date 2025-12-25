@@ -24,7 +24,9 @@ if __name__ == '__main__':
     FROM_DAY = 20250501
     codes = getAllTopCodes(FROM_DAY)
     win = kline_utils.createKLineWindow()
-    win.changeCode(codes[0]['code'])
+    first = codes[0]
+    win.changeCode(first['code'])
+    win.klineWin.marksMgr.setMarkDay(first['day'])
     win.setCodeList(codes)
     win.mainWin = True
     win32gui.PumpMessages()

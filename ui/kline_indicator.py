@@ -186,7 +186,7 @@ class Indicator:
         return False
     
     def onContextMenu(self, x, y):
-        return True
+        return False
 
     def onMouseMove(self, x, y):
         if x < 0 or y < 0 or x > self.width or y > self.height:
@@ -741,7 +741,7 @@ class CustomIndicator(Indicator):
 
     def onContextMenu(self, x, y):
         self.win.invalidWindow() # redraw
-        return True
+        return False
 
     def draw(self, hdc, drawer):
         if not self.visibleRange:
@@ -771,6 +771,8 @@ class DayIndicator(CustomIndicator):
         if 'height' not in config:
             config['height'] = 20
         super().__init__(win, config)
+        if 'title' not in config:
+            self.config['title'] = '[日期]'
     
     def drawItem(self, hdc, drawer, idx, x):
         super().drawItem(hdc, drawer, idx, x)
@@ -830,6 +832,7 @@ class LsAmountIndicator(CustomIndicator):
             config['height'] = 30
         super().__init__(win, config)
         self.config['title'] = '[两市成交额]'
+        self.detailVisible = False
 
     def _changeCode(self):
         super()._changeCode()
@@ -844,6 +847,7 @@ class LsAmountIndicator(CustomIndicator):
         self.cdata = maps
 
     def drawItem(self, hdc, drawer, idx, x):
+        self.detailVisible = False
         super().drawItem(hdc, drawer, idx, x)
         iw = self.config['itemWidth']
         day = self.data[idx].day
@@ -868,6 +872,7 @@ class LsAmountIndicator(CustomIndicator):
         return True
         
     def drawHotVal(self, itemData, idx):
+        self.detailVisible = True
         hdc = win32gui.GetDC(self.win.hwnd)
         W, H = 250, 150
         ix = (idx - self.visibleRange[0]) * (self.getItemWidth() + self.getItemSpace())
@@ -908,6 +913,13 @@ class LsAmountIndicator(CustomIndicator):
                 else:
                     val = getattr(itemData, k, 0) if k[0] == 'p' or k[0] == 'a' else amount
                     drawer.drawText(hdc, f'{val} 亿', irc, 0xcccccc, align = VCENTER)
+
+    def onContextMenu(self, x, y):
+        v = self.detailVisible
+        self.win.invalidWindow() # redraw
+        if v:
+            return True
+        return False
 
 class HotIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
@@ -982,6 +994,7 @@ class ClsZT_Indicator(CustomIndicator):
             config['height'] = 50
         super().__init__(win, config)
         self.config['title'] = '[财联社涨停]'
+        self.detailVisible = False
 
     def _changeCode(self):
         super()._changeCode()
@@ -1004,6 +1017,7 @@ class ClsZT_Indicator(CustomIndicator):
 
     def drawItem(self, hdc, drawer, idx, x):
         super().drawItem(hdc, drawer, idx, x)
+        self.detailVisible = False
         iw = self.config['itemWidth']
         rc = (x + 3, 1, x + iw - 3, self.height)
         day = self.data[idx].day
@@ -1028,6 +1042,7 @@ class ClsZT_Indicator(CustomIndicator):
         return True
     
     def drawDetail(self, detail):
+        self.detailVisible = True
         hdc = win32gui.GetDC(self.win.hwnd)
         drawer = self.win.drawer
         W, H = int(0.5 * self.width), 60
@@ -1040,6 +1055,13 @@ class ClsZT_Indicator(CustomIndicator):
         drawer.drawText(hdc, detail, rc, 0xcccccc, win32con.DT_WORDBREAK | win32con.DT_VCENTER)
         drawer.drawRect(hdc, rc, 0xa0f0a0)
         win32gui.ReleaseDC(self.win.hwnd, hdc)
+
+    def onContextMenu(self, x, y):
+        v = self.detailVisible
+        self.win.invalidWindow() # redraw
+        if v:
+            return True
+        return False
 
 #Cls概念联动
 class GnLdIndicator(CustomIndicator):
@@ -1191,6 +1213,7 @@ class LhbIndicator(CustomIndicator):
             config['height'] = 30
         super().__init__(win, config)
         self.config['title'] = '[龙虎榜]'
+        self.detailVisible = False
 
     def _changeCode(self):
         super()._changeCode()
@@ -1212,6 +1235,7 @@ class LhbIndicator(CustomIndicator):
 
     def drawItem(self, hdc, drawer, idx, x):
         super().drawItem(hdc, drawer, idx, x)
+        self.detailVisible = False
         iw = self.config['itemWidth']
         rc = (x + 1, 1, x + iw, self.height)
         day = self.data[idx].day
@@ -1272,6 +1296,7 @@ class LhbIndicator(CustomIndicator):
         return True
 
     def drawItemDetail(self, drawer, hdc, rect, itemData):
+        self.detailVisible = True
         detail = itemData['detail']
         if not detail:
             return
@@ -1324,6 +1349,13 @@ class LhbIndicator(CustomIndicator):
         if not money:
             return ''
         return f'{money}'
+
+    def onContextMenu(self, x, y):
+        v = self.detailVisible
+        self.win.invalidWindow() # redraw
+        if v:
+            return True
+        return False
 
 # 指数涨跌排名
 class ZsZdPmIndicator(CustomIndicator):
