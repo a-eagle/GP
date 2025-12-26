@@ -278,7 +278,7 @@ class Main:
             ld.fxAll_2()
             chuncker = TdxChuncker()
             chuncker.removeNotCodes()
-            chuncker.chunckAll_T_ByLastDay(20)
+            chuncker.chunckAll_T_ByLastDay(120)
             chuncker.removeInvalidCodes()
         print('-----------End----------\n\n')
         return flag
