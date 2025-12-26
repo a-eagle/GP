@@ -1091,6 +1091,8 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
         if obj:
             self.data = obj.__data__
+        if not self.data:
+            return
         # update cls basic info
         cache = self.cacheData.get(code, None)
         needLoad = True

@@ -1,4 +1,4 @@
-import requests, win32gui, sys, os
+import requests, win32gui, sys, os, json
 import peewee as pw
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -7,8 +7,17 @@ sys.path.append(os.path.dirname(__file__))
 from orm.ths_orm import THS_HotZH
 from ui import kline_utils
 
+def writeFile(datas):
+    f = open('a.txt', 'w')
+    for k in datas:
+        txt = json.dumps(datas[k], ensure_ascii = False)
+        f.write(txt)
+        f.write('\n')
+    f.close()
+
 def getAllTopCodes(fromDay : int):
     qr = THS_HotZH.select(THS_HotZH.code, THS_HotZH.day).where(THS_HotZH.zhHotOrder <= 10, THS_HotZH.day >= fromDay).tuples()
+    print(qr)
     codes = {}
     for it in qr:
         code = f'{it[0] :06d}'
@@ -17,7 +26,9 @@ def getAllTopCodes(fromDay : int):
         if code not in codes:
             codes[code] = {'code': code, 'day': []}
         codes[code]['day'].append(it[1])
-    print(len(codes))
+    # cc = [c for c in codes]
+    # print(len(cc), cc)
+    # writeFile(codes)
     cs = [codes[c] for c in codes]
     return cs
 

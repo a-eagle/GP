@@ -85,10 +85,14 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
     def parsePrice(self, img : Image, rs):
         #img.save('D:/price.bmp')
         try:
+            rs['price'] = 0
             text = number_ocr.readTextfromImage(img, whitelist = '0123456789+-.')
             text = text.strip()
-            pd = text.index('.')
-            rs['price'] = float(text[0 : pd + 3])
+            cc = re.compile('^[+-]?\\d+[.]\d+')
+            ma = cc.match(text)
+            if ma:
+                text = ma.group()
+                rs['price'] = float(text)
         except Exception as e:
             print(f'Error: [parsePrice] price text =[{text}]')
             traceback.print_exc()
