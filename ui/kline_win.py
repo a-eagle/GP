@@ -42,14 +42,14 @@ class MarksManager:
             self.data.pop(day)
 
     def onDraw(self, hdc, drawer):
-        kl = self.win.klineIndicator
+        kl : Indicator = self.win.klineIndicator
         vr = kl.visibleRange
         if not vr or not kl.model:
             return
         for day in self.data:
             idx = kl.model.getItemIdx(day)
             if idx >= vr[0] and idx < vr[1]:
-                kl.drawIdxHilight(hdc, drawer, idx)
+                kl.drawIdxMark(hdc, drawer, idx)
 
 class ContextMenuManager:
     def __init__(self, win) -> None:
@@ -1049,9 +1049,9 @@ class KLineWindow(base_win.BaseWindow):
                 continue
             sdc = win32gui.SaveDC(hdc)
             win32gui.SetViewportOrgEx(hdc, idt.x, idt.y)
-            idt.drawIdxHilight(hdc, self.drawer, self.selIdx)
             if idt == self.klineIndicator:
                 self.marksMgr.onDraw(hdc, self.drawer) # draw marks
+            idt.drawIdxHilight(hdc, self.drawer, self.selIdx)
             win32gui.RestoreDC(hdc, sdc)
         self.bkgnView.onDrawRect(hdc, self.bkgnView.rect)
         # draw content

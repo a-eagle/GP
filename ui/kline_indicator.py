@@ -397,6 +397,19 @@ class KLineIndicator(Indicator):
     def onContextMenu(self, x, y):
         return False
 
+    def drawIdxMark(self, hdc, drawer, idx):
+        if not self.visibleRange:
+            return
+        if idx < 0 or idx >= self.visibleRange[1] or idx < self.visibleRange[0]:
+            return
+        x = self.getCenterX(idx)
+        sx = x - self.getItemWidth() // 2 #- self.getItemSpace()
+        ex = x + self.getItemWidth() // 2 #+ self.getItemSpace()
+        if ex <= sx:
+            ex = sx + 2
+        rc = (sx, int(self.height * 0.1), ex, int(self.height * 0.9))
+        drawer.fillRect(hdc, rc, 0x202020)
+
 class RefIndicator(Indicator):
     def __init__(self, win, config = None) -> None:
         super().__init__(win, config)
