@@ -171,6 +171,7 @@ class BkGnView:
         self.lastDay = None
         self.hotDaysRange = None
         self.richRender = TextRender(self, 17)
+        self.showSimpleMode = True
 
     def onClick(self, x, y):
         sp = None
@@ -181,12 +182,12 @@ class BkGnView:
                 sp = it
                 break
         if not sp or not sp['args']:
-            return
+            return False
         gnNum, gn = sp['args']['num'], sp['args']['gn']
         if gnNum <= 0:
-            return
+            return False
         if not self.hotDaysRange:
-            return
+            return False
         tcView = HotTcView()
         #tcView.loadData(*self.hotDaysRange, gn)
         TRADE_DAYS_NUM = 20
@@ -194,6 +195,7 @@ class BkGnView:
         tcView.createWindow(self.hwnd)
         tcView.show(*win32gui.GetCursorPos())
         tcView.msgLoop()
+        return True
     
     def _getLimitDaysNum(self):
         obj, _ = def_orm.MySettings.get_or_create(mainKey = 'HotTc_N_Days')
@@ -202,10 +204,35 @@ class BkGnView:
             obj.save()
         return int(obj.val)
 
+    def getRealMaxRect(self, suggestRect):
+        if not self.richRender.specs:
+            return None
+        rs = []
+        for it in self.richRender.specs:
+            rc = it.get('rect', None)
+            if not rc: 
+                continue
+            if not rs:
+                rs = [*rc]
+                continue
+            rs[0] = min(rs[0], rc[0])
+            rs[1] = min(rs[1], rc[1])
+            rs[2] = max(rs[2], rc[2])
+            rs[3] = max(rs[3], rc[3])
+        if not rs:
+            return None
+        rs[0] = max(rs[0], suggestRect[0])
+        rs[1] = max(rs[1], suggestRect[1])
+        rs[2] = min(rs[2], suggestRect[2])
+        rs[3] = min(rs[3], suggestRect[3])
+        return rs
+
     def onShowSettings(self):
-        model = [{'title': '设置热点概念', 'name': 'hot'},
-                 {'title': '设置热点概念-5日', 'name': 'HotTc_5', 'checked': self.limitDaysNum == 5},
-                 {'title': '设置热点概念-10日', 'name': 'HotTc_10', 'checked': self.limitDaysNum == 10}
+        model = [
+                {'title': '精减模式', 'name': 'simple', 'checked': self.showSimpleMode},
+                #{'title': '设置热点概念', 'name': 'hot'},
+                {'title': '设置热点概念-5日', 'name': 'HotTc_5', 'checked': self.limitDaysNum == 5},
+                {'title': '设置热点概念-10日', 'name': 'HotTc_10', 'checked': self.limitDaysNum == 10}
                 ]
         menu = base_win.PopupMenu.create(self.hwnd, model)
         menu.addNamedListener('Select', self.onSettings, self.hwnd)
@@ -234,10 +261,15 @@ class BkGnView:
             obj.val = str(self.limitDaysNum)
             obj.save()
             self.changeLimitDaysNum()
+        elif evt.item['name'] == 'simple':
+            self.showSimpleMode = evt.item['checked']
+            self._buildBkgn()
+            win32gui.InvalidateRect(self.hwnd, None, False)
 
     def onDrawRect(self, hdc, rc):
         drawer = base_win.Drawer.instance()
         self.richRender.draw(hdc, drawer, (rc[0] + 3, rc[1] + 2, rc[2] - 3, rc[3]))
+        # drawer.drawRect(hdc, rc, 0xabcef)
 
     def setLimitDaysNum(self, daysNum):
         self.limitDaysNum = daysNum
@@ -251,7 +283,7 @@ class BkGnView:
             scode = scode[2 : ]
         self.curCode = scode
         # load code info
-        self._loadDefHotGn()
+        # self._loadDefHotGn()
         self._loadThsClsTcgn()
         self._loadClsHotGn(None)
         self._buildBkgn()
@@ -350,6 +382,8 @@ class BkGnView:
         lastGns = self._buildBkInfos(self.thsGntc.gn, self.clsGntc.gn, defHotGns, clsHotGns)
         lastGns.sort(key = lambda d: d[0])
         for i, h in enumerate(lastGns):
+            if self.showSimpleMode and (not h[3]) and (h[4] not in self.curClsHotGns):
+                continue
             self.richRender.addText(h[1], h[2], args = {'num': h[3], 'gn': h[4]})
             if i != len(lastGns) - 1:
                 self.richRender.addText(' | ', self.DEF_COLOR)

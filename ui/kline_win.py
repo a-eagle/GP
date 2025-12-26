@@ -868,6 +868,12 @@ class KLineWindow(base_win.BaseWindow):
             ThreadPool.instance().addTask_N(_ln, code)
 
     def onContextMenu(self, x, y):
+        hygnRect = getattr(self.bkgnView, 'rect', None)
+        if hygnRect:
+            hygnRect = self.bkgnView.getRealMaxRect(hygnRect)
+        if hygnRect and x >= hygnRect[0] and x < hygnRect[2] and y >= hygnRect[1] and y < hygnRect[3]:
+            self.bkgnView.onShowSettings()
+            return
         it = self.getIndicatorByPoint(x, y)
         if not it:
             return
@@ -897,7 +903,8 @@ class KLineWindow(base_win.BaseWindow):
     def onSize(self):
         self.makeVisible(self.selIdx)
         W, H = self.getClientSize()
-        self.bkgnView.rect = (0, 0, int(W * 0.7), 80)
+        w = W - 200 # int(W * 0.7)
+        self.bkgnView.rect = (0, 0, w, 80)
 
     # @return True: 已处理事件,  False:未处理事件
     def winProc(self, hwnd, msg, wParam, lParam):
@@ -952,8 +959,9 @@ class KLineWindow(base_win.BaseWindow):
     def onMouseClick(self, x, y):
         hygnRect = getattr(self.bkgnView, 'rect', None)
         if hygnRect and x >= hygnRect[0] and x < hygnRect[2] and y >= hygnRect[1] and y < hygnRect[3]:
-            self.bkgnView.onClick(x, y)
-            return
+            ok = self.bkgnView.onClick(x, y)
+            if ok:
+                return True
         it = self.getIndicatorByPoint(x, y)
         if it:
             it.onMouseClick(x - it.x, y - it.y)
