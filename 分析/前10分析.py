@@ -17,7 +17,7 @@ def writeFile(datas):
 
 def getAllTopCodes(fromDay : int):
     qr = THS_HotZH.select(THS_HotZH.code, THS_HotZH.day).where(THS_HotZH.zhHotOrder <= 10, THS_HotZH.day >= fromDay).tuples()
-    print(qr)
+    # print(qr)
     codes = {}
     for it in qr:
         code = f'{it[0] :06d}'

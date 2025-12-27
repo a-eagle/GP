@@ -754,7 +754,7 @@ class TdxChuncker:
     def chunckAll_T(self, fromDay, endDay):
         codes = self.getLocalCodes('minline')
         for c in codes:
-            self.chunck_T(c, fromDay, endDay)
+            self.chunck_T(c, (fromDay, endDay))
 
     def chunckAll_T_ByLastDay(self, lastDayNum):
         df = T_DataModel('999999') # 999999
@@ -763,33 +763,11 @@ class TdxChuncker:
             return
         self.chunckAll_T(days[-lastDayNum], days[-1])
 
-    # [fromDay - endDay]
-    def chunck_T(self, code, fromDay, endDay):
-        df = T_DataModel(code)
-        path = df.getLocalPath()
-        days = df.loadDays()
-        fe = self._ajdustFromEndDay(days, fromDay, endDay)
-        if not fe:
-            if os.path.exists(path):
-                os.remove(path)
-            return
-        fromDay, endDay = fe
-        RL = 32
-        PAGE = RL * TDX_MINUTES_IN_DAY
-        # read
-        f = open(path, 'rb')
-        bpos = days.index(fromDay) * PAGE
-        dayNum = days.index(endDay) - days.index(fromDay) + 1
-        size = dayNum * PAGE
-        f.seek(bpos, 0)
-        bs = f.read(size)
-        f.close()
-        # write
-        f = open(path, 'wb')
-        f.write(bs)
-        f.close()
-
     def _ajdustFromEndDay(self, days, fromDay, endDay):
+        if type(fromDay) == str:
+            fromDay = int(fromDay.replace('-', ''))
+        if type(endDay) == str:
+            endDay = int(endDay.replace('-', ''))
         if not days:
             return None
         # adjust from day
@@ -814,11 +792,101 @@ class TdxChuncker:
                 os.remove(m.getLocalPath())
         pass
 
+    # days = int | typle(fromDay: int, endDay: int)
+    # 仅保留给定日期的数据
+    def chunck_T(self, code, *days):
+        df = T_DataModel(code)
+        path = df.getLocalPath()
+        if not os.path.exists(path):
+            return
+        if not days:
+            os.remove(path)
+            return
+        ldays = df.loadDays()
+        exdays = set()
+        for d in days:
+            if type(d) == str:
+                d = int(d.replace('-', '').strip())
+            fe = None
+            if type(d) == int:
+                fe = self._ajdustFromEndDay(ldays, d, d)
+            elif type(d) == list or type(d) == tuple:
+                fe = self._ajdustFromEndDay(ldays, d[0], d[1])
+            if not fe:
+                continue
+            bidx = ldays.index(fe[0])
+            eidx = ldays.index(fe[1])
+            if bidx > 0:
+                bidx -= 1 # add pre day
+            for i in range(bidx, eidx + 1):
+                exdays.add(ldays[i])
+        exdays = list(exdays)
+        exdays.sort()
+        print(exdays)
+        # read & write
+        RL = 32
+        PAGE = RL * TDX_MINUTES_IN_DAY
+        # read
+        datas = []
+        f = open(path, 'rb')
+        for day in exdays:
+            bpos = ldays.index(day) * PAGE
+            f.seek(bpos, 0)
+            bs = f.read(PAGE)
+            datas.append(bs)
+        f.close()
+        # write
+        f = open(path, 'wb')
+        for d in datas:
+            f.write(d)
+        f.close()
+
+    # 保留热点及近几日的数据
+    def chunckAll_T_ByHots(self, lastDaysNum = 100):
+        from orm import ths_orm, cls_orm
+        rs = {}
+        for h in ths_orm.THS_HotZH.select():
+            code = f'{h.code :06d}'
+            if code not in rs:
+                rs[code] = set()
+            rs[code].add(h.day)
+        for h in ths_orm.THS_ZT.select(ths_orm.THS_ZT.code, ths_orm.THS_ZT.day):
+            if code not in rs:
+                rs[code] = set()
+            rs[code].add(int(h.day.replace('-', '')))
+        for h in cls_orm.CLS_UpDown.select(cls_orm.CLS_UpDown.secu_code, cls_orm.CLS_UpDown.day):
+            code = h.secu_code[2 : ]
+            if code not in rs:
+                rs[code] = set()
+            rs[code].add(int(h.day.replace('-', '')))
+        for h in cls_orm.CLS_ZT.select(cls_orm.CLS_ZT.code, cls_orm.CLS_ZT.day):
+            if h.code not in rs:
+                rs[h.code] = set()
+            rs[h.code].add(int(h.day.replace('-', '')))
+        df = T_DataModel('999999') # 999999
+        days = df.loadDays()
+        if len(days) <= lastDaysNum:
+            return
+        lastDays = (days[-lastDaysNum], days[-1])
+        codes = self.getLocalCodes('minline')
+        for c in codes:
+            if c[0 : 3] in ('999', '399'): # 指数
+                continue
+            ex = rs.get(c, [])
+            self.chunck_T(c, *ex, lastDays)
+
 if __name__ == '__main__':
     w = TdxChuncker()
-    w.removeNotCodes()
-    w.chunckAll_T_ByLastDay(22)
-    w.removeInvalidCodes()
+    CODE = '600000'
+    dm = T_DataModel(CODE)
+    days = dm.loadDays()
+    print(len(days), days)
+
+    # w.chunckAll_T_ByHots()
+    # w.chunck_T('600000', 20251020, (20250925, 20251010), (20251223, 20251224))
+    # w.removeNotCodes()
+    # w.chunckAll_T_ByLastDay(22)
+    # w.removeInvalidCodes()
     
     # f = open(r'C:\Users\GaoYan\Desktop\sz000030.lc1', 'rb')
     # bs = f.read(32)

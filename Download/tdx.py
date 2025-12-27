@@ -273,13 +273,18 @@ class Main:
         flag = tdx.run()
         print(f'download end... {flag}')
         # self.resetLockScreen()
-        if flag and isServerMachine():
-            ld = fx.FenXiLoader()
-            ld.fxAll_2()
-            chuncker = TdxChuncker()
-            chuncker.removeNotCodes()
-            chuncker.chunckAll_T_ByLastDay(120)
-            chuncker.removeInvalidCodes()
+        if flag:
+            if isServerMachine():
+                ld = fx.FenXiLoader()
+                ld.fxAll_2()
+                chuncker = TdxChuncker()
+                chuncker.removeNotCodes()
+                chuncker.chunckAll_T_ByHots(100)
+                chuncker.removeInvalidCodes()
+            else:
+                chuncker = TdxChuncker()
+                chuncker.removeNotCodes()
+                chuncker.removeInvalidCodes()
         print('-----------End----------\n\n')
         return flag
 

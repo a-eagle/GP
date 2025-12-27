@@ -203,7 +203,8 @@ class Client:
                 datas.append(it)
                 it['updateTime'] = str(it['updateTime'])
             resp = requests.post(f"{cfg.SYNC_DB_SERVER_BASE_URL}/pushUpdateData/{ormFile}/{ormClass}", json = datas)
-            rjs = json.loads(resp.content.decode())
+            txt = resp.content.decode()
+            rjs = json.loads(txt)
             console.writeln_1(console.RED, f'Push datas {ormFile}.{ormClass} --> num: {len(datas)} time: {maxTime} =>', rjs['msg'])
         except Exception as e:
             traceback.print_exc()
