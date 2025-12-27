@@ -851,9 +851,9 @@ class TdxChuncker:
                 rs[code] = set()
             rs[code].add(h.day)
         for h in ths_orm.THS_ZT.select(ths_orm.THS_ZT.code, ths_orm.THS_ZT.day):
-            if code not in rs:
-                rs[code] = set()
-            rs[code].add(int(h.day.replace('-', '')))
+            if h.code not in rs:
+                rs[h.code] = set()
+            rs[h.code].add(int(h.day.replace('-', '')))
         for h in cls_orm.CLS_UpDown.select(cls_orm.CLS_UpDown.secu_code, cls_orm.CLS_UpDown.day):
             code = h.secu_code[2 : ]
             if code not in rs:
@@ -881,7 +881,6 @@ if __name__ == '__main__':
     dm = T_DataModel(CODE)
     days = dm.loadDays()
     print(len(days), days)
-
     # w.chunckAll_T_ByHots()
     # w.chunck_T('600000', 20251020, (20250925, 20251010), (20251223, 20251224))
     # w.removeNotCodes()
