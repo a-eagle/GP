@@ -31,6 +31,7 @@ class GlobalMgr {
 	constructor(vue) {
 		this.vue = vue;
 		this.table = null;
+		this.pageData = null;
 		this.zsInfos = {
 			sh000001: null, sz399001: null, data: null // data = [{day, sday, amount, degree]
 		}
@@ -40,7 +41,34 @@ class GlobalMgr {
 	init() {
 		this._loadAmount();
 		this._loadDegrees();
-		this._initUI();
+		let selDay = getLocationParams('day');
+		let pds = this.getCurPageDays(selDay);
+		let fromDay =pds[0], endDay = pds[1];
+		this._buildUI(fromDay, endDay);
+	}
+
+	getCurPageDays(day) {
+		if (day && day.length == 8) {
+			day = day.substring(0, 4) + '-' + day.substring(4, 6) + '-' + day.substring(6, 8);
+		}
+		let didx = -1;
+		if (day) {
+			didx = this.vue.data.tradeDays.indexOf(day);
+		}
+		if (!day || didx < 0) {
+			let idx = this.vue.data.tradeDays.length - this.getVisibleNum();
+			return [this.vue.data.tradeDays[idx], this.vue.data.lastTradeDay];
+		}
+		let rightNum = Math.min(this.vue.data.tradeDays.length - didx, parseInt(this.getVisibleNum() / 2));
+		let leftNum = this.getVisibleNum() - rightNum;
+		return [this.vue.data.tradeDays[didx - leftNum], this.vue.data.tradeDays[didx + rightNum]];
+	}
+
+	getVisibleNum() {
+		let ITEM_WIDTH = 55;
+		let width = $('div[name="global-item"]').width();
+		let num = parseInt(width / ITEM_WIDTH);
+		return Math.max(num, 10);
 	}
 
 	isReady() {
@@ -76,7 +104,7 @@ class GlobalMgr {
 		let dx = date.setMonth(date.getMonth() - 1);
 		date = new Date(dx);
 		let fday = formatDay(date);
-		let sql = "select day, 综合强度 as degree, substr(day, 6) as sday, fb from CLS_SCQX where day >= '" + fday + "' and day <= '" + eday + "'";
+		let sql = "select day, 综合强度 as degree, substr(day, 6) as sday, fb from CLS_SCQX order by day"; // where day >= '" + fday + "' and day <= '" + eday + "'";
 		$.ajax({
 			url: '/query-by-sql/cls',
 			contentType: 'application/json',
@@ -84,25 +112,25 @@ class GlobalMgr {
 			type: 'POST',
 			data: JSON.stringify({'sql': sql}), // JSON.stringify(
 			success: function(resp) {
-				let ds = thiz._getDays(fday, eday);
-				thiz._mergeDays(ds, resp);
+				// let ds = thiz._getDays(fday, eday);
+				thiz._mergeDatas(resp);
 			}
 		});
 	}
 
-	_mergeDays(days, resp) {
+	_mergeDatas(scqx) {
 		let thiz = this;
 		let model = this.vue.data;
 		if (! model.initMgrReady || !this.zsInfos.sh000001 || !this.zsInfos.sz399001) {
-			setTimeout(function() {thiz._mergeDays(days, resp);}, 500);
+			setTimeout(function() {thiz._mergeDatas(scqx);}, 500);
 			return;
 		}
 		let mp = {};
 		let rs = [];
-		for (let r of resp) {
+		for (let r of scqx) {
 			mp[r.day] = r;
 		}
-		for (let day of days) {
+		for (let day of this.vue.data.tradeDays) {
 			let item = mp[day] || {day: day, degree: '', fb:{zt:"", dt:"", up:"", down:"", zero:"", up_8:"", up_10:"",down_8:"", down_10:""}, sday: day.substring(5), amount: ''};
 			rs.push(item);
 			if (item && item.fb && typeof(item.fb) == 'string')
@@ -125,14 +153,13 @@ class GlobalMgr {
 	}
 
 	changeDay(curDay) {
-		let datas = this.zsInfos.data;
 		if (! curDay) return;
 		if (curDay.length == 8) {
 			curDay = curDay.substring(0, 4) + '-' + curDay.substring(4, 6) + '-' + curDay.substring(6, 8);
 		}
 		let idx = -1;
-		for (let i = 0; i < datas.length; i++) {
-			if (datas[i].day == curDay) {
+		for (let i = 0; i < this.pageData.length; i++) {
+			if (this.pageData[i].day == curDay) {
 				idx = i;
 				break;
 			}
@@ -144,24 +171,28 @@ class GlobalMgr {
 		this._onClick(td);
 	}
 
-	_initUI() {
+	_buildUI(fromDay, endDay) {
 		let thiz = this;
 		let model = this.vue.data;
 		if (!this.zsInfos.data || !this.zsInfos.sh000001 || !this.zsInfos.sz399001) {
-			setTimeout(function() {thiz._initUI();}, 500);
+			setTimeout(function() {thiz._buildUI(fromDay, endDay);}, 500);
 			return;
 		}
 		let table = $('<table> </table>');
-		let datas = this.zsInfos.data;
 		let cols = ['sday', 'degree', 'amount'];
 		let colsDesc = ['', '热度', '成交额'];
 		let WW = ['一', '二', '三', '四', '五'];
+		this.pageData = [];
+		for (let it of this.zsInfos.data) {
+			if (it.day >= fromDay && it.day <= endDay)
+			this.pageData.push(it);
+		}
 		for (let c = 0; c < cols.length; c++) {
 			let tr = $('<tr> </tr>');
 			tr.append($('<th>' + colsDesc[c] + '</th>'));
 			let lastMonth = '';
-			for (let i = 0; i < datas.length; i++) {
-				let v = datas[i][cols[c]] || '';
+			for (let i = 0; i < this.pageData.length; i++) {
+				let v = this.pageData[i][cols[c]] || '';
 				let clazz = '';
 				let title = '';
 				if (cols[c] == 'sday') {
@@ -171,7 +202,7 @@ class GlobalMgr {
 					} else {
 						v = v.substring(3);
 					}
-					let dx = new Date(datas[i].day);
+					let dx = new Date(this.pageData[i].day);
 					v += '<br/>' + WW[dx.getDay() - 1];
 				} else if (cols[c] == 'degree') {
 					clazz = c == 0 ? '' : (v >= 50 ? 'red' : 'green');
@@ -180,7 +211,7 @@ class GlobalMgr {
 				}
 				let tag = c == 0 ? 'th' : 'td';
 				let td = $('<' + tag + ' class="' + clazz  + '" title=" ' + title + '" colidx="' + i + '">' + v + '</' + tag + '>');
-				td.data('val', datas[i]);
+				td.data('val', this.pageData[i]);
 				tr.append(td);
 			}
 			table.append(tr);

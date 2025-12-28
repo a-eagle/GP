@@ -883,7 +883,7 @@ if __name__ == '__main__':
     print(len(days), days)
     # w.chunckAll_T_ByHots()
     # w.chunck_T('600000', 20251020, (20250925, 20251010), (20251223, 20251224))
-    # w.removeNotCodes()
+    w.removeNotCodes()
     # w.chunckAll_T_ByLastDay(22)
     # w.removeInvalidCodes()
     
