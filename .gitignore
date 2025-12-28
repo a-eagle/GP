@@ -45,3 +45,4 @@ pyc/*/
 !pyc/*.py
 !pyc/*.cmd
 *.zip
+分析/*.json

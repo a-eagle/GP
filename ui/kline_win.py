@@ -1425,6 +1425,7 @@ class KLineCodeWindow(base_win.BaseWindow):
             self.code = code
             self.codeWin.changeCode(code)
             self.klineWin.changeCode(code, peroid)
+            self.notifyListener(self.Event('ChangeCode', self, code = code))
         except Exception as e:
             traceback.print_exc()
     
