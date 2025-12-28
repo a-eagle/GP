@@ -998,10 +998,14 @@ class KLineWindow(base_win.BaseWindow):
             pass
         elif keyCode == 75: # left arrow key
             ni = self.selIdx - 1
-            self.setSelIdx(ni)
+            if ni >= 0:
+                self.makeVisible(ni)
+                self.setSelIdx(ni)
         elif keyCode == 77: # right arrow key
             ni = self.selIdx + 1
-            self.setSelIdx(ni)
+            if self.klineIndicator.data and ni < len(self.klineIndicator.data):
+                self.makeVisible(ni)
+                self.setSelIdx(ni)
         elif keyCode == 72: # up arrow key
             self.klineWidth += 2
             if self.klineWidth // 2 > self.klineSpace:
