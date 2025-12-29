@@ -1034,10 +1034,11 @@ class KLineWindow(base_win.BaseWindow):
         ids = self.indicators[ : ]
         ids.append(self.refIndicator)
         for idt in ids:
-            idt.calcVisibleRange(idx)
-            vr = idt.visibleRange
+            it : Indicator = idt
+            it.calcVisibleRange(idx)
+            vr = it.visibleRange
             if vr:
-                idt.calcValueRange(*vr)
+                it.calcValueRange(*vr)
         win32gui.InvalidateRect(self.hwnd, None, True)
 
     def onDraw(self, hdc):

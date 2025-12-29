@@ -56,7 +56,7 @@ class Indicator:
         self.data = None
         self.period = None
         self.valueRange = None
-        self.visibleRange = None
+        self.visibleRange = None # [begin, end)
         self.width = 0
         self.height = 0
     
@@ -153,10 +153,16 @@ class Indicator:
             return -1
         return idx
 
-    def calcVisibleRange(self, idx):
-        self.visibleRange = self.calcVisibleRange_1(idx, self.data)
+    def isIdxVisible(self, idx):
+        if not self.visibleRange:
+            return False
+        b, e = self.visibleRange
+        return idx >= b and idx < e
 
-    def calcVisibleRange_1(self, idx, data):
+    def calcVisibleRange(self, idx):
+        self.visibleRange = self.calcVisibleRange_InCenter(idx, self.data)
+
+    def calcVisibleRange_InCenter(self, idx, data):
         if not data:
             return None
         num = self.getVisibleNum()
