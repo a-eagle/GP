@@ -1,7 +1,7 @@
-import threading, sys, traceback, datetime, json, logging, copy, os
+import threading, sys, traceback, datetime, json, logging, copy, os, base64
 import flask, flask_cors, requests
 import win32con, win32gui, peewee as pw
-
+import ddddocr
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from ui import base_win, timeline, kline_utils, kline_win
@@ -20,6 +20,7 @@ class Server:
         flask_cors.CORS(self.app)
         self.uiThread = None
         self.cache = {}
+        self.docr = ddddocr.DdddOcr()
 
     def start(self):
         #th = threading.Thread(target = self.runner, daemon = True)
@@ -52,6 +53,7 @@ class Server:
         self.app.add_url_rule('/subject/<title>', view_func = self.getSubject)
         self.app.add_url_rule('/plate-info/<code>', view_func = self.getPlateInfo)
         self.app.add_url_rule('/compare-amount/<day>', view_func = self.compareAmount)
+        self.app.add_url_rule('/Yzcode', view_func = self.getYzcode)
         self.app.run('0.0.0.0', 8080, use_reloader = False, debug = False)
 
     def signParams(self, **kargs):
@@ -661,6 +663,17 @@ class Server:
         except Exception as e:
             traceback.print_exc()
         return []
+
+    def getYzcode(self):
+        img = flask.request.args.get('img', None)
+        if not img:
+            return {'captcha': '', 'code': 1}
+        if 'base64,' in img:
+            idx = img.index(',')
+            img = img[idx + 1 : ]
+        img = base64.b64decode(img)
+        result = self.docr.classification(img)
+        return {'captcha': result, 'code': 0}
 
 if __name__ == '__main__':
     svr = Server()
