@@ -1609,10 +1609,10 @@ class ZS_ZT_NumIndicator(CustomIndicator):
             return
         curDay = item.day
         nextDay = None
-        tradeDays = ths_iwencai.getTradeDaysInt()
-        idx = tradeDays.index(curDay)
-        if idx + 1 < len(tradeDays):
-            nextDay = tradeDays[idx + 1]
+        for i in range(len(self.data) - 2, 0, -1):
+            if self.data[i].day == curDay:
+                nextDay = self.data[i + 1].day
+                break
         kcode = self.win.klineIndicator.model.code
         tab = TableWindow()
         def defaultRender(win, hdc, row, col, colName, value, rowData, rect):

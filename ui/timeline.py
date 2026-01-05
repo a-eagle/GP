@@ -775,8 +775,16 @@ class Table_TimelineRender:
             if not hd:
                 continue
             for rowData in tableWin.data:
-                KEY = f'_fsObj_:{colName}'
+                KEY = f'_fs_render_:{colName}'
                 del rowData[KEY]
+    
+    @staticmethod
+    def changeFsRenderDay(tableWin, colName, day):
+        hd = tableWin.getHeaderByName(colName)
+        if not hd:
+            return
+        Table_TimelineRender.clearFsRender(tableWin, colName)
+        hd['day'] = day
 
     def onTableDestory(self, evt, args):
         for it in self.items:
@@ -785,15 +793,18 @@ class Table_TimelineRender:
     def getRenderDay(win, col, rowData):
         hd = win.headers[col]
         day = None
-        if hd['name'] == 'fs':
+        colName = hd['name']
+        if colName == 'fs':
             day = rowData.get('day', None)
+        if not day:
+            day = rowData.get(f"{colName}-day", None)
         if not day:
             day = hd.get('day', None)
         return day
 
     @staticmethod
     def render(win, hdc, row, col, colName, value, rowData, rect):
-        KEY = f'_fsObj_:{colName}'
+        KEY = f'_fs_render_:{colName}'
         rr = rowData.get(KEY, None)
         if not rr:
             day = Table_TimelineRender.getRenderDay(win, col, rowData)
