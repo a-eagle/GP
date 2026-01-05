@@ -860,6 +860,7 @@ class KLineWindow(base_win.BaseWindow):
                 self.bkgnView.changeCode(code)
                 return
             info = cls.ClsUrl().loadBkGnOfCode(code)
+            # old = copy.deepcopy(obj.__data__)
             if obj.diff(info):
                 obj.updateTime = datetime.datetime.now()
                 obj.save()

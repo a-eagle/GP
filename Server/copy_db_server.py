@@ -14,7 +14,7 @@ def loadDbFile(fileName):
     if rs['status'] != 'OK':
         print('[loadDbFile] Error:', rs)
     bs = base64.b64decode(rs['data'])
-    path = __file__[0 : __file__.upper().index('GP') + 2]
+    path = os.path.dirname(os.path.dirname(__file__))
     path = os.path.join(path, 'db', fileName)
     f = open(path, 'wb')
     f.write(bs)

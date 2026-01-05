@@ -425,6 +425,9 @@ class ClsUrl:
             code = code[2 : ]
         if code[0] not in ('0', '3', '6'):
             return None
+        data = memcache.cache.getCache(f'Cls-BkGn-{code}')
+        if data:
+            return data
         zs = {}
         qr = cls_orm.CLS_ZS.select().dicts()
         for it in qr:
@@ -461,6 +464,7 @@ class ClsUrl:
         thsObj = gn_utils.ths_gntc_s.get(rs.code, None)
         if thsObj and thsObj['name']:
             rs.name = thsObj['name']
+        memcache.cache.saveCache(f'Cls-BkGn-{code}', rs, timeout = 60 * 60 * 48) # 48 hour
         return rs
 
     # 最新交易日的涨跌票的数量分布

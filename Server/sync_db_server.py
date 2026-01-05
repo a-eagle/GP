@@ -177,7 +177,8 @@ class Client:
             datas = rs['data']
             self.diffDatas(model, datas)
             updateTimeStr = datetime.datetime.fromtimestamp(updateTimeStamp)
-            console.writeln_1(console.GREEN, f'Update datas {ormFile}.{ormClass} --> num: {len(datas)} time: {updateTimeStr}')
+            console.write_1(console.GREEN, f'Update datas {ormFile}.{ormClass} --> ')
+            console.writeln_1(console.GREEN, f'num: {len(datas)} time: {updateTimeStr}')
         except Exception as e:
             traceback.print_exc()
 
@@ -220,8 +221,14 @@ class Client:
             model.bulk_create(ds, 50)
             self.logManyRow('Append', model, datas, logFile)
             return
+        inserts, updates = [], []
         for d in datas:
-            self.diffOneData(model, d, logFile)
+            tag, rs = self.diffOneData(model, d, logFile)
+            if tag == 1: inserts.append(rs)
+            elif tag == 2: updates.append(rs)
+        model.insert_many(inserts).execute() # insert
+        fields = [col for col in model._meta.fields]
+        model.bulk_update(updates, fields, 100)
         if logFile: logFile.flush()
 
     def logOneRow(self, tag, model, data, logFile):
@@ -247,17 +254,18 @@ class Client:
             cnd[k] = data[k]
         obj = model.get_or_none(**cnd)
         if not obj: # insert
-            model.create(**data)
+            # model.create(**data)
             self.logOneRow('Append', model, data, logFile)
-            return
+            return 1, data
         updateDiffs = {'id': obj.id}
         # update
         for k in data:
             if getattr(obj, k, None) != data[k]:
                 setattr(obj, k, data[k])
                 updateDiffs[k] = data[k]
-        obj.save()
+        # obj.save()
         self.logOneRow('Update', model, updateDiffs, logFile)
+        return 2, obj
 
     def getMaxUpdateTimeAll_Server(self):
         try:
