@@ -748,7 +748,7 @@ class HotZHCardView(ListView):
         self.codeInfos = {}
         qr = ths_orm.THS_GNTC.select()
         for q in qr:
-            self.codeInfos[q.code] = {'name': q.name}
+            self.codeInfos[q.code] = {'name': q.name, 'obj': q}
         self.thread = base_win.Thread()
         self.thread.start()
         self.timerThread = base_win.TimerThread()
@@ -759,6 +759,7 @@ class HotZHCardView(ListView):
         self.maxHotDay : int = 0
         self.windowTitle = 'HotZH'
         self.timerThread.addIntervalTask('LoadInterval', 4 * 60, self.updateData)
+        self.curThsZS = None
 
     def updateData(self, foreUpdate = False):
         lt = time.time()
@@ -883,6 +884,41 @@ class HotZHCardView(ListView):
     def getWindowTitle(self):
         return self.windowTitle
 
+    def changeCode(self, code):
+        scode = f'{code :06d}' if type(code) == int else code
+        if (self.curThsZS == scode) or (not scode):
+            return
+        isPreZSCode = self.curThsZS and self.curThsZS[0 : 2] == '88'
+        isCurZSCode = scode and scode[0 : 2] == '88'
+        self.curThsZS = scode
+        if isCurZSCode:
+            self._changeThsZSCode()
+        elif isPreZSCode:
+            self._changeNormalCode()
+    
+    def _changeNormalCode(self):
+        self.selIdx = -1
+        self.pageIdx = 0
+        self.updateData(True)
+        win32gui.InvalidateRect(self.hwnd, None, True)
+        
+    def _changeThsZSCode(self):
+        self.updateData(True)
+        rs = []
+        for d in self.data:
+            cc = f"{d['code'] :06d}"
+            info = self.codeInfos.get(cc, None)
+            if not info:
+                continue
+            obj = info['obj']
+            hygn = f'{obj.hy_2_code};{obj.hy_3_code};{obj.gn_code}'
+            if self.curThsZS in hygn:
+                rs.append(d)
+        self.selIdx = -1
+        self.pageIdx = 0
+        self.data = rs
+        win32gui.InvalidateRect(self.hwnd, None, True)
+
     def onDayChanged(self, target, evt):
         if evt.name != 'Select':
             return
@@ -961,6 +997,12 @@ class SimpleHotZHWindow(CardWindow):
         if not dc:
             return
         dc(args, evt)
+
+    def changeCode(self, code):
+        for d in self.cardViews:
+            cc = getattr(d, 'changeCode', None)
+            if cc:
+                cc(code)
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_CONTEXTMENU:

@@ -144,6 +144,8 @@ class Server:
         hx = henxin.HexinUrl()
         rs = hx.loadKLineData(code)
         datas = []
+        if not rs:
+            return datas
         KEYS = ('day', 'open', 'high', 'low', 'close', 'amount', 'vol')
         for d in rs['data']:
             obj = {}

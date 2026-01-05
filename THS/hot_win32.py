@@ -33,6 +33,7 @@ def updateCode(nowCode):
     simpleWindow2.changeCode(nowCode)
     codeBasicWindow.changeCode(nowCode)
     bkGnWin.changeCode(nowCode)
+    simpleHotZHWindow.changeCode(nowCode)
     thsShareMem.writeCode(nowCode)
 
 def showTipWins(show : bool):
