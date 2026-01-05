@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download.datafile import *
 from ui.base_win import *
 from utils import hot_utils, gn_utils
-from download import cls, henxin, memcache
+from download import cls, henxin, memcache, ths_iwencai
 from orm import d_orm, ths_orm, lhb_orm, cls_orm
 
 def getTypeByCode(code):
@@ -1602,10 +1602,17 @@ class ZS_ZT_NumIndicator(CustomIndicator):
         self.showZT_List(curData, self.code)
         return True
 
+    # item = ItemData
     def showZT_List(self, item, zsCode):
         from ui import timeline, dialog
         if not zsCode:
             return
+        curDay = item.day
+        nextDay = None
+        tradeDays = ths_iwencai.getTradeDaysInt()
+        idx = tradeDays.index(curDay)
+        if idx + 1 < len(tradeDays):
+            nextDay = tradeDays[idx + 1]
         kcode = self.win.klineIndicator.model.code
         tab = TableWindow()
         def defaultRender(win, hdc, row, col, colName, value, rowData, rect):
@@ -1623,13 +1630,14 @@ class ZS_ZT_NumIndicator(CustomIndicator):
                    {'name': 'mcode', 'width': 80, 'title': '代码', 'textAlign': win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'render': defaultRender},
                    {'name': 'lb', 'width': 50, 'title': '连板'},
                    {'name': 'hots', 'width': 50, 'title': '热度', 'formater': hotFormater},
-                   {'name': 'fs', 'width': 80, 'stretch': 1},
+                   {'name': 'fs', 'width': 80, 'stretch': 1, 'title': '当日'},
+                   {'name': 'fs_next', 'width': 80, 'stretch': 1, 'title': '次日', 'day': nextDay},
                    {'name': 'up_reason', 'width': 100, 'textAlign': win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'paddings': (0, 0, 3, 0)},
                    {'name': 'hy', 'width': 100, 'textAlign': win32con.DT_WORDBREAK | win32con.DT_VCENTER, 'paddings': (0, 0, 3, 0), 'fontSize': 12}]
         tab.rowHeight = 50
         tab.css['selBgColor'] = 0xEAD6D6 # 0xEAD6D6 #0xf0a0a0
         tab.headers = headers
-        timeline.Table_TimelineRender.registerFsRender(tab)
+        timeline.Table_TimelineRender.registerFsRender(tab, ['fs', 'fs_next'])
 
         day = f'{item.day // 10000}-{item.day // 100 % 100 :02d}-{item.day % 100 :02d}'
         if self.todayGroupData and item.day in self.todayGroupData:
@@ -1670,7 +1678,7 @@ class ZS_ZT_NumIndicator(CustomIndicator):
                 zb.append(itemx)
         model = zt + zb + dt
         popup = dialog.Dialog()
-        W, H = 750, 400
+        W, H = 950, 400
         style = win32con.WS_POPUP | win32con.WS_CAPTION | win32con.WS_SYSMENU | win32con.WS_SIZEBOX
         popup.createWindow(self.win.hwnd, (0, 0, W, H), style, title = f'{day}')
         tab.createWindow(popup.hwnd, (0, 0, 1, 1))

@@ -1459,7 +1459,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '600410'
+    CODE = '885517'
     win = kline_utils.createKLineWindowByCode(CODE)
     win.changeCode(CODE)
     win.mainWin = True

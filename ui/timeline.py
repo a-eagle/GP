@@ -747,28 +747,58 @@ class Table_TimelineRender:
     def __init__(self) -> None:
         self.items = []
     
+    # colNames = list[str, str,...] | str
     @staticmethod
-    def registerFsRender(tableWin):
+    def registerFsRender(tableWin, colNames = 'fs'):
         rr = Table_TimelineRender()
         tableWin.addNamedListener('OnDestory', rr.onTableDestory)
-        for hd in tableWin.headers:
-            if hd['name'] != 'fs':
+        if type(colNames) == str:
+            colNames = [colNames]
+        for colName in colNames:
+            hd = tableWin.getHeaderByName(colName)
+            if not hd:
                 continue
             hd['render'] = Table_TimelineRender.render
             if not hd.get('paddings', None):
                 hd['paddings'] = (0, 2, 0, 2)
         tableWin.__fsRender = rr
 
+    # colNames = list[str, str,...] | str
+    @staticmethod
+    def clearFsRender(tableWin, colNames = 'fs'):
+        if not tableWin.data:
+            return
+        if type(colNames) == str:
+            colNames = [colNames]
+        for colName in colNames:
+            hd = tableWin.getHeaderByName(colName)
+            if not hd:
+                continue
+            for rowData in tableWin.data:
+                KEY = f'_fsObj_:{colName}'
+                del rowData[KEY]
+
     def onTableDestory(self, evt, args):
         for it in self.items:
             it.cancel()
 
+    def getRenderDay(win, col, rowData):
+        hd = win.headers[col]
+        day = None
+        if hd['name'] == 'fs':
+            day = rowData.get('day', None)
+        if not day:
+            day = hd.get('day', None)
+        return day
+
     @staticmethod
     def render(win, hdc, row, col, colName, value, rowData, rect):
-        rr = rowData.get('_fsObj_', None)
+        KEY = f'_fsObj_:{colName}'
+        rr = rowData.get(KEY, None)
         if not rr:
-            rr = TimelineRender(rowData['code'], rowData.get('day', None))
-            rowData['_fsObj_'] = rr
+            day = Table_TimelineRender.getRenderDay(win, col, rowData)
+            rr = TimelineRender(rowData['code'], day)
+            rowData[KEY] = rr
             rr.load()
         rr.onDraw(win, hdc, row, col, colName, value, rowData, rect)
 
