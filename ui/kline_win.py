@@ -850,6 +850,7 @@ class KLineWindow(base_win.BaseWindow):
         self.bkgnView.changeCode(code)
         self.invalidWindow()
         self.loadBkGn(code)
+        self.notifyListener(self.Event('ChangeCode', self, code = code))
 
     def loadBkGn(self, code):
         def _ln(code):
