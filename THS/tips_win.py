@@ -913,6 +913,7 @@ class HotZHCardView(ListView):
             obj = info.get('obj', None)
             if not obj:
                 print('[tips_win.HotZHCardView] Fail, not find obj', info)
+                continue
             hygn = f'{obj.hy_2_code};{obj.hy_3_code};{obj.gn_code}'
             if self.curThsZS in hygn:
                 rs.append(d)
