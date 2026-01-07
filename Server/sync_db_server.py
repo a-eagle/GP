@@ -226,9 +226,15 @@ class Client:
             tag, rs = self.diffOneData(model, d, logFile)
             if tag == 1: inserts.append(rs)
             elif tag == 2: updates.append(rs)
-        model.insert_many(inserts).execute() # insert
-        fields = [col for col in model._meta.fields]
-        model.bulk_update(updates, fields, 100)
+        if inserts:
+            times = (len(inserts) + 49) // 50
+            for i in range(times):
+                si = i * 50
+                ei = min(si + 50, len(inserts))
+                model.insert_many(inserts[si : ei]).execute() # insert
+        if updates:
+            fields = [col for col in model._meta.fields]
+            model.bulk_update(updates, fields, 50)
         if logFile: logFile.flush()
 
     def logOneRow(self, tag, model, data, logFile):
