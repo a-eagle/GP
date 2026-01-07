@@ -120,8 +120,8 @@ class Server:
         if not datas:
             return {'status': 'Fail', 'msg': 'No data'}
         cl = Client()
-        cl.diffDatas(model, datas, self.logFile)
-        console.writeln_1(console.RED, f"{ormFile}.{ormClass} ==> push {len(datas)} row datas", datetime.datetime.now())
+        insertNum, updateNum = cl.diffDatas(model, datas, self.logFile)
+        console.writeln_1(console.RED, f"{ormFile}.{ormClass} ==> push insert {insertNum}, update {updateNum} row datas", datetime.datetime.now())
         return {'status': 'OK', 'msg': 'Success'}
 
 class Client:
@@ -175,10 +175,10 @@ class Client:
                 print('[loadUpdateData] ', rs)
                 return
             datas = rs['data']
-            self.diffDatas(model, datas)
+            insertNum, updateNum = self.diffDatas(model, datas)
             updateTimeStr = datetime.datetime.fromtimestamp(updateTimeStamp)
             console.write_1(console.GREEN, f'Update datas {ormFile}.{ormClass} --> ')
-            console.writeln_1(console.GREEN, f'num: {len(datas)} time: {updateTimeStr}')
+            console.writeln_1(console.GREEN, f' insert {insertNum} update {updateNum} time: {updateTimeStr}')
         except Exception as e:
             traceback.print_exc()
 
@@ -212,7 +212,7 @@ class Client:
 
     def diffDatas(self, model, datas : list, logFile = None):
         if not datas:
-            return
+            return 0, 0
         for d in datas:
             if 'id' in d:
                 d.pop('id')
@@ -220,7 +220,7 @@ class Client:
             ds = [model(**d) for d in datas]
             model.bulk_create(ds, 50)
             self.logManyRow('Append', model, datas, logFile)
-            return
+            return len(datas), 0
         inserts, updates = [], []
         for d in datas:
             tag, rs = self.diffOneData(model, d, logFile)
@@ -236,6 +236,7 @@ class Client:
             fields = [col for col in model._meta.fields]
             model.bulk_update(updates, fields, 50)
         if logFile: logFile.flush()
+        return len(inserts), len(updates)
 
     def logOneRow(self, tag, model, data, logFile):
         if not logFile:
