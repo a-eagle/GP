@@ -2,9 +2,9 @@ import peewee as pw
 import sys, datetime, os
 
 path = os.path.dirname(os.path.dirname(__file__))
-ROOT_DB_PATH = f'{path}/db2'
+ROOT_DB_PATH = f'{path}/db'
 
-db_cls_gntc = pw.SqliteDatabase(f'{ROOT_DB_PATH}/CLS_GNTC.db')
+db_cls_gntc = pw.SqliteDatabase(f'{ROOT_DB_PATH}/CLS_GNTC_n.db')
 db_cls_zs = pw.SqliteDatabase(f'{ROOT_DB_PATH}/CLS_ZS.db')
 db_cls_zs_zd = pw.SqliteDatabase(f'{ROOT_DB_PATH}/CLS_ZS_ZD.db')
 db_cls_zt = pw.SqliteDatabase(f'{ROOT_DB_PATH}/CLS_ZT.db')
