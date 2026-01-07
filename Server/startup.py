@@ -29,12 +29,17 @@ def runner():
         time.sleep(20)
 
 def loop():
-    lastDay = '2026-01-07'
+    lastDay = None
+    skipDay = '2026-01-07'
     while True:
         if not acceptDay():
             time.sleep(60 * 60)
             continue
         td = datetime.date.today().strftime('%Y-%m-%d')
+        if td == skipDay:
+            print('----skip-----', skipDay, '-----------')
+            time.sleep(60 * 60)
+            continue
         if lastDay != td:
             lastDay = td
             print('---------------->', lastDay, '<----------------')
