@@ -2,8 +2,13 @@ import peewee as pw
 import sys, datetime, os
 
 path = os.path.dirname(os.path.dirname(__file__))
+ROOT_DB_PATH = f'{path}/db2'
 
-db_gntc = pw.SqliteDatabase(f'{path}/db/CLS_GNTC.db')
+db_cls_gntc = pw.SqliteDatabase(f'{ROOT_DB_PATH}/CLS_GNTC.db')
+db_cls_zs = pw.SqliteDatabase(f'{ROOT_DB_PATH}/CLS_ZS.db')
+db_cls_zs_zd = pw.SqliteDatabase(f'{ROOT_DB_PATH}/CLS_ZS_ZD.db')
+db_cls_zt = pw.SqliteDatabase(f'{ROOT_DB_PATH}/CLS_ZT.db')
+db_cls_hot = pw.SqliteDatabase(f'{ROOT_DB_PATH}/CLS_HOT.db')
 
 # 财联社--个股概念题材
 class CLS_GNTC(pw.Model):
@@ -17,7 +22,7 @@ class CLS_GNTC(pw.Model):
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
-        database = db_gntc
+        database = db_cls_gntc
 
     # return changed  False: no changed, Yes: changed
     def diff(self, newObj):
@@ -46,9 +51,8 @@ class CLS_ZS(pw.Model):
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
-        database = db_gntc
+        database = db_cls_zs
 
-db_cls = pw.SqliteDatabase(f'{path}/db/CLS.db')
 # 财联社涨停
 class CLS_ZT(pw.Model):
     keys = ('code', 'day')
@@ -61,7 +65,7 @@ class CLS_ZT(pw.Model):
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
-        database = db_cls
+        database = db_cls_zt
 
 # 财联社涨停、跌停、连板、炸板
 class CLS_UpDown(pw.Model):
@@ -78,7 +82,7 @@ class CLS_UpDown(pw.Model):
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
-        database = db_cls
+        database = db_cls_zt
 
 # 综合强度
 class CLS_SCQX(pw.Model):
@@ -90,7 +94,7 @@ class CLS_SCQX(pw.Model):
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
-        database = db_cls
+        database = db_cls_hot
 
 # 综合强度(分时)
 class CLS_SCQX_Time(pw.Model):
@@ -101,7 +105,7 @@ class CLS_SCQX_Time(pw.Model):
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
-        database = db_cls
+        database = db_cls_hot
 
 # 财联社热度题材
 class CLS_HotTc(pw.Model):
@@ -114,7 +118,7 @@ class CLS_HotTc(pw.Model):
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
-        database = db_cls
+        database = db_cls_hot
 
 # 材联社--指数涨跌(板块、概念)
 class CLS_ZS_ZD(pw.Model):
@@ -129,7 +133,24 @@ class CLS_ZS_ZD(pw.Model):
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
-        database = db_cls
+        database = db_cls_zs_zd
 
-db_gntc.create_tables([CLS_GNTC, CLS_ZS])
-db_cls.create_tables([CLS_UpDown, CLS_SCQX, CLS_SCQX_Time, CLS_HotTc, CLS_ZT, CLS_ZS_ZD])
+db_cls_gntc.create_tables([CLS_GNTC])
+db_cls_zs.create_tables([CLS_ZS])
+db_cls_zs_zd.create_tables([CLS_ZS_ZD])
+db_cls_zt.create_tables([CLS_ZT, CLS_UpDown])
+db_cls_hot.create_tables([CLS_SCQX, CLS_SCQX_Time, CLS_HotTc])
+
+if __name__ == '__main__':
+    import orm_urils
+    clsGntcDB = pw.SqliteDatabase(f'{path}/db/CLS_GNTC.db')
+    clsDB = pw.SqliteDatabase(f'{path}/db/CLS.db')
+    
+    orm_urils.move_table_data(clsGntcDB, CLS_GNTC)
+    orm_urils.move_table_data(clsGntcDB, CLS_ZS)
+    orm_urils.move_table_data(clsDB, CLS_ZT)
+    orm_urils.move_table_data(clsDB, CLS_ZS_ZD)
+    orm_urils.move_table_data(clsDB, CLS_HotTc)
+    orm_urils.move_table_data(clsDB, CLS_SCQX_Time)
+    orm_urils.move_table_data(clsDB, CLS_SCQX)
+    orm_urils.move_table_data(clsDB, CLS_UpDown)

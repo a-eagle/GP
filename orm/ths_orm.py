@@ -93,7 +93,7 @@ class THS_ZS_ZD(pw.Model):
         database = db_thszs
         table_name = '同花顺指数涨跌信息'
 
-db_ths = pw.SqliteDatabase(f'{path}/db/THS.db')
+db_ths = pw.SqliteDatabase(f'{path}/db/THS_ZT.db') # THS.db --> THS_ZT.db
 # 同花顺涨停
 class THS_ZT(pw.Model):
     keys = ('code', 'day')

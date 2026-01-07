@@ -4,17 +4,17 @@ import os, sys
 path = os.path.dirname(os.path.dirname(__file__))
 
 # move table from a database to another database
-def move_table_data(fromDb, modelClass : pw.Model, ops = None):
+def move_table_data(fromDb, destModel : pw.Model, ops = None):
     cols = [] # (field.name, column_name)
-    for k in modelClass._meta.columns:
-        field = modelClass._meta.columns[k]
+    for k in destModel._meta.columns:
+        field = destModel._meta.columns[k]
         if k == 'id':
             continue
         cols.append((field.name, field.column_name))
     #print(cols)
     # build query select sql
     c = map(lambda x: x[1], cols)
-    sql = 'select ' + ', '.join(c) + ' from ' + modelClass._meta.table_name
+    sql = 'select ' + ', '.join(c) + ' from ' + destModel._meta.table_name
     cc = fromDb.cursor()
     cc.execute(sql)
     rs = cc.fetchall()
@@ -24,11 +24,11 @@ def move_table_data(fromDb, modelClass : pw.Model, ops = None):
         for i, c in enumerate(cols):
             params[c[0]] = row[i]
         #print(params)
-        item = modelClass(**params)
+        item = destModel(**params)
         inserts.append(item)
         if ops:
             ops(item)
-    modelClass.bulk_create(inserts, 50)
+    destModel.bulk_create(inserts, 50)
     
     # rs = modelClass.select()
     # for r in rs:
@@ -91,4 +91,5 @@ def diffDbs():
         diffDb(d)
 
 if __name__ == '__main__':
-    diffDbs()
+    # diffDbs()
+    pass
