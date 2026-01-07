@@ -1,12 +1,12 @@
 import os, sys, requests, json, traceback, datetime, struct, time, copy, base64, platform
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from download import cfg
+from download import config
 
 TDX_MINUTES_IN_DAY = 240
 
 def isServerMachine():
-    return cfg.isServerMachine()
+    return config.isServerMachine()
 
 class PathManager:
     TDX_BASE_PATH = ''

@@ -5,7 +5,7 @@ import peewee as pw, flask, flask_cors
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from orm import chrome_orm, cls_orm, d_orm, lhb_orm, my_orm, ths_orm
-from download import console, ths_iwencai, cls, cfg
+from download import config, console, ths_iwencai, cls
 
 MIN_UPDATE_TIME = datetime.datetime(2025, 6, 11, 8, 0, 0)
 
@@ -166,7 +166,7 @@ class Client:
             maxTime = mgr.getMaxUpdateTime(model)
             if maxTime.timestamp() >= updateTimeStamp:
                 return
-            resp = requests.get(f"{cfg.SYNC_DB_SERVER_BASE_URL}/getUpdateData/{ormFile}/{ormClass}/{maxTime.timestamp()}")
+            resp = requests.get(f"{config.SYNC_DB_SERVER_BASE_URL}/getUpdateData/{ormFile}/{ormClass}/{maxTime.timestamp()}")
             txt = resp.content.decode()
             rs = json.loads(txt)
             if not rs:
@@ -203,7 +203,7 @@ class Client:
             for it in qr:
                 datas.append(it)
                 it['updateTime'] = str(it['updateTime'])
-            resp = requests.post(f"{cfg.SYNC_DB_SERVER_BASE_URL}/pushUpdateData/{ormFile}/{ormClass}", json = datas)
+            resp = requests.post(f"{config.SYNC_DB_SERVER_BASE_URL}/pushUpdateData/{ormFile}/{ormClass}", json = datas)
             txt = resp.content.decode()
             rjs = json.loads(txt)
             console.writeln_1(console.RED, f'Push datas {ormFile}.{ormClass} --> num: {len(datas)} time: {maxTime} =>', rjs['msg'])
@@ -276,7 +276,7 @@ class Client:
 
     def getMaxUpdateTimeAll_Server(self):
         try:
-            resp = requests.get(f'{cfg.SYNC_DB_SERVER_BASE_URL}/getMaxUpdateTimeAll')
+            resp = requests.get(f'{config.SYNC_DB_SERVER_BASE_URL}/getMaxUpdateTimeAll')
             txt = resp.content.decode()
             rs = json.loads(txt)
             return rs
@@ -361,7 +361,7 @@ class DbTableManager:
         return None
 
 if __name__ == '__main__':
-    if cfg.isServerMachine():
+    if config.isServerMachine():
         svr = Server()
         svr.start()
     else:

@@ -4,7 +4,7 @@ import win32con, win32gui, peewee as pw
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from ui import base_win, timeline, kline_utils, kline_win
-from download import ths_iwencai, datafile, ths_iwencai, henxin, cls, memcache, cfg
+from download import config, ths_iwencai, datafile, ths_iwencai, henxin, cls, memcache
 from orm import d_orm, cls_orm, chrome_orm, lhb_orm, my_orm, ths_orm
 from utils import hot_utils, gn_utils
 
@@ -285,7 +285,7 @@ class Server:
         win32gui.PumpMessages()
 
     def openUI(self, type_, code):
-        if cfg.isServerMachine():
+        if config.isServerMachine():
             return {'code': 0, 'msg': 'OK'}
         def run(func, *args):
             func(*args)

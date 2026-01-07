@@ -10,6 +10,11 @@ pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple pyperclip
 pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple psutil
 pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple pytesseract
 pip install -i  https://pypi.tuna.tsinghua.edu.cn/simple pillow
+pip install -i  https://repo.huaweicloud.com/repository/pypi/simple/ ddddocr
+pip install -i  https://repo.huaweicloud.com/repository/pypi/simple/ pyinstaller
+pip install -i https://repo.huaweicloud.com/repository/pypi/simple/ cx_Freeze
+pip install -i https://repo.huaweicloud.com/repository/pypi/simple/ bs4
+
 rem # https://github.com/UB-Mannheim/tesseract/wiki 
 rem #  下载中文训练数据文件。中文训练数据文件可以从Tesseract的GitHub仓库下载，文件名为chi_sim.traineddata（简体中文）
 rem #  将下载的文件放到Tesseract安装目录下的tessdata文件夹中

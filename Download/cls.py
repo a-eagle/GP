@@ -2,7 +2,7 @@ import ctypes, os, sys, requests, json, traceback, datetime, platform
 import urllib
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from download import memcache, clssign, cfg
+from download import config, memcache, clssign
 
 # PX = os.path.join(os.path.dirname(__file__), 'cls-sign.dll')
 # mydll = ctypes.CDLL(PX)
@@ -32,7 +32,7 @@ def signByDict(params : dict):
 #     return r
 
 def getProxyUrl(url):
-    return cfg.getProxyUrl(url)
+    return config.getProxyUrl(url)
 
 class ClsUrl:
     reqHeaders = {'Accept': 'text/plain, */*; q=0.01',
