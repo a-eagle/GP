@@ -93,7 +93,7 @@ class THS_ZS_ZD(pw.Model):
         database = db_thszs
         table_name = '同花顺指数涨跌信息'
 
-db_ths = pw.SqliteDatabase(f'{path}/db/THS_ZT.db') # THS.db --> THS_ZT.db
+db_ths_zt = pw.SqliteDatabase(f'{path}/db/THS_ZT.db') # THS.db --> THS_ZT.db
 # 同花顺涨停
 class THS_ZT(pw.Model):
     keys = ('code', 'day')
@@ -107,7 +107,7 @@ class THS_ZT(pw.Model):
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
-        database = db_ths
+        database = db_ths_zt
 
 db_ths_codes = pw.SqliteDatabase(f'{path}/db/THS_Codes.db')
 # 个股信息
@@ -128,7 +128,7 @@ db_hot.create_tables([THS_Hot])
 db_hot_zh.create_tables([THS_HotZH])
 db_thszs.create_tables([THS_ZS_ZD])
 db_gntc.create_tables([THS_GNTC])
-db_ths.create_tables([THS_ZT])
+db_ths_zt.create_tables([THS_ZT])
 db_ths_codes.create_tables([THS_CodesInfo])
 
 if __name__ == '__main__':
