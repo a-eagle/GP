@@ -142,15 +142,15 @@ db_cls_zt.create_tables([CLS_ZT, CLS_UpDown])
 db_cls_hot.create_tables([CLS_SCQX, CLS_SCQX_Time, CLS_HotTc])
 
 if __name__ == '__main__':
-    import orm_urils
-    clsGntcDB = pw.SqliteDatabase(f'{path}/db/CLS_GNTC.db')
-    clsDB = pw.SqliteDatabase(f'{path}/db/CLS.db')
-    
-    orm_urils.move_table_data(clsGntcDB, CLS_GNTC)
-    orm_urils.move_table_data(clsGntcDB, CLS_ZS)
-    orm_urils.move_table_data(clsDB, CLS_ZT)
-    orm_urils.move_table_data(clsDB, CLS_ZS_ZD)
-    orm_urils.move_table_data(clsDB, CLS_HotTc)
-    orm_urils.move_table_data(clsDB, CLS_SCQX_Time)
-    orm_urils.move_table_data(clsDB, CLS_SCQX)
-    orm_urils.move_table_data(clsDB, CLS_UpDown)
+    # import orm_urils
+    # clsGntcDB = pw.SqliteDatabase(f'{path}/db/CLS_GNTC.db')
+    # clsDB = pw.SqliteDatabase(f'{path}/db/CLS.db')
+    # orm_urils.move_table_data(clsGntcDB, CLS_GNTC)
+    # orm_urils.move_table_data(clsGntcDB, CLS_ZS)
+    # orm_urils.move_table_data(clsDB, CLS_ZT)
+    # orm_urils.move_table_data(clsDB, CLS_ZS_ZD)
+    # orm_urils.move_table_data(clsDB, CLS_HotTc)
+    # orm_urils.move_table_data(clsDB, CLS_SCQX_Time)
+    # orm_urils.move_table_data(clsDB, CLS_SCQX)
+    # orm_urils.move_table_data(clsDB, CLS_UpDown)
+    pass

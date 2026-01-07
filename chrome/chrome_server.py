@@ -1,7 +1,6 @@
 import threading, sys, traceback, datetime, json, logging, copy, os, base64
 import flask, flask_cors, requests
 import win32con, win32gui, peewee as pw
-import ddddocr
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from ui import base_win, timeline, kline_utils, kline_win
@@ -20,7 +19,7 @@ class Server:
         flask_cors.CORS(self.app)
         self.uiThread = None
         self.cache = {}
-        self.docr = ddddocr.DdddOcr()
+        self.docr = None
 
     def start(self):
         #th = threading.Thread(target = self.runner, daemon = True)
@@ -672,6 +671,9 @@ class Server:
             idx = img.index(',')
             img = img[idx + 1 : ]
         img = base64.b64decode(img)
+        if not self.docr:
+            import ddddocr
+            self.docr = ddddocr.DdddOcr()
         result = self.docr.classification(img)
         return {'captcha': result, 'code': 0}
 
