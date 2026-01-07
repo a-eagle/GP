@@ -26,7 +26,6 @@ def readConfig():
     f.close()
     return json.loads(txt)
 
-
 def getAllTopCodes():
     qr = THS_HotZH.select(THS_HotZH.code, pw.fn.count().alias('cc')).where(THS_HotZH.zhHotOrder <= MAX_TOP_HOT).group_by(THS_HotZH.code).tuples()
     # sql = f'select code, count(*) as cc from 个股热度综合排名 where 综合热度排名 <= {MAX_TOP_HOT} group by code order by cc desc '
@@ -40,7 +39,8 @@ def getAllTopCodes():
             continue
         codes.append((code, num))
     codes.sort(key = lambda x : x[1], reverse = True)
-    return codes
+    cs = [c[0] for c in codes]
+    return cs
 
 def onChangeCode(evt, args):
     code = int(evt.code)
@@ -59,13 +59,12 @@ def setMarkDays(win : kline_win.KLineCodeWindow, code):
 
 if __name__ == '__main__':
     codes = getAllTopCodes()
-    print(codes)
-    cs = [c[0] for c in codes]
+    cfg = readConfig()
     win = kline_utils.createKLineWindow()
-    first = cs[0]
+    first = codes[0]
     win.changeCode(first)
-    setMarkDays(win, first)
-    win.setCodeList(cs)
+    # setMarkDays(win, first)
+    win.setCodeList(codes)
     win.mainWin = True
     win.addNamedListener('ChangeCode', onChangeCode)
     win32gui.PumpMessages()

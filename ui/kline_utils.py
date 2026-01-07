@@ -1,10 +1,31 @@
 import win32gui, win32con , win32api, win32ui # pip install pywin32
 import threading, time, datetime, sys, os, copy, pyautogui
 import os, sys, requests, traceback
+import peewee as pw
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from ui import timeline, kline_win, base_win, kline_indicator
 from THS import ths_win
+from orm import ths_orm
+
+    
+def onChangeCode(evt, maxTopHot):
+    code = evt.code
+    if not code:
+        return
+    if type(code) == int:
+        code = f'{code :06d}'
+    if code[0] == 's' and len(code) == 8:
+        code = code[0 : 2]
+    if len(code) != 6 or code[0] not in '036':
+        return
+    qr = ths_orm.THS_HotZH.select(ths_orm.THS_HotZH.day).where(ths_orm.THS_HotZH.code == code, ths_orm.THS_HotZH.zhHotOrder <= maxTopHot).tuples()
+    days = []
+    for it in qr:
+        days.append(it[0])
+    evt.src.marksMgr.clearMarkDay()
+    evt.src.marksMgr.setMarkDay(days)
+
 
 def createKLineWindow(parent = None, rect = None, style = None):
     win = kline_win.KLineCodeWindow()
@@ -23,6 +44,8 @@ def createKLineWindow(parent = None, rect = None, style = None):
             style = win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW
     win.createWindow(parent, rect, style)
     win.klineWin.addNamedListener('DbClick', openTimeLineWindow, win)
+    MAX_TOP_HOT = 10
+    win.klineWin.addNamedListener('ChangeCode', onChangeCode, MAX_TOP_HOT)
     return win
 
 def createKLineWindow_ZS(parent = None, rect = None, style = None):
@@ -105,6 +128,6 @@ def openInCurWindow(parent, data):
     return win
 
 if __name__ == '__main__':
-    openInCurWindow(None, {'code': 'cls80222'}) # 601086 cls80353
+    openInCurWindow(None, {'code': '002202'}) # 601086 cls80353
     win32gui.PumpMessages()
     pass
