@@ -29,7 +29,7 @@ def runner():
         time.sleep(20)
 
 def loop():
-    lastDay = None
+    lastDay = '2026-01-07'
     while True:
         if not acceptDay():
             time.sleep(60 * 60)
