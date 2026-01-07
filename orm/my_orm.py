@@ -2,7 +2,7 @@ import peewee as pw
 import sys, datetime, os
 
 path = os.path.dirname(os.path.dirname(__file__))
-db_def = pw.SqliteDatabase(f'{path}/db/Def.db') # 题材库
+db_def = pw.SqliteDatabase(f'{path}/db/My.db') # 题材库
 
 # 画线
 class TextLine(pw.Model):
@@ -16,13 +16,6 @@ class TextLine(pw.Model):
     class Meta:
         database = db_def
 
-class MyHotGn(pw.Model):
-    info = pw.CharField(null = True)
-    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
-
-    class Meta:
-        database = db_def
-
 class MySettings(pw.Model):
     mainKey =  pw.CharField()
     subKey =  pw.CharField(null = True)
@@ -32,5 +25,5 @@ class MySettings(pw.Model):
     class Meta:
         database = db_def
 
-db_def.create_tables([TextLine, MyHotGn, MySettings])
+db_def.create_tables([TextLine])
 

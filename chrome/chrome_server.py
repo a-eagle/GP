@@ -5,7 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from ui import base_win, timeline, kline_utils, kline_win
 from download import ths_iwencai, datafile, ths_iwencai, henxin, cls, memcache, cfg
-from orm import d_orm, def_orm, cls_orm, chrome_orm, lhb_orm, ths_orm
+from orm import d_orm, cls_orm, chrome_orm, lhb_orm, my_orm, ths_orm
 from utils import hot_utils, gn_utils
 
 class Server:
@@ -337,7 +337,7 @@ class Server:
         return rs
     
     def _getDBs(self):
-        dbs = {'cls_gntc': cls_orm.db_cls_gntc,  'lhb': lhb_orm.db_lhb, 'def': def_orm.db_def,
+        dbs = {'cls_gntc': cls_orm.db_cls_gntc,  'lhb': lhb_orm.db_lhb, 'def': my_orm.db_def,
                'ths_gntc': ths_orm.db_gntc, 'hot': ths_orm.db_hot, 'hot_zh': ths_orm.db_hot_zh,
                'ths_zs': ths_orm.db_thszs, 'chrome': chrome_orm.db_chrome, 'cls': cls_orm.db_cls_zt}
         return dbs

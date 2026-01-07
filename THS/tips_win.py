@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import datafile, henxin, cls, ths_iwencai
 from utils import hot_utils
 from ui import bkgn_view, dialog, base_win, kline_utils
-from orm import d_orm, def_orm, ths_orm, cls_orm
+from orm import d_orm, my_orm, ths_orm, cls_orm
 
 # param days (int): [YYYYMMDD, ....]
 # param selDay : int

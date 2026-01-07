@@ -4,7 +4,7 @@ import requests, json, logging
 import peewee as pw, flask, flask_cors
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from orm import chrome_orm, cls_orm, d_orm, def_orm, lhb_orm, ths_orm
+from orm import chrome_orm, cls_orm, d_orm, lhb_orm, my_orm, ths_orm
 from download import console, ths_iwencai, cls, cfg
 
 MIN_UPDATE_TIME = datetime.datetime(2025, 6, 11, 8, 0, 0)
@@ -279,7 +279,7 @@ class Client:
 
 class DbTableManager:
     def __init__(self) -> None:
-        self.modules = [chrome_orm, cls_orm, d_orm, def_orm, lhb_orm, ths_orm]
+        self.modules = [chrome_orm, cls_orm, d_orm, my_orm, lhb_orm, ths_orm]
 
     def _addUpdateTimeColumn(self, cursor, tableName):
         cursor.execute(f'pragma table_info({tableName})')

@@ -49,8 +49,8 @@ class LocalSpeedModel(pw.Model):
 
     class Meta:
         database = db_zhangsu
-        table_name = 'LocalZS'        
+        table_name = 'LocalZS'
 
-db_pankou.create_tables([ZT_PanKou])
+# db_pankou.create_tables([ZT_PanKou])
 db_hotvol.create_tables([HotVol])
 db_zhangsu.create_tables([LocalSpeedModel])

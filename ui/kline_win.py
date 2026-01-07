@@ -2,7 +2,7 @@ import os, sys, functools, copy, datetime, json, time, traceback
 import win32gui, win32con, win32api, pyperclip
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from orm import def_orm, chrome_orm
+from orm import chrome_orm, my_orm
 from ui import base_win, dialog
 from utils import gn_utils
 from ui.kline_indicator import *
@@ -362,7 +362,7 @@ class TextLineManager:
     def changeCode(self, code):
         self._reset()
         self.code = code
-        q = def_orm.TextLine.select().where(def_orm.TextLine.code == code)
+        q = my_orm.TextLine.select().where(my_orm.TextLine.code == code)
         for row in q:
             row.startPos = self.Pos(pos = row._startPos)
             row.endPos = self.Pos(pos = row._endPos)
@@ -375,7 +375,7 @@ class TextLineManager:
     # kind = 'text' | 'line'
     def beginNew(self, kind):
         self.isDrawing = True
-        self.curLine = def_orm.TextLine(code = self.code, kind = kind)
+        self.curLine = my_orm.TextLine(code = self.code, kind = kind)
         self.curLine.startPos = self.Pos()
         self.curLine.endPos = self.Pos()
     
@@ -1461,7 +1461,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '885517'
+    CODE = '002195' # 885517
     win = kline_utils.createKLineWindowByCode(CODE)
     win.changeCode(CODE)
     win.mainWin = True

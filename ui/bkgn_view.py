@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import datafile, henxin, cls, ths_iwencai
 from utils import hot_utils
 from ui import dialog, base_win, kline_utils
-from orm import d_orm, def_orm, ths_orm, cls_orm
+from orm import d_orm, my_orm, ths_orm, cls_orm
 
 class TextRender(base_win.RichTextRender):
     def __init__(self, win, lineHeight = 20) -> None:
@@ -161,10 +161,8 @@ class BkGnView:
         self.HOT_CLS_COLOR = 0x14698B
         self.hwnd = None
         self.curCode = None
-        self.hotGnObj = None
         self.thsGntc = None
         self.clsGntc = None
-        self.defHotGns = []
         self.clsHotGns = []
         self.curClsHotGns = None
         self.limitDaysNum = self._getLimitDaysNum()
@@ -198,11 +196,7 @@ class BkGnView:
         return True
     
     def _getLimitDaysNum(self):
-        obj, _ = def_orm.MySettings.get_or_create(mainKey = 'HotTc_N_Days')
-        if not obj.val:
-            obj.val = '5'
-            obj.save()
-        return int(obj.val)
+        return 10
 
     def getRealMaxRect(self, suggestRect):
         if not self.richRender.specs:
@@ -231,35 +225,19 @@ class BkGnView:
         model = [
                 {'title': '精减模式', 'name': 'simple', 'checked': self.showSimpleMode},
                 #{'title': '设置热点概念', 'name': 'hot'},
-                {'title': '设置热点概念-5日', 'name': 'HotTc_5', 'checked': self.limitDaysNum == 5},
-                {'title': '设置热点概念-10日', 'name': 'HotTc_10', 'checked': self.limitDaysNum == 10}
+                # {'title': '设置热点概念-5日', 'name': 'HotTc_5', 'checked': self.limitDaysNum == 5},
+                # {'title': '设置热点概念-10日', 'name': 'HotTc_10', 'checked': self.limitDaysNum == 10}
                 ]
         menu = base_win.PopupMenu.create(self.hwnd, model)
         menu.addNamedListener('Select', self.onSettings, self.hwnd)
         menu.show(*win32gui.GetCursorPos())
 
     def onSettings(self, evt, args):
-        if evt.item['name'] == 'hot':
-            dlg = dialog.MultiInputDialog()
-            dlg.setText(self.hotGnObj.info or '')
-            prc = win32gui.GetWindowRect(self.hwnd)
-            def onInputEnd(evt, args):
-                if not evt.ok:
-                    return
-                self.saveDefHotGn(evt.text)
-                self._buildBkgn()
-                win32gui.InvalidateRect(self.hwnd, None, False)
-            dlg.addNamedListener('InputEnd', onInputEnd)
-            dlg.createWindow(self.hwnd, (prc[0], prc[1], 450, 200), title = '设置热点概念') # GetParent(self.hwnd)
-            dlg.showCenter()
-        elif 'HotTc_' in evt.item['name']:
+        if 'HotTc_' in evt.item['name']:
             ndays = int(evt.item['name'][len('HotTc_') : ])
             if self.limitDaysNum == ndays:
                 return
             self.limitDaysNum = ndays
-            obj, _ = def_orm.MySettings.get_or_create(mainKey = 'HotTc_N_Days')
-            obj.val = str(self.limitDaysNum)
-            obj.save()
             self.changeLimitDaysNum()
         elif evt.item['name'] == 'simple':
             self.showSimpleMode = evt.item['checked']
@@ -283,7 +261,6 @@ class BkGnView:
             scode = scode[2 : ]
         self.curCode = scode
         # load code info
-        # self._loadDefHotGn()
         self._loadThsClsTcgn()
         self._loadClsHotGn(None)
         self._buildBkgn()
@@ -305,25 +282,6 @@ class BkGnView:
         self._loadClsHotGn(self.lastDay)
         self._buildBkgn()
         win32gui.InvalidateRect(self.hwnd, None, False)
-
-    def saveDefHotGn(self, txt):
-        self.hotGnObj.info = txt or ''
-        self.hotGnObj.save()
-
-    def _loadDefHotGn(self):
-        from orm import def_orm
-        qr = def_orm.MyHotGn.select()
-        self.hotGnObj = None
-        self.defHotGns = []
-        for obj in qr:
-            self.hotGnObj = obj
-            if obj.info:
-                sx = obj.info.replace('\n', ' ').split(' ')
-                for s in sx:
-                    if s.strip(): self.defHotGns.append(s.strip())
-            break
-        if not self.hotGnObj:
-            self.hotGnObj = def_orm.MyHotGn.create(info = '')
 
     # lastDay = None(newest day) | int | str
     # return [(cls-name, num), ...]
@@ -366,12 +324,11 @@ class BkGnView:
 
     def _buildBkgn(self):
         self.richRender.specs.clear()
-        defHotGns = self.defHotGns[ : ]
         clsHotGns = self.clsHotGns[ : ]
         hy1 = ''
         if self.thsGntc.hy_2_name: hy1 = self.thsGntc.hy_2_name + ';'
         if self.thsGntc.hy_3_name: hy1 += self.thsGntc.hy_3_name
-        hys = self._buildBkInfos(hy1, self.clsGntc.hy, defHotGns, clsHotGns)
+        hys = self._buildBkInfos(hy1, self.clsGntc.hy, clsHotGns)
         self.richRender.addText(' 【', self.DEF_COLOR)
         for idx, h in enumerate(hys):
             if idx != 0:
@@ -379,7 +336,7 @@ class BkGnView:
             self.richRender.addText(h[1], h[2], args = {'num': h[3], 'gn': h[4]})
         self.richRender.addText('】 ', self.DEF_COLOR)
         
-        lastGns = self._buildBkInfos(self.thsGntc.gn, self.clsGntc.gn, defHotGns, clsHotGns)
+        lastGns = self._buildBkInfos(self.thsGntc.gn, self.clsGntc.gn, clsHotGns)
         lastGns.sort(key = lambda d: d[0])
         for i, h in enumerate(lastGns):
             if self.showSimpleMode and (not h[3]) and (h[4] not in self.curClsHotGns):
@@ -391,7 +348,7 @@ class BkGnView:
         #    self.richRender.addText(h + ' ', 0x404040)
 
     # return (no, gn-name, color, num, org-gn-name)
-    def _buildBkInfos(self, thsGn, clsGn, defHotGns, clsHotGns):
+    def _buildBkInfos(self, thsGn, clsGn, clsHotGns):
         thsGn = thsGn or ''
         clsGn = clsGn or '' 
         gns = [] # item of {gn: xx, type: xx, same:xx}
@@ -416,12 +373,12 @@ class BkGnView:
         lastGns = []
         for item in gns:
             if item['type'] == 'THS':
-                info = self._getTypeNameAndColor_THS(item['gn'], True, defHotGns)
+                info = self._getTypeNameAndColor_THS(item['gn'], True)
             elif item['type'] == 'CLS':
                 info = self._getTypeNameAndColor_CLS(item['gn'], True, clsHotGns)
                 info = info[0], '#' + info[1], info[2], info[3]
             else: # THS+CLS
-                info1 = self._getTypeNameAndColor_THS(item['gn'], True, defHotGns)
+                info1 = self._getTypeNameAndColor_THS(item['gn'], True)
                 info2 = self._getTypeNameAndColor_CLS(item['gn'], True, clsHotGns)
                 no = min(info1[0], info2[0])
                 color = info1[2] if no == info1[0] else info2[2]
@@ -430,11 +387,7 @@ class BkGnView:
             lastGns.append(info)
         return lastGns
 
-    def _getTypeNameAndColor_THS(self, bk, remove, defHotGns):
-        idx = self._getDefHotIndex(bk, defHotGns)
-        if idx >= 0:
-            if remove: defHotGns.pop(idx)
-            return 20, bk, self.HOT_DEF_COLOR, 0
+    def _getTypeNameAndColor_THS(self, bk, remove):
         return 1000, bk, self.DEF_COLOR, 0
     
     def _getTypeNameAndColor_CLS(self, bk, remove, clsHotGns):
@@ -446,12 +399,6 @@ class BkGnView:
             name = f'{bk}（{num}）'
             return 100 - num, name, self.HOT_CLS_COLOR, num
         return 2000, bk, self.DEF_COLOR, 0
-
-    def _getDefHotIndex(self, bk, defHotGns):
-        for i, h in enumerate(defHotGns):
-            if h == bk: # h in bk or bk in h
-                return i
-        return -1
 
     def _getClsHotIndex(self, bk, clsHotGns):
         for i, it in enumerate(clsHotGns):
