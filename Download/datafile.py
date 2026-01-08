@@ -622,14 +622,7 @@ class Ths_K_DataModel(K_DataModel):
     def loadNetData(self, period):
         from download import henxin
         hx = henxin.HexinUrl()
-        if period == 'day':
-            rs = hx.loadKLineData(self.code)
-        elif period == 'week':
-            url = hx.getKLineUrl_Week(self.code)
-            rs = hx.loadUrlData(url)
-        elif period == 'month':
-            url = hx.getKLineUrl_Month(self.code)
-            rs = hx.loadUrlData(url)
+        rs = hx.loadKLineData(self.code, period)
         if rs:
             self.data = rs['data']
             self.name = rs['name']
@@ -643,8 +636,7 @@ class Ths_T_DataModel(T_DataModel):
     def _loadNetLastData(self):
         from download import henxin
         hx = henxin.HexinUrl()
-        url = hx.getFenShiUrl(self.code)
-        rs = hx.loadUrlData(url)
+        rs = hx.loadFenShiData(self.code)
         return rs
     
     def loadData(self, day):

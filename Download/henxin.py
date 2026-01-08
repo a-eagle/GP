@@ -243,7 +243,7 @@ class HexinUrl(Henxin):
         return url
     
     # 分时线 url
-    def getFenShiUrl(self, code):
+    def _getFenShiUrl(self, code):
         sh = self.getCodeSH(code)
         if not sh:
             return None
@@ -254,7 +254,7 @@ class HexinUrl(Henxin):
         return url
     
     # 今日-日线 url
-    def getTodayKLineUrl(self, code):
+    def _getTodayKLineUrl(self, code):
         sh = self.getCodeSH(code)
         if not sh:
             return None
@@ -265,7 +265,7 @@ class HexinUrl(Henxin):
         return url
     
     # 日线 url
-    def getKLineUrl(self, code):
+    def _getKLineUrl(self, code):
         sh = self.getCodeSH(code)
         if code == '999999':
             code = '1A0001'
@@ -276,7 +276,7 @@ class HexinUrl(Henxin):
         return url
     
     # 周线 url
-    def getKLineUrl_Week(self, code):
+    def _getKLineUrl_Week(self, code):
         sh = self.getCodeSH(code)
         if not sh:
             return None
@@ -287,7 +287,7 @@ class HexinUrl(Henxin):
         return url
     
     # 月线 url
-    def getKLineUrl_Month(self, code):
+    def _getKLineUrl_Month(self, code):
         sh = self.getCodeSH(code)
         if not sh:
             return None
@@ -297,18 +297,44 @@ class HexinUrl(Henxin):
         url = self._getUrlWithParam(url)
         return url
 
-    # @return today:  {name:xx, code:xx, data: ItemData}
-    #         kline:  {'name': xx, code:xx, 'today': yyyymmdd(str),  'data': [ItemData, ...]}
-    #         fenshi: {name:xx, code:xx, pre:xx, date:yyyymmdd(str), data: str;str;..., line:[ItemData...] }  data: 时间，价格，成交额（元），分时均价，成交量（手）;
-    def loadUrlData(self, url):
+    # return {name:xx, code:xx, data: ItemData}
+    def loadTodayData(self, code):
+        url = self._getTodayKLineUrl(code)
         if not url:
             return None
-        cp = re.compile(r'.*?/\d{2}_(\w{6})/.*')
-        ma = cp.match(url)
-        code = ma.group(1)
-        # find in cache
-        baseUrl = url[0 : url.index('?')] if '?' in url else url
-        data = memcache.cache.getCache(baseUrl)
+        rs = memcache.cache.getCache(f'THS-TodayKLine:{code}')
+        if rs:
+            return rs
+        try:
+            resp = self.session.get(url)
+        except Exception as e:
+            print('henxin.loadTodayData Error: ', url, '-->', e)
+            return None
+        if resp.status_code != 200:
+            print('[HexinUrl.loadTodayData] Error:', code, resp)
+            return None
+        txt = resp.content.decode('utf-8')
+        bi = txt.index('(')
+        ei = txt.rindex(')')
+        txt = txt[bi + 1 : ei]
+        rs = self._parseTodayData(txt)
+        if not rs:
+            return None
+        rs['code'] = code
+        timeout = 60
+        if datetime.datetime.now().strftime('%H:%M') > '15:05':
+            timeout = 60 * 60 * 1
+        memcache.cache.saveCache(f'THS-TodayKLine:{code}', rs, timeout)
+        return rs
+
+    def _loadKLineDataPeroid(self, code, peroid):
+        if peroid == 'day':
+            url = self._getKLineUrl(code)
+        elif peroid == 'week':
+            url = self._getKLineUrl_Week(code)
+        elif peroid == 'month':
+            url = self._getKLineUrl_Month(code)
+        data = memcache.cache.getCache(f'THS-KLine:{peroid}:{code}')
         if data:
             return data
         try:
@@ -324,48 +350,62 @@ class HexinUrl(Henxin):
         bi = txt.index('(')
         ei = txt.rindex(')')
         txt = txt[bi + 1 : ei]
-        #print(txt)
-        rs = None
-        if '/last1800.js' in url:
-            # dayly kline
-            rs = self.parseDaylyData(txt)
-        if '/today.js' in url:
-            rs = self.parseTodayData(txt)
-        if '/last.js' in url:
-            rs = self.parseFenShiData(txt)
-        if rs:
-            rs['code'] = code
+        rs = self._parseKLineData(txt)
+        if not rs:
+            return None
+        rs['code'] = code
+        timeout = 60
+        if peroid == 'day' or datetime.datetime.now().strftime('%H:%M') > '15:05':
+            timeout = 60 * 60 * 1
+        memcache.cache.saveCache(f'THS-KLine:{peroid}:{code}', rs, timeout)
+        return rs
+
+    # {'name': xx, code:xx, 'today': yyyymmdd(str),  'data': [ItemData, ...]}
+    # peroid = 'day' | 'week' | 'month'
+    def loadKLineData(self, code, peroid):
+        rs = self._loadKLineDataPeroid(code, peroid)
+        if peroid == 'week' or peroid == 'month' or not rs or not rs.get('data', None):
+            return rs
+        data = rs['data']
+        last = data[-1]
+        todayInt = int(datetime.date.today().strftime('%Y%m%d'))
+        if todayInt == int(rs['today']):
+            todayRs = self.loadTodayData(code)
+            if todayRs and todayRs['data']:
+                if last.day == todayRs['data'].day:
+                    data.pop(-1)
+                data.append(todayRs['data'])
+        return rs
+
+    # fenshi: {name:xx, code:xx, pre:xx, date:yyyymmdd(str), data: str;str;..., line:[ItemData...] }  data: 时间，价格，成交额（元），分时均价，成交量（手）;
+    def loadFenShiData(self, code):
+        data = memcache.cache.getCache(f'THS-FS:{code}')
+        if data:
+            return data
+        url = self._getFenShiUrl(code)
+        try:
+            resp = self.session.get(url)
+        except Exception as e:
+            print('henxin.loadFenShiData Error: ', url, '-->', e)
+            return None
+        if resp.status_code != 200:
+            print('[HexinUrl.loadFenShiData] Error:', code, resp)
+            return None
+        txt = resp.content.decode('utf-8')
+        bi = txt.index('(')
+        ei = txt.rindex(')')
+        txt = txt[bi + 1 : ei]
+        rs = self._parseFenShiData(txt)
+        if not rs:
+            return None
+        rs['code'] = code
         timeout = 60
         if datetime.datetime.now().strftime('%H:%M') > '15:01':
-            timeout = 60 * 60 * 6
-        memcache.cache.saveCache(baseUrl, rs, timeout)
+            timeout = 60 * 60 * 1
+        memcache.cache.saveCache(f'THS-FS:{code}', rs, timeout)
         return rs
-    
-    def loadKLineData(self, code):
-        try:
-            url = self.getKLineUrl(code)
-            klineRs = self.loadUrlData(url)
-            if not klineRs:
-                return None
-            data = klineRs['data']
-            if not data:
-                return None
-            last = data[-1]
-            todayInt = int(datetime.date.today().strftime('%Y%m%d'))
-            if todayInt == int(klineRs['today']):
-                url = self.getTodayKLineUrl(code)
-                todayRs = self.loadUrlData(url)
-                if todayRs and todayRs['data']:
-                    if last.day == todayRs['data'].day:
-                        data.pop(-1)
-                    data.append(todayRs['data'])
-            return klineRs
-        except Exception as e:
-            traceback.print_exc()
-            print('[hexin.loadKLineData] code=', code)
-        return None
-    
-    def parseValue(self, val, type, default):
+
+    def _parseValue(self, val, type, default):
         if val is None:
             return default
         val = str(val).strip()
@@ -377,7 +417,7 @@ class HexinUrl(Henxin):
             return float(val)
         return val
     
-    def parseTodayData(self, txt : str):
+    def _parseTodayData(self, txt : str):
         from download.datafile import ItemData
         js = json.loads(txt)
         for k in js:
@@ -392,7 +432,7 @@ class HexinUrl(Henxin):
             _type = float
             if attrName == 'day' or attrName == 'vol':
                 _type = int
-            setattr(item, attrName, self.parseValue(js[k], _type, 0))
+            setattr(item, attrName, self._parseValue(js[k], _type, 0))
         VALID_ATTRS = ('day', 'open', 'close', 'low', 'high')
         for a in VALID_ATTRS:
             if item and not getattr(item, a, 0):
@@ -401,7 +441,7 @@ class HexinUrl(Henxin):
         return rs
 
     # 解析日线数据
-    def parseDaylyData(self, txt):
+    def _parseKLineData(self, txt):
         from download.datafile import ItemData
         js = json.loads(txt)
         name, today = js['name'], js['today']
@@ -434,7 +474,7 @@ class HexinUrl(Henxin):
         #print('[henxin.parseDaylyData ] rs[-1]=', rs[-1].__dict__)
         return rv
 
-    def parseFenShiData(self, txt):
+    def _parseFenShiData(self, txt):
         from download.datafile import ItemData
         js = json.loads(txt)
         for k in js:
@@ -470,7 +510,7 @@ class HexinUrl(Henxin):
 
 if __name__ == '__main__':
     hx = HexinUrl()
-    rs = hx.loadKLineData('603300')
+    rs = hx.loadKLineData('999999', 'day')
     print(rs)
 
 

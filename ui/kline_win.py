@@ -7,6 +7,7 @@ from ui import base_win, dialog
 from utils import gn_utils
 from ui.kline_indicator import *
 from ui import bkgn_view
+from download import henxin
 
 class MarksManager:
     def __init__(self, win) -> None:
@@ -759,6 +760,53 @@ class DayLongManager:
         if not self.code or not self.refCode:
             return
 
+# 异动计算器
+class YiDongCalcManager:
+    def __init__(self, win) -> None:
+        self.win = win
+        self.refCode = None
+        self.refs = {}
+
+    def changeCode(self, code):
+        self.refCode = self.getRefCode(code)
+        if not self.refCode:
+            return
+        base_win.ThreadPool.instance().addTask_N(self.onLoadRef, self.refCode)
+
+    def getRefCode(self, code):
+        if not code or code[0 : 2] == '88' or code[0 : 3] == 'cls':
+            return None
+        refCode = None
+        if code[0 : 2] == 'sz':
+            code = code[2 : ]
+        if code[0 : 3] == '688':
+            refCode = '000688'
+        elif code[0] == '6':
+            refCode = '999999'
+        elif code[0] == '0':
+            refCode = '399001'
+        elif code[0] == '3' and code[0 : 3] != '399':
+            refCode = '399006'
+        return refCode
+
+    def onLoadRef(self, refCode):
+        dm = Ths_K_DataModel(refCode)
+        dm.loadNetData('day')
+        if dm.data:
+            self.refs[refCode] = dm
+
+    def getZhangFu(self, selDay, days):
+        if not self.refCode or not self.refs.get(self.refCode, None):
+            return 0
+        model : K_DataModel = self.refs[self.refCode]
+        idx = model.getItemIdx(selDay)
+        if idx < 0 or idx < days:
+            return 0
+        pre = model.data[idx - days].close
+        cur = model.data[idx].close
+        zf = (cur - pre) / pre * 100
+        return zf
+
 class KLineWindow(base_win.BaseWindow):
     LEFT_MARGIN, RIGHT_MARGIN = 0, 70
 
@@ -1165,6 +1213,7 @@ class CodeWindow(BaseWindow):
         self.selData = None
         self.rangeSelData = None
         self.klineWin = klineWin
+        self.yiDongCalcMgr = YiDongCalcManager(klineWin)
         klineWin.addNamedListener('selIdx-Changed', self.onSelIdxChanged)
         klineWin.addNamedListener('range-selector-changed', self.onRangeSelectorChanged)
         self.V_CENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER
@@ -1240,15 +1289,15 @@ class CodeWindow(BaseWindow):
             self.drawer.drawText(hdc, f'{int(rz)} %', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         # 异动
         y += RH
-        self.drawer.drawText(hdc, '10日异动', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         rz = self.getYiDongInfo(klineModel, 10)
         if rz is not None:
-            self.drawer.drawText(hdc, f'{int(rz[0])}% ({int(rz[1])}%)', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+            self.drawer.drawText(hdc, f'{rz[1]}日异动', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+            self.drawer.drawText(hdc, f'{rz[0] :.2f}%', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         y += RH
-        self.drawer.drawText(hdc, '30日异动', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         rz = self.getYiDongInfo(klineModel, 30)
         if rz is not None:
-            self.drawer.drawText(hdc, f'{int(rz[0])}% ({int(rz[1])}%)', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+            self.drawer.drawText(hdc, f'{rz[1]}日异动', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+            self.drawer.drawText(hdc, f'{rz[0] :.2f}%', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         # 区间统计
         if not self.rangeSelData:
             return
@@ -1311,6 +1360,7 @@ class CodeWindow(BaseWindow):
             return
         self.curCode = scode
         self.basicData = None
+        self.yiDongCalcMgr.changeCode(code)
         base_win.ThreadPool.instance().addTask_N(self.loadCodeBasic, scode)
 
     def onSelIdxChanged(self, evt, args):
@@ -1322,21 +1372,37 @@ class CodeWindow(BaseWindow):
         self.rangeSelData = evt.data
         self.invalidWindow()
 
-    def getYiDongInfo(self, model, days):
+    def getYiDongZF(self, model, daysNum):
         datas = model.data
         if not datas or not self.selData:
             return None
         day = self.selData.day
         idx = model.getItemIdx(day)
-        if idx < 0 or idx < days:
+        if idx < 0 or idx < daysNum:
             return None
-        pre = datas[idx - days].close
+        pre = datas[idx - daysNum].close
         cur = datas[idx].close
         zf = (cur - pre) / pre * 100
-        maxZF = 100 if days == 10 else 200
-        maxPrice = (maxZF + 100) / 100 * datas[idx - days + 1].close
-        lessZF = (maxPrice - cur) / cur * 100
-        return zf, lessZF
+        refZF = self.yiDongCalcMgr.getZhangFu(day, daysNum)
+        zf -= refZF
+        return zf
+
+    # return dayNum, zf
+    def getYiDongInfo(self, model, daysNum):
+        maxZF = None
+        maxZFDay = 0
+        for i in range(daysNum):
+            d = self.getYiDongZF(model, i + 1)
+            if maxZF == None or maxZF <= d:
+                maxZF = d
+                maxZFDay = i + 1
+        if maxZF == None:
+            return None
+        return maxZF, maxZFDay
+        # maxZF = 100 if daysNum == 10 else 200
+        # maxPrice = (maxZF + 100) / 100 * datas[idx - daysNum + 1].close
+        # lessZF = (maxPrice - cur) / cur * 100
+        # return zf, lessZF
 
 class KLineCodeWindow(base_win.BaseWindow):
     def __init__(self) -> None:
@@ -1461,7 +1527,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '002195' # 885517
+    CODE = '002413' # 000547 002149  002565 002792
     win = kline_utils.createKLineWindowByCode(CODE)
     win.changeCode(CODE)
     win.mainWin = True

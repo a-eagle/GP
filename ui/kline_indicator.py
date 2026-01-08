@@ -857,10 +857,10 @@ class LsAmountIndicator(CustomIndicator):
         super()._changeCode()
         maps = {}
         url = henxin.HexinUrl()
-        ds = url.loadKLineData('999999')
+        ds = url.loadKLineData('999999', 'day')
         for d in ds['data']:
             maps[d.day] = d.amount / 1000000000000 # 万亿
-        ds = url.loadKLineData('399001')
+        ds = url.loadKLineData('399001', 'day')
         for d in ds['data']:
             maps[d.day] = maps.get(d.day, 0) + d.amount / 1000000000000 # 万亿
         self.cdata = maps

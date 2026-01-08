@@ -143,7 +143,7 @@ class Server:
 
     def loadKLine(self, code):
         hx = henxin.HexinUrl()
-        rs = hx.loadKLineData(code)
+        rs = hx.loadKLineData(code, 'day')
         datas = []
         if not rs:
             return datas
@@ -471,7 +471,7 @@ class Server:
                 rs['line'] = lines[preLastIdx + 1 : ]
             else:
                 hx = henxin.HexinUrl()
-                data = hx.loadUrlData(hx.getFenShiUrl(code))
+                data = hx.loadFenShiData(code)
                 rs['pre'] = data['pre']
                 rs['line'] = data['line']
         if not rs['line']:

@@ -61,7 +61,7 @@ if __name__ == '__main__':
     codes = getAllTopCodes()
     cfg = readConfig()
     win = kline_utils.createKLineWindow()
-    first = codes[16]
+    first = codes[51]
     win.changeCode(first)
     # setMarkDays(win, first)
     win.setCodeList(codes)
