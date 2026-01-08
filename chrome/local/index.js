@@ -106,7 +106,7 @@ class GlobalMgr {
 		let fday = formatDay(date);
 		let sql = "select day, 综合强度 as degree, substr(day, 6) as sday, fb from CLS_SCQX order by day"; // where day >= '" + fday + "' and day <= '" + eday + "'";
 		$.ajax({
-			url: '/query-by-sql/cls',
+			url: '/query-by-sql/cls_hot',
 			contentType: 'application/json',
 			// data: {'sql': sql},
 			type: 'POST',
@@ -486,7 +486,7 @@ class ZdfbMgr {
 		let thiz =  this;
 		let sql = `select day, 综合强度 as degree, substr(day, 6) as sday, fb, zdfb from CLS_SCQX where day = '${day}'`;
 		$.ajax({
-			url: '/query-by-sql/cls',
+			url: '/query-by-sql/cls_hot',
 			contentType: 'application/json',
 			// data: {'sql': sql},
 			type: 'POST',
@@ -864,7 +864,7 @@ class TabNaviMgr {
 			else if (name == '炸板池') sql += ' and limit_up_days = 0 and is_down = 0';
 			else sql += ' and is_down = 1';
 			$.ajax({
-				url : ' /query-by-sql/cls',
+				url : ' /query-by-sql/cls_zt',
 				contentType: 'application/json',
 				// data: {'sql': sql},
 				type: 'POST',
@@ -998,7 +998,7 @@ class TabNaviMgr {
 		}
 		
 		if (name == 'cls') {
-			db = 'cls';
+			db = 'cls_zs_zd';
 			sql = `select * from CLS_ZS_ZD where day = '${day}' and abs(pm) <= 50`;
 			headers = [{name: 'day', text: '日期'}, {name: 'code', text: '代码', cellRender: codeRender},
 					{name: 'type_', text: '类型', sortable: true,}, {name: 'zf', text: '涨幅', sortable: true},
@@ -1012,7 +1012,7 @@ class TabNaviMgr {
 		}
 		let opts = $('<button name="ths"> 同花顺指数 </button>  &nbsp; &nbsp; <button name="cls">财联社指数 </button>');
 		$.ajax({
-			url: ' /query-by-sql/' + db,
+			url: '/query-by-sql/' + db,
 			contentType: 'application/json',
 			type: 'POST',
 			data: JSON.stringify({'sql': sql}), // JSON.stringify(

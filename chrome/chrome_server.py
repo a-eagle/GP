@@ -337,9 +337,9 @@ class Server:
         return rs
     
     def _getDBs(self):
-        dbs = {'cls_gntc': cls_orm.db_cls_gntc,  'lhb': lhb_orm.db_lhb, 'def': my_orm.db_def,
-               'ths_gntc': ths_orm.db_gntc, 'hot': ths_orm.db_hot, 'hot_zh': ths_orm.db_hot_zh,
-               'ths_zs': ths_orm.db_thszs, 'chrome': chrome_orm.db_chrome, 'cls': cls_orm.db_cls_zt}
+        dbs = {'hot': ths_orm.db_hot, 'hot_zh': ths_orm.db_hot_zh,
+               'ths_zs': ths_orm.db_thszs, 'chrome': chrome_orm.db_chrome, 
+               'cls_hot': cls_orm.db_cls_hot, 'cls_zt': cls_orm.db_cls_zt, 'cls_zs_zd': cls_orm.db_cls_zs_zd}
         return dbs
 
     def queryBySql(self, dbName):
