@@ -70,7 +70,7 @@ def createKLineWindowByCode(code, parent = None, rect = None, style = None):
         code = code[2 : ]
     if code[0] in ('0', '3', '6'):
         return createKLineWindow(parent, rect, style)
-    if code[0] == '8' or code[0 : 3] == 'cls':
+    if code[0] == '8' or code[0 : 3] == 'cls' or code[0 : 2] == '1A' or code[0 : 2] == '1B':
         return createKLineWindow_ZS(parent, rect, style)
     return None
 

@@ -780,7 +780,7 @@ class YiDongCalcManager:
         if code[0 : 2] == 'sz':
             code = code[2 : ]
         if code[0 : 3] == '688':
-            refCode = '000688'
+            refCode = '1B0688'
         elif code[0] == '6':
             refCode = '999999'
         elif code[0] == '0':
@@ -1527,7 +1527,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '002413' # 000547 002149  002565 002792
+    CODE = '1B0688' # 000547 002149  002565 002792
     win = kline_utils.createKLineWindowByCode(CODE)
     win.changeCode(CODE)
     win.mainWin = True

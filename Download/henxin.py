@@ -232,6 +232,8 @@ class HexinUrl(Henxin):
             return '17'
         if code[0] == '0' or code[0] == '3':
             return '33'
+        if code[0 : 2] == '1B':
+            return '16'
         #raise Exception('[HexinUrl.getCodeSH] unknow url for code :', code)
         #print('[HexinUrl.getCodeSH] unknow url for code :', code)
         #traceback.print_exc()
@@ -297,6 +299,21 @@ class HexinUrl(Henxin):
         url = self._getUrlWithParam(url)
         return url
 
+    def _request(self, code, url):
+        try:
+            resp = self.session.get(url)
+        except Exception as e:
+            print('henxin._request Error: ',code, url, '-->', e)
+            return None
+        if resp.status_code != 200:
+            print('[HexinUrl._request] Error:', code, resp)
+            return None
+        txt = resp.content.decode('utf-8')
+        bi = txt.index('(')
+        ei = txt.rindex(')')
+        txt = txt[bi + 1 : ei]
+        return txt
+
     # return {name:xx, code:xx, data: ItemData}
     def loadTodayKLineData(self, code):
         url = self._getTodayKLineUrl(code)
@@ -305,18 +322,7 @@ class HexinUrl(Henxin):
         rs = memcache.cache.getCache(f'THS-TodayKLine:{code}')
         if rs:
             return rs
-        try:
-            resp = self.session.get(url)
-        except Exception as e:
-            print('henxin.loadTodayData Error: ', url, '-->', e)
-            return None
-        if resp.status_code != 200:
-            print('[HexinUrl.loadTodayData] Error:', code, resp)
-            return None
-        txt = resp.content.decode('utf-8')
-        bi = txt.index('(')
-        ei = txt.rindex(')')
-        txt = txt[bi + 1 : ei]
+        txt = self._request(code, url)
         rs = self._parseTodayData(txt)
         if not rs:
             return None
@@ -337,19 +343,7 @@ class HexinUrl(Henxin):
         data = memcache.cache.getCache(f'THS-KLine:{peroid}:{code}')
         if data:
             return data
-        try:
-            resp = self.session.get(url)
-        except Exception as e:
-            print('henxin.loadUrlData Error: ', url, '-->', e)
-            return None
-        if resp.status_code != 200:
-            print('[HexinUrl.loadUrlData] Error:', code, resp)
-            return None
-            #raise Exception('[HexinUrl.loadUrlData]', resp)
-        txt = resp.content.decode('utf-8')
-        bi = txt.index('(')
-        ei = txt.rindex(')')
-        txt = txt[bi + 1 : ei]
+        txt = self._request(code, url)
         rs = self._parseKLineData(txt)
         if not rs:
             return None
@@ -383,18 +377,7 @@ class HexinUrl(Henxin):
         if data:
             return data
         url = self._getTimelineUrl(code)
-        try:
-            resp = self.session.get(url)
-        except Exception as e:
-            print('henxin.loadTimelineData Error: ', url, '-->', e)
-            return None
-        if resp.status_code != 200:
-            print('[HexinUrl.loadTimelineData] Error:', code, resp)
-            return None
-        txt = resp.content.decode('utf-8')
-        bi = txt.index('(')
-        ei = txt.rindex(')')
-        txt = txt[bi + 1 : ei]
+        txt = self._request(code, url)
         rs = self._parseFenShiData(txt)
         if not rs:
             return None
