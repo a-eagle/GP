@@ -836,6 +836,7 @@ class YiDongManager:
         if not info:
             return None
         maxZFDay, maxZF, refZF, idx = info
+        # calc less zf
         LIMIT_ZF = (100 if daysNum == 10 else 200) + refZF
         tt = model.data[idx - maxZFDay]
         pre = model.data[idx - maxZFDay].close
