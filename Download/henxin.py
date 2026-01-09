@@ -230,6 +230,8 @@ class HexinUrl(Henxin):
             return '48'
         if code[0] == '6' or code == '1A0001' or code == '999999':
             return '17'
+        if code[0 : 3] == '399':
+            return '32'
         if code[0] == '0' or code[0] == '3':
             return '33'
         if code[0 : 2] == '1B':
@@ -493,7 +495,7 @@ class HexinUrl(Henxin):
 
 if __name__ == '__main__':
     hx = HexinUrl()
-    rs = hx.loadKLineData('999999', 'day')
+    rs = hx.loadKLineData('399001', 'day')
     print(rs)
 
 

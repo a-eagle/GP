@@ -1291,13 +1291,13 @@ class CodeWindow(BaseWindow):
         y += RH
         rz = self.getYiDongInfo(klineModel, 10)
         if rz is not None:
-            self.drawer.drawText(hdc, f'{rz[1]}日异动', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
-            self.drawer.drawText(hdc, f'{rz[0] :.2f}%', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+            self.drawer.drawText(hdc, f'{rz[0]}日异动', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+            self.drawer.drawText(hdc, f'{rz[1] :.1f}% ({rz[2] :.1f}%)', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         y += RH
         rz = self.getYiDongInfo(klineModel, 30)
         if rz is not None:
-            self.drawer.drawText(hdc, f'{rz[1]}日异动', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
-            self.drawer.drawText(hdc, f'{rz[0] :.2f}%', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+            self.drawer.drawText(hdc, f'{rz[0]}日异动', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+            self.drawer.drawText(hdc, f'{rz[1] :.1f}% ({rz[2] :.1f}%)', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         # 区间统计
         if not self.rangeSelData:
             return
@@ -1372,37 +1372,56 @@ class CodeWindow(BaseWindow):
         self.rangeSelData = evt.data
         self.invalidWindow()
 
-    def getYiDongZF(self, model, daysNum):
+    def getYiDongZF(self, model, daysNum, idx, day):
         datas = model.data
         if not datas or not self.selData:
             return None
-        day = self.selData.day
-        idx = model.getItemIdx(day)
         if idx < 0 or idx < daysNum:
             return None
         pre = datas[idx - daysNum].close
         cur = datas[idx].close
         zf = (cur - pre) / pre * 100
         refZF = self.yiDongCalcMgr.getZhangFu(day, daysNum)
-        zf -= refZF
-        return zf
-
-    # return dayNum, zf
-    def getYiDongInfo(self, model, daysNum):
+        result = zf - refZF
+        # print(f'YI-DONG{self.yiDongCalcMgr.refCode}-{daysNum}: zf=', zf, ' refZF=', refZF, 'result=', result)
+        return result, refZF
+    
+    def getMaxYiDong(self, model, daysNum):
+        if not self.selData:
+            return None
         maxZF = None
         maxZFDay = 0
+        refZF = 0
+        day = self.selData.day
+        idx = model.getItemIdx(day)
         for i in range(daysNum):
-            d = self.getYiDongZF(model, i + 1)
+            d, refZF = self.getYiDongZF(model, i + 1, idx, day)
             if maxZF == None or maxZF <= d:
                 maxZF = d
                 maxZFDay = i + 1
         if maxZF == None:
             return None
-        return maxZF, maxZFDay
-        # maxZF = 100 if daysNum == 10 else 200
-        # maxPrice = (maxZF + 100) / 100 * datas[idx - daysNum + 1].close
-        # lessZF = (maxPrice - cur) / cur * 100
-        # return zf, lessZF
+        return maxZFDay, maxZF, refZF, idx
+
+    # return dayNum, zf
+    def getYiDongInfo(self, model, daysNum):
+        if not self.selData:
+            return None
+        info = self.getMaxYiDong(model, daysNum)
+        if not info:
+            return None
+        maxZFDay, maxZF, refZF, idx = info
+
+        LIMIT_ZF = (100 if daysNum == 10 else 200) + refZF
+        tt = model.data[idx - maxZFDay]
+        pre = model.data[idx - maxZFDay].close
+        cur = model.data[idx].close
+        limitPrice = LIMIT_ZF * pre / 100 + pre
+        zpre = model.data[idx - 1].close
+        limitTodayZF = (limitPrice - zpre) / zpre * 100
+        todayZF = (cur - zpre) / zpre * 100
+        lessZF = limitTodayZF - todayZF
+        return maxZFDay, maxZF, lessZF
 
 class KLineCodeWindow(base_win.BaseWindow):
     def __init__(self) -> None:
@@ -1418,7 +1437,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
     def createWindow(self, parentWnd, rect, style = win32con.WS_VISIBLE | win32con.WS_CHILD, className='STATIC', title = ''):
         super().createWindow(parentWnd, rect, style, className, title)
-        DETAIL_WIDTH = 150
+        DETAIL_WIDTH = 180
         self.layout = base_win.GridLayout(('100%', ), ('1fr', DETAIL_WIDTH), (5, 5))
         self.klineWin.createWindow(self.hwnd, (0, 0, 1, 1))
         self.layout.setContent(0, 0, self.klineWin)
@@ -1431,7 +1450,7 @@ class KLineCodeWindow(base_win.BaseWindow):
         btn.addNamedListener('Click', self.onLeftRight)
         rightLayout.addContent(btn, {'margins': (0, 10, 0, 0)})
         self.idxCodeWin = base_win.Label()
-        self.idxCodeWin.createWindow(self.hwnd, (0, 0, 70, 30))
+        self.idxCodeWin.createWindow(self.hwnd, (0, 0, 100, 30))
         self.idxCodeWin.css['textAlign'] |= win32con.DT_CENTER
         rightLayout.addContent(self.idxCodeWin, {'margins': (0, 10, 0, 0)})
         btn = base_win.Button({'title': '>>', 'name': 'RIGHT'})
@@ -1527,8 +1546,9 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '1B0688' # 000547 002149  002565 002792
+    CODE = '000547' #      1B0688
     win = kline_utils.createKLineWindowByCode(CODE)
     win.changeCode(CODE)
+    win.setCodeList([CODE, '002792', '002149', '002565', '301079', '300058', '688523'])
     win.mainWin = True
     win32gui.PumpMessages()
