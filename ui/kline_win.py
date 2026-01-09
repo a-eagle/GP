@@ -761,9 +761,8 @@ class DayLongManager:
             return
 
 # 异动计算器
-class YiDongCalcManager:
-    def __init__(self, win) -> None:
-        self.win = win
+class YiDongManager:
+    def __init__(self) -> None:
         self.refCode = None
         self.refs = {}
 
@@ -795,17 +794,58 @@ class YiDongCalcManager:
         if dm.data:
             self.refs[refCode] = dm
 
-    def getZhangFu(self, selDay, days):
+    def getRefZF(self, selDay, daysNum):
         if not self.refCode or not self.refs.get(self.refCode, None):
             return 0
         model : K_DataModel = self.refs[self.refCode]
         idx = model.getItemIdx(selDay)
-        if idx < 0 or idx < days:
+        if idx < 0 or idx < daysNum:
             return 0
-        pre = model.data[idx - days].close
+        pre = model.data[idx - daysNum].close
         cur = model.data[idx].close
         zf = (cur - pre) / pre * 100
         return zf
+
+    def getZF(self, model, daysNum, idx, day):
+        pre = model.data[idx - daysNum].close
+        cur = model.data[idx].close
+        zf = (cur - pre) / pre * 100
+        refZF = self.getRefZF(day, daysNum)
+        result = zf - refZF
+        return result, refZF
+    
+    def getMaxZF(self, model, day, daysNum):
+        maxZF = None
+        maxZFDay = 0
+        refZF = 0
+        idx = model.getItemIdx(day)
+        if idx < 0 or idx < daysNum:
+            return None
+        for i in range(daysNum):
+            d, refZF = self.getZF(model, i + 1, idx, day)
+            if maxZF == None or maxZF <= d:
+                maxZF = d
+                maxZFDay = i + 1
+        if maxZF == None:
+            return None
+        return maxZFDay, maxZF, refZF, idx
+
+    # return dayNum, zf, less
+    def calcInfo(self, model, day, daysNum):
+        info = self.getMaxZF(model, day, daysNum)
+        if not info:
+            return None
+        maxZFDay, maxZF, refZF, idx = info
+        LIMIT_ZF = (100 if daysNum == 10 else 200) + refZF
+        tt = model.data[idx - maxZFDay]
+        pre = model.data[idx - maxZFDay].close
+        cur = model.data[idx].close
+        limitPrice = LIMIT_ZF * pre / 100 + pre
+        zpre = model.data[idx - 1].close
+        limitTodayZF = (limitPrice - zpre) / zpre * 100
+        todayZF = (cur - zpre) / zpre * 100
+        lessZF = limitTodayZF - todayZF
+        return maxZFDay, maxZF, lessZF
 
 class KLineWindow(base_win.BaseWindow):
     LEFT_MARGIN, RIGHT_MARGIN = 0, 70
@@ -1213,7 +1253,7 @@ class CodeWindow(BaseWindow):
         self.selData = None
         self.rangeSelData = None
         self.klineWin = klineWin
-        self.yiDongCalcMgr = YiDongCalcManager(klineWin)
+        self.yiDongMgr = YiDongManager()
         klineWin.addNamedListener('selIdx-Changed', self.onSelIdxChanged)
         klineWin.addNamedListener('range-selector-changed', self.onRangeSelectorChanged)
         self.V_CENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER
@@ -1360,7 +1400,7 @@ class CodeWindow(BaseWindow):
             return
         self.curCode = scode
         self.basicData = None
-        self.yiDongCalcMgr.changeCode(scode)
+        self.yiDongMgr.changeCode(scode)
         base_win.ThreadPool.instance().addTask_N(self.loadCodeBasic, scode)
 
     def onSelIdxChanged(self, evt, args):
@@ -1372,56 +1412,12 @@ class CodeWindow(BaseWindow):
         self.rangeSelData = evt.data
         self.invalidWindow()
 
-    def getYiDongZF(self, model, daysNum, idx, day):
-        datas = model.data
-        if not datas or not self.selData:
+    def getYiDongInfo(self, klineModel, daysNum):
+        if not klineModel or not klineModel.data or not self.selData:
             return None
-        if idx < 0 or idx < daysNum:
-            return None
-        pre = datas[idx - daysNum].close
-        cur = datas[idx].close
-        zf = (cur - pre) / pre * 100
-        refZF = self.yiDongCalcMgr.getZhangFu(day, daysNum)
-        result = zf - refZF
-        # print(f'YI-DONG{self.yiDongCalcMgr.refCode}-{daysNum}: zf=', zf, ' refZF=', refZF, 'result=', result)
-        return result, refZF
-    
-    def getMaxYiDong(self, model, daysNum):
-        if not self.selData:
-            return None
-        maxZF = None
-        maxZFDay = 0
-        refZF = 0
         day = self.selData.day
-        idx = model.getItemIdx(day)
-        for i in range(daysNum):
-            d, refZF = self.getYiDongZF(model, i + 1, idx, day)
-            if maxZF == None or maxZF <= d:
-                maxZF = d
-                maxZFDay = i + 1
-        if maxZF == None:
-            return None
-        return maxZFDay, maxZF, refZF, idx
-
-    # return dayNum, zf
-    def getYiDongInfo(self, model, daysNum):
-        if not self.selData:
-            return None
-        info = self.getMaxYiDong(model, daysNum)
-        if not info:
-            return None
-        maxZFDay, maxZF, refZF, idx = info
-
-        LIMIT_ZF = (100 if daysNum == 10 else 200) + refZF
-        tt = model.data[idx - maxZFDay]
-        pre = model.data[idx - maxZFDay].close
-        cur = model.data[idx].close
-        limitPrice = LIMIT_ZF * pre / 100 + pre
-        zpre = model.data[idx - 1].close
-        limitTodayZF = (limitPrice - zpre) / zpre * 100
-        todayZF = (cur - zpre) / zpre * 100
-        lessZF = limitTodayZF - todayZF
-        return maxZFDay, maxZF, lessZF
+        info = self.yiDongMgr.calcInfo(klineModel, day, daysNum)
+        return info
 
 class KLineCodeWindow(base_win.BaseWindow):
     def __init__(self) -> None:
