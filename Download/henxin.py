@@ -350,9 +350,7 @@ class HexinUrl(Henxin):
         if not rs:
             return None
         rs['code'] = code
-        timeout = 60
-        if peroid == 'day' or datetime.datetime.now().strftime('%H:%M') > '15:05':
-            timeout = 60 * 60 * 1
+        timeout = 60 * 60
         memcache.cache.saveCache(f'THS-KLine:{peroid}:{code}', rs, timeout)
         return rs
 
