@@ -1360,7 +1360,7 @@ class CodeWindow(BaseWindow):
             return
         self.curCode = scode
         self.basicData = None
-        self.yiDongCalcMgr.changeCode(code)
+        self.yiDongCalcMgr.changeCode(scode)
         base_win.ThreadPool.instance().addTask_N(self.loadCodeBasic, scode)
 
     def onSelIdxChanged(self, evt, args):
