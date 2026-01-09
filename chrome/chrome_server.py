@@ -471,7 +471,7 @@ class Server:
                 rs['line'] = lines[preLastIdx + 1 : ]
             else:
                 hx = henxin.HexinUrl()
-                data = hx.loadFenShiData(code)
+                data = hx.loadTimelineData(code)
                 rs['pre'] = data['pre']
                 rs['line'] = data['line']
         if not rs['line']:

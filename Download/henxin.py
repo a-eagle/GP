@@ -243,7 +243,7 @@ class HexinUrl(Henxin):
         return url
     
     # 分时线 url
-    def _getFenShiUrl(self, code):
+    def _getTimelineUrl(self, code):
         sh = self.getCodeSH(code)
         if not sh:
             return None
@@ -298,7 +298,7 @@ class HexinUrl(Henxin):
         return url
 
     # return {name:xx, code:xx, data: ItemData}
-    def loadTodayData(self, code):
+    def loadTodayKLineData(self, code):
         url = self._getTodayKLineUrl(code)
         if not url:
             return None
@@ -370,7 +370,7 @@ class HexinUrl(Henxin):
         last = data[-1]
         todayInt = int(datetime.date.today().strftime('%Y%m%d'))
         if todayInt == int(rs['today']):
-            todayRs = self.loadTodayData(code)
+            todayRs = self.loadTodayKLineData(code)
             if todayRs and todayRs['data']:
                 if last.day == todayRs['data'].day:
                     data.pop(-1)
@@ -378,18 +378,18 @@ class HexinUrl(Henxin):
         return rs
 
     # fenshi: {name:xx, code:xx, pre:xx, date:yyyymmdd(str), data: str;str;..., line:[ItemData...] }  data: 时间，价格，成交额（元），分时均价，成交量（手）;
-    def loadFenShiData(self, code):
+    def loadTimelineData(self, code):
         data = memcache.cache.getCache(f'THS-FS:{code}')
         if data:
             return data
-        url = self._getFenShiUrl(code)
+        url = self._getTimelineUrl(code)
         try:
             resp = self.session.get(url)
         except Exception as e:
-            print('henxin.loadFenShiData Error: ', url, '-->', e)
+            print('henxin.loadTimelineData Error: ', url, '-->', e)
             return None
         if resp.status_code != 200:
-            print('[HexinUrl.loadFenShiData] Error:', code, resp)
+            print('[HexinUrl.loadTimelineData] Error:', code, resp)
             return None
         txt = resp.content.decode('utf-8')
         bi = txt.index('(')

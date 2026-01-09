@@ -145,7 +145,7 @@ class TimelineDataFileLoader:
                 return True
             if len(code) == 6 and code[0] == '8': # ths zs
                 hx = henxin.HexinUrl()
-                datas = hx.loadFenShiData(code)
+                datas = hx.loadTimelineData(code)
             else:
                 url = cls.ClsUrl()
                 datas = url.loadHistory5FenShi(code)

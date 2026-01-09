@@ -786,7 +786,7 @@ class HotZHCardView(ListView):
                 self.codeInfos[code] = data = {}
             if data.get('day', -1) == day and time.time() - data.get('updateTime', 0) <= 60:
                 return
-            obj = self.henxinUrl.loadFenShiData(code)
+            obj = self.henxinUrl.loadTimelineData(code)
             data['name'] = obj['name']
             if day != obj['date']:
                 return

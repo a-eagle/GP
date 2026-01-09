@@ -636,7 +636,7 @@ class Ths_T_DataModel(T_DataModel):
     def _loadNetLastData(self):
         from download import henxin
         hx = henxin.HexinUrl()
-        rs = hx.loadFenShiData(self.code)
+        rs = hx.loadTimelineData(self.code)
         return rs
     
     def loadData(self, day):
