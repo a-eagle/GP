@@ -52,6 +52,8 @@ class ThsColumns:
 
     def cast(self, val, _type, defaultVal):
         try:
+            if val == None:
+                return defaultVal
             rs = _type(val)
             if _type == str:
                 rs = rs.strip()
@@ -260,6 +262,7 @@ def download_hygn():
             gncc = obj.gn_code
             diffrents = obj.diff(dest, attrNames = ATTRS)
             if diffrents:
+                updates.append(obj)
                 modify_hygn_code(obj, zsInfos)
                 if 'gn' in diffrents:
                     diffrents['gn_code'] = (gncc, obj.gn_code)
