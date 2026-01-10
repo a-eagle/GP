@@ -2,10 +2,12 @@ import peewee as pw
 import sys, datetime, os
 
 path = os.path.dirname(os.path.dirname(__file__))
+from orm import base_orm
+
 db_def = pw.SqliteDatabase(f'{path}/db/My.db') # 题材库
 
 # 画线
-class TextLine(pw.Model):
+class TextLine(base_orm.BaseModel):
     code = pw.CharField()
     kind = pw.CharField()
     _startPos = pw.CharField(default = None)
@@ -16,7 +18,7 @@ class TextLine(pw.Model):
     class Meta:
         database = db_def
 
-class MySettings(pw.Model):
+class MySettings(base_orm.BaseModel):
     mainKey =  pw.CharField()
     subKey =  pw.CharField(null = True)
     val = pw.CharField(null = True)

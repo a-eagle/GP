@@ -2,6 +2,8 @@ import peewee as pw
 import sys, datetime, os
 
 path = os.path.dirname(os.path.dirname(__file__))
+from orm import base_orm
+
 ROOT_DB_PATH = f'{path}/db'
 
 db_cls_gntc = pw.SqliteDatabase(f'{ROOT_DB_PATH}/CLS_GNTC_n.db')
@@ -11,7 +13,7 @@ db_cls_zt = pw.SqliteDatabase(f'{ROOT_DB_PATH}/CLS_ZT.db')
 db_cls_hot = pw.SqliteDatabase(f'{ROOT_DB_PATH}/CLS_HOT.db')
 
 # 财联社--个股概念题材
-class CLS_GNTC(pw.Model):
+class CLS_GNTC(base_orm.BaseModel):
     keys = ('code', )
     code = pw.CharField() #股票代码
     name = pw.CharField(default='') #股票名称
@@ -24,26 +26,8 @@ class CLS_GNTC(pw.Model):
     class Meta:
         database = db_cls_gntc
 
-    # return changed  False: no changed, Yes: changed
-    def diff(self, newObj):
-        if not newObj:
-            return False
-        changed = False
-        changed = self.diffStrAttr(newObj, 'name') or changed
-        changed = self.diffStrAttr(newObj, 'hy') or changed
-        changed = self.diffStrAttr(newObj, 'hy_code') or changed
-        changed = self.diffStrAttr(newObj, 'gn') or changed
-        changed = self.diffStrAttr(newObj, 'gn_code') or changed
-        return changed
-    
-    def diffStrAttr(self, newObj, attrName):
-        if getattr(self, attrName, '') != getattr(newObj, attrName, ''):
-            setattr(self, attrName, getattr(newObj, attrName, ''))
-            return True
-        return False
-
 # 材联社--指数(板块、概念)
-class CLS_ZS(pw.Model):
+class CLS_ZS(base_orm.BaseModel):
     keys = ('code', )
     code = pw.CharField() #指数代码
     name = pw.CharField() #指数名称
@@ -54,7 +38,7 @@ class CLS_ZS(pw.Model):
         database = db_cls_zs
 
 # 财联社涨停
-class CLS_ZT(pw.Model):
+class CLS_ZT(base_orm.BaseModel):
     keys = ('code', 'day')
     day = pw.CharField() # YYYY-MM-DD
     code = pw.CharField()
@@ -68,7 +52,7 @@ class CLS_ZT(pw.Model):
         database = db_cls_zt
 
 # 财联社涨停、跌停、连板、炸板
-class CLS_UpDown(pw.Model):
+class CLS_UpDown(base_orm.BaseModel):
     keys = ('secu_code', 'day')
     secu_code = pw.CharField()
     secu_name = pw.CharField(null = True)
@@ -85,7 +69,7 @@ class CLS_UpDown(pw.Model):
         database = db_cls_zt
 
 # 综合强度
-class CLS_SCQX(pw.Model):
+class CLS_SCQX(base_orm.BaseModel):
     keys = ('day', )
     day = pw.CharField() # YYYY-MM-DD
     zhqd = pw.IntegerField(column_name='综合强度', null = True)
@@ -97,7 +81,7 @@ class CLS_SCQX(pw.Model):
         database = db_cls_hot
 
 # 综合强度(分时)
-class CLS_SCQX_Time(pw.Model):
+class CLS_SCQX_Time(base_orm.BaseModel):
     keys = ('day', 'time')
     day = pw.CharField() # YYYY-MM-DD
     time = pw.CharField() # HH:MM
@@ -108,7 +92,7 @@ class CLS_SCQX_Time(pw.Model):
         database = db_cls_hot
 
 # 财联社热度题材
-class CLS_HotTc(pw.Model):
+class CLS_HotTc(base_orm.BaseModel):
     keys = ('code', 'day', 'ctime')
     day = pw.CharField() # YYYY-MM-DD
     code = pw.CharField(null = True, default = "")
@@ -121,7 +105,7 @@ class CLS_HotTc(pw.Model):
         database = db_cls_hot
 
 # 材联社--指数涨跌(板块、概念)
-class CLS_ZS_ZD(pw.Model):
+class CLS_ZS_ZD(base_orm.BaseModel):
     keys = ('code', 'day')
     code = pw.CharField() #指数代码
     name = pw.CharField(default = '') #指数名称

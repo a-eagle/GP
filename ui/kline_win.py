@@ -946,17 +946,16 @@ class KLineWindow(base_win.BaseWindow):
             return
         if code[0 : 3] == '399':
             return
-        obj = cls_orm.CLS_GNTC.get_or_none(code = code)
+        obj : cls_orm.CLS_GNTC = cls_orm.CLS_GNTC.get_or_none(code = code)
         if obj and obj.updateTime and datetime.date.today() == obj.updateTime.date():
             return
         info = cls.ClsUrl().loadBkGnOfCode(code)
         if not obj:
             info.save()
-        elif obj.diff(info):
+        elif obj.diff(info, excludeAttrNames = ['updateTime']):
             obj.updateTime = datetime.datetime.now()
             obj.save()
         self.bkgnView.changeCode(code)
-        
 
     def onContextMenu(self, x, y):
         hygnRect = getattr(self.bkgnView, 'rect', None)

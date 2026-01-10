@@ -2,10 +2,11 @@ import peewee as pw
 import sys, datetime, os, json
 
 path = os.path.dirname(os.path.dirname(__file__))
+from orm import base_orm
 
 db_lhb = pw.SqliteDatabase(f'{path}/db/LHB.db')
 
-class TdxLHB(pw.Model):
+class TdxLHB(base_orm.BaseModel):
     keys = ('code', 'day')
     day = pw.CharField(column_name = '日期' ) # YYYY-MM-DD
     code = pw.CharField()

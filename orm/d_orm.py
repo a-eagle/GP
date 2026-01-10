@@ -2,10 +2,12 @@ import peewee as pw
 import sys, datetime, os
 
 path = os.path.dirname(os.path.dirname(__file__))
+from orm import base_orm
+
 db_pankou = pw.SqliteDatabase(f'{path}/db/PanKou.db')
 
 # 涨停盘口(收盘)
-class ZT_PanKou(pw.Model):
+class ZT_PanKou(base_orm.BaseModel):
     keys = ('day', 'code')
     day = pw.CharField() # YYYY-MM-DD
     code = pw.CharField()
@@ -17,7 +19,7 @@ class ZT_PanKou(pw.Model):
 
 db_hotvol = pw.SqliteDatabase(f'{path}/db/HotVol.db')
 #热度股成交量前100信息
-class HotVol(pw.Model):
+class HotVol(base_orm.BaseModel):
     keys = ('day', )
     day = pw.CharField() # YYYY-MM-DD
     p1 = pw.IntegerField() # 第一  亿元
@@ -37,7 +39,7 @@ class HotVol(pw.Model):
 
 db_zhangsu = pw.SqliteDatabase(f'{path}/db/ZhangSu.db')
 # Local涨速
-class LocalSpeedModel(pw.Model):
+class LocalSpeedModel(base_orm.BaseModel):
     keys = ('day', 'code')
     day = pw.IntegerField() # 日期
     code = pw.CharField() #股票代码

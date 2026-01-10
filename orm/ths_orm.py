@@ -2,10 +2,11 @@ import peewee as pw
 import sys, datetime, os
 
 path = os.path.dirname(os.path.dirname(__file__))
+from orm import base_orm
 
 db_gntc = pw.SqliteDatabase(f'{path}/db/THS_GNTC.db')
 # 同花顺--概念题材
-class THS_GNTC(pw.Model):
+class THS_GNTC(base_orm.BaseModel):
     keys = ('code', )
     code = pw.CharField() #股票代码
     name = pw.CharField() #股票名称
@@ -33,7 +34,7 @@ db_hot = pw.SqliteDatabase(f'{path}/db/THS_Hot.db')
 db_hot_zh = pw.SqliteDatabase(f'{path}/db/THS_HotZH.db')
 
 # 同花顺--个股热度排名
-class THS_Hot(pw.Model):
+class THS_Hot(base_orm.BaseModel):
     # no keys
     day = pw.IntegerField(column_name = '日期') # 刷新日期
     code = pw.IntegerField() #股票代码
@@ -47,7 +48,7 @@ class THS_Hot(pw.Model):
         table_name = '个股热度排名'
 
 # 同花顺--个股热度综合排名
-class THS_HotZH(pw.Model):
+class THS_HotZH(base_orm.BaseModel):
     keys = ('day', 'code')
     day = pw.IntegerField(column_name = '日期') # 刷新日期
     code = pw.IntegerField() #股票代码
@@ -61,7 +62,7 @@ class THS_HotZH(pw.Model):
         table_name = '个股热度综合排名'
 
 db_thszs = pw.SqliteDatabase(f'{path}/db/THS_ZS.db')
-class THS_ZS(pw.Model):
+class THS_ZS(base_orm.BaseModel):
     code = pw.CharField() #指数代码
     name = pw.CharField() #指数名称
 
@@ -72,7 +73,7 @@ class THS_ZS(pw.Model):
         # create view 同花顺指数_view (code, name) as select code, name from 同花顺指数涨跌信息 where day = (select max(day) from 同花顺指数涨跌信息)
 
 # 同花顺指数涨跌信息
-class THS_ZS_ZD(pw.Model):
+class THS_ZS_ZD(base_orm.BaseModel):
     keys = ('day', 'code')
     day = pw.CharField() # YYYY-MM-DD
     code = pw.CharField() #指数代码
@@ -95,7 +96,7 @@ class THS_ZS_ZD(pw.Model):
 
 db_ths_zt = pw.SqliteDatabase(f'{path}/db/THS_ZT.db') # THS.db --> THS_ZT.db
 # 同花顺涨停
-class THS_ZT(pw.Model):
+class THS_ZT(base_orm.BaseModel):
     keys = ('code', 'day')
     code = pw.CharField()
     name = pw.CharField(null = True)
@@ -111,7 +112,7 @@ class THS_ZT(pw.Model):
 
 db_ths_codes = pw.SqliteDatabase(f'{path}/db/THS_Codes.db')
 # 个股信息
-class THS_CodesInfo(pw.Model):
+class THS_CodesInfo(base_orm.BaseModel):
     keys = ('code', )
     code = pw.CharField()
     name = pw.CharField(null = True)

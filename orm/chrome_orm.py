@@ -2,7 +2,8 @@ import peewee as pw
 import sys, datetime, os
 
 path = os.path.dirname(os.path.dirname(__file__))
-import base_orm
+from orm import base_orm
+
 db_chrome = pw.SqliteDatabase(f'{path}/db/Chrome.db')
 
 # 笔记
