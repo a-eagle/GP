@@ -938,25 +938,25 @@ class KLineWindow(base_win.BaseWindow):
         self.makeVisible(-1)
         self.bkgnView.changeCode(code)
         self.invalidWindow()
-        self.loadBkGn(code)
+        ThreadPool.instance().addTask_N(self.loadBkGn, code)
         self.notifyListener(self.Event('ChangeCode', self, code = code))
 
     def loadBkGn(self, code):
-        def _ln(code):
-            obj = cls_orm.CLS_GNTC.get_or_none(code = code)
-            if not obj:
-                info = cls.ClsUrl().loadBkGnOfCode(code)
-                info.save()
-                self.bkgnView.changeCode(code)
-                return
-            info = cls.ClsUrl().loadBkGnOfCode(code)
-            # old = copy.deepcopy(obj.__data__)
-            if obj.diff(info):
-                obj.updateTime = datetime.datetime.now()
-                obj.save()
-            self.bkgnView.changeCode(code)
-        if code[0] in ('0', '3', '6', 's'):
-            ThreadPool.instance().addTask_N(_ln, code)
+        if code[0] not in ('0', '3', '6'):
+            return
+        if code[0 : 3] == '399':
+            return
+        obj = cls_orm.CLS_GNTC.get_or_none(code = code)
+        if obj and obj.updateTime and datetime.date.today() == obj.updateTime.date():
+            return
+        info = cls.ClsUrl().loadBkGnOfCode(code)
+        if not obj:
+            info.save()
+        elif obj.diff(info):
+            obj.updateTime = datetime.datetime.now()
+            obj.save()
+        self.bkgnView.changeCode(code)
+        
 
     def onContextMenu(self, x, y):
         hygnRect = getattr(self.bkgnView, 'rect', None)

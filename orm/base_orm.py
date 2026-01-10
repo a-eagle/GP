@@ -1,0 +1,97 @@
+import peewee as pw
+import sys, datetime, os, inspect
+
+class BaseModel(pw.Model):
+    # return change: diffrents dict object {name: (old, new), ...}  | not change: None
+    # newObj: peewee.Model object | dict
+    # attrNames: list | tuple | dict, compare attrs. if None, then compare all fields
+    # excludeAttrNames: list | tuple | dict, not include compare attrs
+    # enableDefaults: enable pw.Model fields default value
+    def compare(self, newObj, attrNames = None, excludeAttrNames = None, enableDefaults = True):
+        if not newObj:
+            return False
+        if isinstance(newObj, dict):
+            getValFunc = lambda o, n : o.get(n, None)
+        else:
+            getValFunc = lambda o, n : getattr(o, n, None)
+        diffrents = self._diffObject(newObj, getValFunc, attrNames, excludeAttrNames, enableDefaults)
+        return diffrents
+
+    # compare and modify changes
+    def diff(self, newObj, attrNames = None, excludeAttrNames = None, enableDefaults = True):
+        diffrents = self.compare(newObj, attrNames, excludeAttrNames, enableDefaults)
+        if not diffrents:
+            return None
+        for name in diffrents:
+            oldVal, newVal = diffrents[name]
+            setattr(self, name, newVal)
+        return diffrents
+    
+    # return diffrents dict object {name: (old, new), ...}  | None
+    def _diffObject(self, newObj, getValFunc, attrNames, excludeAttrNames, enableDefaults):
+        diffrents = {}
+        attrs = self.getAttrs(attrNames, excludeAttrNames)
+        for a in attrs:
+            self.diffAttr(a, getValFunc(newObj, a[0]), enableDefaults, diffrents)
+        if not diffrents:
+            return None
+        return diffrents
+
+    def diffAttr(self, attr, newVal, enableDefaults, diffrents):
+        name, _type, defaultVal = attr
+        if callable(defaultVal):
+            defaultVal = defaultVal()
+        curVal = getattr(self, name, None)
+        if curVal == newVal:
+            return False
+        if enableDefaults and newVal is None:
+            if curVal == defaultVal:
+                return False
+            newVal = defaultVal
+        if newVal is not None and type(newVal) != _type:
+            newVal = _type(newVal)
+        if curVal == newVal:
+            return False
+        diffrents[name] = (curVal, newVal)
+        return True
+
+    def getAttrs(self, attrNames, excludeAttrNames):
+        fields = self._meta.fields
+        defaults = self._meta.defaults
+        rs = []
+        for name in fields:
+            if name == 'id':
+                continue
+            if attrNames and (name not in attrNames):
+                continue
+            if excludeAttrNames and (name in excludeAttrNames):
+                continue
+            f = fields[name]
+            defaultVal = None
+            if f in defaults:
+                defaultVal = defaults[f]
+            if isinstance(f, pw._StringField):
+                rs.append((name, str, defaultVal))
+            elif isinstance(f, pw.IntegerField):
+                rs.append((name, int, defaultVal))
+            elif isinstance(f, pw.FloatField):
+                rs.append((name, float, defaultVal))
+            elif isinstance(f, pw.DateTimeField):
+                rs.append((name, datetime.datetime, defaultVal))
+            elif isinstance(f, pw.DateField):
+                rs.append((name, datetime.date, defaultVal))
+        return rs
+
+class TestModel(BaseModel):
+    user = pw.CharField() #
+    sex = pw.CharField(null = True, default = '') #
+    old = pw.IntegerField(null = True, default = 0 )
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+
+if __name__ == '__main__':
+    bm = TestModel(user = 'Hello', old=10)
+    bm2 = TestModel(old = '10')
+    bm3 = {'user': 'NewUser'}
+
+    rs = bm.diff(bm3)
+    print(rs)
