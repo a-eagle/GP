@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, io
 from ctypes import pointer, Structure, windll
 from ctypes.wintypes import WORD, SHORT, SMALL_RECT
 import ctypes
@@ -39,6 +39,22 @@ def write_3(font, color, bgColor, *args):
 #Console.write2( Console.YELLOW, Console.BLACK, 'Hello', 'World AA')
 #Console.write3(Console.F_HIDE, Console.RED, Console.BLACK, 'Hello', 'World BB')
 
+logFile = None
+def log(*args, sep = ' ', endle = '\n'):
+    global logFile
+    path = os.path.dirname(os.path.dirname(__file__))
+    path = os.path.join(path, 'log')
+    if not logFile:
+        logFile = open(path, 'a')
+    buf = io.StringIO()
+    for idx, a in enumerate(args):
+        buf.write(str(a))
+        if idx != len(args) - 1:
+            buf.write(sep)
+    buf.write(endle)
+    logFile.write(buf.getvalue())
+    logFile.flush()
+
 class COORD(Structure):
     _fields_ = [("x", SHORT), ("y", SHORT)]
     def __init__(self, x, y):
@@ -63,3 +79,8 @@ def getCursorPos():
     hOut = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
     ctypes.windll.kernel32.GetConsoleScreenBufferInfo(hOut, pointer(csbi))
     return csbi.dwCursorPosition.x, csbi.dwCursorPosition.y
+
+
+if __name__ == '__main__':
+    log('Hello world', 15, {'name': 'SEEDDK', 'old': 30})
+    pass

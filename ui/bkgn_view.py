@@ -252,8 +252,8 @@ class BkGnView:
     def setLimitDaysNum(self, daysNum):
         self.limitDaysNum = daysNum
 
-    def changeCode(self, code):
-        if (self.curCode == code) or (not code):
+    def changeCode(self, code, force = False):
+        if (not force) and ((self.curCode == code) or (not code)):
             return
         self.lastDay = None
         scode = f'{code :06d}' if type(code) == int else code

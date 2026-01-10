@@ -2,7 +2,7 @@ import sys, peewee as pw, requests, json, re, traceback, time, datetime, os
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from orm import ths_orm
+from orm import ths_orm, d_orm
 from download import henxin, memcache
 
 class ThsColumns:
@@ -243,6 +243,7 @@ def download_hygn():
     ATTRS = ('code', 'name', 'hy', 'gn') #, 'zgb', 'ltag', 'xsg', 'ltsz', 'zsz')
     ATTRS_D = ('code', '股票简称', '所属同花顺行业', '所属概念') #, '总股本', '流通a股', '限售股合计', 'a股市值(不含限售股)', '总市值')
     ATTRS_D_T = (str, str, str, str) #float, float, float, float, float, float)
+    inserts, updates, diffs = [], [], []
     for idx, line in enumerate(rs):
         columns = ThsColumns(line)
         dest = {}
@@ -250,17 +251,29 @@ def download_hygn():
             dest[a] = columns.getColumnValue(ATTRS_D[idx], ATTRS_D_T[idx])
         if dest['code'][0] not in GP_CODE:
             continue
-        obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
-        if obj:
-            changed = modify_hygn_attrs(obj, dest, ATTRS)
-        else:
+        obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
+        if not obj:
             obj = ths_orm.THS_GNTC(**dest)
-            changed = True
-        modify_hygn_code(obj, zsInfos)
-        if changed:
-            obj.updateTime = datetime.datetime.now()
-            obj.save()
-    return len(rs)
+            modify_hygn_code(obj, zsInfos)
+            inserts.append(obj)
+        else:
+            gncc = obj.gn_code
+            diffrents = obj.diff(dest, attrNames = ATTRS)
+            if diffrents:
+                modify_hygn_code(obj, zsInfos)
+                if 'gn' in diffrents:
+                    diffrents['gn_code'] = (gncc, obj.gn_code)
+                obj.updateTime = datetime.datetime.now()
+                diffRs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
+                if diffRs:
+                    diffs.extend(diffRs)
+    if inserts:
+        ths_orm.THS_GNTC.bulk_create(inserts, 100)
+    if updates:
+        ths_orm.THS_GNTC.bulk_update(updates, ATTRS, 100)
+    if diffs:
+        d_orm.DiffBkGnModel.bulk_create(diffs, 100)
+    return len(inserts), len(updates)
 
 # 个股行业概念 
 # return 是否有修改
@@ -665,5 +678,5 @@ if __name__ == '__main__':
     #num = download_hygn()
     #num2 = download_hygn_pe()
 
-    download_jrl_2()
+    download_hygn()
     

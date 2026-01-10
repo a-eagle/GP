@@ -235,8 +235,8 @@ class Server:
 
     def download_hygn(self, tag):
         try:
-            upd = ths_iwencai.download_hygn()
-            console.writeln_1(console.GREEN, f'{tag} [THS-HyGn] {self.formatNowTime(True)} update {upd}')
+            insertNum, updateNum = ths_iwencai.download_hygn()
+            console.writeln_1(console.GREEN, f'{tag} [THS-HyGn] {self.formatNowTime(True)} insert {insertNum} update {updateNum}')
             return True
         except Exception as e:
             traceback.print_exc()

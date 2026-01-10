@@ -2,12 +2,12 @@ import os, sys, functools, copy, datetime, json, time, traceback
 import win32gui, win32con, win32api, pyperclip
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from orm import chrome_orm, my_orm
+from orm import chrome_orm, my_orm, d_orm
 from ui import base_win, dialog
 from utils import gn_utils
 from ui.kline_indicator import *
 from ui import bkgn_view
-from download import henxin
+from download import henxin, console
 
 class MarksManager:
     def __init__(self, win) -> None:
@@ -773,7 +773,7 @@ class YiDongManager:
         base_win.ThreadPool.instance().addTask_N(self.onLoadRef, self.refCode)
 
     def getRefCode(self, code):
-        if not code or code[0 : 2] == '88' or code[0 : 3] == 'cls':
+        if not code or code[0 : 2] == '88' or code[0 : 3] == 'cls' or code == '999999' or code == '1A0001':
             return None
         refCode = None
         if code[0 : 2] == 'sz':
@@ -952,10 +952,15 @@ class KLineWindow(base_win.BaseWindow):
         info = cls.ClsUrl().loadBkGnOfCode(code)
         if not obj:
             info.save()
-        elif obj.diff(info, excludeAttrNames = ['updateTime']):
-            obj.updateTime = datetime.datetime.now()
-            obj.save()
-        self.bkgnView.changeCode(code)
+        else:
+            diffrents = obj.diff(info, excludeAttrNames = ['updateTime'])
+            if diffrents:
+                obj.updateTime = datetime.datetime.now()
+                obj.save()
+                rs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
+                if rs:
+                    d_orm.DiffBkGnModel.bulk_create(rs, 100)
+        # self.bkgnView.changeCode(code, True)
 
     def onContextMenu(self, x, y):
         hygnRect = getattr(self.bkgnView, 'rect', None)
