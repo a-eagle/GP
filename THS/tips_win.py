@@ -215,10 +215,10 @@ class ZSCardView(CardView):
             y = (idx % MAX_ROWS) * H + 2 + H
             x = (idx // MAX_ROWS) * COL_WIDTH
             rect = (x + 2, y, x + COL_WIDTH, y + H)
-            zpm1 = str(zs["zdf_PM"]) if abs(zs["zdf_PM"]) <= 100 else ' '
+            zpm1 = str(zs["zdf_PM"]) if abs(zs["zdf_PM"]) <= 100 and zs["zdf_PM"] != 0 else ' '
             if zpm1[0] != '-': zpm1 = ' ' + zpm1
             zpm1 += ' ' * (4 - len(zpm1))
-            zpm2 = str(zs["zdf_topLevelPM"]) if abs(zs["zdf_topLevelPM"]) <= 100 else ' '
+            zpm2 = str(zs["zdf_topLevelPM"]) if abs(zs["zdf_topLevelPM"]) <= 100 and zs["zdf_topLevelPM"] != 0 else ' '
             if zpm2[0] != '-': zpm2 = ' ' + zpm2
             zpm2 += ' ' * (6 - len(zpm2))
             line = f'{day}    {zpm1}     {zpm2}'
@@ -248,9 +248,27 @@ class ZSCardView(CardView):
             zsCode = f'{zsCode :06d}'
         qr = ths_orm.THS_ZS_ZD.select().where(ths_orm.THS_ZS_ZD.code == zsCode).order_by(ths_orm.THS_ZS_ZD.day.asc())
         data = [d.__data__ for d in qr]
+        datars = {}
+        tdays = ths_iwencai.getTradeDaysInt()
         for d in data:
+            d['sday'] = d['day']
             d['day'] = int(d['day'].replace('-', ''))
-        return data
+            datars[d['day']] = d
+        first = -1
+        for d in data:
+            if d['day'] in tdays:
+                first = tdays.index(d['day'])
+                break
+        if first < 0:
+            return data
+        rs = []
+        for idx in range(first, len(tdays)):
+            day = tdays[idx]
+            item = datars.get(day, None)
+            if not item:
+                item = ths_orm.THS_ZS_ZD(day = f'{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}').__data__
+            rs.append(item)
+        return rs
     
     def updateSelectDay(self, selDay):
         if type(selDay) == str:

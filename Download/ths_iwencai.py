@@ -213,7 +213,7 @@ def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite', maxP
 def modify_hygn_code(obj : ths_orm.THS_GNTC, zsInfos):
     gn_code = []
     for g in obj.gn.split(';'):
-        gcode = zsInfos.get(g, '')
+        gcode = zsInfos.get(g, '-')
         gn_code.append(gcode)
     gn_code = ';'.join(gn_code)
     hys = obj.hy.split('-')
