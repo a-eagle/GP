@@ -120,7 +120,7 @@ class TdxGuiDownloader:
         time.sleep(5)
 
     def getStartDayFor(self, isDay : bool):
-        maxday = datetime.date.today() - datetime.timedelta(days = 20)
+        maxday = datetime.date.today() - datetime.timedelta(days = 60)
         maxdayInt = int(maxday.strftime('%Y%m%d'))
         if isDay:
             df = K_DataModel('999999')
@@ -138,22 +138,30 @@ class TdxGuiDownloader:
         print(f'download dialog hwnd={hwnd:X}')
         if not hwnd:
             raise Exception('Not find download dialog')
-        selBtnPos = self.getScreenPos(hwnd, 80, 95, False)
-        win32gui.SetForegroundWindow(hwnd)
-        pyautogui.click(*selBtnPos, duration = 0.3)
+        # win32gui.SetForegroundWindow(hwnd) # must be set foreground, and wait some seconds
+        time.sleep(3)
+        oneDayBtn = win32gui.FindWindowEx(hwnd, None, 'Button', '日线和实时行情数据')
+        checked = win32gui.SendMessage(oneDayBtn, win32con.BM_GETCHECK, 0, 0)
+        if not checked:
+            self.click(oneDayBtn, 10, 5)
+        allBtn = win32gui.FindWindowEx(hwnd, None, 'Button', '下载所有AB股类品种的日线数据')
+        checked = win32gui.SendMessage(allBtn, win32con.BM_GETCHECK, 0, 0)
+        if not checked:
+            self.click(allBtn, 10, 5)
+
         fromDayCtrl = win32gui.GetDlgItem(hwnd, 0x4D5) #
         print(f'fromDayCtrl={fromDayCtrl:X}')
         if not fromDayCtrl:
             raise Exception('Not find fromDayCtrl')
         fromDayCtrl = DateTimePickerWrapper(fromDayCtrl)
         startDay = self.getStartDayFor(True)
+        print(f'set from day=', startDay)
         fromDayCtrl.set_time(year = startDay.year, month = startDay.month, day = startDay.day)
 
-        startBtn = win32gui.FindWindowEx(hwnd, None, 'Button', '开始下载')
-        startBtnPos = self.getScreenPos(hwnd, 440, 400, False)
-        pyautogui.click(*startBtnPos, duration = 0.3) # 
         # wait for download end
-        statusCtrl = win32gui.GetDlgItem(hwnd, 0x4C8) 
+        startBtn = win32gui.FindWindowEx(hwnd, None, 'Button', '开始下载')
+        self.click(startBtn, 10, 5)
+        # wait for download end
         time.sleep(3)
         if win32gui.GetWindowText(startBtn) != '取消下载':
             raise Exception('start download Fail')
@@ -161,7 +169,6 @@ class TdxGuiDownloader:
             time.sleep(5)
             if win32gui.GetWindowText(startBtn) == '开始下载':
                 break
-        pyautogui.click(*selBtnPos, duration = 0.3)
         time.sleep(3)
 
     def startDownloadForTimeMinute(self):
@@ -225,8 +232,8 @@ class TdxGuiDownloader:
         try:
             self.login()
             self.openDownloadDialog()
-            # if self.checkNeedDownload(True):
-            #     self.startDownloadForDay()
+            if self.checkNeedDownload(True):
+                self.startDownloadForDay()
             if self.checkNeedDownload(False):
                 self.startDownloadForTimeMinute()
             ok = True
@@ -343,8 +350,9 @@ class Main:
             self.runLoop()
 
 if __name__ == '__main__':
-    #dd = TdxGuiDownloader()
-    #dd.startDownloadForTimeMinute()
+    dd = TdxGuiDownloader()
+    # dd.startDownloadForTimeMinute()
+    # dd.startDownloadForDay()
 
     mm = Main()
     # mm.runOnce()
