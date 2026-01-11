@@ -3,7 +3,7 @@ import sys, peewee as pw, requests, json, re, traceback, time, datetime, os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from orm import ths_orm, d_orm
-from download import henxin, memcache
+from download import henxin, memcache, console
 
 class ThsColumns:
     def __init__(self, item) -> None:
@@ -233,6 +233,17 @@ def modify_hygn_attrs(srcModel, destDict, attrs):
             changed = True
     return changed
 
+def hygn_spliter(val : str):
+    if not val:
+        return []
+    sp = val.split(';')
+    rs = []
+    for s in sp:
+        s = s.strip()
+        if s:
+            rs.append(s)
+    return rs
+
 # 个股行业概念
 # @return update-datas, insert-datas
 def download_hygn():
@@ -245,6 +256,7 @@ def download_hygn():
     ATTRS = ('code', 'name', 'hy', 'gn') #, 'zgb', 'ltag', 'xsg', 'ltsz', 'zsz')
     ATTRS_D = ('code', '股票简称', '所属同花顺行业', '所属概念') #, '总股本', '流通a股', '限售股合计', 'a股市值(不含限售股)', '总市值')
     ATTRS_D_T = (str, str, str, str) #float, float, float, float, float, float)
+    DIFF_ATTRS = ('name', 'hy')
     inserts, updates, diffs = [], [], []
     for idx, line in enumerate(rs):
         columns = ThsColumns(line)
@@ -260,7 +272,10 @@ def download_hygn():
             inserts.append(obj)
         else:
             gncc = obj.gn_code
-            diffrents = obj.diff(dest, attrNames = ATTRS)
+            diffrents = obj.diff(dest, attrNames = DIFF_ATTRS)
+            dfGN = obj.diffAttrOfList('gn', dest['gn'], hygn_spliter)
+            if dfGN:
+                diffrents['gn'] = dfGN
             if diffrents:
                 updates.append(obj)
                 modify_hygn_code(obj, zsInfos)
@@ -270,12 +285,22 @@ def download_hygn():
                 diffRs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
                 if diffRs:
                     diffs.extend(diffRs)
+    
+    console.log('inserts-------')
+    console.log([d.__data__ for d in inserts])
+    console.log('updates-------')
+    console.log([d.__data__ for d in updates])
+    console.log('diffs-------')
+    console.log([d.__data__ for d in diffs])
+
     if inserts:
         ths_orm.THS_GNTC.bulk_create(inserts, 100)
     if updates:
-        ths_orm.THS_GNTC.bulk_update(updates, ATTRS, 100)
+        UPDATE_ATTRS = (*ATTRS, 'updateTime')
+        ths_orm.THS_GNTC.bulk_update(updates, UPDATE_ATTRS, 100)
     if diffs:
         d_orm.DiffBkGnModel.bulk_create(diffs, 100)
+    
     return len(inserts), len(updates)
 
 # 个股行业概念 

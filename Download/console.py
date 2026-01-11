@@ -43,7 +43,7 @@ logFile = None
 def log(*args, sep = ' ', endle = '\n'):
     global logFile
     path = os.path.dirname(os.path.dirname(__file__))
-    path = os.path.join(path, 'log')
+    path = os.path.join(path, 'console.log')
     if not logFile:
         logFile = open(path, 'a')
     buf = io.StringIO()
