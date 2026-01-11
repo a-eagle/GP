@@ -302,6 +302,7 @@ class Server:
         if curTime >= '15:05' and not self.downloadInfos.get(f'zs-{day}', False):
             self.downloadInfos[f'zs-{day}'] = True
             self.downloadSaveZs('[3/7]')
+            ths_orm.update_THS_ZS(True)
             time.sleep(50)
         # 下载个股板块概念信息
         if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False):

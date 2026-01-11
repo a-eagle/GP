@@ -63,6 +63,7 @@ class THS_HotZH(base_orm.BaseModel):
         table_name = '个股热度综合排名'
 
 db_thszs = pw.SqliteDatabase(f'{path}/db/THS_ZS.db')
+db_thszszd = pw.SqliteDatabase(f'{path}/db/THS_ZS_ZD.db')
 class THS_ZS(base_orm.BaseModel):
     keys = ('code', )
     code = pw.CharField() #指数代码
@@ -93,7 +94,7 @@ class THS_ZS_ZD(base_orm.BaseModel):
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
-        database = db_thszs
+        database = db_thszszd
         table_name = '同花顺指数涨跌信息'
 
 def update_THS_ZS(onlyMaxDay = True):
