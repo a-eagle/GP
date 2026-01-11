@@ -39,21 +39,21 @@ def write_3(font, color, bgColor, *args):
 #Console.write2( Console.YELLOW, Console.BLACK, 'Hello', 'World AA')
 #Console.write3(Console.F_HIDE, Console.RED, Console.BLACK, 'Hello', 'World BB')
 
-logFile = None
-def log(*args, sep = ' ', endle = '\n'):
-    global logFile
+logFiles = {}
+def log(*args, sep = ' ', endle = '\n', file = 'console.log'):
     path = os.path.dirname(os.path.dirname(__file__))
-    path = os.path.join(path, 'console.log')
-    if not logFile:
-        logFile = open(path, 'a', encoding = 'utf-8')
+    path = os.path.join(path, file)
+    if file not in logFiles:
+        logFiles[file] = open(path, 'a', encoding = 'utf-8')
     buf = io.StringIO()
     for idx, a in enumerate(args):
         buf.write(str(a))
         if idx != len(args) - 1:
             buf.write(sep)
     buf.write(endle)
-    logFile.write(buf.getvalue())
-    logFile.flush()
+    fs = logFiles[file]
+    fs.write(buf.getvalue())
+    fs.flush()
 
 class COORD(Structure):
     _fields_ = [("x", SHORT), ("y", SHORT)]
