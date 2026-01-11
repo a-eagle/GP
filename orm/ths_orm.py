@@ -2,6 +2,7 @@ import peewee as pw
 import sys, datetime, os
 
 path = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(path)
 from orm import base_orm
 
 db_gntc = pw.SqliteDatabase(f'{path}/db/THS_GNTC.db')
@@ -63,13 +64,14 @@ class THS_HotZH(base_orm.BaseModel):
 
 db_thszs = pw.SqliteDatabase(f'{path}/db/THS_ZS.db')
 class THS_ZS(base_orm.BaseModel):
+    keys = ('code', )
     code = pw.CharField() #指数代码
     name = pw.CharField() #指数名称
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
         database = db_thszs
-        table_name = '同花顺指数_view'
-        primary_key = False
+        # primary_key = False
         # create view 同花顺指数_view (code, name) as select code, name from 同花顺指数涨跌信息 where day = (select max(day) from 同花顺指数涨跌信息)
 
 # 同花顺指数涨跌信息
@@ -93,6 +95,37 @@ class THS_ZS_ZD(base_orm.BaseModel):
     class Meta:
         database = db_thszs
         table_name = '同花顺指数涨跌信息'
+
+def update_THS_ZS(onlyMaxDay = True):
+    qr = None
+    if onlyMaxDay:
+        maxDay = THS_ZS_ZD.select(pw.fn.max(THS_ZS_ZD.day)).scalar()
+        if maxDay:
+            qr = THS_ZS_ZD.select(THS_ZS_ZD.code, THS_ZS_ZD.name).where(THS_ZS_ZD.day == maxDay).tuples()        
+    if not qr:
+        qr = THS_ZS_ZD.select(THS_ZS_ZD.code, THS_ZS_ZD.name).tuples()
+    # print(qr)
+    rs = {}
+    for it in qr:
+        code, name = it
+        rs[code] = name
+    inserts, updates = [], []
+    curs = {}
+    for it in THS_ZS.select():
+        curs[it.code] = it
+    # find inserts
+    for code in rs:
+        if code not in curs:
+            inserts.append(THS_ZS(code = code, name = rs[code]))
+    # find updates
+    for code in curs:
+        if code not in rs:
+            continue
+        if curs[code].name != rs[code]:
+            curs[code].name = rs[code]
+            updates.append(curs[code])
+    THS_ZS.bulk_create(inserts, 100)
+    THS_ZS.bulk_update(updates, ['name'], 100)
 
 db_ths_zt = pw.SqliteDatabase(f'{path}/db/THS_ZT.db') # THS.db --> THS_ZT.db
 # 同花顺涨停
@@ -127,10 +160,10 @@ class THS_CodesInfo(base_orm.BaseModel):
 
 db_hot.create_tables([THS_Hot])
 db_hot_zh.create_tables([THS_HotZH])
-db_thszs.create_tables([THS_ZS_ZD])
+db_thszs.create_tables([THS_ZS_ZD, THS_ZS])
 db_gntc.create_tables([THS_GNTC])
 db_ths_zt.create_tables([THS_ZT])
 db_ths_codes.create_tables([THS_CodesInfo])
 
 if __name__ == '__main__':
-    pass
+    update_THS_ZS()
