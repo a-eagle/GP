@@ -161,7 +161,8 @@ class THS_CodesInfo(base_orm.BaseModel):
 
 db_hot.create_tables([THS_Hot])
 db_hot_zh.create_tables([THS_HotZH])
-db_thszs.create_tables([THS_ZS_ZD, THS_ZS])
+db_thszs.create_tables([THS_ZS])
+db_thszszd.create_tables([THS_ZS_ZD])
 db_gntc.create_tables([THS_GNTC])
 db_ths_zt.create_tables([THS_ZT])
 db_ths_codes.create_tables([THS_CodesInfo])
