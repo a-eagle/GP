@@ -35,6 +35,8 @@ class BaseModel(pw.Model):
             curVal = defaultVal
         if newVal == None and enableDefaults:
             newVal = defaultVal
+        if newVal == curVal:
+            return None
         if newVal == None or curVal == None:
             return (curVal, newVal)
         curValList = spliter(curVal)
@@ -113,7 +115,7 @@ class BaseModel(pw.Model):
 
 class TestModel(BaseModel):
     user = pw.CharField() #
-    sex = pw.CharField(null = True, default = '') #
+    sex = pw.CharField(null = True, default = None) #
     old = pw.IntegerField(null = True, default = 0 )
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
