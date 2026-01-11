@@ -46,3 +46,4 @@ pyc/*/
 !pyc/*.cmd
 *.zip
 分析/*.json
+*.log
