@@ -247,7 +247,7 @@ def hygn_spliter(val : str):
 # 个股行业概念
 # @return update-datas, insert-datas
 def download_hygn():
-    rs = iwencai_load_list(question = '个股及行业板块,流通a股,限售股,流通市值,总市值') # ,maxPage = 1
+    rs = iwencai_load_list(question = '个股及行业板块, 按热度排序', maxPage = 5) # ,maxPage = 1, 流通a股,限售股,流通市值,总市值
     zsInfos = {}
     qr = ths_orm.THS_ZS.select()
     for q in qr:
@@ -258,6 +258,9 @@ def download_hygn():
     ATTRS_D_T = (str, str, str, str) #float, float, float, float, float, float)
     DIFF_ATTRS = ('name', 'hy')
     inserts, updates, diffs = [], [], []
+    objs = {}
+    for d in ths_orm.THS_GNTC.select():
+        objs[d.code] = d
     for idx, line in enumerate(rs):
         columns = ThsColumns(line)
         dest = {}
@@ -265,7 +268,8 @@ def download_hygn():
             dest[a] = columns.getColumnValue(ATTRS_D[idx], ATTRS_D_T[idx])
         if dest['code'][0] not in GP_CODE:
             continue
-        obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
+        # obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
+        obj : ths_orm.THS_GNTC = objs.get(dest['code'], None)
         if not obj:
             obj = ths_orm.THS_GNTC(**dest)
             modify_hygn_code(obj, zsInfos)
@@ -285,14 +289,12 @@ def download_hygn():
                 diffRs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
                 if diffRs:
                     diffs.extend(diffRs)
-    
-    console.log('inserts-------')
-    console.log([d.__data__ for d in inserts])
-    console.log('updates-------')
-    console.log([d.__data__ for d in updates])
-    console.log('diffs-------')
-    console.log([d.__data__ for d in diffs])
-
+    # console.log('inserts-------')
+    # console.log([d.__data__ for d in inserts])
+    # console.log('updates-------')
+    # console.log([d.__data__ for d in updates])
+    # console.log('diffs-------')
+    # console.log([d.__data__ for d in diffs])
     if inserts:
         ths_orm.THS_GNTC.bulk_create(inserts, 100)
     if updates:
@@ -446,7 +448,9 @@ def save_hot(hots):
 # @return  data : list
 # code, 指数简称, 指数@涨跌幅:前复权[20240709]
 def download_zs_zd():
-    rs = iwencai_load_list('同花顺概念指数或同花顺行业指数按涨跌幅排序', 'zhishu', 'click')
+    rs1 = iwencai_load_list('同花顺概念指数或同花顺行业指数,按涨跌幅从大到小排序', 'zhishu', 'click', maxPage = 1)
+    rs2 = iwencai_load_list('同花顺概念指数或同花顺行业指数,按涨跌幅从小到大排序', 'zhishu', 'click', maxPage = 1)
+    rs = rs1 + rs2
     datas = []
     亿 = 100000000
     RK = '指数@涨跌幅:前复权['
@@ -466,6 +470,7 @@ def download_zs_zd():
             elif '最高价' in k: obj.high = float(row[k])
             elif '收盘价' in k: obj.close = float(row[k])
             elif '换手率' in k: obj.rate = float(row[k])
+    datas.sort(key = lambda d : d.zdf, reverse = True)
     return datas
 
 def save_zs_zd(datas):
@@ -474,11 +479,11 @@ def save_zs_zd(datas):
             datas[i].zdf_PM = i + 1
         else:
             datas[i].zdf_PM = i - len(datas)
-    subGn = ('AIGC概念', 'ChatGP概念', 'MLOps概念', 'MCU芯片', '中芯国际概念', '光刻胶', 'EDR概念', '比亚迪概念', '钠离子电池',
-             '钒电池', 'PVDF概念', '高压快冲', '血氧仪', '智能家居', '智能音箱', '智能穿戴', '无线耳机', '核电', '光热发电',
-             '风电', '光伏概念', '光伏建筑', '钙钛矿电池', 'TOPCON电池', 'HJT电池', '超超临界发电', '生物质能发电',
-             '数据中心', '信创', '网络安全', '国产操作系统', '数字货币', '数字乡村')
-    topLevels = [d for d in datas if d.code[0 : 3] != '884' and (d.name not in subGn)]
+    # subGn = ('AIGC概念', 'ChatGP概念', 'MLOps概念', 'MCU芯片', '中芯国际概念', '光刻胶', 'EDR概念', '比亚迪概念', '钠离子电池',
+    #          '钒电池', 'PVDF概念', '高压快冲', '血氧仪', '智能家居', '智能音箱', '智能穿戴', '无线耳机', '核电', '光热发电',
+    #          '风电', '光伏概念', '光伏建筑', '钙钛矿电池', 'TOPCON电池', 'HJT电池', '超超临界发电', '生物质能发电',
+    #          '数据中心', '信创', '网络安全', '国产操作系统', '数字货币', '数字乡村')
+    topLevels = [d for d in datas if d.code[0 : 3] != '884'] # and (d.name not in subGn)
     for i in range(len(topLevels)):
         if i <= len(topLevels) // 2:
             topLevels[i].zdf_topLevelPM = i + 1
@@ -651,7 +656,7 @@ def download_vol_top100(day = None):
 
 # 近三年净利润
 def download_jrl():
-    datas = iwencai_load_list('近4年净利润', maxPage = None)
+    datas = iwencai_load_list('近4年净利润,按个股热度排名从小到大排序', maxPage = 5)
     rs = []
     for idx, it in enumerate(datas):
         obj = {}
@@ -677,7 +682,7 @@ def download_jrl():
 
 # 近四季度净利润
 def download_jrl_2():
-    datas = iwencai_load_list('近4季度净利润', maxPage = None)
+    datas = iwencai_load_list('近4季度净利润,按个股热度排名从小到大排序', maxPage = 5)
     rs = []
     for idx, it in enumerate(datas):
         obj = {}
@@ -706,5 +711,6 @@ if __name__ == '__main__':
     #num = download_hygn()
     #num2 = download_hygn_pe()
 
-    download_hygn()
+    download_zs_zd()
+    pass
     

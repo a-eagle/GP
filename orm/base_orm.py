@@ -21,8 +21,6 @@ class BaseModel(pw.Model):
     # see .compare()
     def diff(self, newObj, attrNames = None, excludeAttrNames = None, enableDefaults = True):
         diffrents = self.compare(newObj, attrNames, excludeAttrNames, enableDefaults)
-        if not diffrents:
-            return None
         for name in diffrents:
             oldVal, newVal = diffrents[name]
             setattr(self, name, newVal)

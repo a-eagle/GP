@@ -306,10 +306,10 @@ class Server:
         # 下载个股板块概念信息
         if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False):
             self.downloadInfos[f'hygn-{day}'] = True
-            if now.weekday() == 1: # 每周二
-                self.download_hygn('[4/7]')
-            else:
-                console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn] skip, only week 2 download')
+            # if now.weekday() == 1: # 每周二
+            self.download_hygn('[4/7]')
+            # else:
+                # console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn] skip, only week 2 download')
             time.sleep(60)
         # 下载个股PeTTM
         if (curTime >= '20:00') and not self.downloadInfos.get(f'hygn_ttm-{day}', False):
@@ -336,7 +336,7 @@ class Server:
         if (curTime >= '22:00') and not self.downloadInfos.get(f'jrl-{day}', False):
             self.downloadInfos[f'jrl-{day}'] = True
             # accept = not self.downloadInfos.get(f'jrl-month-{day[0 : 6]}', False)
-            self.downloadInfos[f'jrl-month-{day[0 : 6]}'] = True
+            # self.downloadInfos[f'jrl-month-{day[0 : 6]}'] = True
             if now.weekday() == 3: # 每周四
                 self.download_jrl('[7/7] THS-Jrl-年度', True)
                 self.download_jrl('[7/7] THS-Jrl-季度', False)
