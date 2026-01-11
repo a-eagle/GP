@@ -45,7 +45,7 @@ def log(*args, sep = ' ', endle = '\n'):
     path = os.path.dirname(os.path.dirname(__file__))
     path = os.path.join(path, 'console.log')
     if not logFile:
-        logFile = open(path, 'a')
+        logFile = open(path, 'a', encoding = 'utf-8')
     buf = io.StringIO()
     for idx, a in enumerate(args):
         buf.write(str(a))

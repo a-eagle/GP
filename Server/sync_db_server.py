@@ -22,7 +22,7 @@ class Server:
         path = __file__[0 : __file__.upper().index('GP') + 2]
         path = os.path.join(path, LOG_FILE_NAME)
         # if os.path.exists(LOG_FILE_NAME):
-        self.logFile = open(path, 'a')
+        self.logFile = open(path, 'a', encoding = 'utf-8')
 
     def check(self):
         pass
@@ -242,7 +242,7 @@ class Client:
         if not logFile:
             return
         if data:
-            ds = json.dumps(data)
+            ds = json.dumps(data, ensure_ascii = False)
         else:
             ds = 'None'
         now = datetime.datetime.now()
