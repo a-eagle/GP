@@ -163,7 +163,7 @@ class ClsUrl:
         rt['市盈率_静'] = self.getVal(data, 'pe', float, 0)
         rt['市盈率_TTM'] = self.getVal(data, 'ttm_pe', float, 0)
         #print(rt)
-        memcache.cache.saveCache(f'cls-basic-{code}', rt, 60)
+        memcache.cache.saveCache(f'cls-basic-{code}', rt, 60 * 60)
         return rt
 
     # 近5日分时

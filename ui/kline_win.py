@@ -1278,24 +1278,24 @@ class CodeWindow(BaseWindow):
         y += 3
         self.drawer.drawText(hdc, '流通市值', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         if self.basicData:
-            val = (str(int(self.basicData.get('ltsz', 0) / 100000000)) or '--') + ' 亿'
+            val = (str(int(self.basicData.get('流通市值', 0) / 100000000)) or '--') + ' 亿'
             self.drawer.drawText(hdc, val, (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         y += RH
         self.drawer.drawText(hdc, '总市值', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         if self.basicData:
-            val = (str(int(self.basicData.get('zsz', 0) / 100000000)) or '--') + ' 亿'
+            val = (str(int(self.basicData.get('总市值', 0) / 100000000)) or '--') + ' 亿'
             self.drawer.drawText(hdc, val, (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         y += RH
         self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
         y += 3
         self.drawer.drawText(hdc, '市盈率_静', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         if self.basicData:
-            rz = int(self.basicData.get('pe', 0) or 0)
+            rz = int(self.basicData.get('市盈率_静', 0) or 0)
             self.drawer.drawText(hdc, str(rz or '--'), (RIGHT_X + 10, y, W, y + RH), (0xcccccc if rz >= 0 else 0x00ff00), self.V_CENTER)
         y += RH
         self.drawer.drawText(hdc, '市盈率_TTM', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         if self.basicData:
-            rz = int(self.basicData.get('peTTM', 0) or 0)
+            rz = int(self.basicData.get('市盈率_TTM', 0) or 0)
             self.drawer.drawText(hdc, str(rz or '--'), (RIGHT_X + 10, y, W, y + RH), (0xcccccc if rz >= 0 else 0x00ff00), self.V_CENTER)
         y += RH
         self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
@@ -1393,10 +1393,10 @@ class CodeWindow(BaseWindow):
             if obj : self.basicData = obj.__data__
         else:
             #from download import cls
-            #url = cls.ClsUrl()
-            #self.basicData = url.loadBasic(code)
-            obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
-            if obj: self.basicData = obj.__data__
+            url = cls.ClsUrl()
+            self.basicData = url.loadBasic(code)
+            # obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
+            # if obj: self.basicData = obj.__data__
         self.invalidWindow()
 
     def changeCode(self, code):
@@ -1547,7 +1547,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '000547' #      1B0688
+    CODE = '002202' #      1B0688
     win = kline_utils.createKLineWindowByCode(CODE)
     win.changeCode(CODE)
     win.setCodeList([CODE, '002792', '002149', '002565', '301079', '300058', '688523'])
