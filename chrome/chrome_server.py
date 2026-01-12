@@ -657,7 +657,6 @@ class Server:
                 st[f'max_{d}_vol'] = maxVol
                 st[f'max_{d}_vol_day'] = maxDay
 
-
     def _calcPlateMaxHots(self, stocks : list, endDayInt):
         hots = {}
         istoks = [int(s['secu_code'][2 : ]) for s in stocks if len(s['secu_code']) == 8 and s['secu_code'][2] in ('0', '3', '6')]
