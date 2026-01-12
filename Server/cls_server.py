@@ -176,12 +176,13 @@ class Server:
             self.downloadInfos[f'updown-{day}'] = ok
             time.sleep(60)
         if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-{day}', False)):
+            idx += 1
             self.downloadInfos[f'zs-{day}'] = True
-            # self.downloadZS('[3/8]')
+            self.downloadZS(f'[{idx}/{NUM}]')
             # time.sleep(60)
         if curTime >= '15:10' and (not self.downloadInfos.get(f'zs-zd-{day}', False)):
-            idx += 1
-            flag = self.downloadZS_ZD(f'[{idx}/{NUM}]')
+            # idx += 1
+            # flag = self.downloadZS_ZD(f'[{idx}/{NUM}]')
             self.downloadInfos[f'zs-zd-{day}'] = flag
             time.sleep(60)
         if curTime >= '15:10' and (not self.downloadInfos.get(f'ztpk-{day}', False)):
@@ -202,7 +203,7 @@ class Server:
         self.downloadScqx('[1/8]')
         self.downloadUpDown('[2/8]')
         self.downloadZS('[3/8]')
-        self.downloadZS_ZD('[4/8]')
+        # self.downloadZS_ZD('[4/8]')
         self.downloadZT_PanKou('[5/8]')
         self.downloadHotTcOfLastDay('[6/8]')
         self.downloadEastmoneyZdfb('[7/8]')
@@ -284,9 +285,10 @@ class Server:
         return False
 
     # 指数（板块概念）
-    def downloadZS(self, tag, rs):
+    def downloadZS(self, tag, rs = None):
         try:
-            # rs = cls.ClsUrl().loadAllZS()
+            if not rs:
+                rs = cls.ClsUrl().loadAllZS()
             ex = {}
             qt = cls_orm.CLS_ZS.select()
             u, i = 0, 0
