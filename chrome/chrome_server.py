@@ -338,7 +338,7 @@ class Server:
     
     def _getDBs(self):
         dbs = {'hot': ths_orm.db_hot, 'hot_zh': ths_orm.db_hot_zh,
-               'ths_zs': ths_orm.db_thszs, 'chrome': chrome_orm.db_chrome, 
+               'ths_zs': ths_orm.db_thszs, 'chrome': chrome_orm.db_chrome,
                'cls_hot': cls_orm.db_cls_hot, 'cls_zt': cls_orm.db_cls_zt, 'cls_zs_zd': cls_orm.db_cls_zs_zd}
         return dbs
 
@@ -643,7 +643,7 @@ class Server:
                 if idx < d:
                     continue
                 for i in range(d):
-                    st['max_{d}_Vol'] = max(st.get('max_{d}_Vol', 0), dm.data[idx - i].amount)
+                    st['max_{d}_vol'] = max(st.get('max_{d}_vol', 0), dm.data[idx - i].amount)
 
 
     def _calcPlateMaxHots(self, stocks : list, endDayInt):

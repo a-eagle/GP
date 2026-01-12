@@ -138,6 +138,7 @@ class StocksManager {
             {text: '最高热度', 'name': 'maxHot', width: 70, sortable: true, defined: true, cellRender: hotRender, sortVal: hotSortVal},
             {text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
             {text: '成交额', 'name': 'amount', width: 50, sortable: true, defined: true},
+            {text: '5日最高成交额', 'name': 'max_5_vol', width: 50, sortable: true, defined: true},
             {text: '流通市值', 'name': 'cmc', width: 70, sortable: true},
         ];
         if (getLocationParams('refThsCode')) {
