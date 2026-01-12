@@ -869,13 +869,13 @@ class TdxChuncker:
 
 if __name__ == '__main__':
     w = TdxChuncker()
-    CODE = '600000'
-    dm = T_DataModel(CODE)
-    days = dm.loadDays()
-    print(len(days), days)
+    # CODE = '600000'
+    # dm = T_DataModel(CODE)
+    # days = dm.loadDays()
+    # print(len(days), days)
     # w.chunckAll_T_ByHots()
     # w.chunck_T('600000', 20251020, (20250925, 20251010), (20251223, 20251224))
-    w.removeNotCodes()
+    # w.removeNotCodes()
     # w.chunckAll_T_ByLastDay(22)
     # w.removeInvalidCodes()
     
@@ -885,6 +885,13 @@ if __name__ == '__main__':
     # ritem = tm.unpackTdxData(bs)
     # print(ritem)
     # f.close()
+    stime = time.time()
+    cs = w.getLocalCodes('lday')
+    for c in cs[0 : 300]:
+        dm = K_DataModel(c)
+        dm.loadLocalData()
+    etime = time.time()
+    print('use time=', etime - stime)
     
 
 

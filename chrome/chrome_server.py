@@ -620,11 +620,35 @@ class Server:
                 break
         si = i - period + 1
         fromDayInt = int(tradeDays[si])
+        for s in stocks:
+            s['code'] = s['secu_code'][2 : ]
         self._calcPlateMaxHots(stocks, endDayInt)
+        self._calcMaxVol(stocks, endDayInt)
+
+    def _calcMaxVol(self, stocks, endDayInt):
+        tradeDays = ths_iwencai.getTradeDaysInt()
+        if endDayInt not in tradeDays:
+            return
+        # eidx = tradeDays.index(endDayInt)
+        # fromDayInt = tradeDays[eidx - 3]
+        for st in stocks:
+            code = st['code']
+            dm = datafile.K_DataModel(code)
+            dm.loadLocalData()
+            idx = dm.getItemIdx(endDayInt)
+            if idx < 0:
+                continue
+            DD = (3, 5, 10)
+            for d in DD:
+                if idx < d:
+                    continue
+                for i in range(d):
+                    st['max_{d}_Vol'] = max(st.get('max_{d}_Vol', 0), dm.data[idx - i].amount)
+
 
     def _calcPlateMaxHots(self, stocks : list, endDayInt):
         hots = {}
-        istoks = [s['secu_code'][2 : ] for s in stocks if len(s['secu_code']) == 8 and s['secu_code'][2] in ('0', '3', '6')]
+        istoks = [int(s['secu_code'][2 : ]) for s in stocks if len(s['secu_code']) == 8 and s['secu_code'][2] in ('0', '3', '6')]
         endDay = datetime.date(endDayInt // 10000, endDayInt // 100 % 100, endDayInt % 100)
         fromDay = endDay - datetime.timedelta(days = 30)
         fromDay = int(fromDay.strftime('%Y%m%d'))

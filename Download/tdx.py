@@ -155,7 +155,7 @@ class TdxGuiDownloader:
             raise Exception('Not find fromDayCtrl')
         fromDayCtrl = DateTimePickerWrapper(fromDayCtrl)
         startDay = self.getStartDayFor(True)
-        print(f'set from day=', startDay)
+        print(f'start from day=', startDay)
         fromDayCtrl.set_time(year = startDay.year, month = startDay.month, day = startDay.day)
 
         # wait for download end
