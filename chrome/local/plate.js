@@ -157,7 +157,12 @@ class StocksManager {
         ];
         let code = getLocationParams('code');
         if (code.substring(0, 2) == '88') {
-            hd.push({text: '行业', 'name': 'hy', width: 250, sortable: true});
+            for (let i = 0; i < hd.length; i++) {
+                if (hd[i].name == 'cmc') {
+                    hd.splice(i, 1);
+                    break;
+                }
+            }
         } else {
             // hd.push({text: '领涨次数', 'name': 'head_num', width: 70, sortable: true});
             // hd.push({text: '资金流向', 'name': 'fundflow', width: 90, sortable: true});

@@ -611,7 +611,7 @@ class Server:
             day = int(day.replace('-', ''))
             day = datetime.date(day // 10000, day // 100 % 100, day % 100)
         endDayInt = int(day.strftime('%Y%m%d'))
-        tradeDays = ths_iwencai.getTradeDays(500)
+        tradeDays = ths_iwencai.getTradeDays()
         if endDayInt > int(tradeDays[-1]):
             endDayInt = int(tradeDays[-1])
         for i in range(len(tradeDays) - 1, -1, -1):
