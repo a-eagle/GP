@@ -800,7 +800,7 @@ class TabNaviMgr {
 
 	_initUI() {
 		let thiz = this;
-		this.navi = $('<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div> <div >热度榜</div> <div >成交额</div> <div >指数</div> <div>笔记</div> <div>标记</div> </div>');
+		this.navi = $('<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div> <div >热度榜</div> <div >成交额</div> <div>笔记</div> <div>标记</div> </div>');
 		$('div[name="tab-nav-item"]').append(this.navi);
 		$('div[name="tab-nav-item"] > div').click(function() {
 			if (! $(this).hasClass('toggle-nav-active')) {

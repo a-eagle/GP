@@ -305,7 +305,7 @@ class Server:
             ths_orm.update_THS_ZS(True)
             time.sleep(50)
         # 下载个股板块概念信息
-        if (curTime >= '15:05') and not self.downloadInfos.get(f'hygn-{day}', False):
+        if (curTime >= '22:00') and not self.downloadInfos.get(f'hygn-{day}', False):
             self.downloadInfos[f'hygn-{day}'] = True
             # if now.weekday() == 1: # 每周二
             self.download_hygn('[4/7]')

@@ -626,24 +626,36 @@ class Server:
         self._calcMaxVol(stocks, endDayInt)
 
     def _calcMaxVol(self, stocks, endDayInt):
-        tradeDays = ths_iwencai.getTradeDaysInt()
-        if endDayInt not in tradeDays:
-            return
         # eidx = tradeDays.index(endDayInt)
         # fromDayInt = tradeDays[eidx - 3]
         for st in stocks:
             code = st['code']
             dm = datafile.K_DataModel(code)
             dm.loadLocalData()
-            idx = dm.getItemIdx(endDayInt)
-            if idx < 0:
+            if not dm.data or len(dm.data) < 10:
                 continue
-            DD = (3, 5, 10)
+            idx = -1
+            cday = 0
+            for i in range(len(dm.data)):
+                if endDayInt >= dm.data[i].day:
+                    cday = dm.data[i].day
+                    idx = i
+                else:
+                    break
+            if cday == 0:
+                continue
+            DD = (5, 10, 20)
             for d in DD:
                 if idx < d:
                     continue
+                maxDay = ''
+                maxVol = 0
                 for i in range(d):
-                    st['max_{d}_vol'] = max(st.get('max_{d}_vol', 0), dm.data[idx - i].amount)
+                     if maxVol < dm.data[idx - i].amount:
+                         maxVol = dm.data[idx - i].amount
+                         maxDay = dm.data[idx - i].day
+                st[f'max_{d}_vol'] = maxVol
+                st[f'max_{d}_vol_day'] = maxDay
 
 
     def _calcPlateMaxHots(self, stocks : list, endDayInt):

@@ -129,6 +129,19 @@ class StocksManager {
             else val = '';
             tdObj.text(val);
         }
+        let maxVolRender = function(rowIdx, rowData, head, tdObj) {
+            let val = rowData[head.name];
+            if (! isNaN(val)) {
+                val = parseInt(val / 100000000); // 亿元
+                tdObj.text(`${val}亿`);
+                let day = String(rowData[head.name + '_day']);
+                day = day.substring(0, 4) + '-' + day.substring(4, 6) + '-' + day.substring(6);
+                tdObj.attr('title', `最大成交日期${day}`);
+            } else {
+                tdObj.text('');
+                tdObj.attr('title', '');
+            }
+        }
 
         let hd = [
             {text: '标记', 'name': 'mark_color', width: 40, defined: true, sortable: true},
@@ -138,7 +151,8 @@ class StocksManager {
             {text: '最高热度', 'name': 'maxHot', width: 70, sortable: true, defined: true, cellRender: hotRender, sortVal: hotSortVal},
             {text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
             {text: '成交额', 'name': 'amount', width: 50, sortable: true, defined: true},
-            {text: '5日最高成交额', 'name': 'max_5_vol', width: 50, sortable: true, defined: true},
+            {text: '5日最高成交额', 'name': 'max_5_vol', width: 70, sortable: true, defined: true, cellRender: maxVolRender},
+            {text: '20日最高成交额', 'name': 'max_20_vol', width: 70, sortable: true, defined: true, cellRender: maxVolRender},
             {text: '流通市值', 'name': 'cmc', width: 70, sortable: true},
         ];
         if (getLocationParams('refThsCode')) {
@@ -155,6 +169,7 @@ class StocksManager {
         let code = getLocationParams('code');
         $.get(`/plate/${code}`, function(data) {
             st.setData(data);
+            // console.log(data);
             st.buildUI();
         });
         $('.toggle-nav-contents').append(this.ui);
