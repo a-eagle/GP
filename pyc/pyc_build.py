@@ -3,8 +3,9 @@ import py_compile, os, re, sys, shutil
 DEST_DIR = os.path.join(os.path.dirname(__file__), 'GP-pyd')
 ROOT_PATH = os.path.dirname(os.path.dirname(__file__))
 
-if not os.path.exists(DEST_DIR):
-    os.makedirs(DEST_DIR)
+def init():
+    if not os.path.exists(DEST_DIR):
+        os.makedirs(DEST_DIR)
 
 def buildPyFiles(path, name):
     ls = os.listdir(os.path.join(path, name))

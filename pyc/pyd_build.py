@@ -56,6 +56,7 @@ def movePyd():
         shutil.move(os.path.join(pyc_build.DEST_DIR, ln), os.path.join(pyc_build.DEST_DIR, dir, ln))
 
 if __name__ == '__main__':
+    pyc_build.init()
     pyc_build.listTopDir(pyc_build.ROOT_PATH, copyPyFiles)
     os.chdir(pyc_build.DEST_DIR)
     sys.argv.append('build_ext')
