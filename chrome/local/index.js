@@ -1483,6 +1483,13 @@ class AmountCompare {
 		else ctx.fillStyle = '#000';
 		ctx.fillText(text, width - this.PAD_RIGHT + 10, this.PAD_TOP + 110);
 
+		let diffAll = parseInt(this.result.preAllSum * rate / 100 / 100000000);
+		text = '预计' + flag + diffAll + '亿';
+		if (diffAll > 0) ctx.fillStyle = '#c00';
+		else if (diffAll < 0) ctx.fillStyle = '#0c0';
+		else ctx.fillStyle = '#000';
+		ctx.fillText(text, width - this.PAD_RIGHT + 10, this.PAD_TOP + 140);
+
 		ctx.fillStyle = '#aaa';
 		ctx.strokeStyle = '#aaa';
 		ctx.font = 'normal 12px Arial';
