@@ -155,19 +155,26 @@ class StocksManager {
             {text: '20日最高成交额', 'name': 'max_20_vol', width: 70, sortable: true, defined: true, cellRender: maxVolRender},
             {text: '流通市值', 'name': 'cmc', width: 70, sortable: true},
         ];
-        if (getLocationParams('refThsCode')) {
-            hd.push({text: '行业', 'name': 'hy', width: 250, sortable: true});
+        let code = getLocationParams('code');
+        if (code.substring(0, 2) == '88') {
+            for (let i = 0; i < hd.length; i++) {
+                if (hd[i].name == 'cmc') {
+                    hd.splice(i, 1);
+                    break;
+                }
+            }
         } else {
             // hd.push({text: '领涨次数', 'name': 'head_num', width: 70, sortable: true});
-            hd.push({text: '资金流向', 'name': 'fundflow', width: 90, sortable: true});
+            // hd.push({text: '资金流向', 'name': 'fundflow', width: 90, sortable: true});
             hd.push({text: '简介', 'name': 'assoc_desc', width: 250});
         }
         hd.push({text: '分时图', 'name': 'fs', width: 300});
         let st = new StockTable(hd);
         st.initStyle();
         this.ui.append(st.table);
-        let code = getLocationParams('code');
-        $.get(`/plate/${code}`, function(data) {
+        let day = getLocationParams('day') || '';
+        if (day) st.setDay(day);
+        $.get(`/plate/${code}?day=${day}`, function(data) {
             st.setData(data);
             // console.log(data);
             st.buildUI();
