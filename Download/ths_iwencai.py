@@ -268,6 +268,8 @@ def download_hygn():
             dest[a] = columns.getColumnValue(ATTRS_D[idx], ATTRS_D_T[idx])
         if dest['code'][0] not in GP_CODE:
             continue
+        if dest['name']:
+            dest['name'] = dest['name'].replace(' ', '')
         # obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
         obj : ths_orm.THS_GNTC = objs.get(dest['code'], None)
         if not obj:
@@ -470,6 +472,8 @@ def download_zs_zd():
             elif '最高价' in k: obj.high = float(row[k])
             elif '收盘价' in k: obj.close = float(row[k])
             elif '换手率' in k: obj.rate = float(row[k])
+        if obj.name:
+            obj.name = obj.name.replace(' ', '')
     datas.sort(key = lambda d : d.zdf, reverse = True)
     return datas
 
@@ -711,6 +715,8 @@ if __name__ == '__main__':
     #num = download_hygn()
     #num2 = download_hygn_pe()
 
-    download_zs_zd()
+    # download_zs_zd()
+    ss = hygn_spliter(';;asdf;ek;;')
+    print(ss)
     pass
     
