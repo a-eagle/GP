@@ -1362,7 +1362,7 @@ class LhbIndicator(CustomIndicator):
 
     def fmtMoney(self, item, name):
         money = int(item.get(name, 0)) // 100 * 100
-        if money >= 10000:
+        if abs(money) >= 10000:
             money /= 10000
             return f'{money :.1f}亿'
         if not money:

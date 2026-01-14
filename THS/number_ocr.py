@@ -11,8 +11,11 @@ import win32gui, win32con , win32api, win32ui # pip install pywin32
 def pytesseract_image_to_string(img, **kwargs):
     import pytesseract
     pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-    rs = pytesseract.image_to_string(img, **kwargs)
-    return rs
+    try:
+        rs = pytesseract.image_to_string(img, **kwargs)
+        return rs
+    except :
+        return ''
 
 # whitelist
 def readTextfromImage(img : Image, whitelist = None):
