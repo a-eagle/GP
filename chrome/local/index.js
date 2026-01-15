@@ -1175,7 +1175,7 @@ class TabNaviMgr {
 			</div>');
 		ops.find('input').bind('keydown', function(event) {
 			if(event.keyCode == 13) {
-				window.st.filter($(this).val().trim());
+				st.filter($(this).val().trim());
 			}
 		});
 		ops.append(exOps);
