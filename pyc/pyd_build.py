@@ -1,6 +1,7 @@
 import os, sys, shutil, py_compile
 import distutils.core
 import Cython.Build
+from distutils.extension import Extension
 # pip install nuitka
 # nuitka 
 
@@ -10,6 +11,7 @@ SRC_ROOT_PATH = os.path.dirname(os.path.dirname(__file__))
 pyDirs = {}
 pyFiles = []
 dirs = set()
+exceptions = []
 
 def init():
     if not os.path.exists(DEST_ROOT_DIR):
@@ -76,6 +78,7 @@ def copyPyFiles(path, name):
             raise Exception('Same py file', dfile)
         pyDirs[f[0 : -3]] = name
         pyFiles.append(dfile)
+        exceptions.append(Extension(f'{name}.{f[0 : -3]}', [dfile]))
 
 def removeDir(path):
     if not os.path.exists(path):
@@ -113,9 +116,8 @@ if __name__ == '__main__':
     os.chdir(DEST_ROOT_DIR)
     sys.argv.append('build_ext')
     sys.argv.append('--inplace')
-    distutils.core.setup(ext_modules = Cython.Build.cythonize(pyFiles))
+    distutils.core.setup(ext_modules = Cython.Build.cythonize(exceptions)) #pyFiles
     cleanPyAndCFiles()
-    movePyd()
     buildDir = os.path.join(DEST_ROOT_DIR, 'build')
     removeDir(buildDir)
     copyDataFiles()
