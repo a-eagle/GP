@@ -414,7 +414,7 @@ class KLineIndicator(Indicator):
         if ex <= sx:
             ex = sx + 2
         rc = (sx, int(self.height * 0.1), ex, int(self.height * 0.9))
-        drawer.fillRect(hdc, rc, 0x202020)
+        drawer.fillRect(hdc, rc, 0x101010)
 
 class RefIndicator(Indicator):
     def __init__(self, win, config = None) -> None:
@@ -1189,7 +1189,6 @@ class ZhangSuIndicator(CustomIndicator):
             config['height'] = 30
         super().__init__(win, config)
         self.config['title'] = '[涨速]'
-        self.visible = False
 
     def _changeCode(self):
         super()._changeCode()
