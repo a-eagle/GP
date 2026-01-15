@@ -1,84 +1,50 @@
-import os, sys, shutil, py_compile
+import os, sys, shutil, py_compile, re, functools
 import distutils.core
 import Cython.Build
 from distutils.extension import Extension
 # pip install nuitka
 # nuitka 
 
-DEST_ROOT_DIR = os.path.join(os.path.dirname(__file__), 'GP-pyd')
+DEST_ROOT_PATH = os.path.join(os.path.dirname(__file__), 'GP-pyd')
 SRC_ROOT_PATH = os.path.dirname(os.path.dirname(__file__))
 
-pyDirs = {}
-pyFiles = []
-dirs = set()
-exceptions = []
-
-def init():
-    if not os.path.exists(DEST_ROOT_DIR):
-        os.makedirs(DEST_ROOT_DIR)
-
-def buildPycFiles(path, name):
-    ls = os.listdir(os.path.join(path, name))
-    dirname = os.path.join(DEST_ROOT_DIR, name)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    for f in ls:
-        file = os.path.join(path, name, f)
-        if len(f) < 4 or f[-3 : ] != '.py':
-            continue
-        py_compile.compile(file, os.path.join(dirname, f + 'c'))
-
-def buildPyc():
-    listTopDir(SRC_ROOT_PATH, buildPycFiles)
-
-# todo = function(path, name)
-def listTopDir(path, todo):
+# todo: function(path, isDir)
+# filter: function(file, isDir)
+def travelDir(rootPath, subPath = '', todo = None, filter = None, travelSubDirs = True):
+    rs = []
+    path = rootPath
+    if subPath:
+        path = os.path.join(rootPath, subPath)
     ls = os.listdir(path)
     for f in ls:
-        if f == 'pyc':
-            continue
         sp = os.path.join(path, f)
         if f[0] == '.':
             continue
-        if os.path.isdir(sp):
-            todo(path, f)
+        isDir = os.path.isdir(sp)
+        if filter and not filter(f, isDir):
+            continue
+        psp = os.path.join(subPath, f)
+        if todo:
+            todo(psp, isDir)
+        rs.append((psp, isDir))
+        if isDir and travelSubDirs:
+            rs.extend(travelDir(rootPath, psp, todo, filter))
+    return rs
 
-def copyFiles(srcRootPath, srcName):
-    s = os.path.join(srcRootPath, srcName)
-    if os.path.isdir(s):
-        dirname = os.path.join(DEST_ROOT_DIR, srcName)
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
-        for ln in os.listdir(s):
-            copyFiles(srcRootPath, os.path.join(srcName, ln))
+def copyFile(file, isDir):
+    spath = os.path.join(SRC_ROOT_PATH, file)
+    dpath = os.path.join(DEST_ROOT_PATH, file)
+    if isDir:
+        if not os.path.exists(dpath):
+            os.makedirs(dpath)
     else:
-        d = os.path.join(DEST_ROOT_DIR, srcName)
-        shutil.copyfile(s, d)
+        shutil.copyfile(spath, dpath)
 
 def copyDataFiles():
-    # copyFiles(ROOT_PATH, 'THS\\img')
-    # copyFiles(SRC_ROOT_PATH, 'db')
-    copyFiles(SRC_ROOT_PATH, 'chrome\\local')
-    copyFiles(SRC_ROOT_PATH, 'pyc')
-    copyFiles(SRC_ROOT_PATH, 'download\\cls-sign.dll')
-
-def copyPyFiles(path, name):
-    ls = os.listdir(os.path.join(path, name))
-    dirname = os.path.join(DEST_ROOT_DIR, name)
-    dirs.add(dirname)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    for f in ls:
-        sfile = os.path.join(path, name, f)
-        if len(f) < 4 or f[-3 : ] != '.py':
-            continue
-        dfile = os.path.join(dirname, f)
-        shutil.copyfile(sfile, dfile)
-        if f in pyFiles:
-            raise Exception('Same py file', dfile)
-        pyDirs[f[0 : -3]] = name
-        pyFiles.append(dfile)
-        exceptions.append(Extension(f'{name}.{f[0 : -3]}', [dfile]))
+    travelDir(SRC_ROOT_PATH, 'chrome\\local', todo = copyFile)
+    travelDir(SRC_ROOT_PATH, 'pyc', todo = copyFile, travelSubDirs = False)
+    travelDir(SRC_ROOT_PATH, 'db', todo = copyFile)
+    # copyFiles(SRC_ROOT_PATH, 'download\\cls-sign.dll')
 
 def removeDir(path):
     if not os.path.exists(path):
@@ -91,33 +57,33 @@ def removeDir(path):
     else:
         os.remove(path)
 
-def cleanAll():
-    for d in dirs:
-        removeDir(d)
-    buildDir = os.path.join(DEST_ROOT_DIR, 'build')
-    removeDir(buildDir)
-
-def cleanPyAndCFiles():
-    for f in pyFiles:
+def cleanFiles(files):
+    for file, isDir in files:
+        if isDir: continue
+        f = os.path.join(DEST_ROOT_PATH, file)
         os.remove(f)
         os.remove(f'{f[0 : -3]}.c')
-
-def movePyd():
-    for ln in os.listdir(DEST_ROOT_DIR):
-        if len(ln) <= 4 or ln[-4 : ] != '.pyd':
+    buildDir = os.path.join(DEST_ROOT_PATH, 'build')
+    removeDir(buildDir)
+    
+def buildExceptions(srcFiles):
+    exceptions = []
+    for file, isDir in srcFiles:
+        if isDir:
             continue
-        bname = ln[0 : ln.index('.')]
-        dir = pyDirs[bname]
-        shutil.move(os.path.join(DEST_ROOT_DIR, ln), os.path.join(DEST_ROOT_DIR, dir, ln))
+        pps = list(os.path.split(file))
+        pps[-1] = pps[-1][0 : -3]
+        m = '.'.join(pps)
+        exceptions.append(Extension(m, [file]))
+    return exceptions
 
 if __name__ == '__main__':
-    init()
-    listTopDir(SRC_ROOT_PATH, copyPyFiles)
-    os.chdir(DEST_ROOT_DIR)
+    PY_FILTER = lambda file, isDir: file not in ('__pycache__', 'pyc') and (isDir or re.match('.*[.]py$', file) != None)
+    srcFiles = travelDir(SRC_ROOT_PATH, todo = copyFile, filter = PY_FILTER)
+    os.chdir(DEST_ROOT_PATH)
     sys.argv.append('build_ext')
     sys.argv.append('--inplace')
-    distutils.core.setup(ext_modules = Cython.Build.cythonize(exceptions)) #pyFiles
-    cleanPyAndCFiles()
-    buildDir = os.path.join(DEST_ROOT_DIR, 'build')
-    removeDir(buildDir)
+    exceptions = buildExceptions(srcFiles)
+    distutils.core.setup(ext_modules = Cython.Build.cythonize(exceptions))
+    cleanFiles(srcFiles)
     copyDataFiles()
