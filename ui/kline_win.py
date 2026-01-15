@@ -302,7 +302,7 @@ class IndicatorVisibleManager:
             return self.model
         for i in range(1, len(self.win.indicators)):
             it = self.win.indicators[i]
-            self.model.append({'title': it.config['title'], 'checked': True, 'index': i, 'indicator': it})
+            self.model.append({'title': it.config['title'], 'checked': it.visible, 'index': i, 'indicator': it})
             if isinstance(it, AmountIndicator):
                 self.model.append({'title': 'LINE'})
         return self.model

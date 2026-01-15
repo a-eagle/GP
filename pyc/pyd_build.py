@@ -67,16 +67,16 @@ def cleanFiles(files):
     buildDir = os.path.join(DEST_ROOT_PATH, 'build')
     removeDir(buildDir)
     
-def buildExceptions(srcFiles):
-    exceptions = []
+def buildExtensions(srcFiles):
+    exts = []
     for file, isDir in srcFiles:
         if isDir:
             continue
         pps = list(os.path.split(file))
         pps[-1] = pps[-1][0 : -3]
         m = '.'.join(pps)
-        exceptions.append(Extension(m, [file]))
-    return exceptions
+        exts.append(Extension(m, [file]))
+    return exts
 
 if __name__ == '__main__':
     PY_FILTER = lambda file, isDir: file != 'pyc' and (isDir or re.match('.*[.]py$', file) != None)
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     os.chdir(DEST_ROOT_PATH)
     sys.argv.append('build_ext')
     sys.argv.append('--inplace')
-    exceptions = buildExceptions(srcFiles)
-    distutils.core.setup(ext_modules = Cython.Build.cythonize(exceptions))
+    exts = buildExtensions(srcFiles)
+    distutils.core.setup(ext_modules = Cython.Build.cythonize(exts))
     cleanFiles(srcFiles)
     copyDataFiles()

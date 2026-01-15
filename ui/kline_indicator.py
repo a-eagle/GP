@@ -1189,6 +1189,7 @@ class ZhangSuIndicator(CustomIndicator):
             config['height'] = 30
         super().__init__(win, config)
         self.config['title'] = '[涨速]'
+        self.visible = False
 
     def _changeCode(self):
         super()._changeCode()
