@@ -10,7 +10,7 @@ SRC_ROOT_PATH = os.path.dirname(os.path.dirname(__file__))
 
 # todo: function(path, isDir)
 # filter: function(file, isDir)
-def travelDir(rootPath, subPath = '', todo = None, filter = None, travelSubDirs = True):
+def travelDir(rootPath, subPath = '', todo = None, filter = None):
     rs = []
     path = rootPath
     if subPath:
@@ -18,7 +18,7 @@ def travelDir(rootPath, subPath = '', todo = None, filter = None, travelSubDirs 
     ls = os.listdir(path)
     for f in ls:
         sp = os.path.join(path, f)
-        if f[0] == '.':
+        if f[0] == '.' or f == '__pycache__':
             continue
         isDir = os.path.isdir(sp)
         if filter and not filter(f, isDir):
@@ -27,7 +27,7 @@ def travelDir(rootPath, subPath = '', todo = None, filter = None, travelSubDirs 
         if todo:
             todo(psp, isDir)
         rs.append((psp, isDir))
-        if isDir and travelSubDirs:
+        if isDir:
             rs.extend(travelDir(rootPath, psp, todo, filter))
     return rs
 
@@ -42,7 +42,8 @@ def copyFile(file, isDir):
 
 def copyDataFiles():
     travelDir(SRC_ROOT_PATH, 'chrome\\local', todo = copyFile)
-    travelDir(SRC_ROOT_PATH, 'pyc', todo = copyFile, travelSubDirs = False)
+    pycFilter = lambda file, isDir: not isDir and '.' in file and file.index('.') > 0
+    travelDir(SRC_ROOT_PATH, 'pyc', todo = copyFile, filter = pycFilter)
     travelDir(SRC_ROOT_PATH, 'db', todo = copyFile)
     # copyFiles(SRC_ROOT_PATH, 'download\\cls-sign.dll')
 
@@ -78,7 +79,7 @@ def buildExceptions(srcFiles):
     return exceptions
 
 if __name__ == '__main__':
-    PY_FILTER = lambda file, isDir: file not in ('__pycache__', 'pyc') and (isDir or re.match('.*[.]py$', file) != None)
+    PY_FILTER = lambda file, isDir: file != 'pyc' and (isDir or re.match('.*[.]py$', file) != None)
     srcFiles = travelDir(SRC_ROOT_PATH, todo = copyFile, filter = PY_FILTER)
     os.chdir(DEST_ROOT_PATH)
     sys.argv.append('build_ext')
