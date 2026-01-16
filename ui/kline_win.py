@@ -80,6 +80,7 @@ class ContextMenuManager:
               #{'title': '查看板块个股 THS', 'name': 'open-ref-thszs', 'sub-menu': self.getThsZsList(selDay)},
               #{'title': '查看板块个股 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList(selDay)},
               {'title': '查看当日行情', 'name': 'open-ref-global', 'enable': selDay > 0, 'day': selDay},
+              {'title': '查看个股信息', 'name': 'open-info'},
             ])
         else:
             mm.extend([
@@ -96,7 +97,7 @@ class ContextMenuManager:
               {'title': '删除直线', 'name': 'del-draw-line', 'day': selDay},
               {'title': 'LINE'},
               {'title': '标记', 'name': 'mark-color', 'sub-menu': self.getMarkColors},
-              {'title': '简单指标', 'name': 'simple-indicator', 'checked': self.win.simpleIndicator},
+            #   {'title': '简单指标', 'name': 'simple-indicator', 'checked': self.win.simpleIndicator},
         ])
         return mm
     
@@ -232,6 +233,11 @@ class ContextMenuManager:
         elif name == 'open-ref-global':
             day = evt.item["day"]
             self.openRefGlobal(day)
+        elif name == 'open-info':
+            code = self.win.klineIndicator.code
+            scode = cls.ClsUrl()._getTagCode(code)
+            url = f'https://www.cls.cn/stock?code={scode}'
+            win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
         elif name == 'open-cur-zs':
             code = self.win.klineIndicator.code
             day = evt.item["day"]
