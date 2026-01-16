@@ -44,8 +44,7 @@ def copyDataFiles():
     travelDir(SRC_ROOT_PATH, 'chrome\\local', todo = copyFile)
     pycFilter = lambda file, isDir: not isDir and '.' in file and file.index('.') > 0
     travelDir(SRC_ROOT_PATH, 'pyc', todo = copyFile, filter = pycFilter)
-    travelDir(SRC_ROOT_PATH, 'db', todo = copyFile)
-    # copyFiles(SRC_ROOT_PATH, 'download\\cls-sign.dll')
+    # travelDir(SRC_ROOT_PATH, 'db', todo = copyFile)
 
 def removeDir(path):
     if not os.path.exists(path):
