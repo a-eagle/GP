@@ -95,8 +95,8 @@ class ContextMenuManager:
               {'title': '画线(直线)', 'name': 'draw-line'},
               {'title': '画线(文本)', 'name': 'draw-text'},
               {'title': '删除直线', 'name': 'del-draw-line', 'day': selDay},
-              {'title': 'LINE'},
-              {'title': '标记', 'name': 'mark-color', 'sub-menu': self.getMarkColors},
+            #   {'title': 'LINE'},
+            #   {'title': '标记', 'name': 'mark-color', 'sub-menu': self.getMarkColors},
             #   {'title': '简单指标', 'name': 'simple-indicator', 'checked': self.win.simpleIndicator},
         ])
         return mm

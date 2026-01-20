@@ -124,7 +124,7 @@ class Indicator:
         return self.win.klineSpace
 
     def getVisibleNum(self):
-        return self.width // (self.getItemWidth() + self.getItemSpace())
+        return self.width // (self.getItemWidth() + self.getItemSpace()) - 1
     
     def getMargins(self, idx):
         cf = self.config.get('margins', None)
@@ -781,8 +781,38 @@ class CustomIndicator(Indicator):
         drawer.drawText(hdc, title, rc, 0xab34de, win32con.DT_LEFT)
 
     def drawItem(self, hdc, drawer, idx, x):
-        x += self.config['itemWidth']
+        # x += self.config['itemWidth']
         drawer.drawLine(hdc, x, 0, x, self.height, 0x606060, win32con.PS_DASHDOT)
+
+    def getCenterX(self, idx):
+        if not self.visibleRange:
+            return -1
+        if idx < self.visibleRange[0] or idx > self.visibleRange[1]:
+            return -1
+        num = self.visibleRange[1] - self.visibleRange[0]
+        ITEM_W = self.getItemWidth() + self.getItemSpace()
+        left = self.width - ITEM_W * num
+        i = idx - self.visibleRange[0]
+        x = i * ITEM_W + left
+        x += self.getItemWidth() // 2
+        return x
+    
+    def getIdxAtX(self, x):
+        if not self.visibleRange:
+            return -1
+        if x <= 0 or x >= self.width:
+            return -1
+        num = self.visibleRange[1] - self.visibleRange[0]
+        ITEM_W = self.getItemWidth() + self.getItemSpace()
+        left = self.width - ITEM_W * num
+        if x < left:
+            return -1
+        x -= left
+        idx = x // ITEM_W
+        idx += self.visibleRange[0]
+        if idx >= len(self.data) or idx >= self.visibleRange[1]:
+            return -1
+        return idx
 
 class DayIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
