@@ -244,6 +244,23 @@ def hygn_spliter(val : str):
             rs.append(s)
     return rs
 
+def diffHyGn(obj, dest, attrs, zsInfos):
+    updates, diffs = None, None
+    gncc = obj.gn_code
+    diffrents = obj.diff(dest, attrNames = attrs)
+    dfGN = obj.diffAttrOfList('gn', dest['gn'], hygn_spliter)
+    if dfGN:
+        diffrents['gn'] = dfGN
+    if diffrents:
+        # updates.append(obj)
+        updates = obj
+        modify_hygn_code(obj, zsInfos)
+        if 'gn' in diffrents:
+            diffrents['gn_code'] = (gncc, obj.gn_code)
+        obj.updateTime = datetime.datetime.now()
+        diffs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
+    return updates, diffs
+
 # 个股行业概念
 # @return update-datas, insert-datas
 def download_hygn():
@@ -277,20 +294,9 @@ def download_hygn():
             modify_hygn_code(obj, zsInfos)
             inserts.append(obj)
         else:
-            gncc = obj.gn_code
-            diffrents = obj.diff(dest, attrNames = DIFF_ATTRS)
-            dfGN = obj.diffAttrOfList('gn', dest['gn'], hygn_spliter)
-            if dfGN:
-                diffrents['gn'] = dfGN
-            if diffrents:
-                updates.append(obj)
-                modify_hygn_code(obj, zsInfos)
-                if 'gn' in diffrents:
-                    diffrents['gn_code'] = (gncc, obj.gn_code)
-                obj.updateTime = datetime.datetime.now()
-                diffRs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
-                if diffRs:
-                    diffs.extend(diffRs)
+            u, d = diffHyGn(obj, dest, DIFF_ATTRS, zsInfos)
+            if u: updates.append(u)
+            if d: diffs.extend(d)
     if inserts:
         ths_orm.THS_GNTC.bulk_create(inserts, 100)
     if updates:
@@ -311,10 +317,14 @@ def download_hygn_by_code(code):
     rs = iwencai_load_list(question = f'{code} 行业,概念,流通市值,总市值') # ,maxPage = 1
     if not rs:
         return False
+    zsInfos = {}
+    qr = ths_orm.THS_ZS.select()
+    for q in qr:
+        zsInfos[q.name] = q.code
     info = rs[0]
-    ATTRS = ('name', 'hy', 'gn', 'zgb', 'ltsz', 'zsz')
-    ATTRS_D = ('股票简称', '所属同花顺行业', '所属概念', '总股本', 'a股市值(不含限售股)', '总市值')
-    ATTRS_D_T = (str, str, str, float, float, float, float)
+    ATTRS = ('name', 'hy', 'gn') # 'zgb', 'ltsz', 'zsz'
+    ATTRS_D = ('股票简称', '所属同花顺行业', '所属概念') # '总股本', 'a股市值(不含限售股)', '总市值')
+    ATTRS_D_T = (str, str, str) # float, float, float, float
     columns = ThsColumns(info)
     dest = {'code': code}
     for k in info:
@@ -325,13 +335,14 @@ def download_hygn_by_code(code):
     if dest.get('gn', None):
         dest['gn'] = dest['gn'].replace(' ', '')
     obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
+    changed = False
     if obj:
-        changed = modify_hygn_attrs(obj, dest, ATTRS)
-        if 'hy' in obj._dirty or 'gn' in obj._dirty:
-            modify_hygn_code_2(obj)
-        if changed:
-            obj.updateTime = datetime.datetime.now()
-            obj.save()
+        u, d = diffHyGn(obj, dest, ATTRS, zsInfos)
+        if u:
+            u.save()
+            changed = True
+        if d:
+            d_orm.DiffBkGnModel.bulk_create(d, 100)
     else:
         obj = ths_orm.THS_GNTC(**dest)
         changed = True
@@ -715,7 +726,7 @@ if __name__ == '__main__':
     # ss = hygn_spliter(';;asdf;ek;;')
     # print(ss)
     rs = download_hygn()
-    rs = download_hygn_by_code('002156')
+    # rs = download_hygn_by_code('002156')
     print(rs)
     pass
     
