@@ -233,10 +233,21 @@ def modify_hygn_attrs(srcModel, destDict, attrs):
             changed = True
     return changed
 
-def hygn_spliter(val : str):
+def gn_spliter(val : str):
     if not val:
         return []
     sp = val.split(';')
+    rs = []
+    for s in sp:
+        s = s.strip()
+        if s:
+            rs.append(s)
+    return rs
+
+def hy_spliter(val : str):
+    if not val:
+        return []
+    sp = val.split('-')
     rs = []
     for s in sp:
         s = s.strip()
@@ -248,7 +259,7 @@ def diffHyGn(obj, dest, attrs, zsInfos):
     updates, diffs = None, None
     gncc = obj.gn_code
     diffrents = obj.diff(dest, attrNames = attrs)
-    dfGN = obj.diffAttrOfList('gn', dest['gn'], hygn_spliter)
+    dfGN = obj.diffAttrOfList('gn', dest['gn'], gn_spliter)
     if dfGN:
         diffrents['gn'] = dfGN
     if diffrents:
@@ -259,12 +270,14 @@ def diffHyGn(obj, dest, attrs, zsInfos):
             diffrents['gn_code'] = (gncc, obj.gn_code)
         obj.updateTime = datetime.datetime.now()
         diffs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
+    # if diffrents:
+    #     print(diffrents)
     return updates, diffs
 
 # 个股行业概念
 # @return update-datas, insert-datas
 def download_hygn():
-    rs = iwencai_load_list(question = '个股及行业板块, 按热度排序', maxPage = 5) # ,maxPage = 1, 流通a股,限售股,流通市值,总市值
+    rs = iwencai_load_list(question = '个股及行业板块, 按热度排序', maxPage = 3) # ,maxPage = 1, 流通a股,限售股,流通市值,总市值
     zsInfos = {}
     qr = ths_orm.THS_ZS.select()
     for q in qr:
@@ -273,7 +286,6 @@ def download_hygn():
     ATTRS = ('code', 'name', 'hy', 'gn') #, 'zgb', 'ltag', 'xsg', 'ltsz', 'zsz')
     ATTRS_D = ('code', '股票简称', '所属同花顺行业', '所属概念') #, '总股本', '流通a股', '限售股合计', 'a股市值(不含限售股)', '总市值')
     ATTRS_D_T = (str, str, str, str) #float, float, float, float, float, float)
-    DIFF_ATTRS = ('name', 'hy')
     inserts, updates, diffs = [], [], []
     objs = {}
     for d in ths_orm.THS_GNTC.select():
@@ -294,8 +306,8 @@ def download_hygn():
             modify_hygn_code(obj, zsInfos)
             inserts.append(obj)
         else:
-            u, d = diffHyGn(obj, dest, DIFF_ATTRS, zsInfos)
-            if u: updates.append(u)
+            u, d = diffHyGn(obj, dest, ATTRS, zsInfos)
+            if u: updates.append(obj)
             if d: diffs.extend(d)
     if inserts:
         ths_orm.THS_GNTC.bulk_create(inserts, 100)
