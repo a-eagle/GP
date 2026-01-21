@@ -268,8 +268,8 @@ def download_hygn():
             dest[a] = columns.getColumnValue(ATTRS_D[idx], ATTRS_D_T[idx])
         if dest['code'][0] not in GP_CODE:
             continue
-        if dest['name']:
-            dest['name'] = dest['name'].replace(' ', '')
+        if dest['gn']:
+            dest['gn'] = dest['gn'].replace(' ', '')
         # obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
         obj : ths_orm.THS_GNTC = objs.get(dest['code'], None)
         if not obj:
@@ -291,12 +291,6 @@ def download_hygn():
                 diffRs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
                 if diffRs:
                     diffs.extend(diffRs)
-    # console.log('inserts-------')
-    # console.log([d.__data__ for d in inserts])
-    # console.log('updates-------')
-    # console.log([d.__data__ for d in updates])
-    # console.log('diffs-------')
-    # console.log([d.__data__ for d in diffs])
     if inserts:
         ths_orm.THS_GNTC.bulk_create(inserts, 100)
     if updates:
@@ -328,6 +322,8 @@ def download_hygn_by_code(code):
             continue
         idx = ATTRS_D.index(k)
         dest[ATTRS[idx]] = columns.getColumnValue(ATTRS_D[idx], ATTRS_D_T[idx])
+    if dest.get('gn', None):
+        dest['gn'] = dest['gn'].replace(' ', '')
     obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
     if obj:
         changed = modify_hygn_attrs(obj, dest, ATTRS)
@@ -716,7 +712,10 @@ if __name__ == '__main__':
     #num2 = download_hygn_pe()
 
     # download_zs_zd()
-    ss = hygn_spliter(';;asdf;ek;;')
-    print(ss)
+    # ss = hygn_spliter(';;asdf;ek;;')
+    # print(ss)
+    rs = download_hygn()
+    rs = download_hygn_by_code('002156')
+    print(rs)
     pass
     
