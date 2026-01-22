@@ -310,16 +310,16 @@ class HygnDownloader:
         if diffs:
             d_orm.DiffBkGnModel.bulk_create(diffs, 100)
 
-    # 个股行业概念 
+    # 个股行业概念 (有可能查询不到数据)
     # return 是否有修改
     def downloadBycode(self, code):
         if type(code) == int:
             code = f'{code :06d}'
         if code[0] not in '036':
-            return False
-        rs = iwencai_load_list(question = f'{code} 行业,概念') # ,maxPage = 1  ,流通市值,总市值
+            return 0, 0
+        rs = iwencai_load_list(question = f'{code} 行业,概念') # ,maxPage = 1  
         if not rs:
-            return False
+            return 0, 0
         line = rs[0]
         line['code'] = line['股票代码']
         inserts, updates, diffs = [], [], []
@@ -705,7 +705,7 @@ if __name__ == '__main__':
     # ss = hygn_spliter(';;asdf;ek;;')
     # print(ss)
     # rs = download_hygn()
-    rs = download_hygn_by_code('002183')
+    rs = download_hygn_by_code('000971') # 600297 600811 +002183  +300136
     print(rs)
     pass
     
