@@ -2,7 +2,7 @@ import sys, peewee as pw, requests, json, re, traceback, time, datetime, os
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from orm import ths_orm, d_orm
+from orm import ths_orm, d_orm, base_orm
 from download import henxin, memcache, console
 
 class ThsColumns:
@@ -210,166 +210,133 @@ def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite', maxP
         traceback.print_exc()
     return rs
 
-def modify_hygn_code(obj : ths_orm.THS_GNTC, zsInfos):
-    gn_code = []
-    for g in obj.gn.split(';'):
-        gcode = zsInfos.get(g, '-')
-        gn_code.append(gcode)
-    gn_code = ';'.join(gn_code)
-    hys = obj.hy.split('-')
-    hy_2_code = zsInfos.get(hys[1], '')
-    hy_3_code = zsInfos.get(hys[2], '')
-    obj.gn_code = gn_code
-    obj.hy_2_code = hy_2_code
-    obj.hy_3_code = hy_3_code
-    obj.hy_2_name = hys[1]
-    obj.hy_3_name = hys[2]
+class HygnDownloader:
+    def __init__(self) -> None:
+        self.GP_CODE = ('0', '3', '6')
+        self.ATTRS = ('code', 'name', 'hy', 'gn') #, 'zgb', 'ltag', 'xsg', 'ltsz', 'zsz')
+        self.ATTRS_D = ('code', '股票简称', '所属同花顺行业', '所属概念') #, '总股本', '流通a股', '限售股合计', 'a股市值(不含限售股)', '总市值')
+        self.ATTRS_D_T = (str, str, str, str) #float, float, float, float, float, float)
+        self.zsInfos = {}
+        qr = ths_orm.THS_ZS.select()
+        for q in qr:
+            self.zsInfos[q.name] = q.code
+        
+    def modifyAttr_HyGn(self, obj : ths_orm.THS_GNTC):
+        gn_code = []
+        for g in obj.gn.split(';'):
+            gcode = self.zsInfos.get(g, '-')
+            gn_code.append(gcode)
+        gn_code = ';'.join(gn_code)
+        hys = obj.hy.split('-')
+        hy_2_code = self.zsInfos.get(hys[1], '')
+        hy_3_code = self.zsInfos.get(hys[2], '')
+        obj.gn_code = gn_code
+        obj.hy_2_code = hy_2_code
+        obj.hy_3_code = hy_3_code
+        obj.hy_2_name = hys[1]
+        obj.hy_3_name = hys[2]
 
-def modify_hygn_attrs(srcModel, destDict, attrs):
-    changed = False
-    for a in attrs:
-        if getattr(srcModel, a) != destDict[a]:
-            setattr(srcModel, a, destDict[a])
-            changed = True
-    return changed
+    def gnSpliter(self, val : str):
+        if not val:
+            return []
+        sp = val.split(';')
+        rs = []
+        for s in sp:
+            s = s.strip()
+            if s:
+                rs.append(s)
+        return rs
 
-def gn_spliter(val : str):
-    if not val:
-        return []
-    sp = val.split(';')
-    rs = []
-    for s in sp:
-        s = s.strip()
-        if s:
-            rs.append(s)
-    return rs
+    def diffAttrs(self, obj : base_orm.BaseModel, dest, attrs):
+        updates, diffs = None, None
+        gncc = obj.gn_code
+        newAttrs = [d for d in attrs if d != 'gn']
+        diffrents = obj.diff(dest, attrNames = newAttrs)
+        dfGN = obj.diffAttrOfList('gn', dest['gn'], self.gnSpliter)
+        if dfGN:
+            diffrents['gn'] = dfGN
+        if diffrents:
+            # updates.append(obj)
+            updates = obj
+            self.modifyAttr_HyGn(obj)
+            if 'gn' in diffrents:
+                diffrents['gn_code'] = (gncc, obj.gn_code)
+            obj.updateTime = datetime.datetime.now()
+            diffs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
+        obj._diff_attrs_ = diffrents
+        obj._diff_gn_ = diffs
+        return updates, diffs
 
-def hy_spliter(val : str):
-    if not val:
-        return []
-    sp = val.split('-')
-    rs = []
-    for s in sp:
-        s = s.strip()
-        if s:
-            rs.append(s)
-    return rs
-
-def diffHyGn(obj, dest, attrs, zsInfos):
-    updates, diffs = None, None
-    gncc = obj.gn_code
-    diffrents = obj.diff(dest, attrNames = attrs)
-    dfGN = obj.diffAttrOfList('gn', dest['gn'], gn_spliter)
-    if dfGN:
-        diffrents['gn'] = dfGN
-    if diffrents:
-        # updates.append(obj)
-        updates = obj
-        modify_hygn_code(obj, zsInfos)
-        if 'gn' in diffrents:
-            diffrents['gn_code'] = (gncc, obj.gn_code)
-        obj.updateTime = datetime.datetime.now()
-        diffs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
-    # if diffrents:
-    #     print(diffrents)
-    return updates, diffs
-
-# 个股行业概念
-# @return update-datas, insert-datas
-def download_hygn():
-    rs = iwencai_load_list(question = '个股及行业板块, 按热度排序', maxPage = 3) # ,maxPage = 1, 流通a股,限售股,流通市值,总市值
-    zsInfos = {}
-    qr = ths_orm.THS_ZS.select()
-    for q in qr:
-        zsInfos[q.name] = q.code
-    GP_CODE = ('0', '3', '6')
-    ATTRS = ('code', 'name', 'hy', 'gn') #, 'zgb', 'ltag', 'xsg', 'ltsz', 'zsz')
-    ATTRS_D = ('code', '股票简称', '所属同花顺行业', '所属概念') #, '总股本', '流通a股', '限售股合计', 'a股市值(不含限售股)', '总市值')
-    ATTRS_D_T = (str, str, str, str) #float, float, float, float, float, float)
-    inserts, updates, diffs = [], [], []
-    objs = {}
-    for d in ths_orm.THS_GNTC.select():
-        objs[d.code] = d
-    for idx, line in enumerate(rs):
+    def deal(self, line, obj, inserts, updates, diffs):
         columns = ThsColumns(line)
         dest = {}
-        for idx, a in enumerate(ATTRS):
-            dest[a] = columns.getColumnValue(ATTRS_D[idx], ATTRS_D_T[idx])
-        if dest['code'][0] not in GP_CODE:
-            continue
+        for idx, a in enumerate(self.ATTRS):
+            dest[a] = columns.getColumnValue(self.ATTRS_D[idx], self.ATTRS_D_T[idx])
+        if dest['code'][0] not in self.GP_CODE:
+            return
         if dest['gn']:
             dest['gn'] = dest['gn'].replace(' ', '')
-        # obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
-        obj : ths_orm.THS_GNTC = objs.get(dest['code'], None)
+        # insert
         if not obj:
             obj = ths_orm.THS_GNTC(**dest)
-            modify_hygn_code(obj, zsInfos)
+            self.modifyAttr_HyGn(obj)
             inserts.append(obj)
-        else:
-            u, d = diffHyGn(obj, dest, ATTRS, zsInfos)
-            if u: updates.append(obj)
-            if d: diffs.extend(d)
-    if inserts:
-        ths_orm.THS_GNTC.bulk_create(inserts, 100)
-    if updates:
-        UPDATE_ATTRS = (*ATTRS, 'updateTime')
-        ths_orm.THS_GNTC.bulk_update(updates, UPDATE_ATTRS, 100)
-    if diffs:
-        d_orm.DiffBkGnModel.bulk_create(diffs, 100)
-    
-    return len(inserts), len(updates)
+            return
+        # update
+        u, d = self.diffAttrs(obj, dest, self.ATTRS)
+        if u: updates.append(obj)
+        if d: diffs.extend(d)
 
-# 个股行业概念 
-# return 是否有修改
+    # 个股行业概念
+    # @return update-datas, insert-datas
+    def download(self):
+        rs = iwencai_load_list(question = '个股及行业板块, 按热度排序', maxPage = 3) # ,maxPage = 1, 流通a股,限售股,流通市值,总市值
+        inserts, updates, diffs = [], [], []
+        objs = {}
+        for d in ths_orm.THS_GNTC.select():
+            objs[d.code] = d
+        for line in rs:
+            obj : ths_orm.THS_GNTC = objs.get(line['code'], None)
+            self.deal(line, obj, inserts, updates, diffs)
+        self.save(inserts, updates, diffs)
+        return len(inserts), len(updates)
+
+    def save(self, inserts, updates, diffs):
+        if inserts:
+            ths_orm.THS_GNTC.bulk_create(inserts, 100)
+        if updates:
+            UPDATE_ATTRS = (*self.ATTRS, 'updateTime')
+            ths_orm.THS_GNTC.bulk_update(updates, UPDATE_ATTRS, 100)
+        if diffs:
+            d_orm.DiffBkGnModel.bulk_create(diffs, 100)
+
+    # 个股行业概念 
+    # return 是否有修改
+    def downloadBycode(self, code):
+        if type(code) == int:
+            code = f'{code :06d}'
+        if code[0] not in '036':
+            return False
+        rs = iwencai_load_list(question = f'{code} 行业,概念') # ,maxPage = 1  ,流通市值,总市值
+        if not rs:
+            return False
+        line = rs[0]
+        line['code'] = line['股票代码']
+        inserts, updates, diffs = [], [], []
+        obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == line['code'])
+        self.deal(line, obj, inserts, updates, diffs)
+        self.save(inserts, updates, diffs)
+        return len(inserts), len(updates)
+
+def download_hygn():
+    d = HygnDownloader()
+    rs = d.download()
+    return rs
+
 def download_hygn_by_code(code):
-    if type(code) == int:
-        code = f'{code :06d}'
-    if code[0] not in '036':
-        return False
-    rs = iwencai_load_list(question = f'{code} 行业,概念,流通市值,总市值') # ,maxPage = 1
-    if not rs:
-        return False
-    zsInfos = {}
-    qr = ths_orm.THS_ZS.select()
-    for q in qr:
-        zsInfos[q.name] = q.code
-    info = rs[0]
-    ATTRS = ('name', 'hy', 'gn') # 'zgb', 'ltsz', 'zsz'
-    ATTRS_D = ('股票简称', '所属同花顺行业', '所属概念') # '总股本', 'a股市值(不含限售股)', '总市值')
-    ATTRS_D_T = (str, str, str) # float, float, float, float
-    columns = ThsColumns(info)
-    dest = {'code': code}
-    for k in info:
-        if (k not in ATTRS_D) or (not info[k]):
-            continue
-        idx = ATTRS_D.index(k)
-        dest[ATTRS[idx]] = columns.getColumnValue(ATTRS_D[idx], ATTRS_D_T[idx])
-    if dest.get('gn', None):
-        dest['gn'] = dest['gn'].replace(' ', '')
-    obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == dest['code'])
-    changed = False
-    if obj:
-        u, d = diffHyGn(obj, dest, ATTRS, zsInfos)
-        if u:
-            u.save()
-            changed = True
-        if d:
-            d_orm.DiffBkGnModel.bulk_create(d, 100)
-    else:
-        obj = ths_orm.THS_GNTC(**dest)
-        changed = True
-        modify_hygn_code_2(obj)
-        obj.save()
-    return changed
-
-def modify_hygn_code_2(obj):
-    zsInfos = {}
-    qr = ths_orm.THS_ZS.select()
-    for q in qr:
-        zsInfos[q.name] = q.code
-    modify_hygn_code(obj, zsInfos)
-
-# download_hygn_by_code('002407')
+    d = HygnDownloader()
+    rs = d.downloadBycode(code)
+    return rs
 
 # 个股信息(市盈率 ttm)
 def download_hygn_pe():
@@ -737,8 +704,8 @@ if __name__ == '__main__':
     # download_zs_zd()
     # ss = hygn_spliter(';;asdf;ek;;')
     # print(ss)
-    rs = download_hygn()
-    # rs = download_hygn_by_code('002156')
+    # rs = download_hygn()
+    rs = download_hygn_by_code('002183')
     print(rs)
     pass
     
