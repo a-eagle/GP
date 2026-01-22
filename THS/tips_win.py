@@ -764,9 +764,6 @@ class HotZHCardView(ListView):
     def __init__(self, cardWindow) -> None:
         super().__init__(cardWindow)
         self.codeInfos = {}
-        qr = ths_orm.THS_GNTC.select()
-        for q in qr:
-            self.codeInfos[q.code] = {'name': q.name, 'obj': q}
         self.thread = base_win.Thread()
         self.thread.start()
         self.timerThread = base_win.TimerThread()
@@ -778,6 +775,14 @@ class HotZHCardView(ListView):
         self.windowTitle = 'HotZH'
         self.timerThread.addIntervalTask('LoadInterval', 4 * 60, self.updateData)
         self.curThsZS = None
+        self.initCodeInfos()
+
+    def initCodeInfos(self):
+        rs = {}
+        qr = ths_orm.THS_GNTC.select()
+        for q in qr:
+            rs[q.code] = {'name': q.name, 'obj': q}
+        self.codeInfos = rs
 
     def updateData(self, foreUpdate = False):
         lt = time.time()
@@ -929,7 +934,7 @@ class HotZHCardView(ListView):
                 continue
             obj = info.get('obj', None)
             if not obj:
-                print('[tips_win.HotZHCardView] Fail, not find obj', info)
+                print('[HotZHCardView] Fail, not find obj', cc, info)
                 continue
             hygn = f'{obj.hy_2_code};{obj.hy_3_code};{obj.gn_code}'
             if self.curThsZS in hygn:
@@ -947,10 +952,7 @@ class HotZHCardView(ListView):
             return
         if self.curSelDay == selDay:
             return
-        qr = ths_orm.THS_GNTC.select(ths_orm.THS_GNTC.code, ths_orm.THS_GNTC.name)
-        self.codeInfos.clear()
-        for q in qr:
-            self.codeInfos[q.code] = {'name': q.name}
+        self.initCodeInfos()
         self.curSelDay = selDay
         self.selIdx = -1
         self.pageIdx = 0
