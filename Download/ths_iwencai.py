@@ -221,7 +221,7 @@ class HygnDownloader:
         for q in qr:
             self.zsInfos[q.name] = q.code
         
-    def modifyAttr_HyGn(self, obj : ths_orm.THS_GNTC):
+    def adjustHyGnCode(self, obj : ths_orm.THS_GNTC):
         gn_code = []
         for g in obj.gn.split(';'):
             gcode = self.zsInfos.get(g, '-')
@@ -258,7 +258,7 @@ class HygnDownloader:
         if diffrents:
             # updates.append(obj)
             updates = obj
-            self.modifyAttr_HyGn(obj)
+            self.adjustHyGnCode(obj)
             if 'gn' in diffrents:
                 diffrents['gn_code'] = (gncc, obj.gn_code)
             obj.updateTime = datetime.datetime.now()
@@ -279,7 +279,7 @@ class HygnDownloader:
         # insert
         if not obj:
             obj = ths_orm.THS_GNTC(**dest)
-            self.modifyAttr_HyGn(obj)
+            self.adjustHyGnCode(obj)
             inserts.append(obj)
             return
         # update
