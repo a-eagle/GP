@@ -508,13 +508,13 @@ class StockTable extends UIListener {
             ff(idx, rowData, this.headers[i], td);
         }
         tr.dblclick(function() {thiz.openKLineDialog(rowData)}); // $(this).attr('code')
-        tr.on('contextmenu', function(event) {
-            event.preventDefault();
-            const x = event.clientX;
-            const y = event.clientY;
-            thiz.onContextMenu(event, x, y);
-            return false;
-        });
+        // tr.on('contextmenu', function(event) {
+        //     event.preventDefault();
+        //     const x = event.clientX;
+        //     const y = event.clientY;
+        //     thiz.onContextMenu(event, x, y);
+        //     return false;
+        // });
         return tr;
     }
 
