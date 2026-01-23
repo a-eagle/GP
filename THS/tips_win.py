@@ -987,7 +987,7 @@ class HotZHCardView(ListView):
 
 class SimpleHotZHWindow(CardWindow):
     def __init__(self) -> None:
-        super().__init__((170, 310), (80, 30))
+        super().__init__((170, 310), (150, 30))
         self.maxMode = True #  是否是最大化的窗口
         self.settings = [{ "name": "OPEN_IN_THS", "title": "同花顺中打开", "checked": False }]
 
