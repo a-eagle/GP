@@ -1073,22 +1073,44 @@ class TabNaviMgr {
 		tr.append(`<th width=80> 卖出 </th>`);
 		tr.append(`<th width=80> 净额 </th>`);
 		table.append(tr);
+		function getYzName(it) {
+			if (it.yz)
+				return ' (' + it['yz'] + ')'
+			let yyb = it.yyb || '';
+			if (yyb.indexOf('分公司') >= 0)
+				yyb = yyb.substring(0, yyb.indexOf('公司') + 2);
+			if (yyb.indexOf('公司') >= 0) {
+				let i = yyb.indexOf('公司');
+				if (i != yyb.length - 2)
+					yyb = yyb.substring(i + 2);
+			}
+			yyb = yyb.replace('有限责任公司', '')
+			yyb = yyb.replace('股份有限公司', '')
+			yyb = yyb.replace('有限公司', '')
+			yyb = yyb.replace('证券营业部', '')
+        	return yyb
+		}
+		function formatMoney(money) {
+			if (Math.abs(money) < 1000)
+				return '';
+			return (money / 10000).toFixed(1) + '亿';
+		}
 		for (let i = 0; i < newDetail.length; i++) {
 			let row = newDetail[i];
 			tr = $('<tr> </tr>');
-			tr.append(`<td style="height:25px;"> ${row.yz || row.yyb} </td>`);
-			tr.append(`<td style="height:25px;"> ${(row.mrje / 10000).toFixed(1)} 亿</td>`);
-			tr.append(`<td style="height:25px;"> ${(row.mcje / 10000).toFixed(1)} 亿 </td>`);
-			tr.append(`<td style="height:25px;"> ${(row.jme / 10000).toFixed(1)} 亿 </td>`);
+			tr.append(`<td style="height:25px;"> ${getYzName(row)} </td>`);
+			tr.append(`<td style="height:25px;"> ${formatMoney(row.mrje)}</td>`);
+			tr.append(`<td style="height:25px;"> -${formatMoney(row.mcje)}  </td>`);
+			tr.append(`<td style="height:25px;"> ${formatMoney(row.jme)}  </td>`);
 			table.append(tr);
 			if (i == 4) {
-				table.append($('<tr> <td style="height:3px;background-color: #ccc;" colspan=4> </td> </tr>'));
+				table.append($('<tr> <td style="height:3px;background-color: #666;" colspan=4> </td> </tr>'));
 			}
 		}
-		tr = $('<tr style="background-color: #ccc;"> </tr>');
+		tr = $('<tr style="background-color: #aaa;"> </tr>');
 		tr.append(`<td style="height:25px;"> 汇总 </td>`);
 		tr.append(`<td style="height:25px;"> ${rowData.mrje.toFixed(1)} 亿</td>`);
-		tr.append(`<td style="height:25px;"> ${rowData.mcje.toFixed(1)} 亿 </td>`);
+		tr.append(`<td style="height:25px;"> -${rowData.mcje.toFixed(1)} 亿 </td>`);
 		tr.append(`<td style="height:25px;"> ${rowData.jme.toFixed(1)} 亿 </td>`);
 		table.append(tr);
 		wrap.append(table);
