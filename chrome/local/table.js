@@ -37,6 +37,7 @@ class StockTable extends UIListener {
     //              sortVal?: function(rowData, asc), defined? : true,
     //              cellRender?: function(rowIdx, rowData, header, tdObj) },
     //              headerRender? : function(colIdx, header, thObj),
+    //              click? : function(header, rowData, tdObj),  [event]
     //           ...]
     // fix headers : 'zs' 涨速, 'hots': 热度  'zf': 涨幅(根据'fs'列自动生成)  mark_color 标记颜色
     // 必须有列：secu_code(如果有code, 会根据code自动生成), secu_name
@@ -47,7 +48,7 @@ class StockTable extends UIListener {
         this.lastSortHeader = null;
         this.datas = null;
         this.srcDatas = null;
-        this.datasMap = null; // map of this.datas, key = secu_code
+        this.datasMap = null; // map of this.datas, key = obj.key
         this.day = null;
         this.tradeDays = null;
 
@@ -499,14 +500,22 @@ class StockTable extends UIListener {
         }
     }
 
+    bindCellEvent(tdObj, evtName, header, rowData) {
+        tdObj.bind(evtName, function() {
+            let ff = header[evtName];
+            ff(header, rowData, tdObj);
+        });
+    }
+
     buildRowUI(idx, rowData) {
         let thiz = this;
         let tr = $(`<tr style="vertical-align: middle;" code="${rowData.secu_code}" key="${rowData.key}"> </tr>`);
         for (let i = 0; i < this.headers.length; i++) {
-            let ff = this.headers[i].cellRender;
+            let hd = this.headers[i];
             let td = $('<td> </td>');
             tr.append(td);
-            ff(idx, rowData, this.headers[i], td);
+            hd.cellRender(idx, rowData, hd, td);
+            if (hd.click) thiz.bindCellEvent(td, 'click', hd, rowData)
         }
         tr.dblclick(function() {thiz.openKLineDialog(rowData)}); // $(this).attr('code')
         // tr.on('contextmenu', function(event) {

@@ -43,6 +43,9 @@
                 <div class="my-info-item" name="tab-nav-cnt-item">  </div>
             </div>
         </div>
+        <div class="dialog-mask" style="display: none;" >
+
+        </div>
     </body>
     <script src="index.js"></script>
     <script>
@@ -50,6 +53,14 @@
             let ww = $(document.body).width() - $('#main').width();
             let left = - ww * 0.3;
             $('#main').css('margin-left',  String(left) + 'px');
+            $('.dialog-mask').click(function(evt) {
+                if (evt.target != this)
+                    return;
+                $(this).hide();
+            });
+            $('.dialog-mask').bind('wheel', function(evt) {
+                evt.preventDefault();
+            })
         });
     </script>
     

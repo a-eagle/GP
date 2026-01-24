@@ -802,7 +802,7 @@ class TabNaviMgr {
 		let thiz = this;
 		this.navi = $('<div class="toggle-nav-active">涨停池</div> <div >连板池</div> ' + 
 					  ' <div >炸板池</div> <div >跌停池</div> <div >热度榜</div> <div >成交额</div> ' +
-					  ' <div>笔记</div> <div>龙虎榜</div> </div>');
+					  '  <div>龙虎榜</div> </div>'); // <div>笔记</div>
 		$('div[name="tab-nav-item"]').append(this.navi);
 		$('div[name="tab-nav-item"] > div').click(function() {
 			if (! $(this).hasClass('toggle-nav-active')) {
@@ -1053,7 +1053,50 @@ class TabNaviMgr {
 		})
 	}
 
+	showLhbDetail(header, rowData, tdObj) {
+		let value = rowData['detail'];
+		console.log(value)
+		let wrap = $('.dialog-mask');
+		wrap.empty();
+		let detail = JSON.parse(value);
+		let newDetail = []
+		detail.sort((a, b) => b.mrje - a.mrje);
+		for (let i = 0; i < 5; i++) newDetail.push(detail[i]);
+		detail.sort((a, b) => b.mcje - a.mcje);
+		for (let i = 0; i < 5; i++) newDetail.push(detail[i]);
+		let table = $('<table class="my-stoks-table" style="position:absolute; background-color: #fff; border: 2px solid #222;"> </table>');
+		table.css('left', tdObj.offset().left);
+		table.css('top', tdObj.offset().top - $(window).scrollTop());
+		let tr = $('<tr> </tr>');
+		tr.append(`<th width=200> 席位名称 </th>`);
+		tr.append(`<th width=80> 买入 </th>`);
+		tr.append(`<th width=80> 卖出 </th>`);
+		tr.append(`<th width=80> 净额 </th>`);
+		table.append(tr);
+		for (let i = 0; i < newDetail.length; i++) {
+			let row = newDetail[i];
+			tr = $('<tr> </tr>');
+			tr.append(`<td style="height:25px;"> ${row.yz || row.yyb} </td>`);
+			tr.append(`<td style="height:25px;"> ${(row.mrje / 10000).toFixed(1)} 亿</td>`);
+			tr.append(`<td style="height:25px;"> ${(row.mcje / 10000).toFixed(1)} 亿 </td>`);
+			tr.append(`<td style="height:25px;"> ${(row.jme / 10000).toFixed(1)} 亿 </td>`);
+			table.append(tr);
+			if (i == 4) {
+				table.append($('<tr> <td style="height:3px;background-color: #ccc;" colspan=4> </td> </tr>'));
+			}
+		}
+		tr = $('<tr style="background-color: #ccc;"> </tr>');
+		tr.append(`<td style="height:25px;"> 汇总 </td>`);
+		tr.append(`<td style="height:25px;"> ${rowData.mrje.toFixed(1)} 亿</td>`);
+		tr.append(`<td style="height:25px;"> ${rowData.mcje.toFixed(1)} 亿 </td>`);
+		tr.append(`<td style="height:25px;"> ${rowData.jme.toFixed(1)} 亿 </td>`);
+		table.append(tr);
+		wrap.append(table);
+		wrap.show();
+	}
+
 	updateTabContentUI(name, data) {
+		let thiz = this;
 		let wrap = $(`div[name=tab-nav-cnt-item]`);
 		let cnt = wrap.find(`div[name=${name}]`);
 		$(`div[name=tab-nav-cnt-item] > div`).hide();
@@ -1161,7 +1204,7 @@ class TabNaviMgr {
 				{text: '涨跌幅', 'name': 'zd', width: 70, sortable: true, cellRender : zdRender},
 				{text: '成交额', 'name': 'cjje', width: 70, sortable: true, cellRender : amountRender},
 				// {text: '净买额', 'name': 'jme', width: 70, sortable: true, cellRender : amountRender},
-				{text: '上榜类型', 'name': 'title', width: 100},
+				{text: '上榜类型', 'name': 'title', width: 100, click: function(a, b, c) {thiz.showLhbDetail(a, b, c);}},
 
 				// {text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
 				{text: '分时图', 'name': 'fs', width: 300},
