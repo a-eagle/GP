@@ -57,7 +57,7 @@ class StockTable extends UIListener {
         this.tlMgr = new TimeLineUIManager();
         this.config = {elipseNum: 40};
         this.init()
-        this.viewsMgr = {}; // {code : TimelineView}
+        this.viewsMgr = {}; // {key : TimelineView}
         let thiz = this;
         setInterval(() => {
             thiz.checkTimelineView();
@@ -90,8 +90,8 @@ class StockTable extends UIListener {
                 continue;
             if (trRect.top >= HEIGHT)
                 break;
-            let code = tr.getAttribute('code');
-            let timelineView = this.viewsMgr[code];
+            let key = tr.getAttribute('key');
+            let timelineView = this.viewsMgr[key];
             if (!timelineView || timelineView._loaded)
                 continue;
             timelineView._loaded = true;
@@ -99,15 +99,16 @@ class StockTable extends UIListener {
         }
     }
 
-    createTimeLineView(code, width, height) {
+    createTimeLineView(code, width, height, key) {
         width = width || 300;
         height = height || 60;
         let view = new TimeLineView(width, height);
         view._loaded = false;
         view.code = code;
+        view.key = key;
         view.day = this.day;
         this.tlMgr.add(view);
-        this.viewsMgr[code] = view;
+        this.viewsMgr[key] = view;
         return view;
     }
 
@@ -165,14 +166,15 @@ class StockTable extends UIListener {
                 code = this.buildUI_stdCode(data[i].secu_code);
             }
             data[i].code = code;
-            mdata[data[i].secu_code] = data[i];
             if (!data[i].secu_name && data[i].name) {
                 data[i].secu_name = data[i].name;
             }
         }
         for (let i = 0; i < data.length; i++) {
             data[i].__rowIdx__ = i;
-            data[i].key = data[i].secu_code;
+            if (! data[i].key)
+                data[i].key = data[i].secu_code;
+            mdata[data[i].key] = data[i];
         }
         this.lastSortHeader = null;
         this.trs = {};
@@ -430,8 +432,7 @@ class StockTable extends UIListener {
         } else if (k == 'fs') {
             header.cellRender = function(rowIdx, rowData, head, tdObj) {
                 tdObj.addClass('fs');
-                let view = thiz.createTimeLineView(rowData.secu_code, 300, 60);
-                view.key = rowData.key;
+                let view = thiz.createTimeLineView(rowData.secu_code, 300, 60, rowData.key);
                 tdObj.append(view.canvas);
                 view.addListener('LoadDataEnd', function(evt) {thiz.onLoadFsDataEnd(evt);});
             }
@@ -500,7 +501,7 @@ class StockTable extends UIListener {
 
     buildRowUI(idx, rowData) {
         let thiz = this;
-        let tr = $('<tr style="vertical-align: middle;" code="' + rowData.secu_code + '"> </tr>');
+        let tr = $(`<tr style="vertical-align: middle;" code="${rowData.secu_code}" key="${rowData.key}"> </tr>`);
         for (let i = 0; i < this.headers.length; i++) {
             let ff = this.headers[i].cellRender;
             let td = $('<td> </td>');
@@ -595,10 +596,11 @@ class StockTable extends UIListener {
     }
 
     // color: null(取消) | rgb
-    markColor(scode, color) {
+    markColor(key, color) {
         let thiz = this;
-        let name = this.datasMap[scode]?.name || '';
-        let item = {code: scode.substring(2), secu_code: scode, name:name, color: color, day: this.formatDay(new Date())};
+        let name = this.datasMap[key]?.name || '';
+        let scode = this.datasMap[key].secu_code;
+        let item = {key: key, code: scode.substring(2), secu_code: scode, name:name, color: color, day: this.formatDay(new Date())};
         $.ajax({
             url: '/mark-color',
             type: 'POST', contentType: 'application/json',
@@ -625,7 +627,7 @@ class StockTable extends UIListener {
 
     _adjustMarkColor(item) {
         let color = item.color;
-        let ds = this.findInDatasMap(item.secu_code);
+        let ds = this.findInDatasMap(item.key);
         if (! ds) return;
         if (Array.isArray(ds)) {
             ds.forEach(function(itx) {itx.mark_color = color;});
@@ -634,8 +636,8 @@ class StockTable extends UIListener {
         }
     }
 
-    findInDatasMap(code) {
-        return this.datasMap[code];
+    findInDatasMap(key) {
+        return this.datasMap[key];
     }
 
     buildUI() {
@@ -770,8 +772,9 @@ class StockTable extends UIListener {
     mergeCodesInfo(infos) {
         if (!infos|| !this.datasMap || !this.headers)
             return;
-        for (let scode in this.datasMap) {
-            let it = this.datasMap[scode];
+        for (let key in this.datasMap) {
+            let it = this.datasMap[key];
+            let scode = it.secu_code;
             let hh = infos[scode];
             if (! hh) {
                 continue;
@@ -944,7 +947,9 @@ class GroupTable extends StockTable {
     findInDatasMap(code) {
         let rs = [];
         for (let k in this.datasMap) {
-            if (k.indexOf(code) >= 0) rs.push(this.datasMap[k]);
+            let it = this.datasMap[k];
+            if (it.secu_code.indexOf(code) >= 0)
+                rs.push(it);
         }
         return rs;
     }

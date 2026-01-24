@@ -800,7 +800,9 @@ class TabNaviMgr {
 
 	_initUI() {
 		let thiz = this;
-		this.navi = $('<div class="toggle-nav-active">涨停池</div> <div >连板池</div>  <div >炸板池</div> <div >跌停池</div> <div >热度榜</div> <div >成交额</div> <div>笔记</div> <div>标记</div> </div>');
+		this.navi = $('<div class="toggle-nav-active">涨停池</div> <div >连板池</div> ' + 
+					  ' <div >炸板池</div> <div >跌停池</div> <div >热度榜</div> <div >成交额</div> ' +
+					  ' <div>笔记</div> <div>龙虎榜</div> </div>');
 		$('div[name="tab-nav-item"]').append(this.navi);
 		$('div[name="tab-nav-item"] > div').click(function() {
 			if (! $(this).hasClass('toggle-nav-active')) {
@@ -821,8 +823,8 @@ class TabNaviMgr {
 			this.loadNoteNavi(name);
 			return;
 		}
-		if (name == '标记') {
-			this.loadMarkNavi(name);
+		if (name == '龙虎榜') {
+			this.loadLhbNavi(name);
 			return;
 		}
 		if (name == '成交额') {
@@ -884,6 +886,28 @@ class TabNaviMgr {
 			type: 'POST',
 			data: JSON.stringify({op: 'get'}),
 			success: function(resp) {
+				thiz.updateTabContentUI(name, resp);
+			}
+		});
+	}
+
+	loadLhbNavi(name) {
+		let thiz = this;
+		let day = this.vue.data.curDay;
+		$.ajax({
+			url: `/lhb?day=${day}`,
+			contentType: 'application/json',
+			type: 'GET',
+			success: function(resp) {
+				let maps = {};
+				for (let it of resp) {
+					if (maps[it.code]) {
+						it.key = it.code + '_' + maps[it.code];
+						maps[it.code] += 1;
+					} else {
+						maps[it.code] = 1;
+					}
+				}
 				thiz.updateTabContentUI(name, resp);
 			}
 		});
@@ -1059,9 +1083,16 @@ class TabNaviMgr {
 			}
 			tdObj.html(rowData.amountIdx);
 		}
+		function zdRender(idx, rowData, header, tdObj) {
+			let zdf = rowData[header.name];
+			if (zdf != null || zdf != undefined) {
+				tdObj.text(zdf.toFixed(1) + '%');
+			} else {
+				tdObj.text('');
+			}
+		}
 		if (name == '涨停池' || name == '连板池') {
 			hd = [
-				{text: ' ', 'name': 'mark_color', width: 40, sortable: true, defined: true},
 				{text: '股票/代码', 'name': 'code', width: 80},
 				{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true}, // change
 				{text: '连板', 'name': 'limit_up_days', width: 50, sortable: true},
@@ -1073,7 +1104,6 @@ class TabNaviMgr {
 			];
 		} else if (name == '炸板池') {
 			hd = [
-				{text: ' ', 'name': 'mark_color', width: 40, sortable: true, defined: true},
 				{text: '股票/代码', 'name': 'code', width: 80},
 				{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
 				{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
@@ -1085,7 +1115,6 @@ class TabNaviMgr {
 			];
 		} else if (name == '跌停池') {
 			hd = [
-				{text: ' ', 'name': 'mark_color', width: 40, sortable: true, defined: true},
 				{text: '股票/代码', 'name': 'code', width: 80},
 				{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
 				{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
@@ -1098,7 +1127,6 @@ class TabNaviMgr {
 			];
 		} else if (name == '热度榜') {
 			hd = [
-				{text: ' ', 'name': 'mark_color', width: 40, sortable: true, defined: true},
 				{text: '股票/代码', 'name': 'code', width: 80},
 				{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
 				{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
@@ -1112,7 +1140,6 @@ class TabNaviMgr {
 			];
 		} else if ( name == '成交额') {
 			hd = [
-				{text: ' ', 'name': 'mark_color', width: 40, sortable: true, defined: true},
 				{text: '股票/代码', 'name': 'code', width: 80},
 				{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
 				{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
@@ -1124,17 +1151,19 @@ class TabNaviMgr {
 				{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
 				{text: '分时图', 'name': 'fs', width: 300},
 			];
-		} else if ( name == '标记') {
+		} else if ( name == '龙虎榜') {
 			hd = [
-				{text: ' ', 'name': 'mark_color', width: 40, sortable: true, defined: true},
 				{text: '股票/代码', 'name': 'code', width: 80},
 				{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
 				{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
 				{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
-				{text: '标记日期', 'name': 'day', width: 80, sortable: true},
 				{text: '热度', 'name': 'hots', width: 50, sortable: true, defined: true},
-				{text: '涨跌幅', 'name': 'zf', width: 70, sortable: true, defined: true},
-				{text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
+				{text: '涨跌幅', 'name': 'zd', width: 70, sortable: true, cellRender : zdRender},
+				{text: '成交额', 'name': 'cjje', width: 70, sortable: true, cellRender : amountRender},
+				// {text: '净买额', 'name': 'jme', width: 70, sortable: true, cellRender : amountRender},
+				{text: '上榜类型', 'name': 'title', width: 100},
+
+				// {text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
 				{text: '分时图', 'name': 'fs', width: 300},
 			];
 		} else if (name == '指数') {

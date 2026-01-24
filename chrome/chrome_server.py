@@ -46,6 +46,7 @@ class Server:
         self.app.add_url_rule('/get-all-hot-tc', view_func = self.getAllHotTc)
         self.app.add_url_rule('/get-hot-tc-by-day', view_func = self.getHotTcByDay)
         self.app.add_url_rule('/get-hot-tc-by-code', view_func = self.getHotTcByCode)
+        self.app.add_url_rule('/lhb', view_func = self.getLhb)
 
         self.app.add_url_rule('/load-kline/<code>', view_func = self.loadKLine)
         self.app.add_url_rule('/cls-proxy/', view_func = self.clsProxy)
@@ -263,6 +264,36 @@ class Server:
             rs['down'].append(downNum)
         return rs
 
+    def getLhb(self):
+        day = flask.request.args.get('day', None)
+        if not day:
+            day = ths_iwencai.getTradeDays()[-1]
+        day = self.formatDay(day)
+        qr = lhb_orm.TdxLHB.select().where(lhb_orm.TdxLHB.day == day)
+        rs = []
+        for it in qr:
+            obj = it.__data__
+            obj['cjje'] = int(it.cjje)
+            obj['jme'] = float(it.jme)
+            obj['mcje'] = float(it.mcje)
+            obj['mrje'] = float(it.mrje)
+            obj['zd'] = float(it.zd)
+            del obj['id']
+            rs.append(obj)
+        return rs
+
+    # return YYYY-MM-DD
+    def formatDay(self, day):
+        if not day:
+            return day
+        if type(day) == int:
+            day = str(day)
+        if isinstance(day, datetime.date):
+            day = day.strftime('%Y-%m-%d')
+        if len(day) == 8:
+            day = f'{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}'
+        return day
+
     def _openUI_Timeline(self, code, day):
         win = timeline.TimelinePanKouWindow()
         win.createWindow(None, (0, 0, 1200, 600), win32con.WS_OVERLAPPEDWINDOW)
@@ -408,7 +439,7 @@ class Server:
         return 'ok'
 
     def getTradeDays(self):
-        days = ths_iwencai.getTradeDays(180)
+        days = ths_iwencai.getTradeDays()
         rs = []
         for d in days:
             rs.append(f"{d[0 : 4]}-{d[4 : 6]}-{d[6 : 8]}")
