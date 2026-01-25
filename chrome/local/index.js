@@ -1055,7 +1055,6 @@ class TabNaviMgr {
 
 	showLhbDetail(header, rowData, tdObj) {
 		let value = rowData['detail'];
-		console.log(value)
 		let wrap = $('.dialog-mask');
 		wrap.empty();
 		let detail = JSON.parse(value);
@@ -1217,6 +1216,15 @@ class TabNaviMgr {
 				{text: '分时图', 'name': 'fs', width: 300},
 			];
 		} else if ( name == '龙虎榜') {
+			function yzRender(idx, rowData, header, tdObj) {
+				let ds = JSON.parse(rowData['detail']);
+				let yz = '';
+				for (let d of ds) {
+					if (d.yz && yz.indexOf(d.yz) < 0)
+						yz += d.yz + '&nbsp;&nbsp;';
+				}
+				tdObj.html(yz);
+			}
 			hd = [
 				{text: '股票/代码', 'name': 'code', width: 80},
 				{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
@@ -1226,7 +1234,7 @@ class TabNaviMgr {
 				{text: '涨跌幅', 'name': 'zd', width: 70, sortable: true, cellRender : zdRender},
 				{text: '成交额', 'name': 'cjje', width: 70, sortable: true, cellRender : amountRender},
 				// {text: '净买额', 'name': 'jme', width: 70, sortable: true, cellRender : amountRender},
-				{text: '上榜类型', 'name': 'title', width: 100, click: function(a, b, c) {thiz.showLhbDetail(a, b, c);}},
+				{text: '上榜类型', 'name': 'title', width: 100, cellRender: yzRender, click: function(a, b, c) {thiz.showLhbDetail(a, b, c);}},
 
 				// {text: '涨速', 'name': 'zs', width: 50, sortable: true, defined: true},
 				{text: '分时图', 'name': 'fs', width: 300},

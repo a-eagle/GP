@@ -1329,6 +1329,72 @@ class PopupMenu extends UIListener {
 
 }
 
+class Dialog extends UIListener {
+    constructor() {
+        super();
+        this.popup = null;
+        this.content = null;
+    }
+
+    setContent(content) {
+        this.initStyle();
+        if (this.content == content)
+            return;
+        if (this.content)
+            this.content.remove();
+        this.content = $(content);
+        this.content.hide();
+        this.content.addClass('dialog');
+        this.popup.append(this.content);
+    }
+
+    show(x, y) {
+        this.content.css({left: String(x) + 'px', top: String(y) + 'px'});
+        this.content.show();
+        this.popup.show();
+    }
+
+    hide() {
+        if (this.content)
+            this.content.hide();
+        if (this.popup)
+            this.popup.hide();
+        this.notify({name: 'OnHide', src: this});
+    }
+
+    destroy() {
+        if (this.content)
+            this.content.remove();
+        if (this.popup)
+            this.popup.remove();
+        this.content = null;
+        this.popup = null;
+    }
+
+    initStyle() {
+        if (! window['Dialog-InitStyle']) {
+            window['Dialog-InitStyle'] = true;
+            let style = document.createElement('style');
+            let css = " \
+                .dialog-popup {z-index: 8000; display: none;  position: fixed; padding: 0; outline: 0; left:0px; top: 0px;width:100%;height:100%;}\n\
+                .dialog-popup .dialog {position:absolute; border: 1px solid #666; }";
+            style.appendChild(document.createTextNode(css));
+            document.head.appendChild(style);
+        }
+        if (this.popup)
+            return;
+        this.popup = $('<div class="dialog-popup" > </div>');
+        $(document.body).append(this.popup);
+        let thiz = this;
+        this.popup.click(function(evt) {
+            if (evt.target == thiz.popup.get(0)) {
+                thiz.hide();
+            }
+        });
+        this.popup.on('mousewheel', function(event) { return false;}); //  event.stopPropagation();event.preventDefault();
+    }
+}
+
 class RichEditor extends UIListener {
     constructor(name) {
         super();
