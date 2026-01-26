@@ -327,6 +327,30 @@ class HygnDownloader:
             obj.gn_code = gncodes
             obj.updateTime = datetime.datetime.now()
             obj.save()
+
+    def simpleDownloadByCode(self, code):
+        rs = iwencai_load_list(question = f'{code} 行业,概念') # ,maxPage = 1  
+        if not rs:
+            return False
+        line = rs[0]
+        line['code'] = line['股票代码']
+        obj : ths_orm.THS_GNTC = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == line['code'])
+        columns = ThsColumns(line)
+        dest = {}
+        for idx, a in enumerate(self.ATTRS):
+            dest[a] = columns.getColumnValue(self.ATTRS_D[idx], self.ATTRS_D_T[idx])
+        gncode = []
+        for gn in dest['gn'].split(';'):
+            cc = self.zsInfos.get(gn.strip(), '')
+            gncode.append(cc)
+        gncodes = ';'.join(gncode)
+        if obj.gn == dest['gn'] and obj.gn_code == gncodes:
+            return False
+        print('update ', obj.code, obj.name)
+        obj.gn = dest['gn']
+        obj.gn_code = gncodes
+        obj.updateTime = datetime.datetime.now()
+        obj.save()
     
     def checkGnMatch():
         num = 0
@@ -746,6 +770,6 @@ if __name__ == '__main__':
     # rs = download_hygn_by_code('000547') # 600297 600811 +002183  +300136
     # print(rs)
     hy = HygnDownloader()
-    hy.simpleDownload()
+    # hy.simpleDownload()
     pass
     
