@@ -300,12 +300,39 @@ class HygnDownloader:
             self.deal(line, obj, inserts, updates, diffs)
         self.save(inserts, updates, diffs)
         return len(inserts), len(updates)
+    
+    # no record diffs, only update gn and gn_code
+    def simpleDownload(self):
+        rs = iwencai_load_list(question = '个股及行业板块, 按热度排序', maxPage = 10)
+        objs = {}
+        for d in ths_orm.THS_GNTC.select():
+            objs[d.code] = d
+        for line in rs:
+            if line['code'] not in objs:
+                continue
+            obj : ths_orm.THS_GNTC = objs.get(line['code'], None)
+            columns = ThsColumns(line)
+            dest = {}
+            for idx, a in enumerate(self.ATTRS):
+                dest[a] = columns.getColumnValue(self.ATTRS_D[idx], self.ATTRS_D_T[idx])
+            gncode = []
+            for gn in dest['gn'].split(';'):
+                cc = self.zsInfos.get(gn.strip(), '')
+                gncode.append(cc)
+            gncodes = ';'.join(gncode)
+            if obj.gn == dest['gn'] and obj.gn_code == gncodes:
+                continue
+            print('update ', obj.code, obj.name)
+            obj.gn = dest['gn']
+            obj.gn_code = gncodes
+            obj.updateTime = datetime.datetime.now()
+            obj.save()
 
     def save(self, inserts, updates, diffs):
         if inserts:
             ths_orm.THS_GNTC.bulk_create(inserts, 100)
         if updates:
-            UPDATE_ATTRS = (*self.ATTRS, 'updateTime')
+            UPDATE_ATTRS = (*self.ATTRS, 'gn_code', 'updateTime')
             ths_orm.THS_GNTC.bulk_update(updates, UPDATE_ATTRS, 100)
         if diffs:
             d_orm.DiffBkGnModel.bulk_create(diffs, 100)
@@ -705,7 +732,9 @@ if __name__ == '__main__':
     # ss = hygn_spliter(';;asdf;ek;;')
     # print(ss)
     # rs = download_hygn()
-    rs = download_hygn_by_code('000971') # 600297 600811 +002183  +300136
-    print(rs)
+    # rs = download_hygn_by_code('000547') # 600297 600811 +002183  +300136
+    # print(rs)
+    hy = HygnDownloader()
+    hy.simpleDownload()
     pass
     
