@@ -95,6 +95,7 @@ class ContextMenuManager:
               {'title': '画线(直线)', 'name': 'draw-line'},
               {'title': '画线(文本)', 'name': 'draw-text'},
               {'title': '删除直线', 'name': 'del-draw-line', 'day': selDay},
+              {'title': '计算涨跌幅', 'name': 'calc-zdf'},
             #   {'title': 'LINE'},
             #   {'title': '标记', 'name': 'mark-color', 'sub-menu': self.getMarkColors},
             #   {'title': '简单指标', 'name': 'simple-indicator', 'checked': self.win.simpleIndicator},
@@ -265,6 +266,8 @@ class ContextMenuManager:
             for it in self.win.indicators:
                 it.visible = (not v) or (type(it) not in TS)
             self.win.calcIndicatorsRect()
+        elif name == 'calc-zdf':
+            self.win.calcZdfMgr.ready()
 
     def markColor(self, item):
         code = self.win.klineIndicator.model.code
@@ -297,6 +300,95 @@ class ContextMenuManager:
         url = f'http://localhost:8080/local/index.html?day={day}'
         pyperclip.copy(url)
         win32api.ShellExecute(None, 'open', url, '', '', True) # '--incognito'
+
+class CalcZdfManager:
+    def __init__(self, win) -> None:
+        self.win = win
+        self.captureMouse = False
+        self.startPos = None
+        self.endPos = None
+
+    def ready(self):
+        self.captureMouse = True
+        self.startPos = None
+        self.endPos = None
+
+    def onLButtonUp(self, x, y):
+        if not self.startPos:
+            self.startPos = (x, y)
+            self.endPos = None
+        else:
+            self.captureMouse = False
+            self.startPos = None
+            self.endPos = None
+        self.win.invalidWindow()
+
+    def onMouseMove(self, x, y):
+        if not self.captureMouse:
+            return
+        self.endPos = (x, y)
+        self.win.invalidWindow()
+
+    def onDraw(self, hdc):
+        if not self.captureMouse or not self.startPos:
+            return
+        sx, sy = self.startPos
+        sdc = win32gui.SaveDC(hdc)
+        kl : KLineIndicator = self.win.klineIndicator
+        drawer : base_win.Drawer = self.win.drawer
+
+        LINE_COLOR = 0x008CFF
+        drawer.use(hdc, drawer.getPen(LINE_COLOR, win32con.PS_SOLID))
+        win32gui.MoveToEx(hdc, kl.x + 100, sy)
+        win32gui.LineTo(hdc, kl.x + kl.width, sy)
+        price1 = kl.getValueAtY(sy - kl.y)
+        if price1:
+            tx = sx
+            if self.endPos:
+                tx = self.endPos[0]
+            rc = (tx + 15, sy, tx + 100, sy + 20)
+            drawer.drawText(hdc, price1['fmtVal'], rc, color = LINE_COLOR, align = win32con.DT_LEFT)
+        if self.endPos:
+            ex, ey = self.endPos
+            drawer.use(hdc, drawer.getPen(LINE_COLOR, win32con.PS_SOLID))
+            win32gui.MoveToEx(hdc, kl.x + 100, ey)
+            win32gui.LineTo(hdc, kl.x + kl.width, ey)
+            win32gui.MoveToEx(hdc, kl.x + ex, sy)
+            win32gui.LineTo(hdc, kl.x + ex, ey)
+            price2 = kl.getValueAtY(ey - kl.y)
+            if price2:
+                rc = (ex + 15, ey, ex + 100, ey + 20)
+                drawer.drawText(hdc, price2['fmtVal'], rc, color = LINE_COLOR, align = win32con.DT_LEFT)
+            # calc zdf
+            if price1 and price2:
+                maxPrice = max(price1['value'], price2['value'])
+                minPrice = min(price1['value'], price2['value'])
+                zf = (maxPrice - minPrice) / minPrice * 100
+                df = (minPrice - maxPrice) / maxPrice * 100
+                cy = (ey - sy) // 2 + sy - 20
+                rc = (ex + 15, cy, ex + 100, cy + 20)
+                drawer.drawText(hdc, f'涨幅 {zf :.1f}%', rc, color = LINE_COLOR, align = win32con.DT_LEFT)
+                cy += 20
+                rc = (ex + 15, cy, ex + 100, cy + 20)
+                drawer.drawText(hdc, f'跌幅 {df :.1f}%', rc, color = LINE_COLOR, align = win32con.DT_LEFT)
+
+        win32gui.RestoreDC(hdc, sdc)
+
+    def winProc(self, hwnd, msg, wParam, lParam):
+        if msg >= win32con.WM_MOUSEFIRST and msg <= win32con.WM_MOUSELAST:
+            if not self.captureMouse:
+                return False
+            kl = self.win.klineIndicator
+            x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
+            cx = x - kl.x
+            cy = y - kl.y
+            isInK = x >= 0 and x < kl.width and y >= 0 and y < kl.height
+            if msg == win32con.WM_LBUTTONUP:
+                self.onLButtonUp(x, y)
+            if msg == win32con.WM_MOUSEMOVE:
+                self.onMouseMove(x, y)
+            return True
+        return False
 
 class IndicatorVisibleManager:
     def __init__(self, win) -> None:
@@ -878,6 +970,7 @@ class KLineWindow(base_win.BaseWindow):
         self.lineMgr = TextLineManager(self)
         self.rangeSelMgr = RangeSelectorManager(self)
         self.dayLongMgr = DayLongManager(self)
+        self.calcZdfMgr = CalcZdfManager(self)
 
     def addIndicator(self, indicator : Indicator):
         self.indicators.append(indicator)
@@ -1010,6 +1103,8 @@ class KLineWindow(base_win.BaseWindow):
     # @return True: 已处理事件,  False:未处理事件
     def winProc(self, hwnd, msg, wParam, lParam):
         if self.lineMgr.winProc(hwnd, msg, wParam, lParam):
+            return True
+        if self.calcZdfMgr.winProc(hwnd, msg, wParam, lParam):
             return True
         if self.rangeSelMgr.winProc(hwnd, msg, wParam, lParam):
             return True
@@ -1197,6 +1292,7 @@ class KLineWindow(base_win.BaseWindow):
         self.drawer.drawLine(hdc, w - self.RIGHT_MARGIN + 10, 0, w - self.RIGHT_MARGIN + 10, h, 0x0000aa)
         # draw select range
         self.rangeSelMgr.onDraw(hdc)
+        self.calcZdfMgr.onDraw(hdc)
 
     def drawHeaderTip(self, hdc):
         if self.selIdx < 0 or not self.klineIndicator.data:
