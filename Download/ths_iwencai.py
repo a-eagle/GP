@@ -303,7 +303,7 @@ class HygnDownloader:
     
     # no record diffs, only update gn and gn_code
     def simpleDownload(self):
-        rs = iwencai_load_list(question = '个股及行业板块, 按热度排序', maxPage = 10)
+        rs = iwencai_load_list(question = '个股及行业板块, 按热度排序')
         objs = {}
         for d in ths_orm.THS_GNTC.select():
             objs[d.code] = d
@@ -327,6 +327,17 @@ class HygnDownloader:
             obj.gn_code = gncodes
             obj.updateTime = datetime.datetime.now()
             obj.save()
+    
+    def checkGnMatch():
+        num = 0
+        for it in ths_orm.THS_GNTC.select():
+            if not it.gn and not it.gn_code:
+                continue
+            ln = it.gn.split(';')
+            lc = it.gn_code.split(';')
+            if len(ln) != len(lc):
+                num += 1
+                print(num, 'Not equals gn & gn_code: ', it.code, it.name)
 
     def save(self, inserts, updates, diffs):
         if inserts:
