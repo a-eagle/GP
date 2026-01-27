@@ -352,7 +352,7 @@ class HygnDownloader:
         obj.updateTime = datetime.datetime.now()
         obj.save()
     
-    def checkGnMatch():
+    def checkGnMatch(self):
         num = 0
         for it in ths_orm.THS_GNTC.select():
             if not it.gn and not it.gn_code:
@@ -361,7 +361,7 @@ class HygnDownloader:
             lc = it.gn_code.split(';')
             if len(ln) != len(lc):
                 num += 1
-                print(num, 'Not equals gn & gn_code: ', it.code, it.name)
+                print(num, 'Not match gn & gn_code: ', it.code, it.name)
 
     def save(self, inserts, updates, diffs):
         if inserts:
@@ -770,6 +770,6 @@ if __name__ == '__main__':
     # rs = download_hygn_by_code('000547') # 600297 600811 +002183  +300136
     # print(rs)
     hy = HygnDownloader()
-    # hy.simpleDownload()
+    hy.checkGnMatch()
     pass
     
