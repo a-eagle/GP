@@ -305,6 +305,7 @@ class CalcZdfManager:
     def __init__(self, win) -> None:
         self.win = win
         self.captureMouse = False
+        self.lockStartPos = False
         self.startPos = None
         self.endPos = None
 
@@ -312,13 +313,16 @@ class CalcZdfManager:
         self.captureMouse = True
         self.startPos = None
         self.endPos = None
+        self.lockStartPos = False
 
     def onLButtonUp(self, x, y):
-        if not self.startPos:
+        if not self.lockStartPos:
+            self.lockStartPos = True
             self.startPos = (x, y)
             self.endPos = None
         else:
             self.captureMouse = False
+            self.lockStartPos = False
             self.startPos = None
             self.endPos = None
         self.win.invalidWindow()
@@ -326,7 +330,10 @@ class CalcZdfManager:
     def onMouseMove(self, x, y):
         if not self.captureMouse:
             return
-        self.endPos = (x, y)
+        if not self.lockStartPos:
+            self.startPos = (x, y)
+        else:
+            self.endPos = (x, y)
         self.win.invalidWindow()
 
     def onDraw(self, hdc):
@@ -339,7 +346,7 @@ class CalcZdfManager:
 
         LINE_COLOR = 0x008CFF
         drawer.use(hdc, drawer.getPen(LINE_COLOR, win32con.PS_SOLID))
-        win32gui.MoveToEx(hdc, kl.x + 100, sy)
+        win32gui.MoveToEx(hdc, kl.x, sy)
         win32gui.LineTo(hdc, kl.x + kl.width, sy)
         price1 = kl.getValueAtY(sy - kl.y)
         if price1:
@@ -351,7 +358,7 @@ class CalcZdfManager:
         if self.endPos:
             ex, ey = self.endPos
             drawer.use(hdc, drawer.getPen(LINE_COLOR, win32con.PS_SOLID))
-            win32gui.MoveToEx(hdc, kl.x + 100, ey)
+            win32gui.MoveToEx(hdc, kl.x, ey)
             win32gui.LineTo(hdc, kl.x + kl.width, ey)
             win32gui.MoveToEx(hdc, kl.x + ex, sy)
             win32gui.LineTo(hdc, kl.x + ex, ey)
