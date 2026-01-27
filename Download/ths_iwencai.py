@@ -224,7 +224,7 @@ class HygnDownloader:
     def adjustHyGnCode(self, obj : ths_orm.THS_GNTC):
         gn_code = []
         for g in obj.gn.split(';'):
-            gcode = self.zsInfos.get(g, '-')
+            gcode = self.zsInfos.get(g, '')
             gn_code.append(gcode)
         gn_code = ';'.join(gn_code)
         hys = obj.hy.split('-')
