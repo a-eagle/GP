@@ -353,7 +353,7 @@ class CalcZdfManager:
             tx = sx
             if self.endPos:
                 tx = self.endPos[0]
-            rc = (tx + 15, sy, tx + 100, sy + 20)
+            rc = (tx - 80, sy, tx, sy + 20)
             drawer.drawText(hdc, price1['fmtVal'], rc, color = LINE_COLOR, align = win32con.DT_LEFT)
         if self.endPos:
             ex, ey = self.endPos
@@ -364,7 +364,7 @@ class CalcZdfManager:
             win32gui.LineTo(hdc, kl.x + ex, ey)
             price2 = kl.getValueAtY(ey - kl.y)
             if price2:
-                rc = (ex + 15, ey, ex + 100, ey + 20)
+                rc = (ex - 80, ey, ex, ey + 20)
                 drawer.drawText(hdc, price2['fmtVal'], rc, color = LINE_COLOR, align = win32con.DT_LEFT)
             # calc zdf
             if price1 and price2:
