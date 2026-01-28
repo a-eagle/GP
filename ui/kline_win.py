@@ -1344,16 +1344,13 @@ class KLineWindow(base_win.BaseWindow):
         win.addIndicator(ScqxIndicator(win))
         win.addIndicator(LsAmountIndicator(win))
         win.addIndicator(HotIndicator(win))
+        win.addIndicator(Amount2Indicator(win))
         win.addIndicator(ThsZT_Indicator(win))
         win.addIndicator(ClsZT_Indicator(win))
-        it = ZhangSuIndicator(win)
-        it.visible = False
-        win.addIndicator(it)
+        win.addIndicator(ZhangSuIndicator(win, {'visible': False}))
         win.addIndicator(LhbIndicator(win))
-        it = GnLdIndicator(win)
-        it.visible = False
-        win.addIndicator(it)
-        win.addIndicator(Code_ZT_NumIndicator(win))
+        win.addIndicator(GnLdIndicator(win, {'visible': False}))
+        win.addIndicator(Code_ZT_NumIndicator(win, {'visible': False}))
         return win
 
     @staticmethod

@@ -59,6 +59,8 @@ class Indicator:
         self.visibleRange = None # [begin, end)
         self.width = 0
         self.height = 0
+        if 'visible' in self.config:
+            self.visible = self.config['visible']
     
     def getItemData(self, idx):
         if idx >= 0 and self.data and idx < len(self.data):
@@ -1807,6 +1809,26 @@ class Code_ZT_NumIndicator(ZS_ZT_NumIndicator):
         order = str(info['order'])
         rc = (x, 5, x + W, 20)
         drawer.drawText(hdc, order, rc, 0x505050)
+
+class Amount2Indicator(CustomIndicator):
+    def __init__(self, win, config = None) -> None:
+        config = config or {}
+        if 'height' not in config:
+            config['height'] = 30
+        super().__init__(win, config)
+        if 'title' not in config:
+            self.config['title'] = '[成交额]'
+    
+    def drawItem(self, hdc, drawer, idx, x):
+        super().drawItem(hdc, drawer, idx, x)
+        iw = self.config['itemWidth']
+        amount = self.data[idx].amount / 100000000
+        if amount < 1 and amount > 0:
+            amount = f'{amount :.1f}'
+        else:
+            amount = int(amount)
+        rc = (x + 1, 1, x + iw, self.height)
+        drawer.drawText(hdc, f'{amount} 亿', rc, 0xcccccc, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
 if __name__ == '__main__':
     #base_win.ThreadPool.instance().start()
