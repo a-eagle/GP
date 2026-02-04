@@ -518,6 +518,12 @@ class StockTable extends UIListener {
             if (hd.click) thiz.bindCellEvent(td, 'click', hd, rowData)
         }
         tr.dblclick(function() {thiz.openKLineDialog(rowData)}); // $(this).attr('code')
+        tr.click(function() {
+            let selTr = thiz.table.find('tr.sel');
+            console.log(selTr);
+            selTr.removeClass('sel');
+            $(this).addClass('sel');
+        });
         // tr.on('contextmenu', function(event) {
         //     event.preventDefault();
         //     const x = event.clientX;
@@ -853,7 +859,7 @@ class StockTable extends UIListener {
                    .my-stoks-table td { vertical-align: middle; height: 66px; border: 1px solid #ddd;} \n\
                    .my-stoks-table .fs {padding: 3px 3px;} \n\
                    .my-stoks-table .pl20 {padding-right:20px;} \n\
-                   .my-stoks-table .sel {background-color: #ECEFF9;}\n\
+                   .my-stoks-table tr.sel {background-color: #d9e0ea; border-left: solid 3px #999;}\n\
                    .my-stoks-table .elipse {color: #66B2FF; }\n\
                    .my-stoks-table .cls-zt-reason {color: #6495ED; font-size: 12px;}\n\
                    .my-stoks-table .ths-zt-reason {color: #5CACEE; font-size: 12px;}\n\
