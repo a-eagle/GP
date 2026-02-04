@@ -1,4 +1,4 @@
-import threading, sys, traceback, datetime, json, logging, copy, os, base64
+import threading, sys, traceback, datetime, json, logging, copy, os, base64, mimetypes
 import flask, flask_cors, requests
 import win32con, win32gui, peewee as pw
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -12,6 +12,7 @@ class Server:
     BASE_CLS_PARAMS = {"os": "web", "sv":"8.4.6", "app": "CailianpressWeb"}
 
     def __init__(self) -> None:
+        mimetypes.add_type('application/javascript', '.js')
         self.app = flask.Flask(__name__, static_folder = 'local', template_folder = '')
         log = logging.getLogger('werkzeug')
         log.setLevel(logging.WARNING)

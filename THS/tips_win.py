@@ -243,6 +243,14 @@ class ZSCardView(CardView):
         name = self.zsData[0]['name'] if self.zsData else ''
         win32gui.SetWindowText(self.hwnd, f'{code} {name}')
 
+    def formateDay(self, day):
+        if not day:
+            return day
+        day = str(day)
+        if len(day) == 8:
+            return f'{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}'
+        return day
+
     def getZSInfo(self, zsCode):
         if type(zsCode) == int:
             zsCode = f'{zsCode :06d}'
@@ -251,7 +259,7 @@ class ZSCardView(CardView):
         datars = {}
         tdays = ths_iwencai.getTradeDaysInt()
         for d in data:
-            d['sday'] = d['day']
+            d['sday'] = self.formateDay(d['day'])
             d['day'] = int(d['day'].replace('-', ''))
             datars[d['day']] = d
         first = -1
@@ -266,7 +274,10 @@ class ZSCardView(CardView):
             day = tdays[idx]
             item = datars.get(day, None)
             if not item:
-                item = ths_orm.THS_ZS_ZD(day = f'{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}').__data__
+                sday = f'{day // 10000}-{day // 100 % 100 :02d}-{day % 100 :02d}'
+                item = ths_orm.THS_ZS_ZD().__data__
+                item['sday'] = sday
+                item['day'] = day
             rs.append(item)
         return rs
     
