@@ -59,6 +59,8 @@ class ScreenLocker(base_win.BaseWindow):
             return
         if keys[-1] != keys[-2]:
             return
+        if keys[-1] < '0' or keys[-1] > '9':
+            return
         win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
         self._lock(False)
 
