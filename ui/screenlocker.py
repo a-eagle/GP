@@ -22,13 +22,10 @@ class ScreenLocker(base_win.BaseWindow):
         super().createWindow(parentWnd, rect, style, className, title)
 
     def onChar(self, keyCode):
+        self.keys += chr(keyCode)
         if keyCode == win32con.VK_RETURN:
             if 'gaoyan2012' in self.keys or 'gaoyan' in self.keys:
                 self.unlock()
-            self.keys = ''
-            self.invalidWindow()
-        else:
-            self.keys += chr(keyCode)
             self.invalidWindow()
 
     def winProc(self, hwnd, msg, wParam, lParam):
@@ -54,13 +51,15 @@ class ScreenLocker(base_win.BaseWindow):
         if not win32gui.IsWindow(self.hwnd):
             return
         keys = self.keys
-        self.keys = ''
         if len(keys) < 2:
             return
         if keys[-1] != keys[-2]:
             return
-        if keys[-1] < '0' or keys[-1] > '9':
+        accept = keys[-1] >= '0' and keys[-1] <= '9'
+        accept = accept or (keys[-1] == '\r' or keys[-1] == '\n')
+        if not accept:
             return
+        self.keys = ''
         win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
         self._lock(False)
 
