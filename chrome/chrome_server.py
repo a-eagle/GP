@@ -757,7 +757,12 @@ class Server:
             cnd = (cls_orm.CLS_UpDown.limit_up_days == 0) & (cls_orm.CLS_UpDown.is_down == 0)
         elif tag == 'DT':
             cnd = cls_orm.CLS_UpDown.is_down == 1
-        qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day, cnd)
+        qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day, cnd).dicts()
+        print('sql = ', qr)
+        rs = []
+        for it in qr:
+            rs.append(it)
+        return rs
 
 if __name__ == '__main__':
     svr = Server()
