@@ -56,9 +56,18 @@ class ClsUrl:
     
     def signParams(self, params):
         if isinstance(params, str):
-            sign = signByStr(params)
-            return params + '&sign=' + sign
+            ps = params.split('&')
+            dts = {}
+            for p in ps:
+                if not p:
+                    continue
+                item = p.split('=')
+                dts[item[0]] = item[1].strip()
+            return self.signParams(dts)
         if isinstance(params, dict):
+            params['app'] = 'CailianpressWeb'
+            params['os'] = 'web'
+            params['sv'] = '8.4.6'
             ks = list(params.keys())
             ks.sort()
             sl = []
@@ -69,13 +78,21 @@ class ClsUrl:
             return sparams + '&sign=' + sign
         return None # error params
     
+    def signUrl(self, url):
+        if '?' not in url:
+            url += '?'
+        baseUrl = url[0 : url.index('?') + 1]
+        params = url[url.index('?') + 1 : ]
+        p = self.signParams(params)
+        return baseUrl + p
+    
     def loadFenShi(self, code):
         item = memcache.cache.getCache(f'cls-fs:{code}')
         if item:
             return item
         url = 'https://x-quote.cls.cn/quote/stock/tline?'
         scode = self._getTagCode(code)
-        params = f'app=CailianpressWeb&fields=date,minute,last_px,business_balance,business_amount,open_px,preclose_px,av_px&os=web&secu_code={scode}&sv=7.7.5'
+        params = f'fields=date,minute,last_px,business_balance,business_amount,open_px,preclose_px,av_px&secu_code={scode}'
         url += self.signParams(params)
         resp = requests.get(getProxyUrl(url))
         txt = resp.content.decode('utf-8')
@@ -495,9 +512,12 @@ if __name__ == '__main__':
     print(platform.node())
     cu = ClsUrl()
     fs = cu.loadIndexFenShi('1A0001', 20251201)
+    print(fs)
     pass
     fs2 = cu.loadFenShi('1A0001')
     fs3 = cu.loadFenShi('399001')
+    print(fs2)
+    print(fs3)
     pass
     params = {'sql': 'select count(*) from CLS_SCQX'}
     resp = requests.post('http://113.44.136.221:8080/query-by-sql/cls', json = params)
