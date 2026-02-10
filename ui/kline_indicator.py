@@ -629,15 +629,12 @@ class AmountIndicator(AttrIndicator):
         if not self.valueRange or self.valueRange[0] == self.valueRange[1]:
             return
         亿 = 100000000
-        if self.valueRange[1] >= 5 * 亿 and 5 * 亿  >= self.valueRange[0]:
-            y = self.getYAtValue(5 * 亿)
-            drawer.drawLine(hdc, 0, y, self.width, y, 0xff0000)
-        if self.valueRange[1] >= 10 * 亿 and 10 * 亿  >= self.valueRange[0]:
-            y = self.getYAtValue(10 * 亿)
-            drawer.drawLine(hdc, 0, y, self.width, y, 0xff00ff)
-        if self.valueRange[1] >= 20 * 亿 and 20 * 亿  >= self.valueRange[0]:
-            y = self.getYAtValue(20 * 亿)
-            drawer.drawLine(hdc, 0, y, self.width, y, 0x00ffff)
+        AMOUNTS = (10 * 亿, 30 * 亿, 50 * 亿)
+        COLORS = (0xff0000, 0xff00ff, 0x00ffff)
+        for i in range(3):
+            if self.valueRange[1] >= AMOUNTS[i] and AMOUNTS[i]  >= self.valueRange[0]:
+                y = self.getYAtValue(AMOUNTS[i])
+                drawer.drawLine(hdc, 0, y, self.width, y, COLORS[i])
 
     def drawBackground(self, hdc, drawer):
         if not self.valueRange:

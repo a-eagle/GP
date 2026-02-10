@@ -1487,6 +1487,10 @@ class CodeWindow(BaseWindow):
         y += RH
         self.drawer.drawText(hdc, '总换手率', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         self.drawer.drawText(hdc, f'{int(totalRate)} %', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        y += RH
+        totalAmount = int(sum([d.amount for d in sdatas]) / 100000000)
+        self.drawer.drawText(hdc, '总成交额', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        self.drawer.drawText(hdc, f'{totalAmount} 亿', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
 
     def getModelAttr(self, model, attrName):
         if not self.selData or not model:
