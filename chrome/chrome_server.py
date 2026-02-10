@@ -55,6 +55,8 @@ class Server:
         self.app.add_url_rule('/plate-info/<code>', view_func = self.getPlateInfo)
         self.app.add_url_rule('/compare-amount/<day>', view_func = self.compareAmount)
         self.app.add_url_rule('/Yzcode', view_func = self.getYzcode)
+
+        self.app.add_url_rule('/query-cls-updown/<tag>/<day>', view_func = self.querClsUpDown)
         self.app.run('0.0.0.0', 8080, use_reloader = False, debug = False)
 
     def signParams(self, **kargs):
@@ -743,6 +745,19 @@ class Server:
             self.docr = ddddocr.DdddOcr()
         result = self.docr.classification(img)
         return {'captcha': result, 'code': 0}
+
+    def querClsUpDown(self, tag, day):
+        day = self.formatDay(day)
+        cnd = None
+        if tag == 'ZT':
+            cnd = cls_orm.CLS_UpDown.limit_up_days > 0
+        elif tag == 'LB':
+            cnd = cls_orm.CLS_UpDown.limit_up_days > 1
+        elif tag == 'ZB':
+            cnd = (cls_orm.CLS_UpDown.limit_up_days == 0) & (cls_orm.CLS_UpDown.is_down == 0)
+        elif tag == 'DT':
+            cnd = cls_orm.CLS_UpDown.is_down == 1
+        qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day, cnd)
 
 if __name__ == '__main__':
     svr = Server()
