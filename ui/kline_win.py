@@ -1044,10 +1044,10 @@ class KLineWindow(base_win.BaseWindow):
         self.makeVisible(-1)
         self.bkgnView.changeCode(code)
         self.invalidWindow()
-        ThreadPool.instance().addTask_N(self.loadBkGn, code)
+        ThreadPool.instance().addTask_N(self.loadClsBkGn, code)
         self.notifyListener(self.Event('ChangeCode', self, code = code))
 
-    def loadBkGn(self, code):
+    def loadClsBkGn(self, code):
         if code[0] not in ('0', '3', '6'):
             return
         if code[0 : 3] == '399':
