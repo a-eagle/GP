@@ -52,9 +52,6 @@
 .anchor-list .true {background-color: #FFD8D8;}
 .anchor-list .false {background-color: #A0F1DC;}
 
-.my-info-item  .zdfb-item {
-    height:220px;
-}
-.my-info-item .zdfb-item .zdfb {
-    float:left; width:300px; height:215px;
+.my-info-item .zdfb {
+    height:215px;
 }

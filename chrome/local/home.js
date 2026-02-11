@@ -474,28 +474,77 @@ let ZdfbView = {
     inject: ['curDay'],
     data() {
         this.$watch('curDay', this.onCurDayChanged);
-        return {data: null};
+        return {day: '', degree: '', zdfb: {}, d: 0};
     },
     methods: {
         onCurDayChanged(day) {
             console.log('[ZdfbView.onCurDayChanged] day=', day);
             axios.get('/zdfb-detail/' + day).then((resp) => {
                 console.log('ZdfbView.data', resp.data);
-                this.data = resp.data;
+                for (let k in resp.data) {
+                    this[k] = resp.data[k];
+                }
+                let d = 0;
+                if (this.degree) {
+                    d = this.degree / 100.0 * 226;
+                }
+                this.d = `${d} 227`;
             });
         },
+        renderDegree() {
+            let d = 0;
+            let dg = '--';
+            if (this.degree) {
+                d = this.degree / 100.0 * 226;
+                dg = String(this.degree) + '°';
+            }
+            let color = '#52c2a3';
+            if (this.degree && this.degree >= 50) color = 'red';
+            let tp = `<div style="width:160px; height: 80px;">
+                    <svg style="width:100% ;height: 100%;">\
+                        <defs>\
+                            <linearGradient id="linear" x1="0%" y1="0%" x2="100%" y2="0%">\
+                                <stop offset="0%" stop-color="#80DCC2"></stop>\
+                                <stop offset="100%" stop-color="#FF2C49"></stop>\
+                            </linearGradient>\
+                        </defs>\
+                        <circle cx="77.5" cy="76" r="72" stroke="#E2E2E2" stroke-width="8" fill="none" stroke-dasharray="226" stroke-dashoffset="-226" stroke-linecap="round"></circle>\
+                        <circle cx="77.5" cy="76" r="72" stroke="url(#linear)" stroke-width="8" fill="none" :stroke-dasharray="d" stroke-dashoffset="-226" stroke-linecap="round"></circle>\
+                    </svg>
+                    <div style="text-align: center; line-height: 1; font-size: 30px; margin-top:-35px; color:${color};">${dg}</div>
+                </div>`;
+            return tp;
+        },
     },
-    template: `
-        <div class="zdfb-item">
-            <table class="zdfb">
-                <tr class='red'> <th> 日期 </th> <th style=''>涨停 </th> </tr>
-                <tr class='green'> <th> {{data.day}} </th> <th style='color:red;'> {{data.zt}} </th> </tr>
-                <tr> <th style='width:165px; background-color:#fff;' rowspan=2>  </th> <th>跌停</th>  </tr>
-                <tr> <th style='color:green;'> {{data.dt}} </th> </tr>
-            </table>
-            <div style='width: 700px; height:215px; float:left; margin-left:120px;' :bind='zdfb.czd' :render='zdfb.czdFunc'> </div>
-        </div>
+    template: 
     `
+            <div style="height:220px;">
+                <table class="zdfb"> <tbody>
+                    <tr class='red'> <th style='width:100px'> 日期 </th> <th style='width:100px'>涨停 </th> <th rowspan=4> <div style='width: 700px; height:215px; margin-left:120px;' >   </div> </th> </tr>
+                    <tr class='green'> <th> {{day}} </th> <th style='color:red;'> {{zdfb.zt}} </th> </tr>
+                    <tr> <th style='width:165px; background-color:#fff;' rowspan=2>  </th> <th>跌停</th>  </tr>
+                    <tr> <th style='color:green;'> {{zdfb.dt}} </th> </tr>
+                </tbody></table>
+                
+            </div>
+        `,
+    render_() {
+        let template = `
+            <div style="height:220px;">
+                <table class="zdfb"> <tbody>
+                    <tr class='red'> <th> 日期 </th> <th style=''>涨停 </th> <td rowspan=4> <div style='width: 700px; height:215px; margin-left:120px;' >   </div> </td> </tr>
+                    <tr class='green'> <th> {{day}} </th> <th style='color:red;'> {{zdfb.zt}} </th> </tr>
+                    <tr> <th style='width:165px; background-color:#fff;' rowspan=2>  </th> <th>跌停</th>  </tr>
+                    <tr> <th style='color:green;'> {{zdfb.dt}} </th> </tr>
+                </tbody></table>
+                
+            </div>
+        `;
+        console.log(template)
+        // ${this.renderDegree()}
+        let rr = Vue.compile(template);
+        return rr(this);
+    },
 };
 
 
