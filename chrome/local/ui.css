@@ -1,0 +1,79 @@
+table.basic-table {
+    border-collapse: collapse;
+    border: 1px solid #ddd;
+    text-align: center; 
+    cursor: hander; 
+    background-color: #fdfdfd;
+}
+table.basic-table th {
+    border: 1px solid #ddd;
+    background-color: #ECECEC; 
+    height: 30px; 
+    font-weight: normal; 
+    color: #6A6B70;
+}
+table.basic-table td {
+    border: 1px solid #ddd;
+}
+table.basic-table tr {
+    vertical-align: middle;
+}
+table.basic-table tr:nth-child(even) {
+    background-color: #f9fafc;
+}
+table.basic-table tr:hover {
+    background-color: #ECEFF9;
+}
+table.basic-table td {
+    vertical-align: middle;
+    border: 1px solid #ddd;
+}
+table.basic-table tr.sel {
+    background-color: #d9e0ea; 
+    border-left: solid 3px #999;
+}
+table.basic-table a {
+    text-decoration-line: none; 
+}
+
+table.stock-table {
+    font-size: 14px;
+}
+table.stock-table th {
+    font-size: 12px;
+}
+table.stock-table .ths-zt-reason {
+    color: #5CACEE;
+    font-size: 12px;
+}
+table.stock-table .div-zt-reason {
+    text-align: left;
+}
+table.stock-table .zt-reason {
+    color: #66B2FF;
+}
+
+.popup-window {
+    z-index: 8000;
+    position: fixed;
+    padding: 0;
+    outline: 0;
+    left:0px;
+    top: 0px;
+    width: 100vw;
+    height: 100vh;
+    overflow: auto;
+    background-color: rgba(60, 60, 60, 0.3);
+}
+.popup-window > .content {
+    position: absolute;
+    border: 1px solid #666;
+}
+.no-scroll {
+    overflow: hidden;
+}
+.container-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

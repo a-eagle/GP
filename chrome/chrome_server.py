@@ -57,6 +57,9 @@ class Server:
         self.app.add_url_rule('/Yzcode', view_func = self.getYzcode)
 
         self.app.add_url_rule('/query-cls-updown/<tag>/<day>', view_func = self.querClsUpDown)
+        self.app.add_url_rule('/ls-amounts', view_func = self.loadLsAmounts)
+        self.app.add_url_rule('/zdfb-detail/<day>', view_func = self.loadZdfbDetail)
+        
         self.app.run('0.0.0.0', 8080, use_reloader = False, debug = False)
 
     def signParams(self, **kargs):
@@ -762,6 +765,75 @@ class Server:
         rs = []
         for it in qr:
             rs.append(it)
+        return rs
+
+    def loadLsAmounts(self):
+        sh = datafile.Ths_K_DataModel('999999')
+        sz = datafile.Ths_K_DataModel('399001')
+        sh.loadNetData('day')
+        sz.loadNetData('day')
+        rs = {}
+        for d in sh.data:
+            rs[d.day] = {}
+            rs[d.day]['amount'] = d.amount / 100000000
+        for d in sz.data:
+            if d.day not in rs:
+                rs[d.day] = {}
+            rs[d.day]['amount'] = rs[d.day].get('amount', 0) + d.amount / 100000000
+        qr = cls_orm.CLS_SCQX.select()
+        for it in qr:
+            day = int(it.day.replace('-', ''))
+            if day not in rs:
+                continue
+            cur = rs[day]
+            cur['degree'] = it.zhqd
+            # cur['fb'] = json.loads(it.fb) if it.fb else {}
+            # cur['zdfb'] = json.loads(it.zdfb) if it.zdfb else {}
+        days = ths_iwencai.getTradeDaysInt()
+        dst = []
+        WEEK = '一二三四五六日'
+        for d in days:
+            cc = rs.get(d, {'degree': '', 'amount': 0})
+            cc['day'] = self.formatDay(d)
+            cc['sday'] = self.formatDay(d)[5 : ]
+            cc['amount'] = int(cc['amount'])
+            week = datetime.date(d // 10000, d // 100 % 100, d % 100).weekday()
+            cc['week'] = WEEK[week]
+            dst.append(cc)
+        return dst
+
+    def loadZdfbDetail(self, day):
+        lastDay = self.formatDay(ths_iwencai.getTradeDays()[-1])
+        day = self.formatDay(day)
+        fenbu = None
+        rs = {}
+        if day == lastDay:
+            resp = requests.get('https://push2ex.eastmoney.com/getTopicZDFenBu?cb=callbackdata838226&ut=7eea3edcaed734bea9cbfc24409ed989&dpt=wz.ztzt')
+            text = resp.text
+            text = text[text.index('(') + 1 : text.index(')')]
+            js = json.loads(text)
+            fb = js['data']['fenbu']
+            fenbu = {}
+            for k in fb:
+                for ik in k:
+                    fenbu[ik] = k[ik]
+            resp = requests.get('https://x-quote.cls.cn/quote/stock/emotion_options?app=CailianpressWeb&fields=up_performance&os=web&sv=7.7.5&sign=5f473c4d9440e4722f5dc29950aa3597')
+            js = resp.json()
+            rs['day'] = js['data']['date']
+            rs['degree'] = int(float(js['data']['market_degree']) * 100)
+        else:
+            obj = cls_orm.CLS_SCQX.get_or_none(cls_orm.CLS_SCQX.day == day)
+            rs['day'] = day
+            rs['degree'] = obj.zhqd
+            fenbu = json.loads(obj.zdfb)
+        zdfb = rs['zdfb'] = {}
+        zdfb['zt'] = fenbu.get('11', 0)
+        zdfb['dt'] = fenbu.get('-11', 0)
+        for k in fenbu:
+            zdfb[k] = fenbu[k]
+            if '-' in k: zdfb['down'] = zdfb.get('down',  0) + fenbu[k]
+            elif k != 0: zdfb['up'] = zdfb.get('up',  0) + fenbu[k]
+        zdfb['zero'] = fenbu['0']
         return rs
 
 if __name__ == '__main__':

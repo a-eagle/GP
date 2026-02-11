@@ -61,7 +61,7 @@ function extendObject(base, corver) {
     }
 }
 
-function formatDate(date) {
+function formatDay(date) {
     if (! date)
         return date;
     if (date instanceof Date) {
@@ -111,8 +111,4 @@ function getLocationParams(name = null) {
         return params[name];
     }
     return params;
-}
-
-export default {
-    getTypeOf, isObject, deepCopy, extendObject, formatDate, formatTime, getLocationParams
 }

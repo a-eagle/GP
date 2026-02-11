@@ -1,0 +1,60 @@
+* {
+    padding: 0; margin: 0;
+}
+.outer {
+    display: flex; justify-content: center; align-items: center;
+}
+.red {
+    color: #de0422;
+}
+.green {
+    color: #52c2a3;
+}
+.toggle-nav-box {
+    color: #747474; font-size: 14px; width: 100%; height: 39px; line-height: 38px; border-bottom: 1px solid #e6e7ea; 
+}
+.toggle-nav-box > div {
+    float: left; width: 110px; background-color: #f9fafc; text-align: center; border: 1px solid #e6e7ea; border-bottom: none; border-right: none; cursor: pointer;
+}
+.toggle-nav-box > div.toggle-nav-active {
+    font-weight: bold; color: #222; background-color: #fff; border-top-width: 2px; border-top-color: #222;
+}
+
+.popup-container {
+    z-index: 81100; display: none;  position: fixed; padding: 0; outline: 0; left:0px; top: 0px;width:100%;height:100%;
+}
+.popup-container .content {
+    position:absolute; background-color: #fcfcfc; border: solid 1px #d0d0d0;
+}
+.popup-container p {
+    padding: 0 20px 0 10px; 
+}
+.popup-container p:hover {
+    background-color: #f0f0f0; 
+}
+.dialog-mask {
+    position:fixed; z-index:10000; left: 0; top: 0; width: 100%;height: 100%;
+}
+
+.my-info-item {border-bottom: solid 1px #222; margin-bottom: 10px; margin-top: 5px; width: 100%; } 
+.my-info-item table { border-collapse: collapse; border: 1px solid #ddd; width:100%; text-align: center; cursor:hander; } 
+.my-info-item table th {border: 1px solid #ddd; background-color: #ECECEC; height: 30px; font-weight: normal; color: #6A6B70;} 
+.my-info-item table td {border: 1px solid #ddd;}
+.my-info-item .red {color: #990000;}
+.my-info-item .green {color: #009900;}
+.my-info-item .selcol {background-color: #EEE9E9;}
+.w-1200 {width: 1400px;}
+.popup-container .anchors-wrap {position:absolute; width: 800px; height: 280px; background-color: #fcfcfc; border: solid 2px #aaa;}
+.anchors-wrap > div.header {text-align: center; background-color: #f0f0f0; padding: 5px 0px; height: 22px;}
+.anchors-wrap button {width: 40px; margin-left: 30px;}
+.anchor-list a {text-decoration: none; color: #202020; }
+.anchor-list .anchor-arrow {float:right; width:15px; text-align:center; border-left:1px solid #c0c0c0; background-color:#c0c0c0; width:15px; height:25px;}
+.anchor-list .true {background-color: #FFD8D8;}
+.anchor-list .false {background-color: #A0F1DC;}
+
+.my-info-item  .zdfb-item {
+    height:220px;
+}
+.my-info-item .zdfb-item .zdfb {
+    float:left; width:300px; height:215px;
+}
