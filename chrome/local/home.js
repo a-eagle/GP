@@ -695,46 +695,75 @@ let HotAnchrosChartView = {
 let TabNaviView = {
     inject: ['curDay'],
     data() {
-        this.$watch('curDay', this.onCurDayChanged);
-        return {
-            items: [{name: '', title: '涨停池'}, {name: '', title: '连板池'}, {name: '', title: '炸板池'}, 
-                    {name: '', title: '跌停池'}, {name: '', title: '热度榜'}, {name: '', title: '成交额'}, {name: '', title: '龙虎榜'}, ],
-            curTabCntView: 'ZT_TableView',
-            curSelTab: null,
-        }
+        let rs = {
+            items: [{name: 'zt-table-view', title: '涨停池'}, {name: 'lb-table-view', title: '连板池'},
+                    {name: 'zb-table-view', title: '炸板池'}, {name: 'dt-table-view', title: '跌停池'},
+                    {name: 'hots-table-view', title: '热度榜'}, {name: 'amount-table-view', title: '成交额'}, 
+                    {name: 'lhb-table-view', title: '龙虎榜'}, ],
+            curTabCntView: 'zt-table-view',
+        };
+        return rs;
     },
     methods: {
-        onCurDayChanged() {
-            this.curTabCntView = 'ZT_TableView';
-        },
         changeTab(item) {
-            this.curSelTab = item;
+            this.curTabCntView = item.name;
         }
     },
     template: `
         <div class="toggle-nav-box">
-            <div v-for="item in items" :key="item.title" @click="changeTab(item)" :class="{'toggle-nav-active': item == curSelTab}" > 
-                {{item.title}} 
+            <div v-for="item in items" :key="item.title" @click="changeTab(item)" :class="{'toggle-nav-active': item.name == curTabCntView}" > 
+                {{item.title}}
             </div>
         </div>
         <keep-alive>  <component :is="curTabCntView">  </component> </keep-alive>
     `,
 };
 
-let ZT_TableView = {
+let BaseTableView = {
+    inject: ['curDay'],
     data() {
-
+        this.$watch('curDay', this.onCurDayChanged);
+        return {};
     },
     mounted() {
-
     },
     methods: {
-
+        doSearch(text) {
+            this.$refs.stable.filter(text);
+        },
     },
-    render() {
-
-    },
+    template: `
+        <div style="text-align:center; ">
+            <input style="border:solid 1px #999;" @keydown.enter="doSearch($event.target.value)" />
+        </div>
+        <stock-table ref="stable" :columns="columns" :url="url" :day="curDay" style="width:100%;"> </stock-table>
+    `,
 };
+
+let ZT_TableView = {
+    name: 'ZT_TableView',
+    extends: BaseTableView,
+    data() {
+        return {
+            columns: [{title: '', 'key': '_index_', width: 60},
+                {title: '股票/代码', 'key': 'code', width: 80},
+                {title: '涨跌幅', 'key': 'change', width: 70, sortable: true}, // 
+                {title: '连板', 'key': 'limit_up_days', width: 50, sortable: true},
+                {title: '涨速', 'key': 'zs', width: 50, sortable: true, },
+                {title: '热度', 'key': 'hots', width: 50, sortable: true,},
+                {title: '动因', 'key': 'up_reason', width: 250, sortable: true},
+                {title: 'THS-ZT', 'key': 'ths_ztReason', width: 100, sortable: true, },
+                {title: '分时图', 'key': 'fs', width: 300},],
+            datas: null,
+            url: null,
+        }
+    },
+    methods: {
+        onCurDayChanged(day) {
+            this.url = `/query-cls-updown/ZT/${day}`;
+        },
+    }
+}
 
 function registerComponents(app) {
     app.component('global-view', GlobalView);
@@ -744,6 +773,7 @@ function registerComponents(app) {
     app.component('hot-anchors-view', HotAnchrosView);
     app.component('hot-anchors-group-view', HotAnchrosGroupView);
     app.component('tab-navi-view', TabNaviView);
+    app.component('zt-table-view', ZT_TableView);
 }
 
 export default {

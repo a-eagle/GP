@@ -539,6 +539,15 @@ class Server:
             return f'sh{code}'
         return f'sz{code}'
 
+    def _getStdCode(self, code):
+        if not code:
+            return code
+        if len(code) == 8 and code[0] == 's':
+            return code[2 : ]
+        if len(code) > 6 and code[0 : 3] == 'cls':
+            return code
+        return code
+
     # {day: '' | 'YYYY-MM-DD', cols?:[xx_ztReason, hots], codes:[]}
     def queryCodesInfo(self):
         from utils import hot_utils
@@ -546,17 +555,15 @@ class Server:
         day = params.get('day', '')
         cols = set(params.get('cols', []))
         codes = params['codes']
-        ncodes = []
-        SS =  ('sz', 'sh')
-        for c in codes:
-            if len(c) == 6:
-                ncodes.append(c)
-            elif len(c) == 8 and c[0 : 2] in SS:
-                ncodes.append(c[2 : ])
+        rs = self._queryCodesInfo(day, cols, codes)
+        return rs
+
+    def _queryCodesInfo(self, day, cols, codes):
         dynHotZH = hot_utils.DynamicHotZH.instance()
         rs = {}
         zh = None
-        for code in ncodes:
+        for c in codes:
+            code = self._getStdCode(c)
             it = {'code': code, 'secu_code': self._getSecuCode(code)}
             rs[it['secu_code']] = it
             cl = gn_utils.cls_gntc_s.get(code, None) or {}
@@ -758,19 +765,36 @@ class Server:
     def querClsUpDown(self, tag, day):
         day = self.formatDay(day)
         cnd = None
+        orderBy = None
+        cols = []
         if tag == 'ZT':
-            cnd = cls_orm.CLS_UpDown.limit_up_days > 0
+            cnd = cls_orm.CLS_UpDown.limit_up_days == 1
+            # orderBy = cls_orm.CLS_UpDown.time.asc()
+            cols = ['hots', 'ths_ztReason']
         elif tag == 'LB':
             cnd = cls_orm.CLS_UpDown.limit_up_days > 1
+            orderBy = cls_orm.CLS_UpDown.limit_up_days.desc()
+            cols = ['hots', 'ths_ztReason']
         elif tag == 'ZB':
             cnd = (cls_orm.CLS_UpDown.limit_up_days == 0) & (cls_orm.CLS_UpDown.is_down == 0)
+            cols = ['ths_hy', 'ths_ztReason', 'hots', ]
         elif tag == 'DT':
             cnd = cls_orm.CLS_UpDown.is_down == 1
-        qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day, cnd).dicts()
-        print('sql = ', qr)
+            cols = ['ths_hy', 'ths_ztReason', 'hots', ]
+        qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day, cnd)
+        if orderBy:
+            qr = qr.order_by(orderBy)
+        # print('sql = ', qr)
         rs = []
-        for it in qr:
+        
+        for it in qr.dicts():
             rs.append(it)
+        cc = [d['secu_code'] for d in rs]
+        infos = self._queryCodesInfo(day, cols, cc)
+        for r in rs:
+            sc = r['secu_code']
+            if sc in infos:
+                r.update(infos[sc])
         return rs
 
     def loadLsAmounts(self):

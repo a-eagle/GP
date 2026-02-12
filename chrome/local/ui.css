@@ -38,6 +38,10 @@ table.basic-table a {
 
 table.stock-table {
     font-size: 14px;
+    color: #383838;
+}
+table.stock-table tbody tr {
+    height: 66px;
 }
 table.stock-table th {
     font-size: 12px;
@@ -47,10 +51,12 @@ table.stock-table .ths-zt-reason {
     font-size: 12px;
 }
 table.stock-table .div-zt-reason {
-    text-align: left;
+    font-size: 12px;
 }
 table.stock-table .zt-reason {
     color: #66B2FF;
+    padding-right: 10px;
+    font-size: 12px;
 }
 
 .popup-window {

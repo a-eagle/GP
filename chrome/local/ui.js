@@ -19,7 +19,7 @@ let BasicTable = {
         datas: {type: Array, default: () => []},
     },
     data() {
-        console.log('BasicTable.data()');
+        // console.log('BasicTable.data()');
         return {
             tableCss: 'basic-table',
             filterDatas: this.datas.slice(),
@@ -96,6 +96,7 @@ let BasicTable = {
                 return;
             }
             let {cond, qrs} = this.getSearchConditions(text);
+            let rs = [];
             for (let d of this.datas) {
                 if (this.matchData(d, qrs, cond))
                     rs.push(d);
@@ -104,10 +105,9 @@ let BasicTable = {
             this.clearSort();
         },
         getSearchConditions(text) {
-            let rs = [];
             let qs, cond, qrs = new Set();
             if (!text || !text.trim()) {
-                return this.datas.slice();
+                return {cond, qrs};
             }
             text = text.trim().toUpperCase();
             if (text.indexOf('|') >= 0) {
@@ -132,6 +132,8 @@ let BasicTable = {
             return rs;
         },
         matchData(data, qrs, cond) {
+            if (! qrs || !cond)
+                return true;
             for (let q of qrs) {
                 let fd = false;
                 let sd = this.getSearchData(data);
@@ -258,7 +260,7 @@ let StockTableDefaultRender = {
     },
     // 涨停原因
     ztReasonRender(h, rowData, column) {
-        const ELIPSE_NUM = 60;
+        const ELIPSE_NUM = 35;
         let val = rowData[column.key] || '';
         let elipse = val;
         if (val && val.length > ELIPSE_NUM) {
@@ -304,9 +306,10 @@ let StockTable = {
         url: {type: String, default: () => ''},
     },
     data() {
-        console.log('StockTable.data()');
+        // console.log('StockTable.data()');
         this._initDefaultRenders();
         this._loadData();
+        this.$watch('url', this.onUrlChanged);
         return {
             tableCss: ['basic-table', 'stock-table'],
         }
@@ -344,6 +347,9 @@ let StockTable = {
                 else if (col.key == 'zs') col.cellRender = StockTableDefaultRender.zsRender;
                 else if (col.key == 'limit_up_days') col.cellRender = StockTableDefaultRender.lbRender;
             }
+        },
+        onUrlChanged(newUrl) {
+            this._loadData();
         },
         getSearchData(data) {
             let rs = {};
