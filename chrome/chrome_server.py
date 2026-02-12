@@ -61,6 +61,9 @@ class Server:
         self.app.add_url_rule('/zdfb-detail/<day>', view_func = self.loadZdfbDetail)
         self.app.add_url_rule('/hot-anchors', view_func = self.loadHotTcAnchors)
         self.app.add_url_rule('/hot-anchors-group', view_func = self.loadHotTcAnchorsGroup)
+        self.app.add_url_rule('/top-hots/<day>', view_func = self.loadTopHots)
+        self.app.add_url_rule('/top-amounts/<day>', view_func = self.loadTopAmounts)
+        self.app.add_url_rule('/query-lhb/<day>', view_func = self.loadLHB)
         
         self.app.run('0.0.0.0', 8080, use_reloader = False, debug = False)
 
@@ -898,6 +901,65 @@ class Server:
         rs.sort(key = lambda k: k['num'], reverse = True)
         return rs
 
+    def loadTopHots(self, day):
+        hz = hot_utils.DynamicHotZH.instance()
+        hots = hz.getHotsZH(day)
+        rs = []
+        for k in hots:
+            obj = hots[k]
+            code = f'{k :06d}'
+            it = {'code': code, 'hots': obj['zhHotOrder']}
+            rs.append(it)
+        codes = [c['code'] for c in rs]
+        cols = ['ths_hy', 'ths_ztReason', 'cls_ztReason']
+        infos = self._queryCodesInfo(day, cols, codes)
+        for r in rs:
+            sc = self._getSecuCode(r['code'])
+            if sc in infos:
+                r.update(infos[sc])
+        return rs
+
+    def loadTopAmounts(self, day):
+        day = day.replace('-', '')
+        rs = ths_iwencai.iwencai_load_list(question = f'个股成交额排名 {day}', maxPage = 1)
+        dst = []
+        for idx, item in enumerate(rs):
+            columns = ths_iwencai.ThsColumns(item)
+            code = columns.getColumnValue('code', str, '')
+            name = columns.getColumnValue('股票简称', str, '')
+            change = columns.getColumnValue('最新涨跌幅', float, None)
+            if change: change = change / 100
+            amount = columns.getColumnValue('成交额', float, None)
+            dst.append({'code': code, 'name': name, 'change': change, 'amount': amount, 'pm': idx + 1 })
+        codes = [c['code'] for c in dst]
+        cols = ['ths_hy', 'ths_ztReason', 'cls_ztReason', 'hots']
+        infos = self._queryCodesInfo(day, cols, codes)
+        for r in dst:
+            sc = self._getSecuCode(r['code'])
+            if sc in infos:
+                r.update(infos[sc])
+        return dst
+
+    def loadLHB(self, day):
+        day = self.formatDay(day)
+        qr = lhb_orm.TdxLHB.select().where(lhb_orm.TdxLHB.day == day).dicts()
+        dst = []
+        for obj in qr:
+            obj['amountY'] = int(obj['cjje'])
+            obj['jme'] = float(obj['jme'])
+            obj['mcje'] = float(obj['mcje'])
+            obj['mrje'] = float(obj['mrje'])
+            obj['change'] = float(obj['zd']) / 100
+            del obj['id']
+            dst.append(obj)
+        codes = [c['code'] for c in dst]
+        cols = ['ths_hy', 'ths_ztReason', 'cls_ztReason', 'hots']
+        infos = self._queryCodesInfo(day, cols, codes)
+        for r in dst:
+            sc = self._getSecuCode(r['code'])
+            if sc in infos:
+                r.update(infos[sc])
+        return dst
 
 if __name__ == '__main__':
     svr = Server()

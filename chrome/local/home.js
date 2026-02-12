@@ -737,7 +737,7 @@ let BaseTableView = {
     },
     template: `
         <div style="text-align:center; ">
-            <input style="border:solid 1px #999;" @keydown.enter="doSearch($event.target.value)" />
+            <input style="border:solid 1px #999; height:25px;" @keydown.enter="doSearch($event.target.value)" />
         </div>
         <stock-table ref="stable" :columns="columns" :url="url" :day="curDay" style="width:100%;" @load-data-done="onLoadDataDone"> </stock-table>
     `,
@@ -873,8 +873,8 @@ let Hots_TableView = {
                 {title: '行业', key: 'ths_hy', width: 100, sortable: true},
                 {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true},
                 {title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true},
-                {title: '成交额', key: 'amount', width: 50, sortable: true},
                 {title: '热度', key: 'hots', width: 50, sortable: true},
+                // {title: '成交额', key: 'amount', width: 50, sortable: true},
                 {title: '涨跌幅', key: 'zf', width: 70, sortable: true},
                 {title: '涨速', key: 'zs', width: 50, sortable: true},
                 {title: '分时图', key: 'fs', width: 300}],
@@ -884,7 +884,7 @@ let Hots_TableView = {
     },
     methods: {
         onCurDayChanged() {
-            this.url = `/get-hots?day=${this.curDay}`;
+            this.url = `/top-hots/${this.curDay}`;
         },
     }
 };
@@ -898,10 +898,10 @@ let Amount_TableView = {
                 {title: '行业', key: 'ths_hy', width: 100, sortable: true},
                 {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true},
                 {title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true},
-                {title: '成交额', key: 'vol', width: 50, sortable: true, _cellRender : amountRender},
+                {title: '成交额', key: 'amount', width: 50, sortable: true},
                 {title: '成交额<br/>排名', key: 'pm', width: 50, sortable: true},
-                {title: '热度', key: 'hots', width: 50, sortable: true, defined:true},
-                {title: '涨跌幅', key: 'zf', width: 70, sortable: true},
+                {title: '热度', key: 'hots', width: 50, sortable: true},
+                {title: '涨跌幅', key: 'change', width: 70, sortable: true},
                 {title: '涨速', key: 'zs', width: 50, sortable: true},
                 {title: '分时图', key: 'fs', width: 300}],
             datas: null,
@@ -910,7 +910,7 @@ let Amount_TableView = {
     },
     methods: {
         onCurDayChanged() {
-            this.url = `/query-cls-updown/LHB/${this.curDay}`;
+            this.url = `/top-amounts/${this.curDay}`;
         },
     }
 };
@@ -918,16 +918,26 @@ let Amount_TableView = {
 let LHB_TableView = {
     extends: BaseTableView,
     data() {
+        function yzRender(h, rowData, column) {
+            let ds = JSON.parse(rowData['detail']);
+            let yz = '';
+            for (let d of ds) {
+                if (d.yz && yz.indexOf(d.yz) < 0)
+                    yz += d.yz + '&nbsp;&nbsp;';
+            }
+            return h('span', {innerHTML: yz});
+        }
+
         return {
             columns: [{title: '', key: '_index_', width: 60},
                 {title: '股票/代码', key: 'code', width: 80},
-                {title: '行业', key: 'ths_hy', width: 100, sortable: true, defined:true},
-                {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true, defined: true},
-                {title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true, defined: true},
-                {title: '热度', key: 'hots', width: 50, sortable: true, defined: true},
-                {title: '涨跌幅', key: 'zd', width: 70, sortable: true},
-                {title: '成交额', key: 'cjje', width: 70, sortable: true},
-                {title: '上榜类型', key: 'title', width: 100, },
+                {title: '行业', key: 'ths_hy', width: 100, sortable: true},
+                {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true},
+                {title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true},
+                {title: '热度', key: 'hots', width: 50, sortable: true},
+                {title: '涨跌幅', key: 'change', width: 70, sortable: true},
+                {title: '成交额', key: 'amountY', width: 70, sortable: true},
+                {title: '上榜类型', key: 'title', width: 100, cellRender: yzRender},
                 {title: '分时图', key: 'fs', width: 300}],
             datas: null,
             url: null,
@@ -935,7 +945,7 @@ let LHB_TableView = {
     },
     methods: {
         onCurDayChanged() {
-            this.url = `/query-cls-updown/LHB/${this.curDay}`;
+            this.url = `/query-lhb/${this.curDay}`;
         },
     }
 };
