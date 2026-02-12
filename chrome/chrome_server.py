@@ -795,6 +795,9 @@ class Server:
             sc = r['secu_code']
             if sc in infos:
                 r.update(infos[sc])
+        if tag == 'DT':
+            for r in rs:
+                r['ths_dt_reason'] = r['up_reason']
         return rs
 
     def loadLsAmounts(self):

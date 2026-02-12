@@ -58,6 +58,9 @@ table.stock-table .zt-reason {
     padding-right: 10px;
     font-size: 12px;
 }
+table.stock-table .ths-dt-reason {
+    font-size: 12px;
+}
 
 .popup-window {
     z-index: 8000;

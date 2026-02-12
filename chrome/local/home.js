@@ -726,17 +726,20 @@ let BaseTableView = {
         return {};
     },
     mounted() {
+        this.onCurDayChanged();
     },
     methods: {
         doSearch(text) {
             this.$refs.stable.filter(text);
+        },
+        onLoadDataDone(datas) {
         },
     },
     template: `
         <div style="text-align:center; ">
             <input style="border:solid 1px #999;" @keydown.enter="doSearch($event.target.value)" />
         </div>
-        <stock-table ref="stable" :columns="columns" :url="url" :day="curDay" style="width:100%;"> </stock-table>
+        <stock-table ref="stable" :columns="columns" :url="url" :day="curDay" style="width:100%;" @load-data-done="onLoadDataDone"> </stock-table>
     `,
 };
 
@@ -745,15 +748,15 @@ let ZT_TableView = {
     extends: BaseTableView,
     data() {
         return {
-            columns: [{title: '', 'key': '_index_', width: 60},
-                {title: '股票/代码', 'key': 'code', width: 80},
-                {title: '涨跌幅', 'key': 'change', width: 70, sortable: true}, // 
-                {title: '连板', 'key': 'limit_up_days', width: 50, sortable: true},
-                {title: '涨速', 'key': 'zs', width: 50, sortable: true, },
-                {title: '热度', 'key': 'hots', width: 50, sortable: true,},
-                {title: '动因', 'key': 'up_reason', width: 250, sortable: true},
-                {title: 'THS-ZT', 'key': 'ths_ztReason', width: 100, sortable: true, },
-                {title: '分时图', 'key': 'fs', width: 300},],
+            columns: [{title: '', key: '_index_', width: 60},
+                {title: '股票/代码', key: 'code', width: 80},
+                {title: '涨跌幅', key: 'change', width: 70, sortable: true}, // 
+                {title: '连板', key: 'limit_up_days', width: 50, sortable: true},
+                {title: '涨速', key: 'zs', width: 50, sortable: true, },
+                {title: '热度', key: 'hots', width: 50, sortable: true,},
+                {title: '动因', key: 'up_reason', width: 250, sortable: true},
+                {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true, },
+                {title: '分时图', key: 'fs', width: 300},],
             datas: null,
             url: null,
         }
@@ -766,19 +769,19 @@ let ZT_TableView = {
 };
 
 let LB_TableView = {
-    name: 'ZT_TableView',
+    name: 'LB_TableView',
     extends: BaseTableView,
     data() {
         return {
-            columns: [{title: '', 'key': '_index_', width: 60},
-                {title: '股票/代码', 'key': 'code', width: 80},
-                {title: '涨跌幅', 'key': 'change', width: 70, sortable: true}, // 
-                {title: '连板', 'key': 'limit_up_days', width: 50, sortable: true},
-                {title: '涨速', 'key': 'zs', width: 50, sortable: true, },
-                {title: '热度', 'key': 'hots', width: 50, sortable: true,},
-                {title: '动因', 'key': 'up_reason', width: 250, sortable: true},
-                {title: 'THS-ZT', 'key': 'ths_ztReason', width: 100, sortable: true, },
-                {title: '分时图', 'key': 'fs', width: 300},],
+            columns: [{title: '', key: '_index_', width: 60},
+                {title: '股票/代码', key: 'code', width: 80},
+                {title: '涨跌幅', key: 'change', width: 70, sortable: true}, // 
+                {title: '连板', key: 'limit_up_days', width: 50, sortable: true},
+                {title: '涨速', key: 'zs', width: 50, sortable: true, },
+                {title: '热度', key: 'hots', width: 50, sortable: true,},
+                {title: '动因', key: 'up_reason', width: 250, sortable: true},
+                {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true, },
+                {title: '分时图', key: 'fs', width: 300},],
             datas: null,
             url: null,
         }
@@ -788,7 +791,154 @@ let LB_TableView = {
             this.url = `/query-cls-updown/LB/${day}`;
         },
     }
-}
+};
+
+let ZB_TableView = {
+    name: 'ZB_TableView',
+    extends: BaseTableView,
+    data() {
+        return {
+            columns: [{title: '', key: '_index_', width: 60},
+                {title: '股票/代码', key: 'code', width: 80},
+                {title: '行业', key: 'ths_hy', width: 100, sortable: true},
+				{title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true},
+				{title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true},
+				{title: '热度', key: 'hots', width: 50, sortable: true},
+				{title: '涨跌幅', key: 'change', width: 70, sortable: true},
+				{title: '涨速', key: 'zs', width: 50, sortable: true},
+				{title: '分时图', key: 'fs', width: 300},],
+            datas: null,
+            url: null,
+        }
+    },
+    methods: {
+        onCurDayChanged() {
+            this.url = `/query-cls-updown/ZB/${this.curDay}`;
+        },
+    }
+};
+
+let DT_TableView = {
+    name: 'DT_TableView',
+    extends: BaseTableView,
+    data() {
+        return {
+            columns: [{title: '', key: '_index_', width: 60},
+                {title: '股票/代码', key: 'code', width: 80},
+                {title: '行业', key: 'ths_hy', width: 100, sortable: true},
+                {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true},
+                {title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true},
+                {title: 'THS-DT', key: 'ths_dt_reason', width: 100, sortable: true},
+                {title: '热度', key: 'hots', width: 50, sortable: true},
+                {title: '涨跌幅', key: 'change', width: 70, sortable: true},
+                {title: '涨速', key: 'zs', width: 50, sortable: true},
+                {title: '分时图', key: 'fs', width: 300},],
+            datas: null,
+            url: null,
+        }
+    },
+    methods: {
+        onCurDayChanged() {
+            this.url = `/query-cls-updown/DT/${this.curDay}`;
+        },
+        onLoadDataDone(datas) {
+            let day = this.curDay.replaceAll('-', '');
+            // ths_dtReason
+            axios.get(`/iwencai?q=${day} 跌停,非st,成交额,收盘价,涨跌幅`).then((resp) => {
+                console.log('[iwencai]', resp);
+                if (! resp.data) return;
+                let ds = {};
+                for (let r of resp.data) {
+                    let reason = '';
+                    for (let m in r) if (m.indexOf('跌停原因类型[') >= 0) { reason = r[m]; break; }
+                    // let scode = r.code.charAt(0) == '6' ? 'sh' : 'sz';
+                    // if (fd) fd.up_reason = reason;
+                    ds[r.code] = reason;
+                }
+                for (let it of datas) {
+                    let reason = ds[it.code];
+                    it.ths_dt_reason = reason;
+                }
+            })
+        },
+    }
+};
+
+let Hots_TableView = {
+    extends: BaseTableView,
+    data() {
+        return {
+            columns: [{title: '', key: '_index_', width: 60},
+                {title: '股票/代码', key: 'code', width: 80},
+                {title: '行业', key: 'ths_hy', width: 100, sortable: true},
+                {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true},
+                {title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true},
+                {title: '成交额', key: 'amount', width: 50, sortable: true},
+                {title: '热度', key: 'hots', width: 50, sortable: true},
+                {title: '涨跌幅', key: 'zf', width: 70, sortable: true},
+                {title: '涨速', key: 'zs', width: 50, sortable: true},
+                {title: '分时图', key: 'fs', width: 300}],
+            datas: null,
+            url: null,
+        }
+    },
+    methods: {
+        onCurDayChanged() {
+            this.url = `/get-hots?day=${this.curDay}`;
+        },
+    }
+};
+
+let Amount_TableView = {
+    extends: BaseTableView,
+    data() {
+        return {
+            columns: [{title: '', key: '_index_', width: 60},
+                {title: '股票/代码', key: 'code', width: 80},
+                {title: '行业', key: 'ths_hy', width: 100, sortable: true},
+                {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true},
+                {title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true},
+                {title: '成交额', key: 'vol', width: 50, sortable: true, _cellRender : amountRender},
+                {title: '成交额<br/>排名', key: 'pm', width: 50, sortable: true},
+                {title: '热度', key: 'hots', width: 50, sortable: true, defined:true},
+                {title: '涨跌幅', key: 'zf', width: 70, sortable: true},
+                {title: '涨速', key: 'zs', width: 50, sortable: true},
+                {title: '分时图', key: 'fs', width: 300}],
+            datas: null,
+            url: null,
+        }
+    },
+    methods: {
+        onCurDayChanged() {
+            this.url = `/query-cls-updown/LHB/${this.curDay}`;
+        },
+    }
+};
+
+let LHB_TableView = {
+    extends: BaseTableView,
+    data() {
+        return {
+            columns: [{title: '', key: '_index_', width: 60},
+                {title: '股票/代码', key: 'code', width: 80},
+                {title: '行业', key: 'ths_hy', width: 100, sortable: true, defined:true},
+                {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true, defined: true},
+                {title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true, defined: true},
+                {title: '热度', key: 'hots', width: 50, sortable: true, defined: true},
+                {title: '涨跌幅', key: 'zd', width: 70, sortable: true},
+                {title: '成交额', key: 'cjje', width: 70, sortable: true},
+                {title: '上榜类型', key: 'title', width: 100, },
+                {title: '分时图', key: 'fs', width: 300}],
+            datas: null,
+            url: null,
+        }
+    },
+    methods: {
+        onCurDayChanged() {
+            this.url = `/query-cls-updown/LHB/${this.curDay}`;
+        },
+    }
+};
 
 function registerComponents(app) {
     app.component('global-view', GlobalView);
@@ -800,6 +950,11 @@ function registerComponents(app) {
     app.component('tab-navi-view', TabNaviView);
     app.component('zt-table-view', ZT_TableView);
     app.component('lb-table-view', LB_TableView);
+    app.component('zb-table-view', ZB_TableView);
+    app.component('dt-table-view', DT_TableView);
+    app.component('hots-table-view', Hots_TableView);
+    app.component('amount-table-view', Amount_TableView);
+    app.component('lhb-table-view', LHB_TableView);
 }
 
 export default {

@@ -293,6 +293,10 @@ let StockTableDefaultRender = {
         }
         return h('span', val);
     },
+    thsDtReasonRender(h, rowData, column) {
+        let val = rowData[column.key];
+        return h('span', {class: 'ths-dt-reason'}, val);
+    }
 }
 
 // let StockTable = deepCopy(BasicTable);
@@ -331,7 +335,8 @@ let StockTable = {
                     this.datas.push(it);
                 }
                 this.filterDatas = this.datas.slice();
-                console.log(this.filterDatas)
+                this.onLoadDataDone();
+                // console.log(this.filterDatas)
             });
         },
         _initDefaultRenders() {
@@ -346,10 +351,14 @@ let StockTable = {
                 else if (col.key == 'cls_ztReason' || col.key == 'ths_ztReason') col.cellRender = StockTableDefaultRender.ztReasonRender;
                 else if (col.key == 'zs') col.cellRender = StockTableDefaultRender.zsRender;
                 else if (col.key == 'limit_up_days') col.cellRender = StockTableDefaultRender.lbRender;
+                else if (col.key == 'ths_dt_reason') col.cellRender = StockTableDefaultRender.thsDtReasonRender;
             }
         },
         onUrlChanged(newUrl) {
             this._loadData();
+        },
+        onLoadDataDone() {
+            this.$emit('load-data-done', this.filterDatas);
         },
         getSearchData(data) {
             let rs = {};

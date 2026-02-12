@@ -1207,7 +1207,7 @@ class TabNaviMgr {
 		} else if ( name == '成交额') {
 			hd = [
 				{text: '股票/代码', 'name': 'code', width: 80},
-				{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined:true},
+				{text: '行业', 'name': 'ths_hy', width: 100, sortable: true, defined: true},
 				{text: 'THS-ZT', 'name': 'ths_ztReason', width: 100, sortable: true, defined: true},
 				{text: 'CLS-ZT', 'name': 'cls_ztReason', width: 100, sortable: true, defined: true},
 				{text: '成交额', 'name': 'vol', width: 50, sortable: true, cellRender : amountRender},
