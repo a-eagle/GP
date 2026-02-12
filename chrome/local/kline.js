@@ -491,13 +491,15 @@ class KLineView extends Listener {
 class TimeLineView extends Listener {
     thread = null;
 
-    constructor(width, height) {
+    constructor(width, height, canvas) {
         super();
         this.data = null;
         this.day = null;
         let thiz = this;
-        let canvas = $('<canvas style="width: ' + width + 'px; height: ' + height + 'px; " />'); //border-right: solid 1px #ccc;
-        canvas = canvas.get(0);
+        if (! canvas) {
+            canvas = $('<canvas style="width: ' + width + 'px; height: ' + height + 'px; " />'); //border-right: solid 1px #ccc;
+            canvas = canvas.get(0);
+        }
         canvas.addEventListener('mousemove', function(e) {
             thiz.mouseMove(e.offsetX, e.offsetY, true);
         });

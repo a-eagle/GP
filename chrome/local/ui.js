@@ -296,6 +296,9 @@ let StockTableDefaultRender = {
     thsDtReasonRender(h, rowData, column) {
         let val = rowData[column.key];
         return h('span', {class: 'ths-dt-reason'}, val);
+    },
+    fsRender(h, rowData, column) {
+        return h('timeline-view', {code: rowData.code, day: rowData.day, });
     }
 }
 
@@ -325,19 +328,25 @@ let StockTable = {
             axios.get(this.url).then(res => {
                 this.datas.splice(0, this.datas.length);
                 for (let it of res.data) {
-                    if (it.secu_code && !it.code) {
-                        if (it.secu_code[0] == 's') it.code = it.secu_code.substring(2);
-                        else if (it.secu_code[0] == 'c') it.code = it.secu_code;
-                    }
-                    if (it.secu_name && !it.name) {
-                        it.name = it.secu_name;
-                    }
                     this.datas.push(it);
                 }
                 this.filterDatas = this.datas.slice();
+                this._adjustStdCode(this.datas);
                 this.onLoadDataDone();
                 // console.log(this.filterDatas)
             });
+        },
+        _adjustStdCode(datas) {
+            if (! datas) return;
+            for (let it of datas) {
+                if (it.secu_code && !it.code) {
+                    if (it.secu_code[0] == 's') it.code = it.secu_code.substring(2);
+                    else if (it.secu_code[0] == 'c') it.code = it.secu_code;
+                }
+                if (it.secu_name && !it.name) {
+                    it.name = it.secu_name;
+                }
+            }
         },
         _initDefaultRenders() {
             for (let col of this.columns) {
@@ -352,6 +361,7 @@ let StockTable = {
                 else if (col.key == 'zs') col.cellRender = StockTableDefaultRender.zsRender;
                 else if (col.key == 'limit_up_days') col.cellRender = StockTableDefaultRender.lbRender;
                 else if (col.key == 'ths_dt_reason') col.cellRender = StockTableDefaultRender.thsDtReasonRender;
+                else if (col.key == 'fs') col.cellRender = StockTableDefaultRender.fsRender;
             }
         },
         onUrlChanged(newUrl) {
@@ -359,6 +369,7 @@ let StockTable = {
         },
         onLoadDataDone() {
             this.$emit('load-data-done', this.filterDatas);
+            this.$nextTick(() => this.bindTimeLine());
         },
         getSearchData(data) {
             let rs = {};
@@ -383,7 +394,7 @@ let StockTable = {
             let code = rowData.code;
             let rdatas = { codes: this.getCodeList(), day: this.day};
             // this.notify({name: 'BeforeOpenKLine', src: this, data: rdatas, rowData});
-            axios.post(`${config.BASE_URL}/openui/kline/${code}`, rdatas);
+            axios.post(`/openui/kline/${code}`, rdatas);
         },
         onDblclickRow(rowData) {
             this.openKLineDialog(rowData);
@@ -436,9 +447,27 @@ let PopupWindow = {
 
 }
 
+let TimeLineView = {
+    props:['code', 'day'],
+    data() {
+        return {
+            zf: null,
+            amount: null,
+        }
+    },
+    methods: {
+        wrapData() {},
+        
+    },
+    render() {
+        return Vue.h('canvas', {style: 'width:300px; height: 60px; background-color: #fafafa;', width: 300, height: 60});
+    }
+};
+
 function registerComponents(app) {
     app.component('basic-table', BasicTable);
     app.component('stock-table', StockTable);
+    app.component('timeline-view', TimeLineView);
 }
 
 export default {
@@ -446,6 +475,6 @@ export default {
     StockTable,
     StockTableDefaultRender,
     PopupWindow,
-
+    TimeLineView,
     registerComponents,
 }
