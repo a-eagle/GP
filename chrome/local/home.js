@@ -763,6 +763,31 @@ let ZT_TableView = {
             this.url = `/query-cls-updown/ZT/${day}`;
         },
     }
+};
+
+let LB_TableView = {
+    name: 'ZT_TableView',
+    extends: BaseTableView,
+    data() {
+        return {
+            columns: [{title: '', 'key': '_index_', width: 60},
+                {title: '股票/代码', 'key': 'code', width: 80},
+                {title: '涨跌幅', 'key': 'change', width: 70, sortable: true}, // 
+                {title: '连板', 'key': 'limit_up_days', width: 50, sortable: true},
+                {title: '涨速', 'key': 'zs', width: 50, sortable: true, },
+                {title: '热度', 'key': 'hots', width: 50, sortable: true,},
+                {title: '动因', 'key': 'up_reason', width: 250, sortable: true},
+                {title: 'THS-ZT', 'key': 'ths_ztReason', width: 100, sortable: true, },
+                {title: '分时图', 'key': 'fs', width: 300},],
+            datas: null,
+            url: null,
+        }
+    },
+    methods: {
+        onCurDayChanged(day) {
+            this.url = `/query-cls-updown/LB/${day}`;
+        },
+    }
 }
 
 function registerComponents(app) {
@@ -774,6 +799,7 @@ function registerComponents(app) {
     app.component('hot-anchors-group-view', HotAnchrosGroupView);
     app.component('tab-navi-view', TabNaviView);
     app.component('zt-table-view', ZT_TableView);
+    app.component('lb-table-view', LB_TableView);
 }
 
 export default {
