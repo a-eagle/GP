@@ -568,7 +568,8 @@ class AnchorsMgr {
 		}
 		if (newVal == this.vue.data.lastTradeDay) {
 		}
-		$.ajax({url: `/get-all-hot-tc?days=20&curDay=${newVal}`, async: true, success: function(data) {
+		$.ajax({url: `/get-all-hot-tc?days=20&day=${newVal}`, async: true, success: function(data) {
+			console.log('[index.js loadAllAnchors()]', data)
 			model.anchros = data;
 			model.anchorGroup = thiz.calcGroups(newVal);
 			thiz.loadAnchorOfDay(newVal);
@@ -590,6 +591,7 @@ class AnchorsMgr {
 		let model = this.vue.data;
 		let thiz = this;
 		this.anchorView.loadData(day, function(data) {
+			console.log('[index.js loadAnchorOfDay()]', data)
 			if (! data)
 				return;
 			if (! model.dayAnchor || model.dayAnchor.length != data.length) {

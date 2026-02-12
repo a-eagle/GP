@@ -400,19 +400,22 @@ let PopupWindow = {
     },
 
     // content: is a VNode (Vue.h )
+    // config = {hideScrollBar: true}
     // onClose: function
-    open(content, onClose) {
+    open(content, config, onClose) {
         if (! Vue.isVNode(content)) {
             return null;
         }
         let popup = this._createPopup(function() {
             Vue.render(null, popup); // unmount
-            document.body.classList.remove('no-scroll');
+            if (config?.hideScrollBar)
+                document.body.classList.remove('no-scroll');
             if (onClose) onClose();
         });
         Vue.render(content, popup);
         document.body.appendChild(popup);
-        document.body.classList.add('no-scroll');
+        if (config?.hideScrollBar)
+            document.body.classList.add('no-scroll');
         return popup;
     },
 

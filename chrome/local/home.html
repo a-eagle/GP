@@ -3,21 +3,22 @@
         <script src="vue.3.5.js"></script>
         <script src="axios.min.js"></script>
         <script src="chart.js"></script>
+        <script src="jquery-3.6.min.js"></script>
+        <script src="kline.js"></script>
         <link rel="stylesheet" type="text/css" href="ui.css"> </link>
         <link rel="stylesheet" type="text/css" href="index.css"> </link>
     </head>
     <body>
         <div class="outer">
-            <div style="width:1250px;  " id="main">
+            <div style="width:1250px;  padding-bottom: 100px;" id="main">
                 <div id="my-group-items"> </div>
                 <div class="my-info-item" name="global-item"> <global-view @cur-day-changed="onCurDayChanged" > </global-view> </div>
                 <div class="my-info-item" name="amount-item"  style="padding-top: 10px;"> <amount-compare-view>  </amount-compare-view> </div>
                 <div class="my-info-item" name="time-degree-item" style="padding-left: 52px;"> <time-degree-view> </time-degree-view> </div>
                 <div class="my-info-item" name="zdfb-item" class="zdfb-item"> <zdfb-view>  </zdfb-view> </div>
-                <div class="my-info-item" style="height: 400px;" name="anchor-fs-item" > </div>
-                <div class="my-info-item" name="anchor-list-item" ></div>
-                <div class="toggle-nav-box" name="tab-nav-item"> </div>
-                <div class="my-info-item" name="tab-nav-cnt-item">  </div>
+                <div class="my-info-item" name="anchor-fs-item" style="height: 400px;"> <hot-anchors-view > </hot-anchors-view> </div>
+                <div class="my-info-item" name="anchor-list-item" >  <hot-anchors-group-view> </hot-anchors-group-view> </div>
+                <tab-navi-view  name="tab-nav-item"> </tab-navi-view>
             </div>
         </div>
     </body>

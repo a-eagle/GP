@@ -1,8 +1,9 @@
 import utils from './utils.js'
+import ui from './ui.js'
 
 let App = {
     created() {
-        console.log('[App.created]');
+        // console.log('[App.created]');
     },
     data() {
         return {
@@ -25,15 +26,15 @@ let App = {
         },
         onCurDayChanged(val) {
             this.curDay = val;
-            console.log('[App.onCurDayChanged] curDay', val);
+            // console.log('[App.onCurDayChanged] curDay', val);
         },
     },
     beforeMount() {
         this.getTradeDays();
-        console.log('[App.beforeMount]', this.$data);
+        // console.log('[App.beforeMount]', this.$data);
     },
     mounted() {
-        console.log('[App.mounted]');
+        // console.log('[App.mounted]');
     },
 };
 
@@ -84,7 +85,7 @@ let GlobalView = {
         },
     },
     mounted() { // beforeMount
-        console.log('[GlobalMgrView.mounted]');
+        // console.log('[GlobalMgrView.mounted]');
         this.$watch('curDay', (newVal, oldVal) => {
             this.onCurDayChanged(newVal);
         });
@@ -147,7 +148,7 @@ let AmountCompareView = {
     },
     methods: {
         onCurDayChanged(day) {
-            console.log('[AmountCompareView.onCurDayChanged] day=', day);
+            // console.log('[AmountCompareView.onCurDayChanged] day=', day);
             axios.get('/compare-amount/' + day).then((resp) => {
                 this.data = resp.data;
                 this.calc();
@@ -403,7 +404,7 @@ let AmountCompareView = {
         return Vue.h('canvas', {width: 1200, height: 200, onclick: this.onClick });
     },
     mounted() {
-        console.log('[AmountCompareView].mounted');
+        // console.log('[AmountCompareView].mounted');
     }
 };
 
@@ -411,11 +412,11 @@ let TimeDegreeView = {
     inject: ['curDay'],
     data() {
         this.$watch('curDay', this.onCurDayChanged);
-        return {PCW: 920, PCH: 150, canvasWidth: 960, chart: null};
+        return {PCW: 920, PCH: 150, canvasWidth: 960, chartData: null, redo: 1};
     },
     methods: {
         onCurDayChanged(day) {
-            console.log('[TimeDegreeView.onCurDayChanged] day=', day);
+            // console.log('[TimeDegreeView.onCurDayChanged] day=', day);
             axios.get('/get-time-degree?day=' + day).then((resp) => {
                 this.data = resp.data;
                 this.calc();
@@ -453,106 +454,296 @@ let TimeDegreeView = {
                     //{label: '50', data: v50, fill: false, borderColor: '#505050'},
                 ],
             };
-            let canvas = this.$el;
+            
             let cw = parseInt(this.PCW * (this.data.length - 1) / 24) + 40;
             this.canvasWidth = cw;
-            canvas.width = cw;
-            canvas.style.width = `${cw}px`;
-            this.chart = new Chart(canvas, {type: 'line', data: cdata, options: {plugins: {legend: {display: false}}}});
-            this.chart.resize(cw, this.PCH);
-        }
+            this.chartData = {type: 'line', data: cdata, options: {plugins: {legend: {display: false}}}};
+            this.redo += 1;
+        },
+        wrapChart() {}, // 保存Chart的实例，因为不能放在data里
     },
     render() {
-        return Vue.h('canvas', {width: this.PCW, height: this.PCH});
+        if (this.wrapChart.instance) {
+            this.wrapChart.instance.destroy(); // 必须，是因为如果Chart已经绑定了canvas，则canvas不能修改大小
+        }
+        this.$nextTick(() => {
+            if (this.wrapChart.instance) {
+                this.wrapChart.instance.destroy();
+            }
+            let canvas = this.$el;
+            this.wrapChart.instance = new Chart(canvas, this.chartData);
+            this.wrapChart.instance.resize(this.canvasWidth, this.PCH);
+        });
+        return Vue.h('canvas',
+            {width: this.canvasWidth, height: this.PCH, style: {width: `${this.canvasWidth}px`, redo: this.redo }}
+        );
     },
     mounted() {
-        console.log('[TimeDegreeView].mounted');
+        // console.log('[TimeDegreeView].mounted');
     }
 };
 
-let ZdfbView = {
+let _ZdfbView = {
     inject: ['curDay'],
     data() {
         this.$watch('curDay', this.onCurDayChanged);
-        return {day: '', degree: '', zdfb: {}, d: 0};
+        return {
+            day: '', degree: '', zdfb: {}, d: 0, degreeTxt: '--',
+            degreeStyle: {'text-align': 'center', 'line-height': 1, 'font-size': '30px', 'margin-top': '-35px', color: '#52c2a3'}, // color:${color};
+        };
     },
     methods: {
         onCurDayChanged(day) {
-            console.log('[ZdfbView.onCurDayChanged] day=', day);
+            // console.log('[ZdfbView.onCurDayChanged] day=', day);
             axios.get('/zdfb-detail/' + day).then((resp) => {
-                console.log('ZdfbView.data', resp.data);
+                // console.log('ZdfbView.data', resp.data);
                 for (let k in resp.data) {
                     this[k] = resp.data[k];
                 }
                 let d = 0;
                 if (this.degree) {
                     d = this.degree / 100.0 * 226;
+                    this.degreeTxt = String(this.degree) + '°';
                 }
                 this.d = `${d} 227`;
+                if (this.degree && this.degree >= 50)
+                    this.degreeStyle.color = 'red';
+                this.$nextTick(() => {
+                    let canvas = this.$refs.zdfbCanvas;
+                    let view = new ZdfbView(canvas);
+		            view.draw(this.zdfb);
+                });
             });
         },
-        renderDegree() {
-            let d = 0;
-            let dg = '--';
-            if (this.degree) {
-                d = this.degree / 100.0 * 226;
-                dg = String(this.degree) + '°';
-            }
-            let color = '#52c2a3';
-            if (this.degree && this.degree >= 50) color = 'red';
-            let tp = `<div style="width:160px; height: 80px;">
-                    <svg style="width:100% ;height: 100%;">\
-                        <defs>\
-                            <linearGradient id="linear" x1="0%" y1="0%" x2="100%" y2="0%">\
-                                <stop offset="0%" stop-color="#80DCC2"></stop>\
-                                <stop offset="100%" stop-color="#FF2C49"></stop>\
-                            </linearGradient>\
-                        </defs>\
-                        <circle cx="77.5" cy="76" r="72" stroke="#E2E2E2" stroke-width="8" fill="none" stroke-dasharray="226" stroke-dashoffset="-226" stroke-linecap="round"></circle>\
-                        <circle cx="77.5" cy="76" r="72" stroke="url(#linear)" stroke-width="8" fill="none" :stroke-dasharray="d" stroke-dashoffset="-226" stroke-linecap="round"></circle>\
-                    </svg>
-                    <div style="text-align: center; line-height: 1; font-size: 30px; margin-top:-35px; color:${color};">${dg}</div>
-                </div>`;
-            return tp;
+    },
+    template:  `<table class="zdfb"><tbody>
+        <tr style="height: 40px;"> <th> 日期 </th> <th style='width: 100px;'>涨停 </th> 
+            <td rowspan=4> <div style='width: 700px; height:215px; margin-left:120px; background-color-: #fafafa;' > 
+                <canvas ref="zdfbCanvas"> </canvas>
+            </div> </td> 
+        </tr>
+        <tr style="height: 40px;"> <th> {{day}} </th> <th style='color:red;'> {{zdfb.zt}} </th> </tr>
+        <tr  style="height: 60px;">
+            <th style='width:165px; background-color:#fff;' rowspan=2> 
+                <div style="width:160px; height: 80px;">
+                <svg style="width:100% ;height: 100%;">\
+                    <defs>\
+                        <linearGradient id="linear" x1="0%" y1="0%" x2="100%" y2="0%">\
+                            <stop offset="0%" stop-color="#80DCC2"></stop>\
+                            <stop offset="100%" stop-color="#FF2C49"></stop>\
+                        </linearGradient>\
+                    </defs>\
+                    <circle cx="77.5" cy="76" r="72" stroke="#E2E2E2" stroke-width="8" fill="none" stroke-dasharray="226" stroke-dashoffset="-226" stroke-linecap="round"></circle>\
+                    <circle cx="77.5" cy="76" r="72" stroke="url(#linear)" stroke-width="8" fill="none" :stroke-dasharray="d" stroke-dashoffset="-226" stroke-linecap="round"></circle>\
+                </svg>
+                <div :style="degreeStyle"> {{degreeTxt}} </div>
+            </div>
+            </th> <th>跌停</th>
+        </tr>
+        <tr style="height: 60px;"> <th style='color:green;'> {{zdfb.dt}} </th> </tr>
+        </tbody></table>
+        `,
+};
+
+let HotAnchrosView = {
+    inject: ['curDay'],
+    data() {
+        this.$watch('curDay', this.onCurDayChanged);
+        return {
+            redo: 1,
+        };
+    },
+    methods: {
+        onCurDayChanged(day) {
+            this.redo += 1;
+            this.$nextTick(() => {
+                let view = new AnchrosView(this.$el);
+                view.loadData(day);
+                view.draw();
+            });
         },
     },
-    template: 
-    `
-            <div style="height:220px;">
-                <table class="zdfb"> <tbody>
-                    <tr class='red'> <th style='width:100px'> 日期 </th> <th style='width:100px'>涨停 </th> <th rowspan=4> <div style='width: 700px; height:215px; margin-left:120px;' >   </div> </th> </tr>
-                    <tr class='green'> <th> {{day}} </th> <th style='color:red;'> {{zdfb.zt}} </th> </tr>
-                    <tr> <th style='width:165px; background-color:#fff;' rowspan=2>  </th> <th>跌停</th>  </tr>
-                    <tr> <th style='color:green;'> {{zdfb.dt}} </th> </tr>
-                </tbody></table>
-                
-            </div>
-        `,
-    render_() {
-        let template = `
-            <div style="height:220px;">
-                <table class="zdfb"> <tbody>
-                    <tr class='red'> <th> 日期 </th> <th style=''>涨停 </th> <td rowspan=4> <div style='width: 700px; height:215px; margin-left:120px;' >   </div> </td> </tr>
-                    <tr class='green'> <th> {{day}} </th> <th style='color:red;'> {{zdfb.zt}} </th> </tr>
-                    <tr> <th style='width:165px; background-color:#fff;' rowspan=2>  </th> <th>跌停</th>  </tr>
-                    <tr> <th style='color:green;'> {{zdfb.dt}} </th> </tr>
-                </tbody></table>
-                
-            </div>
-        `;
-        console.log(template)
-        // ${this.renderDegree()}
-        let rr = Vue.compile(template);
-        return rr(this);
+    render() {
+        return Vue.h('canvas',
+            {width: '100%', height: '100%', style:'width:100%;height:100%; background-color:#fff;', redo: this.redo }
+        );
     },
 };
 
+let HotAnchrosGroupView = {
+    inject: ['curDay'],
+    data() {
+        this.$watch('curDay', this.onCurDayChanged);
+        return {
+            datas: null,
+        };
+    },
+    methods: {
+        onCurDayChanged(day) {
+            axios.get(`/hot-anchors-group`).then((resp) => {
+                let COL_NUM = 7;
+                let rs = [];
+                for (let i = 0; i < resp.data.length; i += COL_NUM) {
+                    let row = resp.data.slice(i, i + COL_NUM);
+                    row.vkey = i;
+                    rs.push(row);
+                }
+                this.datas = rs;
+            });
+        },
+        getAnchorUrl(item) {
+            return `plate.html?code=${item.code}&name=${item.name}`;
+        },
+        openChart(code, evt) {
+            let pp = evt.target.parentElement;
+            let tdRc = pp.getBoundingClientRect();
+            let dw = document.documentElement.clientWidth;
+            const C_WIDTH = 800;
+            let attrs = {left: tdRc.left, top : tdRc.bottom, code: code, day: this.curDay};
+            if (dw < tdRc.left + C_WIDTH) {
+                attrs.left = dw - C_WIDTH - 30
+            }
+            attrs.canvasAttrs = {
+                width: C_WIDTH - 4,
+                height: 280 - 32,
+                style: `width: ${C_WIDTH - 4}px; height: ${280 - 32}px;`,
+            }
+            let vnodes = Vue.h(HotAnchrosChartView, attrs);
+            ui.PopupWindow.open(vnodes);
+        }
+    },
+    template: `
+        <table class="anchor-list" style="border-collapse: separate;border-spacing: 15px 10px;">
+            <tr v-for="row in datas" :key="row.vkey">
+                <td v-for="item in row" :class="String(item.up)" :key="item.code" >
+                    <a :href="getAnchorUrl(item)" target=_blank> {{item.name}} &nbsp;&nbsp;  {{item.num}}&nbsp;&nbsp;</a>
+                    <span class="anchor-arrow" :code="item.code" @click="openChart(item.code, $event)">  </span>
+                </td>
+            </tr>
+        </table>
+    `,
+};
+
+let HotAnchrosChartView = {
+    props:{
+        left: {type: Number, default: () => 0},
+        top: {type: Number, default: () => 0},
+        code: {requared: true},
+        day: {requared: true},
+        canvasAttrs: {requared: true}
+    },
+    data() {
+        return {
+            chartOrgData: null, cdata: null,
+        }
+    },
+    mounted() {
+        this.loadData(this.code, this.day);
+    },
+    methods: {
+        charWrap() {},
+        loadData(code, day) {
+            function skipped(ctx, set, val) {
+                if (set[ctx.p0DataIndex] == set[ctx.p1DataIndex]) {
+                    return val;
+                }
+                return undefined;
+            }
+            function ss(set) {
+                let rs = {
+                    borderColor: ctx => skipped(ctx,  set, 'rgb(0,0,0,0.2)'),
+                    borderDash: ctx => skipped(ctx, set, [3, 3])
+                }
+                return rs;
+            }
+            axios.get(`/get-hot-tc-by-code?code=${code}&curDay=${day}&days=20`).then((resp) => {
+                let data = resp.data;
+                this.chartOrgData = data;
+                let upset = data.up;
+                let downset = data.down;
+                let cdata = {
+                    labels: data.sdays,
+                    datasets: [
+                        {label: 'UP', data: upset, fill: false, borderColor: '#FF3333', segment: ss(upset), spanGaps: true},
+                        {label: 'DOWN', data: downset, fill: false, borderColor: '#33ff33', segment: ss(downset), spanGaps: true},
+                    ],
+                };
+                function pbc() {
+                    let rs = [];
+                    rs.push('#0000ff');
+                    for (let i = 0; i < 4; i++)
+                        rs.push(Chart.defaults.borderColor);
+                    return rs;
+                }
+                this.cdata = {type: 'line', data: cdata, options: {
+                    plugins: {legend: {display: false, title: {display: false}}},
+                    scales: {x: {grid : {color : pbc()}}}}};
+            }).then(() => {
+                this.charWrap.chart = new Chart(this.$refs.chart, this.cdata);
+            });
+        },
+    },
+    template: `
+        <div class="anchors-wrap" :style="{left: left, top: top}">
+            <div class="header"> <button class="left"> &lt;&lt; </button>  <button class="right"> &gt;&gt; </button> </div>
+            <canvas ref="chart" v-bind="canvasAttrs" > </canvas>
+        </div>
+    `,
+
+};
+
+let TabNaviView = {
+    inject: ['curDay'],
+    data() {
+        this.$watch('curDay', this.onCurDayChanged);
+        return {
+            items: [{name: '', title: '涨停池'}, {name: '', title: '连板池'}, {name: '', title: '炸板池'}, 
+                    {name: '', title: '跌停池'}, {name: '', title: '热度榜'}, {name: '', title: '成交额'}, {name: '', title: '龙虎榜'}, ],
+            curTabCntView: 'ZT_TableView',
+            curSelTab: null,
+        }
+    },
+    methods: {
+        onCurDayChanged() {
+            this.curTabCntView = 'ZT_TableView';
+        },
+        changeTab(item) {
+            this.curSelTab = item;
+        }
+    },
+    template: `
+        <div class="toggle-nav-box">
+            <div v-for="item in items" :key="item.title" @click="changeTab(item)" :class="{'toggle-nav-active': item == curSelTab}" > 
+                {{item.title}} 
+            </div>
+        </div>
+        <keep-alive>  <component :is="curTabCntView">  </component> </keep-alive>
+    `,
+};
+
+let ZT_TableView = {
+    data() {
+
+    },
+    mounted() {
+
+    },
+    methods: {
+
+    },
+    render() {
+
+    },
+};
 
 function registerComponents(app) {
     app.component('global-view', GlobalView);
     app.component('amount-compare-view', AmountCompareView);
     app.component('time-degree-view', TimeDegreeView);
-    app.component('zdfb-view', ZdfbView);
+    app.component('zdfb-view', _ZdfbView);
+    app.component('hot-anchors-view', HotAnchrosView);
+    app.component('hot-anchors-group-view', HotAnchrosGroupView);
+    app.component('tab-navi-view', TabNaviView);
 }
 
 export default {

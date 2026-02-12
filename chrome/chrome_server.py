@@ -59,6 +59,8 @@ class Server:
         self.app.add_url_rule('/query-cls-updown/<tag>/<day>', view_func = self.querClsUpDown)
         self.app.add_url_rule('/ls-amounts', view_func = self.loadLsAmounts)
         self.app.add_url_rule('/zdfb-detail/<day>', view_func = self.loadZdfbDetail)
+        self.app.add_url_rule('/hot-anchors', view_func = self.loadHotTcAnchors)
+        self.app.add_url_rule('/hot-anchors-group', view_func = self.loadHotTcAnchorsGroup)
         
         self.app.run('0.0.0.0', 8080, use_reloader = False, debug = False)
 
@@ -204,7 +206,7 @@ class Server:
     def getAllHotTc(self):
         tds = ths_iwencai.getTradeDays()
         days = int(flask.request.args.get('days', None) or 10)
-        curDay = flask.request.args.get('curDay', None) or tds[-1]
+        curDay = flask.request.args.get('day', None) or tds[-1]
         curDay = curDay.replace('-', '')
         fromDay = None
         for i in range(len(tds) - 1, 0, -1):
@@ -216,7 +218,7 @@ class Server:
             return []
         fromDay = f"{fromDay[0 : 4]}-{fromDay[4 : 6]}-{fromDay[6 : 8]}"
         curDay = f"{curDay[0 : 4]}-{curDay[4 : 6]}-{curDay[6 : 8]}"
-        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day >= fromDay, cls_orm.CLS_HotTc.day <= curDay).dicts()
+        qr = cls_orm.CLS_HotTc.select().where(cls_orm.CLS_HotTc.day >= fromDay, cls_orm.CLS_HotTc.day < curDay).dicts()
         rs = []
         one = None
         lastDay = None
@@ -226,6 +228,10 @@ class Server:
                 rs.append(one)
                 lastDay = it['day']
             one.append(it)
+        # merge today & old CLS_HotTc datas
+        todays = self.getHotTcByDay()
+        if todays:
+            rs.append(todays)
         rs.sort(key = lambda item : item[0]['day'], reverse = True)
         return rs
 
@@ -826,15 +832,45 @@ class Server:
             rs['day'] = day
             rs['degree'] = obj.zhqd
             fenbu = json.loads(obj.zdfb)
-        zdfb = rs['zdfb'] = {}
+        zdfb = rs['zdfb'] = {'total': 0, 'down': 0, 'up': 0, 'zdfb': fenbu}
         zdfb['zt'] = fenbu.get('11', 0)
         zdfb['dt'] = fenbu.get('-11', 0)
         for k in fenbu:
             zdfb[k] = fenbu[k]
-            if '-' in k: zdfb['down'] = zdfb.get('down',  0) + fenbu[k]
-            elif k != 0: zdfb['up'] = zdfb.get('up',  0) + fenbu[k]
+            if '-' in k: zdfb['down'] += fenbu[k]
+            elif k != 0: zdfb['up'] += fenbu[k]
+            zdfb['total'] += fenbu[k]
         zdfb['zero'] = fenbu['0']
         return rs
+
+    def loadHotTcAnchors(self):
+        tcs = self.getAllHotTc()
+        tks = {}
+        KEY = lambda t: f'{t["code"]}__{t["up"]}'
+        for one in tcs:
+            for it in one:
+                k = KEY(it)
+                tks[k] = tks.get(k, 0) + 1
+        today = self.getHotTcByDay()
+        for t in today:
+            num = tks.get(KEY(t), 0)
+            t['wName'] = f"{t['name']}{num}"
+        return today
+    
+    def loadHotTcAnchorsGroup(self):
+        tcs = self.getAllHotTc()
+        tks = {}
+        KEY = lambda t: f'{t["code"]}__{t["up"]}'
+        for one in tcs:
+            for it in one:
+                k = KEY(it)
+                if k not in tks:
+                    tks[k] = {'code': it['code'], 'name': it['name'], 'up': it['up'], 'num': 0}
+                tks[k]['num'] += 1
+        rs = [tks[k] for k in tks if tks[k]['num'] >= 2 and tks[k]['up']]
+        rs.sort(key = lambda k: k['num'], reverse = True)
+        return rs
+
 
 if __name__ == '__main__':
     svr = Server()

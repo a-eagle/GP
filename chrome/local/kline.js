@@ -1180,7 +1180,7 @@ class AnchrosView extends Listener {
             }
         }
         if (! day) day = '';
-        $.get(`/get-hot-tc-by-day?day=${day}`, function(data) {
+        $.get(`/hot-anchors?day=${day}&days=10`, function(data) {
             rs.anchors = data;
             mcb();
         });
@@ -1535,6 +1535,7 @@ class ZdfbView extends Listener {
     }
 
     draw(data) {
+        // console.log('[ZdfwView]', data)
         if (! data || !data.total) {
             return;
         }
