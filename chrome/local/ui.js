@@ -447,7 +447,7 @@ let PopupWindow = {
 
 }
 
-let TimeLineView = {
+let _TimeLineView = {
     props:['code', 'day'],
     data() {
         return {
@@ -457,7 +457,10 @@ let TimeLineView = {
     },
     methods: {
         wrapData() {},
-        
+    },
+    mounted() {
+        this.wrapData.view = new TimeLineView(300, 600, this.$el);
+
     },
     render() {
         return Vue.h('canvas', {style: 'width:300px; height: 60px; background-color: #fafafa;', width: 300, height: 60});
@@ -467,7 +470,7 @@ let TimeLineView = {
 function registerComponents(app) {
     app.component('basic-table', BasicTable);
     app.component('stock-table', StockTable);
-    app.component('timeline-view', TimeLineView);
+    app.component('timeline-view', _TimeLineView);
 }
 
 export default {
