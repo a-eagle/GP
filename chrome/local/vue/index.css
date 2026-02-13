@@ -55,3 +55,46 @@
 table.zdfb {
     height:215px;
 }
+
+.stock-detail { 
+    color: #222; margin-bottom: 15px; padding: 10px; border-top: solid #222 2px; border-bottom: solid #ECEDEF 1px;
+}
+.stock-detail > span:first-child {
+    font-weight: bold; font-size: 25px; margin-right: 15px;
+}
+.stock-detail > span:last-child {
+    font-weight: bold; font-size: 20px;
+}
+.plate-column-box {
+    font-size: 12px; margin-bottom: 20px; padding: 20 10px; line-height: 18px; border-bottom: solid #ECEDEF 1px;
+}
+.plate-up-and-down {
+    display: inline-block; margin-right: 10px; padding: 3px 10px; border: 1px solid;
+}
+.plate-up-and-down-icon {
+    margin-right: 5px; vertical-align: middle; 
+}
+.subject-item {
+    border-bottom: solid #e6e7ea 1px; padding-bottom: 20px; padding-top: 20px;
+}
+.subject-item .small-title {
+    margin-bottom: 10px; line-height: 1.375; color: #999; font-size: 12px;
+}
+.subject-item .small-content {
+    font-size: 18px;  margin-bottom: 15px; line-height: 31px; word-break: break-all; color: #222;
+}
+.small-content a {
+    text-decoration: none; color:#222;
+}
+.small-content a:hover {
+    text-decoration: underline;
+}
+.subject-item .stock-plate {
+    height: 27px; overflow: hidden;
+}
+.stock-plate a {
+    float: left; margin-right: 10px; margin-bottom: 5px; padding: 5 5px; background-color: #eceff5; font-weight: bold; font-size: 12px; text-decoration: none; color: #222;
+}
+.stock-plate a > span:first-child {
+    margin-right: 10px;
+}

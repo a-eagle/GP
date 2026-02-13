@@ -697,14 +697,13 @@ let HotAnchrosChartView = {
 let TabNaviView = {
     inject: ['curDay'],
     data() {
-        let rs = {
+        return {
             items: [{name: 'zt-table-view', title: '涨停池'}, {name: 'lb-table-view', title: '连板池'},
-                    {name: 'zb-table-view', title: '炸板池'}, {name: 'dt-table-view', title: '跌停池'},
-                    {name: 'hots-table-view', title: '热度榜'}, {name: 'amount-table-view', title: '成交额'}, 
-                    {name: 'lhb-table-view', title: '龙虎榜'}, ],
+                        {name: 'zb-table-view', title: '炸板池'}, {name: 'dt-table-view', title: '跌停池'},
+                        {name: 'hots-table-view', title: '热度榜'}, {name: 'amount-table-view', title: '成交额'}, 
+                        {name: 'lhb-table-view', title: '龙虎榜'}, ],
             curTabCntView: 'zt-table-view',
-        };
-        return rs;
+        }
     },
     methods: {
         changeTab(item) {

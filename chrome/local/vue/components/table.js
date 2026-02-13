@@ -217,7 +217,7 @@ let BasicTable = {
     },
 }
 
-let StockTableDefaultRender = {
+let DefaultRender = {
     codeRender(h, rowData, column) {
         let code = rowData.code;
         let html = `<a href="https://www.cls.cn/stock?code=${code}" target=_blank> 
@@ -352,17 +352,17 @@ let StockTable = {
         _initDefaultRenders() {
             for (let col of this.columns) {
                 if (col.cellRender) continue;
-                if (col.key == 'code') col.cellRender = StockTableDefaultRender.codeRender;
-                else if (col.key == 'hots') col.cellRender = StockTableDefaultRender.hotsRender;
-                else if (col.key == 'zf' || col.key == 'change') col.cellRender = StockTableDefaultRender.zfRender;
-                else if (col.key == 'cmc' || col.key == 'amount') col.cellRender = StockTableDefaultRender.yRender;
-                else if (col.key == 'amountY') col.cellRender = StockTableDefaultRender.y2Render;
-                else if (col.key == 'assoc_desc' || col.key == 'up_reason') col.cellRender = StockTableDefaultRender.ztReasonRender;
-                else if (col.key == 'cls_ztReason' || col.key == 'ths_ztReason') col.cellRender = StockTableDefaultRender.ztReasonRender;
-                else if (col.key == 'zs') col.cellRender = StockTableDefaultRender.zsRender;
-                else if (col.key == 'limit_up_days') col.cellRender = StockTableDefaultRender.lbRender;
-                else if (col.key == 'ths_dt_reason') col.cellRender = StockTableDefaultRender.thsDtReasonRender;
-                else if (col.key == 'fs') col.cellRender = StockTableDefaultRender.fsRender;
+                if (col.key == 'code') col.cellRender = DefaultRender.codeRender;
+                else if (col.key == 'hots') col.cellRender = DefaultRender.hotsRender;
+                else if (col.key == 'zf' || col.key == 'change') col.cellRender = DefaultRender.zfRender;
+                else if (col.key == 'cmc' || col.key == 'amount') col.cellRender = DefaultRender.yRender;
+                else if (col.key == 'amountY') col.cellRender = DefaultRender.y2Render;
+                else if (col.key == 'assoc_desc' || col.key == 'up_reason') col.cellRender = DefaultRender.ztReasonRender;
+                else if (col.key == 'cls_ztReason' || col.key == 'ths_ztReason') col.cellRender = DefaultRender.ztReasonRender;
+                else if (col.key == 'zs') col.cellRender = DefaultRender.zsRender;
+                else if (col.key == 'limit_up_days') col.cellRender = DefaultRender.lbRender;
+                else if (col.key == 'ths_dt_reason') col.cellRender = DefaultRender.thsDtReasonRender;
+                else if (col.key == 'fs') col.cellRender = DefaultRender.fsRender;
             }
         },
         onUrlChanged(newUrl) {
@@ -433,5 +433,5 @@ let StockTable = {
 export {
     BasicTable,
     StockTable,
-    StockTableDefaultRender,
+    DefaultRender,
 }

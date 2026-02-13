@@ -64,6 +64,8 @@ class Server:
         self.app.add_url_rule('/top-hots/<day>', view_func = self.loadTopHots)
         self.app.add_url_rule('/top-amounts/<day>', view_func = self.loadTopAmounts)
         self.app.add_url_rule('/query-lhb/<day>', view_func = self.loadLHB)
+        self.app.add_url_rule('/last-trade-day', view_func = self.getLastTradeDay)
+        
         
         self.app.run('0.0.0.0', 8080, use_reloader = False, debug = False)
 
@@ -984,6 +986,11 @@ class Server:
             if sc in infos:
                 r.update(infos[sc])
         return dst
+
+    def getLastTradeDay(self):
+        ds = ths_iwencai.getTradeDays()
+        today = self.formatDay(ds[-1])
+        return {'day': today}
 
 if __name__ == '__main__':
     svr = Server()
