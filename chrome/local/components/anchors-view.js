@@ -48,7 +48,6 @@ class AnchrosView {
     }
 
     _loadData(day, cb) {
-        let thiz = this;
         let cbNum = 0;
         let rs = {};
         function mcb() {
@@ -58,14 +57,14 @@ class AnchrosView {
             }
         }
         if (! day) day = '';
-        $.get(`/hot-anchors?day=${day}&days=10`, function(data) {
-            rs.anchors = data;
+        axios.get(`/hot-anchors?day=${day}&days=10`).then((resp) => {
+            rs.anchors = resp.data;
             mcb();
         });
-        $.get(`/get-fenshi/999999?day=${day}`, function(data) {
-            rs.sh000001 = data;
-            if (! data.line || !data.line.length) {
-                thiz._fillEmptyKLine(day, data);
+        axios.get(`/get-fenshi/999999?day=${day}`).then((resp) => {
+            rs.sh000001 = resp.data;
+            if (! resp.data.line || !resp.data.line.length) {
+                this._fillEmptyKLine(day, resp.data);
             }
             mcb();
         });
