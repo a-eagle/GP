@@ -30,10 +30,10 @@ class TimeLineViewManager {
         let run = (task, resolve) => {
             let visible = utils.isClientVisible(view.$el);
             if (! visible) {
-                console.log('[runTask] Not load', view.key);
+                // console.log('[runTask] Not load', view.key);
                 resolve();
             } else {
-                console.log('[runTask] load', view.key);
+                // console.log('[runTask] load', view.key);
                 view.loadData(day, resolve);
             }
         };
@@ -46,7 +46,7 @@ class TimeLineViewManager {
 };
 
 const viewMgr = new TimeLineViewManager();
-viewMgr.thread.start(500);
+viewMgr.thread.start(1000);
 
 let TimeLineView = {
     props:['code'],

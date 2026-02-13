@@ -7,33 +7,32 @@ function Task(name, delay, exec) {
 
 function Thread() {
 	this.tasks = [];
-	this.id = 0;
-	this.curTask = null;
+	this.runing = false;
 	this.curTaskBeginTime = 0;
+	this.intervalTime = 500;
 }
 
 Thread.prototype.start = function(intervalTime) {
-	if (this.id != 0) {
+	if (this.runing) {
 		return;
 	}
-	let thiz = this;
-	function wrapRun() {
-		thiz._run();
-	}
 	this.curTaskBeginTime = Date.now();
-	intervalTime = intervalTime || 300;
-	this.id = setInterval(wrapRun, intervalTime);
+	this.intervalTime = intervalTime || 500;
+	this.runing = true;
+	this._wait();
 }
 
-Thread.prototype.pause = function() {
-	
+Thread.prototype._wait = function() {
+	let rr = () => this._run();
+	setTimeout(rr, this.intervalTime);
 }
 
 Thread.prototype._run = function() {
-	if (this.curTask != null) {
-		return;
+	if (! this.runing) {
+		return; // stop
 	}
 	if (this.tasks.length == 0) {
+		this._wait();
 		return;
 	}
 	let topTask = this.tasks[0];
@@ -41,26 +40,20 @@ Thread.prototype._run = function() {
 	if (diffTime < topTask.delay) {
 		// console.log('Wait...');
 		// wait
+		this._wait();
 		return;
 	}
-	this.curTask = this.tasks.shift();
-	let thiz = this;
-	function _resolve_() {
-		thiz._resolve();
-	}
-	// console.log('Thread.run ', this.curTask);
-	this.curTask.exec(this.curTask, _resolve_);
+	let curTask = this.tasks.shift();
+	curTask.exec(curTask, () => this._resolve());
 }
 
 Thread.prototype._resolve = function() {
-	this.curTask = null;
 	this.curTaskBeginTime = Date.now();
+	this._run(); // run next task
 }
 
 Thread.prototype.stop = function() {
-	clearInterval(this.id);
-	this.id = 0;
-	this.curTask = null;
+	this.runing = false;
 	this.curTaskBeginTime = 0;
 }
 
