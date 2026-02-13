@@ -847,7 +847,7 @@ let DT_TableView = {
             let day = this.curDay.replaceAll('-', '');
             // ths_dtReason
             axios.get(`/iwencai?q=${day} 跌停,非st,成交额,收盘价,涨跌幅`).then((resp) => {
-                console.log('[iwencai]', resp);
+                // console.log('[iwencai]', resp);
                 if (! resp.data) return;
                 let ds = {};
                 for (let r of resp.data) {

@@ -1,4 +1,4 @@
-import {Thread, Task} from '../thread.js'
+import {Thread, Task} from './thread.js'
 
 class TimeLineViewManager {
     constructor() {
@@ -11,14 +11,27 @@ class TimeLineViewManager {
         return this.viewId++;
     }
     add(view) {
-        this.views[view.key] = view;
+        if (!view) return;
+        let task = this.createLoadTask(view);
+        this.views[view.key] = {view, task};
+        this.thread.addUniqueTask(view.key, task);
+    }
+    checkViewVisible(view) {
+
+    }
+    createLoadTask(view) {
+        
+    }
+    remove(view) {
+        delete this.views[view.key];
     }
 };
 
-let viewMgr = new TimeLineViewManager();
+const viewMgr = new TimeLineViewManager();
 
 let TimeLineView = {
     props:['code', 'day'],
+    emits: ['load-data-end'],
     data() {
         return {
             width: 300, height: 60, key: viewMgr.nextViewId(),
@@ -29,39 +42,41 @@ let TimeLineView = {
             updateTime: null,
             maxPrice: null,
             minPrice: null,
+            loaded: false,
         }
     },
     methods: {
         // wrapData() {},
-        _loadData(code, day, callback, finish) {
-            day = day || ''
-            axios.get(`/get-fenshi/${code}?day=${day}`)
+        reload() {
+            let run = (task, resolve) => {
+                view._loadData(resolve);
+            };
+            let task = new Task(view.code, 0, run);
+            viewMgr.thread.addUniqueTask(view.key, task);
+        },
+        _loadData(finish) {
+            if (this.loaded) {
+                if (finish) finish();
+                return;
+            }
+            this.loaded = true;
+            axios.get(`/get-fenshi/${this.code}?day=${this.day}`)
                 .then((resp) => {
                     if (! resp) {
-                        if (callback) callback(null);
+                        this.$emit('load-data-end', this);
                         return;
                     }
                     let ds = resp.data;
                     if (resp.line) ds.date = resp.line[0].day;
                     else ds.date = null;
                     this.updateTime = Date.now();
-                    if (callback) callback(ds);
+                    this.setData(ds);
+                    this.draw();
+                    this.$emit('load-data-end', this);
                 })
                 .finaly((resp) => {
                     if (finish) finish();
-                })
-        },
-        reload() {
-            let callback = (rs) => {
-                this.setData(rs);
-                this.draw();
-                this.$emit('load-data-end', this);
-            };
-            let run = (task, resolve) => {
-                this._loadData(this.code, this.day, callback, resolve);
-            };
-            let task = new Task(code, 0, run);
-            viewMgr.thread.addUniqueTask(this.key, task);
+                });
         },
         setData(data) {
             // {code: xx, date:xx, pre: xx, line: [{time, price, amount, avgPrice, vol}, ...] }
@@ -263,9 +278,12 @@ let TimeLineView = {
             this.ctx.closePath();
             this.ctx.setLineDash([]);
         },
-
     },
     mounted() {
+        viewMgr.add(this);
+    },
+    unmounted() {
+        viewMgr.remove(this);
     },
     render() {
         return Vue.h('canvas', {style: `width:${this.width}px; height: ${this.height}px; background-color: #fafafa;`, width: this.width, height: this.height});

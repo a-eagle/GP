@@ -571,7 +571,8 @@ class Server:
             rs[it['secu_code']] = it
             cl = gn_utils.cls_gntc_s.get(code, None) or {}
             th = gn_utils.ths_gntc_s.get(code, None) or {}
-            it['name'] = cl.get('name', '') or th.get('name', '')
+            if 'name' in cols:
+                it['name'] = th.get('name', '') or cl.get('name', '')
             if 'cls_hy' in cols:
                 it['cls_hy'] = cl.get('hy', '')
             if 'ths_hy' in cols:
@@ -789,9 +790,11 @@ class Server:
             qr = qr.order_by(orderBy)
         # print('sql = ', qr)
         rs = []
-        
         for it in qr.dicts():
             rs.append(it)
+        TODAY = self.formatDay(ths_iwencai.getTradeDays()[-1])
+        if day == TODAY and not rs:
+            rs = self._querClsUpDownNewest(tag)
         cc = [d['secu_code'] for d in rs]
         infos = self._queryCodesInfo(day, cols, cc)
         for r in rs:
@@ -802,6 +805,27 @@ class Server:
             for r in rs:
                 r['ths_dt_reason'] = r['up_reason']
         return rs
+    
+    def _querClsUpDownNewest(self, tag):
+        ks = {'ZT': 'up_pool', 'LB': 'continuous_up_pool', 'ZB': 'up_open_pool', 'DT': 'down_pool'}
+        url = 'https://x-quote.cls.cn/quote/index/up_down_analysis?app=CailianpressWeb&os=web&rever=1&sv=8.4.6&type=' + ks[tag] + '&way=last_px'
+        url = cls.ClsUrl().signUrl(url)
+        url = cls.getProxyUrl(url)
+        resp = requests.get(url, headers = cls.ClsUrl.reqHeaders)
+        js = resp.json()
+        data = []
+        for d in js['data']:
+            if d['is_st']:
+                continue
+            if tag == 'ZT':
+                if d['limit_up_days'] == 1:
+                    data.append(d)
+            elif tag == 'LB':
+                if d['limit_up_days'] > 1:
+                    data.append(d)
+            else:
+                data.append(d)
+        return data
 
     def loadLsAmounts(self):
         sh = datafile.Ths_K_DataModel('999999')
@@ -911,7 +935,7 @@ class Server:
             it = {'code': code, 'hots': obj['zhHotOrder']}
             rs.append(it)
         codes = [c['code'] for c in rs]
-        cols = ['ths_hy', 'ths_ztReason', 'cls_ztReason']
+        cols = ['ths_hy', 'ths_ztReason', 'cls_ztReason', 'name']
         infos = self._queryCodesInfo(day, cols, codes)
         for r in rs:
             sc = self._getSecuCode(r['code'])

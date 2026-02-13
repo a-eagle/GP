@@ -75,6 +75,9 @@ Thread.prototype.insertTask = function (idx, task) {
 }
 
 Thread.prototype.addUniqueTask = function(uniqueId, task) {
+	if (! task) {
+		return;
+	}
 	for (let i = 0; i < this.tasks.length; i++) {
 		let tk = this.tasks[i];
 		if (tk['__unique_id__'] && tk['__unique_id__'] == uniqueId) {
