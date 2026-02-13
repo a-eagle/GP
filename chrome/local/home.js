@@ -1,5 +1,5 @@
 import utils from './utils.js'
-import ui from './ui.js'
+import ui from './components/ui.js'
 
 let App = {
     created() {

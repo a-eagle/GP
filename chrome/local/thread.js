@@ -110,3 +110,6 @@ class ThreadPool {
 	}
 }
 
+export {
+	Thread, Task, ThreadPool
+}
