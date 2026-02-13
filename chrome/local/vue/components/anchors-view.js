@@ -1,9 +1,52 @@
+class Rect {
+    constructor(l, t, r, b) {
+        this.left = l;
+        this.top = t;
+        this.right = r;
+        this.bottom = b;
+    }
+    width() {return this.right - this.left;}
+    height() {return this.bottom - this.top;}
+    isPointIn(x, y) {
+        return x >= this.left && x < this.right && y >= this.top && y < this.bottom;
+    }
+    move(dx, dy) {
+        let w = this.width();
+        let h = this.height();
+        this.left += dx;
+        this.top += dy;
+        this.right = this.left + w;
+        this.bottom = this.top + h;
+    }
+    moveTo(x, y) {
+        let w = this.width();
+        let h = this.height();
+        if (typeof(x) == 'number') {
+            this.left = x;
+            this.right = x + w;
+        }
+        if (typeof(y) == 'number') {
+            this.top = y;
+            this.bottom = y + h;
+        }
+    }
+
+    intersection(rect) {
+        let l = Math.max(rect.left, this.left);
+        let t = Math.max(rect.top, this.top);
+        let r = Math.min(rect.right, this.right);
+        let b = Math.min(rect.bottom, this.bottom);
+        if (l >= r || t >= b) {
+            return 0;
+        }
+        return (r - l) * (b - t);
+    }
+}
+
 class AnchrosView {
     constructor(canvas) {
-        super();
-        let p = $(canvas).parent();
-        this.width = canvas.width = p.width();
-        this.height = canvas.height = p.height();
+        this.width = canvas.width = canvas.clientWidth;
+        this.height = canvas.height = canvas.clientHeight;
         this.canvas = canvas;
         this.ctx = canvas.getContext("2d");
         this.anchors = null;
@@ -12,8 +55,6 @@ class AnchrosView {
         this.selAnchor = null;
         this.day = null;
 
-        $(canvas).width(this.width);
-        $(canvas).height(this.height);
         let thiz = this;
         canvas.addEventListener('click', function(e) {
             thiz.onClick(e.offsetX, e.offsetY);
@@ -379,6 +420,6 @@ class AnchrosView {
     }
 };
 
-export default {
+export {
     AnchrosView
 }

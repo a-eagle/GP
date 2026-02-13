@@ -366,7 +366,7 @@ let StockTable = {
         },
         onLoadDataDone() {
             this.$emit('load-data-done', this.filterDatas);
-            this.$nextTick(() => this.bindTimeLine());
+            // this.$nextTick(() => this.bindTimeLine());
         },
         getSearchData(data) {
             let rs = {};
@@ -399,14 +399,8 @@ let StockTable = {
     },
 };
 
-function registerComponents(app) {
-    app.component('basic-table', BasicTable);
-    app.component('stock-table', StockTable);
-}
-
-export default {
+export {
     BasicTable,
     StockTable,
     StockTableDefaultRender,
-    registerComponents,
 }

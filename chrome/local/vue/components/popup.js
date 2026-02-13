@@ -43,10 +43,6 @@ let PopupWindow = {
     },
 };
 
-function registerComponents(app) {
-}
-
-export default {
+export {
     PopupWindow,
-    registerComponents,
 }

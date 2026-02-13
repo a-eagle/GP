@@ -273,6 +273,6 @@ let TimeLineView = {
 };
 
 
-export default {
+export {
     TimeLineView
 }

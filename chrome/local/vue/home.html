@@ -3,7 +3,7 @@
         <script src="vue.3.5.js"></script>
         <script src="axios.min.js"></script>
         <script src="chart.js"></script>
-        <link rel="stylesheet" type="text/css" href="../components/ui.css"> </link>
+        <link rel="stylesheet" type="text/css" href="./components/ui.css"> </link>
         <link rel="stylesheet" type="text/css" href="index.css"> </link>
     </head>
     <body>
@@ -22,12 +22,10 @@
     </body>
 
 <script type="module">
-    import ui from '../components/ui.js'
     import home from './home.js'
-    import config from './config.js'
-
+    import init from './components/init.js'
     var app = Vue.createApp(home.App);
-    ui.registerComponents(app);
+    init.registerComponents(app);
     home.registerComponents(app);
     app.mount('#main');
 </script>

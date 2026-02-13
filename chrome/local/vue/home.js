@@ -1,5 +1,7 @@
-import utils from './utils.js'
-import ui from './components/ui.js'
+import utils from './components/utils.js'
+import {PopupWindow} from './components/popup.js'
+import {AnchrosView} from './components/anchors-view.js'
+import {ZdfbView} from './components/zdfb-view.js'
 
 let App = {
     created() {
@@ -565,7 +567,7 @@ let HotAnchrosView = {
     },
     render() {
         return Vue.h('canvas',
-            {width: '100%', height: '100%', style:'width:100%;height:100%; background-color:#fff;', redo: this.redo }
+            {style:'width:100%;height:100%; background-color:#fff;', redo: this.redo }
         );
     },
 };
@@ -609,7 +611,7 @@ let HotAnchrosGroupView = {
                 style: `width: ${C_WIDTH - 4}px; height: ${280 - 32}px;`,
             }
             let vnodes = Vue.h(HotAnchrosChartView, attrs);
-            ui.PopupWindow.open(vnodes);
+            PopupWindow.open(vnodes);
         }
     },
     template: `
@@ -762,8 +764,8 @@ let ZT_TableView = {
         }
     },
     methods: {
-        onCurDayChanged(day) {
-            this.url = `/query-cls-updown/ZT/${day}`;
+        onCurDayChanged() {
+            this.url = `/query-cls-updown/ZT/${this.curDay}`;
         },
     }
 };
@@ -787,8 +789,8 @@ let LB_TableView = {
         }
     },
     methods: {
-        onCurDayChanged(day) {
-            this.url = `/query-cls-updown/LB/${day}`;
+        onCurDayChanged() {
+            this.url = `/query-cls-updown/LB/${this.curDay}`;
         },
     }
 };

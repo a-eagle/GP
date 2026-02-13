@@ -1,6 +1,5 @@
 class ZdfbView {
     constructor(canvas) {
-        super();
         this.width = canvas.width;
         this.height = canvas.height;
         this.canvas = canvas;
@@ -125,6 +124,6 @@ class ZdfbView {
     }
 }
 
-export default {
+export {
     ZdfbView
 }
