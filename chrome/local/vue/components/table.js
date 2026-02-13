@@ -1,3 +1,5 @@
+import {TimeLineView, TimeLineViewManager} from './timeline-view.js'
+import utils from './utils.js';
 /**
  * columns = [{
  *      key: str of data's attr key, or '_index_',
@@ -152,11 +154,11 @@ let BasicTable = {
                 return true;
             return false;
         },
-        matchKey(data, qrs, cond, key) {
+        matchAttr(data, qrs, cond, attrName) {
             for (let q of qrs) {
                 let fd = false;
                 let sd = this.getSearchData(data);
-                let v = sd[key];
+                let v = sd[attrName];
                 if (typeof(v) == 'string') {
                     if (v.toUpperCase().indexOf(q) >= 0) {
                         fd = true;
@@ -209,6 +211,9 @@ let BasicTable = {
         }
         let tbody = h('tbody', trs);
         return h('table', {class: this.tableCss}, [theader, tbody]); // this.$slots.default()
+    },
+    mounted() {
+        // console.log('[BasicTable].mounted')
     },
 }
 
@@ -295,7 +300,7 @@ let StockTableDefaultRender = {
         return h('span', {class: 'ths-dt-reason'}, val);
     },
     fsRender(h, rowData, column) {
-        return h('timeline-view', {code: rowData.code, day: rowData.day, });
+        return h(TimeLineView, {code: rowData.code, day: rowData.day, });
     }
 }
 
@@ -315,6 +320,7 @@ let StockTable = {
         this._loadData();
         this.$watch('url', this.onUrlChanged);
         return {
+            timerId: 0,
             tableCss: ['basic-table', 'stock-table'],
         }
     },
@@ -326,23 +332,21 @@ let StockTable = {
                 this.datas.splice(0, this.datas.length);
                 for (let it of res.data) {
                     this.datas.push(it);
+                    this._adjustItemData(it);
                 }
                 this.filterDatas = this.datas.slice();
-                this._adjustStdCode(this.datas);
                 this.onLoadDataDone();
                 // console.log(this.filterDatas)
             });
         },
-        _adjustStdCode(datas) {
-            if (! datas) return;
-            for (let it of datas) {
-                if (it.secu_code && !it.code) {
-                    if (it.secu_code[0] == 's') it.code = it.secu_code.substring(2);
-                    else if (it.secu_code[0] == 'c') it.code = it.secu_code;
-                }
-                if (it.secu_name && !it.name) {
-                    it.name = it.secu_name;
-                }
+        _adjustItemData(it) {
+            if (! it) return;
+            if (it.secu_code && !it.code) {
+                if (it.secu_code[0] == 's') it.code = it.secu_code.substring(2);
+                else if (it.secu_code[0] == 'c') it.code = it.secu_code;
+            }
+            if (it.secu_name && !it.name) {
+                it.name = it.secu_name;
             }
         },
         _initDefaultRenders() {
@@ -396,7 +400,34 @@ let StockTable = {
         onDblclickRow(rowData) {
             this.openKLineDialog(rowData);
         },
+        checkVisbileTimeline() {
+            let elem = this.$el;
+            let visible = utils.isClientVisible(elem);
+            if (! visible)
+                return;
+            let tls = document.querySelectorAll('canvas.timeline');
+            let rect = elem.getBoundingClientRect();
+            let HEIGHT = Math.min(window.innerHeight, rect.bottom);
+            for (let i = 0; i < tls.length; i++) {
+                let irect = tls[i].getBoundingClientRect();
+                if (irect.top < 0) continue;
+                if (irect.top >= HEIGHT) break;
+                let key = tls[i].getAttribute('key-id');
+                TimeLineViewManager.reload(key, this.day);
+            }
+        },
     },
+    mounted() {
+        // console.log('[StockTable].mounted', this.$el)
+        this.timerId = setInterval(() => {
+            this.checkVisbileTimeline();
+        }, 1000);
+    },
+    unmounted() {
+        console.log('[StockTable].unmounted', this.$el)
+        clearInterval(this.timerId);
+        this.timerId = 0;
+    }
 };
 
 export {

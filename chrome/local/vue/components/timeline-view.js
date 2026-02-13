@@ -1,40 +1,60 @@
 import {Thread, Task} from './thread.js'
+import utils from './utils.js'
 
 class TimeLineViewManager {
     constructor() {
-        this.views = {};
         this.viewId = 1;
+        this.views = {};
         this.thread = new Thread();
-        this.thread.start(500);
     }
     nextViewId() {
         return this.viewId++;
     }
     add(view) {
-        if (!view) return;
-        let task = this.createLoadTask(view);
-        this.views[view.key] = {view, task};
-        this.thread.addUniqueTask(view.key, task);
-    }
-    checkViewVisible(view) {
-
-    }
-    createLoadTask(view) {
-        
+        this.views[view.key] = view;
     }
     remove(view) {
         delete this.views[view.key];
     }
+    reload(key, day) {
+        if (! this.views[key]) {
+            return;
+        }
+        this.runTask(this.views[key], day);
+    }
+
+    runTask(view, day) {
+        if (! view.checkReload(day)) {
+            return;
+        }
+        let run = (task, resolve) => {
+            let visible = utils.isClientVisible(view.$el);
+            if (! visible) {
+                console.log('[runTask] Not load', view.key);
+                resolve();
+            } else {
+                console.log('[runTask] load', view.key);
+                view.loadData(day, resolve);
+            }
+        };
+        let task = new Task(view.key, 0, run);
+        viewMgr.addUniqueTask(view.key, task);
+    }
+    addUniqueTask(key, task) {
+        this.thread.addUniqueTask(key, task);
+    }
 };
 
 const viewMgr = new TimeLineViewManager();
+viewMgr.thread.start(500);
 
 let TimeLineView = {
-    props:['code', 'day'],
+    props:['code'],
     emits: ['load-data-end'],
     data() {
         return {
             width: 300, height: 60, key: viewMgr.nextViewId(),
+            day: null,
             data: null,
             zf: null,
             amount: null,
@@ -46,20 +66,21 @@ let TimeLineView = {
         }
     },
     methods: {
-        // wrapData() {},
-        reload() {
-            let run = (task, resolve) => {
-                view._loadData(resolve);
-            };
-            let task = new Task(view.code, 0, run);
-            viewMgr.thread.addUniqueTask(view.key, task);
+        checkReload(day) {
+            day = utils.formatDate(day);
+            if (this.loaded || day == this.day || !utils.isFormatDate(day)) {
+                return false;
+            }
+            return true;
         },
-        _loadData(finish) {
-            if (this.loaded) {
+        loadData(day, finish) {
+            day = utils.formatDate(day)
+            if (! this.checkReload(day)) {
                 if (finish) finish();
-                return;
+                    return;
             }
             this.loaded = true;
+            this.day = day;
             axios.get(`/get-fenshi/${this.code}?day=${this.day}`)
                 .then((resp) => {
                     if (! resp) {
@@ -74,7 +95,7 @@ let TimeLineView = {
                     this.draw();
                     this.$emit('load-data-end', this);
                 })
-                .finaly((resp) => {
+                .finally((resp) => {
                     if (finish) finish();
                 });
         },
@@ -103,7 +124,7 @@ let TimeLineView = {
             data.low = low;
             data.high = high;
             data.close = ln[ln.length - 1].price;
-            this.fx();
+            // this.fx();
             this.calcAmount();
         },
         calcMinMax() {
@@ -165,7 +186,7 @@ let TimeLineView = {
             
             ctx.fillStyle = 'rgb(255, 255, 255)';
             ctx.lineWidth = 1;
-            this.ctx.clearRect(0, 0, this.width, this.height);
+            ctx.clearRect(0, 0, this.width, this.height);
             let tag = this.getZDTag();
             ctx.strokeStyle = this.getLineColor(tag);
             ctx.beginPath();
@@ -204,10 +225,10 @@ let TimeLineView = {
             ctx.lineTo(this.width - PADDING_X, y);
             ctx.stroke();
             // 画最高、最低价
-            this.drawZhangFu(true, this.maxPrice, this.width, 10);
-            this.drawZhangFu(false, this.minPrice, this.width, this.height - 5);
+            this.drawZhangFu(ctx, true, this.maxPrice, this.width, 10);
+            this.drawZhangFu(ctx, false, this.minPrice, this.width, this.height - 5);
             let close = this.data.line[this.data.line.length - 1].price;
-            this.drawZhangFu(false, close, this.width, this.height / 2 + 3, '#000');
+            this.drawZhangFu(ctx, false, close, this.width, this.height / 2 + 3, '#000');
         },
         getZDTag() {
             if (! this.data) {
@@ -244,7 +265,7 @@ let TimeLineView = {
                 return 'D';
             }
         },
-        drawZhangFu(up, price, x, y, color) {
+        drawZhangFu(ctx, up, price, x, y, color) {
             let zf = (price - this.data.pre) * 100 / this.data.pre;
             let tag = this.getZDTag();
             if (up && (tag == 'ZT' || tag == 'ZTZB')) {
@@ -254,29 +275,30 @@ let TimeLineView = {
             } else {
                 tag = zf >= 0 ? 'Z' : 'D';
             }
-            this.ctx.fillStyle = color || this.getLineColor(tag);
+            ctx.fillStyle = color || this.getLineColor(tag);
             zf = '' + zf;
             let pt = zf.indexOf('.');
             if (pt > 0) {
                 zf = zf.substring(0, pt + 2);
             }
             zf += '%';
-            let ww = this.ctx.measureText(zf).width;
-            this.ctx.fillText(zf, x - ww, y);
+            let ww = ctx.measureText(zf).width;
+            ctx.fillText(zf, x - ww, y);
         },
         drawMouse(x) {
             if (x < 0 || x >= this.width) {
                 return;
             }
-            this.ctx.beginPath();
-            this.ctx.strokeStyle = 'black';
-            this.ctx.setLineDash([4, 2]);
-            this.ctx.lineWidth = 1;
-            this.ctx.moveTo(x + 0.5, 0);
-            this.ctx.lineTo(x + 0.5, this.height);
-            this.ctx.stroke();
-            this.ctx.closePath();
-            this.ctx.setLineDash([]);
+            let ctx = this.$el.getContext("2d");
+            ctx.beginPath();
+            ctx.strokeStyle = 'black';
+            ctx.setLineDash([4, 2]);
+            ctx.lineWidth = 1;
+            ctx.moveTo(x + 0.5, 0);
+            ctx.lineTo(x + 0.5, this.height);
+            ctx.stroke();
+            ctx.closePath();
+            ctx.setLineDash([]);
         },
     },
     mounted() {
@@ -286,11 +308,11 @@ let TimeLineView = {
         viewMgr.remove(this);
     },
     render() {
-        return Vue.h('canvas', {style: `width:${this.width}px; height: ${this.height}px; background-color: #fafafa;`, width: this.width, height: this.height});
+        return Vue.h('canvas', {'key-id': this.key, class: 'timeline', style: `width:${this.width}px; height: ${this.height}px; background-color: #fafafa;`, width: this.width, height: this.height});
     }
 };
 
 
 export {
-    TimeLineView
+    TimeLineView, viewMgr as TimeLineViewManager
 }

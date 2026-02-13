@@ -79,6 +79,10 @@ function formatDate(date) {
     return date;
 }
 
+function isFormatDate(date) {
+    return typeof(date) == 'string' && date.length == 10;
+}
+
 // HH:MM
 function formatTime(date) {
     let d = date;
@@ -113,6 +117,19 @@ function getLocationParams(name = null) {
     return params;
 }
 
+function isClientVisible(elem) {
+    if (!elem || !elem.getBoundingClientRect) {
+        return false;
+    }
+    let rect = elem.getBoundingClientRect();
+    if (rect.height == 0)
+        return false;
+    let HEIGHT = Math.min(window.innerHeight, rect.bottom);
+    if (rect.bottom <= 0 || rect.top >= HEIGHT)
+        return false;
+    return true;
+}
+
 export default {
-    getTypeOf, isObject, deepCopy, extendObject, formatDate, formatTime, getLocationParams
+    getTypeOf, isObject, deepCopy, extendObject, formatDate, formatTime, getLocationParams, isClientVisible, isFormatDate
 }
