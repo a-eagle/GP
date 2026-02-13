@@ -306,6 +306,7 @@ let DefaultRender = {
 
 // let StockTable = deepCopy(BasicTable);
 // extendObject(StockTable, {
+// 如果有分时图，则需要设置day属性，否则无法显示分时图
 let StockTable = {
     // mixins: [BasicTable],
     extends: BasicTable,
