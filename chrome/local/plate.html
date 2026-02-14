@@ -8,9 +8,9 @@
 
     <body>
         <div class="outer">
-            <div style="width:1250px; " id="main">
+            <div style="width:1250px; " id="main" >
                 <div name="headers">
-                    <div class="stock-detail"> 
+                    <div class="stock-detail" >
                         <span> {{code}} &nbsp;&nbsp;&nbsp; {{name}} </span>
                         <span :class="info.change >= 0 ? 'red' : 'green' " style="margin-right:30px; font-size: 20px;" > {{ formateZf(info.change) }} </span>
                         <span> {{info.up_reason}} </span>

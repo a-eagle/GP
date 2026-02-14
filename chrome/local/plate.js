@@ -1,7 +1,6 @@
 import utils from './components/utils.js'
 import init from './components/init.js'
 import {DefaultRender} from './components/table.js'
-import {openTradeDatePicker} from './components/popup.js'
 
 let App = {
     created() {
@@ -28,8 +27,7 @@ let App = {
             this.curDay = val;
         },
     },
-    beforeMount() {
-        // console.log('[App.mounted]');
+    created() {
         let code = utils.getLocationParams('code');
         let name = utils.getLocationParams('name');
         this.code = code;
@@ -104,8 +102,8 @@ let NewsTabView = {
             <div class="small-content">
                 <a :href="item.url" target="_blank">
                     <strong> {{item.title}}  </strong>
-                    <div v-for="dt in item.details" > {{dt}} </div>
                 </a>
+                <div v-for="dt in item.details" > {{dt}} </div>
             </div>
             <div class="stock-plate" v-if="item.stock_list.length > 0"> 
                 <template v-for="sk in item.stock_list">

@@ -57,6 +57,23 @@ let PopupWindow = {
     },
 };
 
+let PopupView = {
+    props: {
+        mask: {default: true},
+    },
+    data() {
+        return {zIndex: PopupWindow.zIndex++}
+    },
+    template: `
+        <teleport to="body">
+            <div :class="'popup-window ' + (mask ? 'popop-window-mask' : '') " :style="{zIndex: zIndex}">
+                <div class="content">
+                    <slot> </slot>
+                </div>
+            </div>
+        </teleport>
+    `
+};
 /**
  * <trade-date-picker default-date="2026-01-05" >  </trade-date-picker>
  * V.h(TradeDatePicker, {onSelectDayEnd: function, })
@@ -178,6 +195,10 @@ let TradeDatePicker = {
     },
 };
 
+let TradeDatePicker2 = {
+    
+}
+
 // opener = { elem?: HtmlElement, x?: Number, y?:Number, defaultDate?: 'YYYY-MM-DD' }
 // onSelDay = function(selDay) callback function
 function openTradeDatePicker(opener, onSelDay) {
@@ -203,5 +224,5 @@ function openTradeDatePicker(opener, onSelDay) {
 }
 
 export {
-    PopupWindow,TradeDatePicker, openTradeDatePicker
+    PopupWindow,TradeDatePicker, openTradeDatePicker, PopupView
 }
