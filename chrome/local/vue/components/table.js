@@ -242,7 +242,10 @@ let DefaultRender = {
         let val = '';
         let attrs = {};
         if (typeof(zf) == 'number') {
-            val = (zf * 100).toFixed(1) + '%';
+            if (column.key == 'dynamicZf')
+                val = zf.toFixed(1) + '%';
+            else
+                val = (zf * 100).toFixed(1) + '%';
             if (zf >= 0) attrs.style = 'color: #de0422';
             else attrs.style = 'color: #52C2A3';
         }
@@ -362,8 +365,8 @@ let StockTable = {
                 if (col.cellRender) continue;
                 if (col.key == 'code') col.cellRender = DefaultRender.codeRender;
                 else if (col.key == 'hots') col.cellRender = DefaultRender.hotsRender;
-                else if (col.key == 'zf' || col.key == 'change') col.cellRender = DefaultRender.zfRender;
-                else if (col.key == 'cmc' || col.key == 'amount') col.cellRender = DefaultRender.yRender;
+                else if (col.key == 'zf' || col.key == 'change' || col.key == 'dynamicZf') col.cellRender = DefaultRender.zfRender;
+                else if (col.key == 'cmc' || col.key == 'amount' || col.key == 'dynamicAmount') col.cellRender = DefaultRender.yRender;
                 else if (col.key == 'amountY') col.cellRender = DefaultRender.y2Render;
                 else if (col.key == 'assoc_desc' || col.key == 'up_reason') col.cellRender = DefaultRender.ztReasonRender;
                 else if (col.key == 'cls_ztReason' || col.key == 'ths_ztReason') col.cellRender = DefaultRender.ztReasonRender;
