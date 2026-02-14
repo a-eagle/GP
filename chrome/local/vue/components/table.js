@@ -88,7 +88,7 @@ let BasicTable = {
         },
         onDblclickRow(rowData) {
             this.$emit('dblclick-row', rowData, this);
-            console.log('BasicTable.onDblclickRow', rowData);
+            // console.log('BasicTable.onDblclickRow', rowData);
         },
         filter(text) {
             if (! this.datas) {

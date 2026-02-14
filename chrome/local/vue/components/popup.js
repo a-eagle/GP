@@ -4,9 +4,9 @@ let PopupWindow = {
     zIndex : 8000,
 
     // return an Element
-    _createPopup(onClose) {
+    _createPopup(mask, onClose) {
         let popup = document.createElement('div');
-        popup.className = 'popup-window';
+        popup.className = `popup-window ${mask ? 'popup-window-mask' : ''}`;
         popup.style.zIndex = this.zIndex ++;
         popup.addEventListener('click', function(evt) {
             evt.stopPropagation();
@@ -20,44 +20,60 @@ let PopupWindow = {
             // evt.preventDefault();
             // evt.stopPropagation();
         });
+        let cnt = document.createElement('div');
+        cnt.className = 'content';
+        popup.appendChild(cnt);
+        popup._contentDiv = cnt;
         return popup;
     },
 
     // content: is a VNode (Vue.h )
-    // config = {hideScrollBar: true}
+    // config = {hideScrollBar?: false, mask?: false, destoryOnClose? : true, contentStyle?: '', }
     // onClose: function
     open(content, config, onClose) {
         if (! Vue.isVNode(content)) {
             return null;
         }
-        let popup = this._createPopup(function() {
-            Vue.render(null, popup); // unmount
-            if (config?.hideScrollBar)
+        let mask = config?.mask;
+        let destoryOnClose = config?.destoryOnClose == undefined ? true : config.destoryOnClose;
+        let popup = this._createPopup(mask, function() {
+            if (destoryOnClose) {
+                Vue.render(null, popup._contentDiv); // unmount
+            }
+            if (config?.hideScrollBar) {
                 document.body.classList.remove('no-scroll');
+            }
             if (onClose) onClose();
         });
-        Vue.render(content, popup);
+        if (config?.contentStyle) {
+            popup._contentDiv.style = config.contentStyle;
+        }
+        Vue.render(content, popup._contentDiv);
         document.body.appendChild(popup);
-        if (config?.hideScrollBar)
+        if (config?.hideScrollBar) {
             document.body.classList.add('no-scroll');
+        }
         return popup;
     },
 };
 
 let TradeDatePicker = {
+    props: ['defaultDate'], // set default day
+    emits: ['select-day-end'],
     data() {
         return {
-            curSelDate : null, // String YYYY-mm-dd
+            curSelDate : this.defaultDate, // String YYYY-mm-dd
             tradeDays: {},
             changeInfo: {},
             curPageDays: null,
         }
     },
     methods: {
-        reset() {
+        init() {
             let d = this.curSelDate || new Date();
-            if (typeof(d) == 'string')
+            if (typeof(d) == 'string') {
                 d = new Date(d);
+            }
             let y = d.getFullYear();
             let m = d.getMonth() + 1;
             this.changeMonth(y, m);
@@ -108,15 +124,16 @@ let TradeDatePicker = {
             return sweek;
         },
         onSel(day, able) {
-            if (! able) return;
+            if (! able || !day) return;
             this.curSelDate = day;
+            this.$emit('select-day-end', day);
         },
         onChangeMonth(num) {
             this.changeMonth(this.changeInfo.year, this.changeInfo.month + num);
         },
     },
     beforeMount() {
-        this.reset();
+        this.init();
         axios.get('/get-trade-days').then((resp) => {
             for (let d of resp.data) {
                 if (d.length == 8) {
@@ -137,7 +154,7 @@ let TradeDatePicker = {
             let able = cday ? this.tradeDays[cday] : false;
             let sday = cday.substring(8);
             tds.push(h('td', {val: cday, able: !!able, class: {'no-able': !able,
-                        sel: cday == this.curSelDate, today: cday == today},
+                        sel: cday && cday == this.curSelDate, today: cday == today},
                         onClick: () => this.onSel(cday, able) }, sday));
         }
         let trs = [];
@@ -145,16 +162,41 @@ let TradeDatePicker = {
             let tr = h('tr', null, tds.slice(i, i + 7));
             trs.push(tr);
         }
-        return h('table', {class: 'content datepicker'}, [
+        let table = h('table', null, [
             h('tr', null, [h('td', {colspan: 5}, ym), 
                            h('td', {onclick: () => this.onChangeMonth(-1), innerHTML: '&lt;'}), 
                            h('td', {onclick: () => this.onChangeMonth(1), innerHTML: '&gt;'})]),
             h('tr', {innerHTML: `<th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th><th>日</th>`}),
             ...trs
         ]);
+        return h('div', {class: 'datepicker'}, [table]);
     },
 };
 
+// opener = { elem?: HtmlElement, x?: Number, y?:Number, defaultDate?: 'YYYY-MM-DD' }
+// onSelDay = function(selDay) callback function
+function openTradeDatePicker(opener, onSelDay) {
+    const DW = window.innerWidth;
+    let rect = opener.elem?.getBoundingClientRect();
+    let x = 0, y = 0;
+    if (rect) {
+        x = rect.left;
+        y = rect.bottom;
+    } else {
+        if (opener.x || opener.left) x = opener.x || opener.left;
+        if (opener.y || opener.top) x = opener.y || opener.top;
+    }
+    let popup = null;
+    let nodes = Vue.h(TradeDatePicker, {
+        defaultDate: opener?.defaultDate,
+        onSelectDayEnd: (selDay) => {
+            popup.remove();
+            if (onSelDay) onSelDay(selDay);
+        }
+    });
+    popup = PopupWindow.open(nodes, {contentStyle: `left:${x}px; top: ${y}px;`});
+}
+
 export {
-    PopupWindow,TradeDatePicker
+    PopupWindow,TradeDatePicker, openTradeDatePicker
 }

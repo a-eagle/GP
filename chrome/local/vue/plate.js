@@ -1,6 +1,7 @@
 import utils from './components/utils.js'
 import init from './components/init.js'
 import {DefaultRender} from './components/table.js'
+import {openTradeDatePicker} from './components/popup.js'
 
 let App = {
     created() {

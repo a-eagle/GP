@@ -1,3 +1,6 @@
+table {
+    border-collapse: collapse;
+}
 table.basic-table {
     border-collapse: collapse;
     border: 1px solid #ddd;
@@ -70,11 +73,13 @@ table.stock-table .ths-dt-reason {
     width: 100vw;
     height: 100vh;
     overflow: auto;
+}
+.popup-window-mask {
     background-color: rgba(60, 60, 60, 0.3);
 }
 .popup-window > .content {
     position: absolute;
-    border: 1px solid #666;
+    border: solid 1px #383838;
 }
 .no-scroll {
     overflow: hidden;
@@ -84,13 +89,13 @@ table.stock-table .ths-dt-reason {
     align-items: center;
     justify-content: center;
 }
-table.datepicker {
+.datepicker {
     color: #383838;
     font-size: 14px;
-    border-collapse: collapse;
-    border: solid 2px #464542;
-    text-align: center;
     background-color: #fcfcfc;
+}
+.datepicker table {
+    text-align: center;
 }
 .datepicker tr {
     width: 300px;
