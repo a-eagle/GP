@@ -57,6 +57,10 @@ let PopupWindow = {
     },
 };
 
+/**
+ * <trade-date-picker default-date="2026-01-05" >  </trade-date-picker>
+ * V.h(TradeDatePicker, {onSelectDayEnd: function, })
+ */
 let TradeDatePicker = {
     props: ['defaultDate'], // set default day
     emits: ['select-day-end'],
@@ -64,8 +68,9 @@ let TradeDatePicker = {
         return {
             curSelDate : this.defaultDate, // String YYYY-mm-dd
             tradeDays: {},
-            changeInfo: {},
             curPageDays: null,
+            curPageYear: null,
+            curPageMonth: null,
         }
     },
     methods: {
@@ -88,8 +93,8 @@ let TradeDatePicker = {
                 month = 1;
                 year += 1;
             }
-            this.changeInfo.year = year;
-            this.changeInfo.month = month;
+            this.curPageYear = year;
+            this.curPageMonth = month;
             let ds = this.getDays(year, month);
             this.curPageDays = ds;
         },
@@ -129,7 +134,7 @@ let TradeDatePicker = {
             this.$emit('select-day-end', day);
         },
         onChangeMonth(num) {
-            this.changeMonth(this.changeInfo.year, this.changeInfo.month + num);
+            this.changeMonth(this.curPageYear, this.curPageMonth + num);
         },
     },
     beforeMount() {
@@ -145,14 +150,14 @@ let TradeDatePicker = {
     },
     render() {
         const {h} = Vue;
-        let ym = `${this.changeInfo.year}-${this.changeInfo.month}`;
+        let ym = `${this.curPageYear}-${this.curPageMonth}`;
         let today = utils.formatDate(new Date());
         let tds = [];
         let days = this.curPageDays;
         for (let i = 0; i < days.length; i++) {
             let cday = utils.formatDate(days[i]) || '';
             let able = cday ? this.tradeDays[cday] : false;
-            let sday = cday.substring(8);
+            let sday = cday ? parseInt(cday.substring(8)) : '';
             tds.push(h('td', {val: cday, able: !!able, class: {'no-able': !able,
                         sel: cday && cday == this.curSelDate, today: cday == today},
                         onClick: () => this.onSel(cday, able) }, sday));
@@ -163,8 +168,8 @@ let TradeDatePicker = {
             trs.push(tr);
         }
         let table = h('table', null, [
-            h('tr', null, [h('td', {colspan: 5}, ym), 
-                           h('td', {onclick: () => this.onChangeMonth(-1), innerHTML: '&lt;'}), 
+            h('tr', null, [h('td', {colspan: 5}, ym),
+                           h('td', {onclick: () => this.onChangeMonth(-1), innerHTML: '&lt;'}),
                            h('td', {onclick: () => this.onChangeMonth(1), innerHTML: '&gt;'})]),
             h('tr', {innerHTML: `<th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th><th>日</th>`}),
             ...trs

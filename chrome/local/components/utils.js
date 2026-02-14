@@ -130,6 +130,16 @@ function isClientVisible(elem) {
     return true;
 }
 
+// func = function(idx)
+function fori(num, func) {
+    let rs = [];
+    for (let i = 0; i < num; i++) {
+        rs.push(func(i));
+    }
+    return rs;
+}
+
 export default {
-    getTypeOf, isObject, deepCopy, extendObject, formatDate, formatTime, getLocationParams, isClientVisible, isFormatDate
+    getTypeOf, isObject, deepCopy, extendObject, formatDate, formatTime, 
+    getLocationParams, isClientVisible, isFormatDate, fori
 }
