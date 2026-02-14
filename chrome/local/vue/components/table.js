@@ -5,7 +5,7 @@ import utils from './utils.js';
  *      key: str of data's attr key, or '_index_',
  *      title: str, title of table header
  *      sortable ?: boolean, default is false
- *      cellRender ?: function(h, rowData, column)
+ *      cellRender ?: function(h, rowData, column, table)
  *      sorter? : function(a, b, tag)  tag = 'asc' | 'desc' return -1, 0, 1
  *      
  *  }, ...]
@@ -172,7 +172,12 @@ let BasicTable = {
             if (cond == 'AND')
                 return true;
             return false;
-        }
+        },
+        onLoadFsEnd(rowData, tl) {
+            rowData.dynamicAmount = tl.amount;
+            rowData.dynamicZf = tl.zf;
+            rowData.zs = tl.zs;
+        },
     },
     render() {
         // console.log('BaseTable.render');
@@ -195,7 +200,7 @@ let BasicTable = {
             rowData._index_ = i + 1;
             for (let column of this.columns) {
                 let cellVal = null;
-                if (column.cellRender) cellVal = column.cellRender(h, rowData, column);
+                if (column.cellRender) cellVal = column.cellRender(h, rowData, column, this);
                 else cellVal = rowData[column.key];
                 tds.push(h('td', {
                     onclick: () => this.onClickCell(rowData, column),
@@ -299,8 +304,10 @@ let DefaultRender = {
         let val = rowData[column.key];
         return h('span', {class: 'ths-dt-reason'}, val);
     },
-    fsRender(h, rowData, column) {
-        return h(TimeLineView, {code: rowData.code, day: rowData.day, });
+    fsRender(h, rowData, column, table) {
+        return h(TimeLineView, {code: rowData.code, day:
+            rowData.day, onLoadDataEnd: (tl) => table.onLoadFsEnd(rowData, tl) }
+        );
     }
 }
 

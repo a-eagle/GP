@@ -57,6 +57,7 @@ let TimeLineView = {
             day: null,
             data: null,
             zf: null,
+            zs: null,
             amount: null,
             zsResults: [], //涨速
             updateTime: null,
@@ -83,10 +84,6 @@ let TimeLineView = {
             this.day = day;
             axios.get(`/get-fenshi/${this.code}?day=${this.day}`)
                 .then((resp) => {
-                    if (! resp) {
-                        this.$emit('load-data-end', this);
-                        return;
-                    }
                     let ds = resp.data;
                     if (resp.line) ds.date = resp.line[0].day;
                     else ds.date = null;
@@ -103,6 +100,8 @@ let TimeLineView = {
             // {code: xx, date:xx, pre: xx, line: [{time, price, amount, avgPrice, vol}, ...] }
             this.data = data;
             this.zf = null;
+            this.amount = null;
+            this.zsResults.length = 0;
             if (!data || !data['line'] || !data.line.length) {
                 return;
             }
@@ -124,7 +123,7 @@ let TimeLineView = {
             data.low = low;
             data.high = high;
             data.close = ln[ln.length - 1].price;
-            // this.fx();
+            this.fx();
             this.calcAmount();
         },
         calcMinMax() {
@@ -145,6 +144,63 @@ let TimeLineView = {
             }
             this.maxPrice = maxPrice;
             this.minPrice = minPrice;
+        },
+        fx() {
+            const SPEED_PEROID = 10; // 时速周期 5 / 10 /15
+            const MIN_ZHANG_SU = 5; // 最小涨速 %
+            this.zsResults.length = 0;
+            let data = this.data.line;
+            for (let i = 0; i < data.length - 1; i++) {
+                let m = data[i];
+                let mm = this._calcMaxPrice(i, Math.min(data.length, i + SPEED_PEROID));
+                let maxIdx = mm[0], maxPrice = mm[1];
+                if (maxIdx < 0)
+                    continue;
+                let me = data[maxIdx];
+                let pre = data[i].price;
+                if (pre <= 0)
+                    continue;
+                let zf = (maxPrice - pre) / pre * 100;
+                if (zf < MIN_ZHANG_SU)
+                    continue;
+                if (this.zsResults.length > 0) {
+                    let last = this.zsResults[this.zsResults.length - 1];
+                    if (last['zf'] <= zf)
+                        this.zsResults.pop();  // remove last, replace it
+                    else
+                        continue // skip
+                }
+                let curJg = {'fromMinute': m.time, 'endMinute': me.time, 'minuts': maxIdx - i + 1, 'fromIdx' : i, 'endIdx': maxIdx, 'zf': zf};
+                this.zsResults.push(curJg);
+            }
+            let maxZs = this.getMaxZs();
+            if (maxZs) {
+                this.zs = maxZs.zf;
+            }
+        },
+        // 最大涨速 {fromMinute: , endMinute, minuts, fromIdx, endIdx, zf}
+        getMaxZs() {
+            let maxVal = null;
+            for (let i = 0; i < this.zsResults.length; i++) {
+                let it = this.zsResults[i];
+                if (!maxVal) 
+                    maxVal = it;
+                else if (maxVal.zf < it.zf)
+                    maxVal = it;
+            }
+            return maxVal;
+        },
+        _calcMaxPrice(fromIdx, endIdx) {
+            let maxIdx = -1;
+            let maxPrice = 0;
+            for (let i = fromIdx; i < endIdx; i++) {
+                let m = this.data.line[i];
+                if (m.price > maxPrice) {
+                    maxPrice = m.price;
+                    maxIdx = i;
+                }
+            }
+            return [maxIdx, maxPrice]
         },
         calcAmount() {
             let a = 0;
