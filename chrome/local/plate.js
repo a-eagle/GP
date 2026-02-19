@@ -42,23 +42,26 @@ let App = {
         <div class="stock-detail" >
             <span> {{code}} &nbsp;&nbsp;&nbsp; {{name}} </span>
             <span :class="info.change >= 0 ? 'red' : 'green' " style="margin-right:30px; font-size: 20px;" > {{ formateZf(info.change) }} </span>
-            <span> {{info.up_reason}} </span>
+            <div style="margin-top:20px;"> {{info.up_reason}} </div>
             <div class="plate-column-box" style="font-size:16px;"> 
                 <span class="plate-up-and-down" style="border-color: #f9d5d5; background-color: #fff1f1; color:#de0422;"> 
                     <img class="plate-up-and-down-icon" src="https://cdnjs.cls.cn/www/20200601/image/plate-up.png" />
-                        <span style="float: right;"> 上涨{{info.up_num}}家 </span> 
+                    <span style="float: right;"> 上涨{{info.up_num}}家 </span> 
                 </span>
-                <span class="plate-up-and-down" style="border-color: #e6e7ea; background-color: #f4f5fa; color:#666;"> <img class="plate-up-and-down-icon" src="https://cdnjs.cls.cn/www/20200601/image/plate-fair.png" />   
+                <span class="plate-up-and-down" style="border-color: #e6e7ea; background-color: #f4f5fa; color:#666;"> 
+                    <img class="plate-up-and-down-icon" src="https://cdnjs.cls.cn/www/20200601/image/plate-fair.png" />   
                     <span style="float: right;">平盘{{info.flat_num}}家 </span>
                 </span>
-                <span class="plate-up-and-down" style="border-color: #cae9e1; background-color: #e5fff8; color:#52c2a3;"> <img class="plate-up-and-down-icon" src="https://cdnjs.cls.cn/www/20200601/image/plate-down.png" />   
+                <span class="plate-up-and-down" style="border-color: #cae9e1; background-color: #e5fff8; color:#52c2a3;"> 
+                    <img class="plate-up-and-down-icon" src="https://cdnjs.cls.cn/www/20200601/image/plate-down.png" />   
                     <span style="float: right;">下跌{{info.down_num}}家 </span> 
                 </span>
                 <span class="plate-up-and-down" style="border-color: #f9d5d5; background-color: #fff1f1; color:#de0422;"> 
                     <img class="plate-up-and-down-icon" src="https://cdnjs.cls.cn/www/20200601/image/plate-up.png" />
-                        <span style="float: right;"> 涨停 {{info.limit_up_num}} </span> 
+                    <span style="float: right;"> 涨停 {{info.limit_up_num}} </span> 
                 </span>
-                <span class="plate-up-and-down" style="border-color: #cae9e1; background-color: #e5fff8; color:#52c2a3;"> <img class="plate-up-and-down-icon" src="https://cdnjs.cls.cn/www/20200601/image/plate-down.png" />   
+                <span class="plate-up-and-down" style="border-color: #cae9e1; background-color: #e5fff8; color:#52c2a3;"> 
+                    <img class="plate-up-and-down-icon" src="https://cdnjs.cls.cn/www/20200601/image/plate-down.png" />   
                     <span style="float: right;">跌停 {{info.limit_down_num}} </span> 
                 </span>
             </div>
@@ -81,8 +84,8 @@ let App = {
 let TabNaviView = {
     data() {
         return {
-            items: [{name: 'news-table-view', title: '新闻'}, {name: 'code-table-view', title: '个股'} ],
-            curTabCntView: 'news-table-view',
+            items: [{name: 'NewsTabView', title: '新闻'}, {name: 'CodeTabView', title: '个股'} ],
+            curTabCntView: 'NewsTabView',
         }
     },
     methods: {
@@ -193,10 +196,9 @@ let CodeTabView = {
 
 function registerComponents(app) {
     init.registerComponents(app);
-    app.component('tab-navi-view', TabNaviView);
     app.component('TabNaviView', TabNaviView);
-    app.component('news-table-view', NewsTabView);
-    app.component('code-table-view', CodeTabView);
+    app.component('NewsTabView', NewsTabView);
+    app.component('CodeTabView', CodeTabView);
 }
 
 export default {

@@ -10,6 +10,7 @@ import utils from './utils.js';
  *      
  *  }, ...]
  */
+let unickKey = 1000000;
 
 let BasicTable = {
     name: 'BasicTable',
@@ -26,33 +27,18 @@ let BasicTable = {
         }
     },
     methods : {
-        getDefaultSorter(key, _sort) {
-            return function(a, b) {
-                a = a[key], b = b[key];
-                if (a == undefined) a = null;
-                if (b == undefined) b = null;
-                if (a == null && b == null)
-                    return 0;
-                if (a == null) {
-                    return -1;
-                }
-                if (b == null) {
-                    return 1;
-                }
-                if (typeof(a) != typeof(b)) {
-                    // TODO:
-                }
-                if (typeof(a) == 'string') {
-                    if (_sort == 'asc')
-                        return a.localeCompare(b);
-                    return b.localeCompare(a);
-                } else if (typeof(a) == 'number' || typeof(a) == 'boolean') {
-                    if (_sort == 'asc')
-                        return a - b;
-                    return b - a;
-                }
-                return 0;
+        getDefaultSorter(key) {
+            for (let t of this.datas) {
+                if (t[key] == null || t[key] == undefined)
+                    continue;
+                if (typeof(t[key]) == 'string')
+                    return DefaultSorter.stringSorter;
+                if (typeof(t[key]) == 'number' || typeof(t[key]) == 'bigint')
+                    return DefaultSorter.numberSorter;
+                if (typeof(t[key]) == 'boolean')
+                    return DefaultSorter.booleanSorter;
             }
+            return DefaultSorter.noSorter;
         },
         changeSort(column) {
             if (! column.sortable)
@@ -67,8 +53,9 @@ let BasicTable = {
                 this.filterDatas = this.datas.slice();
                 return;
             }
-            let sorter = column.sorter ? function(a, b) {return column.sorter(a, b, column.key, column._sort);} : this.getDefaultSorter(column.key, column._sort);
-            this.filterDatas.sort(sorter);
+            let _sorter = column.sorter ? column.sorter : this.getDefaultSorter(column.key);
+            let ws = function(a, b) {return _sorter(a, b, column.key, column._sort);}
+            this.filterDatas.sort(ws);
         },
         clearSort() {
             for (let h of this.columns) {
@@ -207,7 +194,11 @@ let BasicTable = {
                     ondblclick: () => this.onDblclickCell(rowData, column)
                 }, cellVal));
             }
+            if (! rowData._rkey) {
+                rowData._rkey = unickKey++;
+            }
             let tr = h('tr', {
+                key: rowData._rkey,
                 class: {sel: this.curSelRow == rowData},
                 onClick: () => this.onClickRow(rowData),
                 ondblclick: () => this.onDblclickRow(rowData),
@@ -320,14 +311,46 @@ let DefaultSorter = {
         if (ak && bk) {
             return _sort == 'asc' ? ak - bk : bk - ak;
         }
-        if (ak) {
-            return -1;
-        }
-        if (bk) {
-            return 1;
-        }
+        if (ak) return -1;
+        if (bk) return 1;
         return 0;
     },
+    numberSorter(a, b, key, _sort) {
+        let ak = a[key], bk = b[key];
+        if (typeof(ak) == 'number' && typeof(bk) == 'number') {
+            if (_sort == 'asc')
+                return ak - bk;
+            return bk - ak;
+        }
+        if (typeof(ak) == 'number') return -1;
+        if (typeof(bk) == 'number') return 1;
+        return 0;
+    },
+    booleanSorter(a, b, key, _sort) {
+        let ak = a[key], bk = b[key];
+        if (typeof(ak) == 'boolean' && typeof(bk) == 'boolean') {
+            if (_sort == 'asc')
+                return ak - bk;
+            return bk - ak;
+        }
+        if (typeof(ak) == 'number') return -1;
+        if (typeof(bk) == 'number') return 1;
+        return 0;
+    },
+    stringSorter(a, b, key, _sort) {
+        let ak = a[key], bk = b[key];
+        if (typeof(ak) == 'string' && typeof(bk) == 'string') {
+            if (_sort == 'asc')
+                return ak.localeCompare(bk);
+            return bk.localeCompare(ak);
+        }
+        if (typeof(ak) == 'string') return -1;
+        if (typeof(bk) == 'string') return 1;
+        return 0;
+    },
+    noSorter(a, b, key,  _sort) {
+        return 0;
+    }
 }
 
 // let StockTable = deepCopy(BasicTable);
