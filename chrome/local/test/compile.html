@@ -1,0 +1,43 @@
+<html>
+    <head>
+        <script src="vue.3.5.js"></script>
+        <script src="axios.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="./components/ui.css"> </link>
+        <link rel="stylesheet" type="text/css" href="index.css"> </link>
+    </head>
+
+    <body>
+        <div class="outer">
+            <div style="width:1250px; " id="main">
+                
+            </div>
+        </div>
+        <iframe style="width:0; height:0" id="hideFrame" name = "hideFrame"> </iframe>
+    </body>
+<script type="module">
+    import init from './components/init.js'
+    const ccRender = Vue.compile(
+                `<button @click="clickMe">  {{msg}} </button>
+                <trade-date-picker defaultDate="2026-02-05"> </trade-date-picker>
+                `);
+
+    var app = Vue.createApp({
+        data() {
+            return {
+                msg: 'Ca Data',
+                num : 1,
+            };
+        },
+        methods: {
+            clickMe(evt) {
+                // console.log('click me', evt.target, this.$data);
+                this.msg = `click -- num = ${this.num ++}`
+            },
+        },
+        render: ccRender,
+    });
+    init.registerComponents(app);
+    app.mount('#main');
+</script>
+    
+</html>
