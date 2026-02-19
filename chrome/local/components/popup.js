@@ -60,14 +60,41 @@ let PopupWindow = {
 let PopupView = {
     props: {
         mask: {default: true},
+        modal: {default: false},
+        hideScrollBar: {default: false},
     },
+    emits: ['close'],
     data() {
-        return {zIndex: PopupWindow.zIndex++}
+        return {
+            zIndex: PopupWindow.zIndex++,
+            className: `popup-window ` + (this.mask ? 'popup-window-mask' : ''),
+            visible: true,
+        }
+    },
+    methods: {
+        clickMask(evt) {
+            evt.stopPropagation();
+            if (evt.target == this.$el && !this.modal) {
+                this.close();
+            }
+        },
+        close() {
+            this.visible = false;
+            if (this.hideScrollBar) {
+                document.body.classList.remove('no-scroll');
+            }
+            this.$emit('close', this);
+        },
+    },
+    beforeMount() {
+        if (this.hideScrollBar) {
+            document.body.classList.add('no-scroll');
+        }
     },
     template: `
-        <teleport to="body">
-            <div :class="'popup-window ' + (mask ? 'popop-window-mask' : '') " :style="{zIndex: zIndex}">
-                <div class="content">
+        <teleport to="body" v-if="visible">
+            <div :class="className" :style="{zIndex: zIndex}" @click="clickMask($event)">
+                <div class="content" v-bind="$attrs">
                     <slot> </slot>
                 </div>
             </div>
@@ -145,7 +172,7 @@ let TradeDatePicker = {
             let sweek = (date.getDay() + 6) % 7; // 0 ~ 6, 一 ~ 日
             return sweek;
         },
-        onSel(day, able) {
+        onSelectDay(day, able) {
             if (! able || !day) return;
             this.curSelDate = day;
             this.$emit('select-day-end', day);
@@ -177,7 +204,7 @@ let TradeDatePicker = {
             let sday = cday ? parseInt(cday.substring(8)) : '';
             tds.push(h('td', {val: cday, able: !!able, class: {'no-able': !able,
                         sel: cday && cday == this.curSelDate, today: cday == today},
-                        onClick: () => this.onSel(cday, able) }, sday));
+                        onClick: () => this.onSelectDay(cday, able) }, sday));
         }
         let trs = [];
         for (let i = 0; i < days.length; i += 7) {
@@ -194,10 +221,6 @@ let TradeDatePicker = {
         return h('div', {class: 'datepicker'}, [table]);
     },
 };
-
-let TradeDatePicker2 = {
-    
-}
 
 // opener = { elem?: HtmlElement, x?: Number, y?:Number, defaultDate?: 'YYYY-MM-DD' }
 // onSelDay = function(selDay) callback function

@@ -6,7 +6,7 @@ import utils from './utils.js';
  *      title: str, title of table header
  *      sortable ?: boolean, default is false
  *      cellRender ?: function(h, rowData, column, table)
- *      sorter? : function(a, b, tag)  tag = 'asc' | 'desc' return -1, 0, 1
+ *      sorter? : function(a, b, key, tag)  tag = 'asc' | 'desc' return -1, 0, 1
  *      
  *  }, ...]
  */
@@ -67,7 +67,7 @@ let BasicTable = {
                 this.filterDatas = this.datas.slice();
                 return;
             }
-            let sorter = column.sorter ? function(a, b) {return column.sorter(a, b, column._sort);} : this.getDefaultSorter(column.key, column._sort);
+            let sorter = column.sorter ? function(a, b) {return column.sorter(a, b, column.key, column._sort);} : this.getDefaultSorter(column.key, column._sort);
             this.filterDatas.sort(sorter);
         },
         clearSort() {
@@ -314,6 +314,22 @@ let DefaultRender = {
     }
 }
 
+let DefaultSorter = {
+    hotsSorter(a, b, key, _sort) {
+        let ak = a[key], bk = b[key];
+        if (ak && bk) {
+            return _sort == 'asc' ? ak - bk : bk - ak;
+        }
+        if (ak) {
+            return -1;
+        }
+        if (bk) {
+            return 1;
+        }
+        return 0;
+    },
+}
+
 // let StockTable = deepCopy(BasicTable);
 // extendObject(StockTable, {
 // 如果有分时图，则需要设置day属性，否则无法显示分时图
@@ -327,7 +343,7 @@ let StockTable = {
     },
     data() {
         // console.log('StockTable.data()');
-        this._initDefaultRenders();
+        this._initDefaults();
         this._loadData();
         this.$watch('url', this.onUrlChanged);
         return {
@@ -360,11 +376,14 @@ let StockTable = {
                 it.name = it.secu_name;
             }
         },
-        _initDefaultRenders() {
+        _initDefaults() {
             for (let col of this.columns) {
                 if (col.cellRender) continue;
                 if (col.key == 'code') col.cellRender = DefaultRender.codeRender;
-                else if (col.key == 'hots') col.cellRender = DefaultRender.hotsRender;
+                else if (col.key == 'hots') {
+                    col.cellRender = DefaultRender.hotsRender;
+                    col.sorter = DefaultSorter.hotsSorter;
+                }
                 else if (col.key == 'zf' || col.key == 'change' || col.key == 'dynamicZf') col.cellRender = DefaultRender.zfRender;
                 else if (col.key == 'cmc' || col.key == 'amount' || col.key == 'dynamicAmount') col.cellRender = DefaultRender.yRender;
                 else if (col.key == 'amountY') col.cellRender = DefaultRender.y2Render;

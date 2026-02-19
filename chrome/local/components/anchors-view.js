@@ -70,6 +70,11 @@ class AnchrosView {
     // day = YYYY-MM-DD
     loadData(day, callback) {
         let thiz = this;
+        this.anchors = null;
+        this.sh000001 = null;
+        this.anchorsUI = null;
+        this.selAnchor = null;
+
         function cbx(rs) {
             thiz.anchors = rs.anchors;
             thiz.sh000001 = rs.sh000001;

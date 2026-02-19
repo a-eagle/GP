@@ -37,6 +37,43 @@ let App = {
             this.info = resp.data.data;
         });
     },
+    template:`
+        <div name="headers">
+        <div class="stock-detail" >
+            <span> {{code}} &nbsp;&nbsp;&nbsp; {{name}} </span>
+            <span :class="info.change >= 0 ? 'red' : 'green' " style="margin-right:30px; font-size: 20px;" > {{ formateZf(info.change) }} </span>
+            <span> {{info.up_reason}} </span>
+            <div class="plate-column-box" style="font-size:16px;"> 
+                <span class="plate-up-and-down" style="border-color: #f9d5d5; background-color: #fff1f1; color:#de0422;"> 
+                    <img class="plate-up-and-down-icon" src="https://cdnjs.cls.cn/www/20200601/image/plate-up.png" />
+                        <span style="float: right;"> 上涨{{info.up_num}}家 </span> 
+                </span>
+                <span class="plate-up-and-down" style="border-color: #e6e7ea; background-color: #f4f5fa; color:#666;"> <img class="plate-up-and-down-icon" src="https://cdnjs.cls.cn/www/20200601/image/plate-fair.png" />   
+                    <span style="float: right;">平盘{{info.flat_num}}家 </span>
+                </span>
+                <span class="plate-up-and-down" style="border-color: #cae9e1; background-color: #e5fff8; color:#52c2a3;"> <img class="plate-up-and-down-icon" src="https://cdnjs.cls.cn/www/20200601/image/plate-down.png" />   
+                    <span style="float: right;">下跌{{info.down_num}}家 </span> 
+                </span>
+                <span class="plate-up-and-down" style="border-color: #f9d5d5; background-color: #fff1f1; color:#de0422;"> 
+                    <img class="plate-up-and-down-icon" src="https://cdnjs.cls.cn/www/20200601/image/plate-up.png" />
+                        <span style="float: right;"> 涨停 {{info.limit_up_num}} </span> 
+                </span>
+                <span class="plate-up-and-down" style="border-color: #cae9e1; background-color: #e5fff8; color:#52c2a3;"> <img class="plate-up-and-down-icon" src="https://cdnjs.cls.cn/www/20200601/image/plate-down.png" />   
+                    <span style="float: right;">跌停 {{info.limit_down_num}} </span> 
+                </span>
+            </div>
+            <div class="plate-column-box" style="font-size:16px;">
+                <span> 近一周涨幅 </span> <span class="red"> {{ formateZf(info.week_change) }} </span>
+                <span> &nbsp;&nbsp;| &nbsp;&nbsp;</span>
+                <span> 近一月涨幅 </span> <span class="green"> {{ formateZf(info.month_change) }} </span> 
+                <span> &nbsp;&nbsp;| &nbsp;&nbsp;</span>
+                <span> 近一年涨幅 </span> <span class="red"> {{ formateZf(info.year_change) }} </span> 
+                <span> &nbsp;&nbsp;| &nbsp;&nbsp;</span>
+            </div>
+        </div>
+        </div>
+        <TabNaviView>  </TabNaviView>
+    `
 };
 
 // data.items = [ {name: 'zt-table-view', title: '涨停池'} ]
@@ -157,6 +194,7 @@ let CodeTabView = {
 function registerComponents(app) {
     init.registerComponents(app);
     app.component('tab-navi-view', TabNaviView);
+    app.component('TabNaviView', TabNaviView);
     app.component('news-table-view', NewsTabView);
     app.component('code-table-view', CodeTabView);
 }

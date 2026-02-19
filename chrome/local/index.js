@@ -520,8 +520,8 @@ let _ZdfbView = {
     },
     template:  `<table class="zdfb"><tbody>
         <tr style="height: 40px;"> <th> 日期 </th> <th style='width: 100px;'>涨停 </th> 
-            <td rowspan=4> <div style='width: 700px; height:215px; margin-left:120px; background-color-: #fafafa;' > 
-                <canvas ref="zdfbCanvas"> </canvas>
+            <td rowspan=4> <div style=' margin-left:120px; background-color-: #fafafa;' > 
+                <canvas ref="zdfbCanvas" width=700 height=215 style="width: 700px; height:215px;"> </canvas>
             </div> </td> 
         </tr>
         <tr style="height: 40px;"> <th> {{day}} </th> <th style='color:red;'> {{zdfb.zt}} </th> </tr>
@@ -559,7 +559,10 @@ let HotAnchrosView = {
         onCurDayChanged(day) {
             this.redo += 1;
             this.$nextTick(() => {
-                let view = new AnchrosView(this.$el);
+                let view = this.$el._view;
+                if (! view) {
+                    view = this.$el._view = new AnchrosView(this.$el);
+                }
                 view.loadData(day);
                 view.draw();
             });
@@ -952,20 +955,20 @@ let LHB_TableView = {
 };
 
 function registerComponents(app) {
-    app.component('global-view', GlobalView);
-    app.component('amount-compare-view', AmountCompareView);
-    app.component('time-degree-view', TimeDegreeView);
-    app.component('zdfb-view', _ZdfbView);
-    app.component('hot-anchors-view', HotAnchrosView);
-    app.component('hot-anchors-group-view', HotAnchrosGroupView);
-    app.component('tab-navi-view', TabNaviView);
-    app.component('zt-table-view', ZT_TableView);
-    app.component('lb-table-view', LB_TableView);
-    app.component('zb-table-view', ZB_TableView);
-    app.component('dt-table-view', DT_TableView);
-    app.component('hots-table-view', Hots_TableView);
-    app.component('amount-table-view', Amount_TableView);
-    app.component('lhb-table-view', LHB_TableView);
+    app.component('GlobalView', GlobalView);
+    app.component('AmountCompareView', AmountCompareView);
+    app.component('TimeDegreeView', TimeDegreeView);
+    app.component('ZdfbView', _ZdfbView);
+    app.component('HotAnchorsView', HotAnchrosView);
+    app.component('HotAnchorsGroupView', HotAnchrosGroupView);
+    app.component('TabNaviView', TabNaviView);
+    app.component('ZtTableView', ZT_TableView);
+    app.component('LbTableView', LB_TableView);
+    app.component('ZbTableView', ZB_TableView);
+    app.component('DtTableView', DT_TableView);
+    app.component('HotsTableView', Hots_TableView);
+    app.component('AmountTableView', Amount_TableView);
+    app.component('LhbTableView', LHB_TableView);
 }
 
 export default {
