@@ -1,0 +1,38 @@
+<html>
+    <head>
+        <script src="../vue.3.5.js"></script>
+        <script src="../axios.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="../components/ui.css"> </link>
+        <link rel="stylesheet" type="text/css" href="../index.css"> </link>
+    </head>
+
+    <body>
+        <div class="outer" >
+            <div style="width:1000px; background-color: #ddd;" id="main">
+                <pagenite-view :total="158" base-url="www.xx.com" >  </pagenite-view>
+            </div>
+        </div>
+    </body>
+<script type="module">
+    import init from '../components/init.js'
+
+    var app = Vue.createApp({
+        data() {
+            return {
+                msg: 'Ca Data',
+                num : 1,
+            };
+        },
+        methods: {
+            clickMe(evt) {
+                // console.log('click me', evt.target, this.$data);
+                this.msg = `click -- num = ${this.num ++}`
+                this.$refs.PP.close();
+            },
+        },
+    });
+    init.registerComponents(app);
+    app.mount('#main');
+</script>
+    
+</html>

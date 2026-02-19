@@ -122,3 +122,17 @@ table.stock-table .ths-dt-reason {
 .datepicker .sel {
     background-color: #FF66FF;
 }
+.pagenite {
+    padding: 10px 0px;
+}
+
+.pagenite .page-item {
+    border: solid 1px #66B2FF;
+    padding: 3px 8px;
+    cursor: pointer;
+    margin: 0px 5px;
+}
+
+.pagenite .page-item-select {
+    background-color: rgb(127, 120, 230);
+}

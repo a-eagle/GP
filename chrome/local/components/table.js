@@ -483,8 +483,58 @@ let StockTable = {
     }
 };
 
+let PageniteView = {
+    emits: ['url-changed'],
+    props: {
+        baseUrl: {required: true, type: String},
+        curPage: {type: Number, default: 1},
+        pageSize: {type: Number, default: 50},
+        total: {type: Number, default: 0},
+    },
+    data() {
+        return {
+            _total : this.total,
+            _curPage : this.curPage,
+        };
+    },
+    methods: {
+        getUrl() {
+            let url = this.baseUrl;
+            if (url.indexOf('?') < 0) url += '?';
+            else url += '&';
+            return `${url}curPage=${this._curPage}&pageSize=${this._pageSize}`;
+        },
+        onChangePage(page) {
+            this._curPage = page;
+        },
+    },
+    watch: {
+        _curPage: {
+            handler(newVal, oldVal) {
+                this.$emit('url-changed', this.getUrl());
+            },
+            immediate: true
+        },
+    },
+    render() {
+        const {h} = Vue;
+        let items = [];
+        const maxPage = parseInt((this._total + this.pageSize - 1) / this.pageSize);
+        for (let i = 1; i <= maxPage; i++) {
+            items.push(h('span',
+                {class: {'page-item': true, 'page-item-select': i == this._curPage},
+                 onClick: () => this.onChangePage(i)
+                }, 
+                i));
+        }
+        return h('div', {class: 'pagenite'}, items);
+    },
+    
+};
+
 export {
     BasicTable,
     StockTable,
     DefaultRender,
+    PageniteView,
 }
