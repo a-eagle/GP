@@ -528,15 +528,15 @@ let _ZdfbView = {
         <tr  style="height: 60px;">
             <th style='width:165px; background-color:#fff;' rowspan=2> 
                 <div style="width:160px; height: 80px;">
-                <svg style="width:100% ;height: 100%;">\
-                    <defs>\
-                        <linearGradient id="linear" x1="0%" y1="0%" x2="100%" y2="0%">\
-                            <stop offset="0%" stop-color="#80DCC2"></stop>\
-                            <stop offset="100%" stop-color="#FF2C49"></stop>\
-                        </linearGradient>\
-                    </defs>\
-                    <circle cx="77.5" cy="76" r="72" stroke="#E2E2E2" stroke-width="8" fill="none" stroke-dasharray="226" stroke-dashoffset="-226" stroke-linecap="round"></circle>\
-                    <circle cx="77.5" cy="76" r="72" stroke="url(#linear)" stroke-width="8" fill="none" :stroke-dasharray="d" stroke-dashoffset="-226" stroke-linecap="round"></circle>\
+                <svg style="width:100% ;height: 100%;">
+                    <defs>
+                        <linearGradient id="linear" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#80DCC2"></stop>
+                            <stop offset="100%" stop-color="#FF2C49"></stop>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="77.5" cy="76" r="72" stroke="#E2E2E2" stroke-width="8" fill="none" stroke-dasharray="226" stroke-dashoffset="-226" stroke-linecap="round"></circle>
+                    <circle cx="77.5" cy="76" r="72" stroke="url(#linear)" stroke-width="8" fill="none" :stroke-dasharray="d" stroke-dashoffset="-226" stroke-linecap="round"></circle>
                 </svg>
                 <div :style="degreeStyle"> {{degreeTxt}} </div>
             </div>
