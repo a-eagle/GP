@@ -520,9 +520,9 @@ let _ZdfbView = {
     },
     template:  `<table class="zdfb"><tbody>
         <tr style="height: 40px;"> <th> 日期 </th> <th style='width: 100px;'>涨停 </th> 
-            <td rowspan=4> <div style=' margin-left:120px; background-color-: #fafafa;' > 
-                <canvas ref="zdfbCanvas" width=700 height=215 style="width: 700px; height:215px;"> </canvas>
-            </div> </td> 
+            <td rowspan=4> 
+                <div>  <canvas ref="zdfbCanvas" width=700 height=215 style="width: 700px; height:215px;"> </canvas> </div>
+            </td> 
         </tr>
         <tr style="height: 40px;"> <th> {{day}} </th> <th style='color:red;'> {{zdfb.zt}} </th> </tr>
         <tr  style="height: 60px;">
