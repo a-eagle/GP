@@ -325,8 +325,7 @@ class Server:
             js = json.loads(params.decode())
             win.klineWin.marksMgr.setMarkDay(js.get('day'), None)
             cs : list = js.get('codes', [])
-            idx = cs.index(code) if code in cs else -1
-            win.setCodeList(cs, idx)
+            win.setCodeList(cs)
         win.klineWin.makeVisible(-1)
         win32gui.SetWindowPos(win.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
         win32gui.SetWindowPos(win.hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)

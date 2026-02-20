@@ -8,6 +8,7 @@ db_def = pw.SqliteDatabase(f'{path}/db/My.db') # 题材库
 
 # 画线
 class TextLine(base_orm.BaseModel):
+    # keys = ('code', 'kind', '_startPos', '_endPos', 'info')
     code = pw.CharField()
     kind = pw.CharField()
     _startPos = pw.CharField(default = None)

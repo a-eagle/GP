@@ -8,8 +8,9 @@
 
     <body>
         <div class="outer" >
-            <div style="width:1000px; background-color: #ddd;" id="main">
-                <pagenite-view :total="158" base-url="www.xx.com" >  </pagenite-view>
+            <div style="width:1000px; " id="main">
+                <stock-table ref="stable" :columns="columns" :url="url" day="20260210" style="width:100%;" > </stock-table>
+                <pagenite-view :total="158" base-url="/query-cls-updown/ZT/20260210" @url-changed="changeUrl" >  </pagenite-view>
             </div>
         </div>
     </body>
@@ -19,15 +20,29 @@
     var app = Vue.createApp({
         data() {
             return {
-                msg: 'Ca Data',
-                num : 1,
+                url: '',
+                columns: [{title: '', key: '_index_', width: 60},
+                    {title: '股票/代码', key: 'code', width: 80},
+                    {title: '涨跌幅', key: 'change', width: 70, sortable: true}, // 
+                    {title: '连板', key: 'limit_up_days', width: 50, sortable: true},
+                    {title: '涨速', key: 'zs', width: 50, sortable: true, },
+                    {title: '热度', key: 'hots', width: 50, sortable: true,},
+                    {title: '动因', key: 'up_reason', width: 250, sortable: true},
+                    {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true, },
+                    {title: '分时图', key: 'fs', width: 300}],
             };
         },
         methods: {
-            clickMe(evt) {
-                // console.log('click me', evt.target, this.$data);
-                this.msg = `click -- num = ${this.num ++}`
-                this.$refs.PP.close();
+            changeUrl(url) {
+                let urls = ['/query-cls-updown/ZT/20260210',
+                    '/query-cls-updown/LB/20260210',
+                    '/query-cls-updown/ZB/20260210',
+                    '/query-cls-updown/DT/20260210',
+                ];
+                let idx = url.indexOf('curPage=');
+                let page = parseInt(url.substring(idx + 8, idx + 9));
+                console.log('changeUrl', url, 'page=', page);
+                this.url = urls[page - 1];
             },
         },
     });

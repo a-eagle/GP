@@ -502,10 +502,10 @@ class TextLineManager:
         self.win.invalidWindow()
 
     def isValidLine(self, line):
-        return line.startPos.isValid() and line.endPos.isValid()
+        return line.startPos and line.startPos.isValid() and line.endPos and line.endPos.isValid()
 
     def isValidText(self, line):
-        return line.startPos.isValid() and line.info
+        return line.startPos and line.startPos.isValid() and line.info
 
     def end(self):
         if not self.isDrawing or not self.curLine:

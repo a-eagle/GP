@@ -10,7 +10,7 @@ import utils from './utils.js';
  *      
  *  }, ...]
  */
-let unickKey = 1000000;
+let uniqueKey = 1000000;
 
 let BasicTable = {
     name: 'BasicTable',
@@ -195,7 +195,7 @@ let BasicTable = {
                 }, cellVal));
             }
             if (! rowData._rkey) {
-                rowData._rkey = unickKey++;
+                rowData._rkey = uniqueKey++;
             }
             let tr = h('tr', {
                 key: rowData._rkey,
@@ -440,7 +440,7 @@ let StockTable = {
             let rs = [];
             for (let k of this.filterDatas) {
                 if (k.code)
-                    rs.push(k.code);
+                    rs.push({code: k.code, day: this.day});
             }
             return rs;
         },
@@ -502,19 +502,24 @@ let PageniteView = {
             let url = this.baseUrl;
             if (url.indexOf('?') < 0) url += '?';
             else url += '&';
-            return `${url}curPage=${this._curPage}&pageSize=${this._pageSize}`;
+            return `${url}curPage=${this._curPage}&pageSize=${this.pageSize}`;
         },
         onChangePage(page) {
             this._curPage = page;
         },
     },
+    // call before created()
     watch: {
         _curPage: {
-            handler(newVal, oldVal) {
+            handler() {
                 this.$emit('url-changed', this.getUrl());
             },
             immediate: true
         },
+    },
+    created() {
+    },
+    beforeMount() {
     },
     render() {
         const {h} = Vue;
