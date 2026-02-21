@@ -1,13 +1,21 @@
+* {
+    /* 全局应用，方便布局 */
+    box-sizing: border-box; 
+    padding: 0;
+    margin: 0;
+}
+
 table {
     border-collapse: collapse;
 }
+
 table.basic-table {
     border-collapse: collapse;
-    border: 1px solid #ddd;
     text-align: center; 
     cursor: hander; 
     background-color: #fdfdfd;
 }
+
 table.basic-table th {
     border: 1px solid #ddd;
     background-color: #ECECEC; 
@@ -15,54 +23,65 @@ table.basic-table th {
     font-weight: normal; 
     color: #6A6B70;
 }
+
 table.basic-table td {
     border: 1px solid #ddd;
+    vertical-align: middle;
 }
+
 table.basic-table tr {
     vertical-align: middle;
 }
+
 table.basic-table tr:nth-child(even) {
     background-color: #f9fafc;
 }
+
 table.basic-table tr:hover {
     background-color: #ECEFF9;
 }
-table.basic-table td {
-    vertical-align: middle;
-    border: 1px solid #ddd;
-}
+
 table.basic-table tr.sel {
     background-color: #d9e0ea; 
     border-left: solid 3px #999;
 }
+
 table.basic-table a {
     text-decoration-line: none; 
 }
+
 table.stock-table {
     font-size: 14px;
     color: #383838;
 }
+
 table.stock-table tbody tr {
     height: 66px;
 }
+
 table.stock-table th {
     font-size: 12px;
 }
+
 table.stock-table .ths-zt-reason {
     color: #5CACEE;
     font-size: 12px;
 }
+
 table.stock-table .div-zt-reason {
     font-size: 12px;
 }
+
 table.stock-table .zt-reason {
     color: #66B2FF;
     padding-right: 10px;
     font-size: 12px;
 }
+
 table.stock-table .ths-dt-reason {
     font-size: 12px;
 }
+
 .popup-window {
     z-index: 8000;
     position: fixed;
@@ -137,20 +156,28 @@ table.stock-table .ths-dt-reason {
     background-color: rgb(127, 120, 230);
 }
 
-.table-fix-header tbody {
-    display: block;
+/*表格头固定*/
+div.wrap-fix-table {
     max-height: 300px;
-    overflow-y: scroll;
-    overflow-x: hidden;
-}
-
-.table-fix-header thead, 
-.table-fix-header tbody tr {
-    display: table;
     width: 100%;
-    table-layout: fixed; /*  表格固定算法 */
+    overflow: auto;
+    border: solid 1px #ddd;
 }
 
-.table-fix-header thead {
-    width: calc(100% - 17px); /* 留出滚动条的位置 */
+.wrap-fix-table table {
+    width: 100%;
+}
+
+.wrap-fix-table thead th {
+    position: sticky;
+    top: 0px;
+}
+
+.wrap-fix-table thead th {
+    border-top: 0;
+}
+
+/*固定列*/
+.wrap-fix-column-table table {
+    table-layout: fixed;
 }

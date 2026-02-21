@@ -206,7 +206,8 @@ let BasicTable = {
             trs.push(tr);
         }
         let tbody = h('tbody', trs);
-        return h('table', {class: this.tableCss}, [theader, tbody]); // this.$slots.default()
+        let table = h('table', {class: this.tableCss}, [theader, tbody]); // this.$slots.default()
+        return table;
     },
     mounted() {
         // console.log('[BasicTable].mounted')

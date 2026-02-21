@@ -8,10 +8,15 @@
 
     <body>
         <div class="outer" >
-            <div style="width:1250px; " id="main">
-                <button> Hello World </button> <br/>
-                <stock-table ref="stable" :columns="columns" :url="url" day="20260210" style="width:100%;" > </stock-table>
+            <div style="width: 1000px; " id="main">
+                <div class="wrap-fix-table" style="margin-top: 50px;">
+                    <stock-table ref="stable" :columns="columns" :url="url" day="20260210" style="width:100%;" > </stock-table>
+                </div>
                 <pagenite-view :total="158" base-url="/query-cls-updown/ZT/20260210" @url-changed="changeUrl" >  </pagenite-view>
+                
+                <div class="wrap-fix-table wrap-fix-column-table" style="margin-top: 50px; margin-bottom: 30px; width:800px;">
+                    <stock-table ref="stable2" :columns="columns" :url="url" day="20260210" style="width:100%;" > </stock-table>
+                </div>
             </div>
         </div>
     </body>
