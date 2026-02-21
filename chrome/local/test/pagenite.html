@@ -8,7 +8,8 @@
 
     <body>
         <div class="outer" >
-            <div style="width:1000px; " id="main">
+            <div style="width:1250px; " id="main">
+                <button> Hello World </button> <br/>
                 <stock-table ref="stable" :columns="columns" :url="url" day="20260210" style="width:100%;" > </stock-table>
                 <pagenite-view :total="158" base-url="/query-cls-updown/ZT/20260210" @url-changed="changeUrl" >  </pagenite-view>
             </div>

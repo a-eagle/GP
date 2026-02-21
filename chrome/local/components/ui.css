@@ -136,3 +136,21 @@ table.stock-table .ths-dt-reason {
 .pagenite .page-item-select {
     background-color: rgb(127, 120, 230);
 }
+
+.table-fix-header tbody {
+    display: block;
+    max-height: 300px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+.table-fix-header thead, 
+.table-fix-header tbody tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed; /*  表格固定算法 */
+}
+
+.table-fix-header thead {
+    width: calc(100% - 17px); /* 留出滚动条的位置 */
+}
