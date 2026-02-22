@@ -5,7 +5,10 @@ class TimeLineViewManager {
     constructor() {
         this.viewId = 1;
         this.views = {};
-        this.thread = new Thread(150);
+        this.thread = new Thread();
+    }
+    start() {
+        this.thread.start(500);
     }
     nextViewId() {
         return this.viewId++;
@@ -51,7 +54,7 @@ class TimeLineViewManager {
 };
 
 const viewMgr = new TimeLineViewManager();
-viewMgr.thread.start(1000);
+viewMgr.start();
 
 let TimeLineView = {
     props:['code'],

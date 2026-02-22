@@ -6,11 +6,11 @@ function Task(name, delay, exec) {
 }
 
 class Thread {
-	constructor(intervalTime = 300) {
+	constructor() {
 		this.tasks = [];
 		this.runing = false;
 		this.curTaskBeginTime = 0;
-		this.intervalTime = intervalTime || 300;
+		this.intervalTime = 500;
 	}
 
 	start(intervalTime) {
