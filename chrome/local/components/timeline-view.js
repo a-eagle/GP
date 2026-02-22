@@ -5,7 +5,7 @@ class TimeLineViewManager {
     constructor() {
         this.viewId = 1;
         this.views = {};
-        this.thread = new Thread();
+        this.thread = new Thread(150);
     }
     nextViewId() {
         return this.viewId++;
@@ -23,6 +23,10 @@ class TimeLineViewManager {
         this.runTask(this.views[key], day);
     }
 
+    unload(key) {
+        this.thread.removeUniqueTask(key);
+    }
+
     runTask(view, day) {
         if (! view.checkReload(day)) {
             return;
@@ -37,9 +41,10 @@ class TimeLineViewManager {
                 view.loadData(day, resolve);
             }
         };
-        let task = new Task(view.key, 0, run);
-        viewMgr.addUniqueTask(view.key, task);
+        let task = new Task(view.key, 100, run);
+        this.addUniqueTask(view.key, task);
     }
+    
     addUniqueTask(key, task) {
         this.thread.addUniqueTask(key, task);
     }

@@ -6,11 +6,11 @@ function Task(name, delay, exec) {
 }
 
 class Thread {
-	constructor() {
+	constructor(intervalTime = 300) {
 		this.tasks = [];
 		this.runing = false;
 		this.curTaskBeginTime = 0;
-		this.intervalTime = 500;
+		this.intervalTime = intervalTime || 300;
 	}
 
 	start(intervalTime) {
@@ -74,15 +74,27 @@ class Thread {
 		}
 		for (let i = 0; i < this.tasks.length; i++) {
 			let tk = this.tasks[i];
-			if (tk['__unique_id__'] && tk['__unique_id__'] == uniqueId) {
+			if (tk._UNIQUE_ID && tk._UNIQUE_ID == uniqueId) {
 				return;
 			}
 		}
 		if (uniqueId != null) {
-			task['__unique_id__'] = uniqueId;
+			task._UNIQUE_ID = uniqueId;
 		}
 		
 		this.tasks.push(task);
+	}
+
+	removeUniqueTask(uniqueId) {
+		if (uniqueId == undefined || uniqueId == null || uniqueId == '') {
+			return;
+		}
+		for (let i = 0; i < this.tasks.length; i++) {
+			if (this.tasks[i]._UNIQUE_ID == uniqueId) {
+				this.tasks.splice(i, 1);
+				break;
+			}
+		}
 	}
 }
 

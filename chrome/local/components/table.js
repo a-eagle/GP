@@ -18,6 +18,7 @@ let BasicTable = {
         columns: {type: Array, default: () => []},
         datas: {type: Array, default: () => []},
     },
+    emits:['click-cell', 'click-row', 'dblclick-cell', 'dblclick-row'],
     data() {
         // console.log('BasicTable.data()');
         return {
@@ -360,6 +361,7 @@ let DefaultSorter = {
 let StockTable = {
     // mixins: [BasicTable],
     extends: BasicTable,
+    emits: ['load-data-done'],
     name: 'StockTable',
     props: {
         day: {type: String, default: () => ''},
@@ -425,6 +427,7 @@ let StockTable = {
         onLoadDataDone() {
             this.$emit('load-data-done', this.filterDatas);
             // this.$nextTick(() => this.bindTimeLine());
+            this.$nextTick(() => this.checkVisbileTimeline());
         },
         getSearchData(data) {
             let rs = {};
@@ -455,32 +458,45 @@ let StockTable = {
             this.openKLineDialog(rowData);
         },
         checkVisbileTimeline() {
-            let elem = this.$el;
-            let visible = utils.isClientVisible(elem);
-            if (! visible)
+            if (! this.$el || ! this.$el.children[1].childElementCount > 0) {
                 return;
-            let tls = document.querySelectorAll('canvas.timeline');
-            let rect = elem.getBoundingClientRect();
-            let HEIGHT = Math.min(window.innerHeight, rect.bottom);
-            for (let i = 0; i < tls.length; i++) {
-                let irect = tls[i].getBoundingClientRect();
-                if (irect.top < 0) continue;
-                if (irect.top >= HEIGHT) break;
-                let key = tls[i].getAttribute('key-id');
-                TimeLineViewManager.reload(key, this.day);
+            }
+            const obs = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    let key = entry.target.getAttribute('key-id');
+                    if (entry.isIntersecting) {
+                        // 元素进入视口
+                        TimeLineViewManager.reload(key, this.day);
+                    } else {
+                        // 元素离开视口
+                        TimeLineViewManager.unload(key);
+                    }
+                });
+            }, {
+                root: null,   // 默认为视口
+                rootMargin: '0px', // 扩展/缩小检测区域
+                threshold: 0.5    // 元素可见比例达到50%时触发
+            });
+            this.uncheckVisbileTimeline();
+            this.checkVisbileTimeline.obs = obs;
+            let fs = this.$el.querySelectorAll('canvas.timeline');
+            fs.forEach((cc) => obs.observe(cc));
+        },
+        uncheckVisbileTimeline() {
+            const obs = this.checkVisbileTimeline.obs;
+            if (obs) {
+                obs.disconnect();
+                this.checkVisbileTimeline.obs = null;
             }
         },
     },
     mounted() {
-        // console.log('[StockTable].mounted', this.$el)
-        this.timerId = setInterval(() => {
-            this.checkVisbileTimeline();
-        }, 1000);
+        // console.log('[StockTable].mounted')
+        this.checkVisbileTimeline();
     },
     unmounted() {
-        console.log('[StockTable].unmounted', this.$el)
-        clearInterval(this.timerId);
-        this.timerId = 0;
+        console.log('[StockTable].unmounted')
+        this.uncheckVisbileTimeline();
     }
 };
 
