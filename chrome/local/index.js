@@ -926,9 +926,6 @@ let Amount_TableView = {
 
 const LHB_DetailView = {
     props: ['rowData'],
-    components: {
-        'PopupView': PopupView
-    },
     created() {
         console.log('[LHB_DetailView.created]')
     },
@@ -985,7 +982,7 @@ const LHB_DetailView = {
         },
     },
     mounted() {
-        console.log('[LHB_DetailView.mounted]')
+        // console.log('[LHB_DetailView.mounted]')
     },
     template:`
     <PopupView ref="popupView">

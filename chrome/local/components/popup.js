@@ -105,7 +105,7 @@ let PopupView = {
     },
     template: `
         <teleport to="body">
-            <div :class="className" :style="{zIndex: zIndex}" @click="clickMask($event)" v-show="visible">
+            <div :class="className" :style="{zIndex: zIndex}" @click="clickMask($event)" v-if="visible">
                 <div class="content" v-bind="$attrs" :style="{left: x, top: y}">
                     <slot> </slot>
                 </div>
