@@ -64,17 +64,21 @@ let PopupView = {
         hideScrollBar: {default: false},
     },
     emits: ['close'],
+    created() {
+        // console.log('[PopupView.created]');
+    },
     data() {
         return {
             zIndex: PopupWindow.zIndex++,
             className: `popup-window ` + (this.mask ? 'popup-window-mask' : ''),
-            visible: true,
+            visible: false,
+            x: 0, y: 0,
         }
     },
     methods: {
         clickMask(evt) {
             evt.stopPropagation();
-            if (evt.target == this.$el && !this.modal) {
+            if (evt.target.classList.contains('popup-window') && !this.modal) {
                 this.close();
             }
         },
@@ -85,16 +89,24 @@ let PopupView = {
             }
             this.$emit('close', this);
         },
+        show(x, y) {
+            this.visible = true;
+            if (typeof(x) == 'number') this.x = x;
+            if (typeof(y) == 'number') this.y = y;
+        },
     },
     beforeMount() {
         if (this.hideScrollBar) {
             document.body.classList.add('no-scroll');
         }
     },
+    mounted() {
+        // console.log('[PopupView.mounted]');
+    },
     template: `
-        <teleport to="body" v-if="visible">
-            <div :class="className" :style="{zIndex: zIndex}" @click="clickMask($event)">
-                <div class="content" v-bind="$attrs">
+        <teleport to="body">
+            <div :class="className" :style="{zIndex: zIndex}" @click="clickMask($event)" v-show="visible">
+                <div class="content" v-bind="$attrs" :style="{left: x, top: y}">
                     <slot> </slot>
                 </div>
             </div>

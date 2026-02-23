@@ -1,5 +1,5 @@
 import utils from './components/utils.js'
-import {PopupWindow} from './components/popup.js'
+import {PopupView, PopupWindow} from './components/popup.js'
 import {AnchrosView} from './components/anchors-view.js'
 import {ZdfbView} from './components/zdfb-view.js'
 
@@ -738,12 +738,17 @@ let BaseTableView = {
         },
         onLoadDataDone(datas) {
         },
+        onClickCell(rowData, column, event, tableView) {
+        }
     },
     template: `
-        <div style="text-align:center; ">
+        <div style="text-align:center; width:100%; display: flex; justify-content: center;  ">
             <input style="border:solid 1px #999; height:25px;" @keydown.enter="doSearch($event.target.value)" />
         </div>
-        <stock-table ref="stable" :columns="columns" :url="url" :day="curDay" style="width:100%;" @load-data-done="onLoadDataDone"> </stock-table>
+        <stock-table ref="stable" :columns="columns" 
+            :url="url" :day="curDay" style="width:100%;" 
+            @load-data-done="onLoadDataDone" @click-cell="onClickCell" >
+        </stock-table>
     `,
 };
 
@@ -919,8 +924,106 @@ let Amount_TableView = {
     }
 };
 
+const LHB_DetailView = {
+    props: ['rowData'],
+    components: {
+        'PopupView': PopupView
+    },
+    created() {
+        console.log('[LHB_DetailView.created]')
+    },
+    data() {
+        console.log('LHB_DetailView.data()');
+        return {
+        }
+    },
+    computed: {
+        buys() {
+            let dd = [];
+            if (this.rowData?.detail) {
+                let detail = JSON.parse(this.rowData?.detail);
+                detail.sort((a, b) => b.mrje - a.mrje);
+                for (let i = 0; i < 5; i++) dd.push(detail[i]);
+            }
+            return dd;
+        },
+        sells() {
+            let dd = [];
+            if (this.rowData?.detail) {
+                let detail = JSON.parse(this.rowData?.detail);
+                detail.sort((a, b) => b.mcje - a.mcje);
+                for (let i = 0; i < 5; i++) dd.push(detail[i]);
+            }
+            return dd;
+        },
+    },
+    methods: {
+        getYzName(it) {
+			if (it.yz)
+				return ' (' + it['yz'] + ')'
+			let yyb = it.yyb || '';
+			if (yyb.indexOf('分公司') >= 0)
+				yyb = yyb.substring(0, yyb.indexOf('公司') + 2);
+			if (yyb.indexOf('公司') >= 0) {
+				let i = yyb.indexOf('公司');
+				if (i != yyb.length - 2)
+					yyb = yyb.substring(i + 2);
+			}
+			yyb = yyb.replace('有限责任公司', '')
+			yyb = yyb.replace('股份有限公司', '')
+			yyb = yyb.replace('有限公司', '')
+			yyb = yyb.replace('证券营业部', '')
+        	return yyb
+		},
+        formatMoney(money) {
+			if (Math.abs(money) < 1000)
+				return '';
+			return (money / 10000).toFixed(1) + '亿';
+		},
+        show(x, y) {
+            this.$refs.popupView.show(x, y);
+        },
+    },
+    mounted() {
+        console.log('[LHB_DetailView.mounted]')
+    },
+    template:`
+    <PopupView ref="popupView">
+        <table class="basic-table" style="font-size: 12px">
+            <thead>
+                <tr> <th width=200> 席位名称 </th>  <th width=80> 买入 </th>  <th width=80> 卖出 </th> <th width=80> 净额 </th> </tr>
+            </thead>
+            <tbody>
+                <tr v-for="(row, idx) in buys">
+                    <td style="height:25px;"> {{ getYzName(row) }} </td>
+                    <td style="height:25px;"> {{ formatMoney(row.mrje) }} </td>
+                    <td style="height:25px;"> -{{ formatMoney(row.mcje) }} </td>
+                    <td style="height:25px;"> {{ formatMoney(row.jme) }} </td>
+                </tr>
+                <tr> <td style="height:3px;background-color: #666;" colspan=4> </td> </tr>
+                <tr v-for="(row, idx) in sells">
+                    <td style="height:25px;"> {{ getYzName(row) }} </td>
+                    <td style="height:25px;"> {{ formatMoney(row.mrje) }} </td>
+                    <td style="height:25px;"> -{{ formatMoney(row.mcje) }} </td>
+                    <td style="height:25px;"> {{ formatMoney(row.jme) }} </td>
+                </tr>
+                <tr style="background-color: #aaa;" v-if="rowData">
+                    <td style="height:25px;"> 汇总 </td>
+                    <td style="height:25px;"> {{ rowData.mrje.toFixed(1) }} 亿</td>
+                    <td style="height:25px;"> -{{ rowData.mcje.toFixed(1) }} 亿 </td>
+                    <td style="height:25px;"> {{ rowData.jme.toFixed(1) }} 亿 </td>
+                </tr>
+            </tbody>
+        </table>
+    </PopupView>
+    `
+};
+
 let LHB_TableView = {
     extends: BaseTableView,
+    components: {
+        'LHB_DetailView': LHB_DetailView
+    },
     data() {
         function yzRender(h, rowData, column) {
             let ds = JSON.parse(rowData['detail']);
@@ -945,13 +1048,33 @@ let LHB_TableView = {
                 {title: '分时图', key: 'fs', width: 300}],
             datas: null,
             url: null,
+
+            rowData: null,// detail view data
         }
     },
     methods: {
         onCurDayChanged() {
             this.url = `/query-lhb/${this.curDay}`;
         },
-    }
+        onClickCell(rowData, column, event, tableView) {
+            if (column.key != 'title') return;
+            if ( ! rowData.detail) return;
+            let td = event.target.closest('td');
+            let rr = td.getBoundingClientRect();
+            this.rowData = rowData;
+            this.$refs.detailView.show(rr.left, rr.bottom);
+        }
+    },
+    template: `
+        <div style="text-align:center; width:100%;display: flex; justify-content: center; ">
+            <input style="border:solid 1px #999; height:25px;" @keydown.enter="doSearch($event.target.value)" />
+        </div>
+        <stock-table ref="stable" :columns="columns"
+            :url="url" :day="curDay" style="width:100%;"
+            @load-data-done="onLoadDataDone" @click-cell="onClickCell" >
+        </stock-table>
+        <LHB_DetailView ref='detailView' :rowData="rowData"> </LHB_DetailView>
+    `,
 };
 
 function registerComponents(app) {

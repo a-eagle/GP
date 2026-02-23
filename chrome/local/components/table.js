@@ -63,19 +63,19 @@ let BasicTable = {
                 if ( h.sortable) h._sort = '';
             }
         },
-        onClickCell(rowData, column) {
-            this.$emit('click-cell', rowData, column, this);
+        onClickCell(event, rowData, column) {
+            this.$emit('click-cell', rowData, column, event, this);
         },
-        onDblclickCell(rowData, column) {
-            this.$emit('dblclick-cell', rowData, column, this);
+        onDblclickCell(event, rowData, column) {
+            this.$emit('dblclick-cell', rowData, column, event, this);
         },
-        onClickRow(rowData) {
+        onClickRow(event, rowData) {
             if (this.curSelRow != rowData)
                 this.curSelRow = rowData;
-            this.$emit('click-row', rowData, this);
+            this.$emit('click-row', rowData, event, this);
         },
-        onDblclickRow(rowData) {
-            this.$emit('dblclick-row', rowData, this);
+        onDblclickRow(event, rowData) {
+            this.$emit('dblclick-row', rowData, event, this);
             // console.log('BasicTable.onDblclickRow', rowData);
         },
         filter(text) {
@@ -191,8 +191,8 @@ let BasicTable = {
                 if (column.cellRender) cellVal = column.cellRender(h, rowData, column, this);
                 else cellVal = rowData[column.key];
                 tds.push(h('td', {
-                    onclick: () => this.onClickCell(rowData, column),
-                    ondblclick: () => this.onDblclickCell(rowData, column)
+                    onclick: (event) => this.onClickCell(event, rowData, column),
+                    ondblclick: (event) => this.onDblclickCell(event, rowData, column)
                 }, cellVal));
             }
             if (! rowData._rkey) {
@@ -201,8 +201,8 @@ let BasicTable = {
             let tr = h('tr', {
                 key: rowData._rkey,
                 class: {sel: this.curSelRow == rowData},
-                onClick: () => this.onClickRow(rowData),
-                ondblclick: () => this.onDblclickRow(rowData),
+                onClick: (event) => this.onClickRow(event, rowData),
+                ondblclick: (event) => this.onDblclickRow(event, rowData),
             }, tds);
             trs.push(tr);
         }
@@ -454,7 +454,7 @@ let StockTable = {
             // this.notify({name: 'BeforeOpenKLine', src: this, data: rdatas, rowData});
             axios.post(`/openui/kline/${code}`, rdatas);
         },
-        onDblclickRow(rowData) {
+        onDblclickRow(event, rowData) {
             this.openKLineDialog(rowData);
         },
         checkVisbileTimeline() {
