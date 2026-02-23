@@ -2,6 +2,7 @@ import utils from './components/utils.js'
 import {PopupView, PopupWindow} from './components/popup.js'
 import {AnchrosView} from './components/anchors-view.js'
 import {ZdfbView} from './components/zdfb-view.js'
+import {DefaultRender} from './components/table.js'
 
 let App = {
     created() {
@@ -985,10 +986,10 @@ const LHB_DetailView = {
         // console.log('[LHB_DetailView.mounted]')
     },
     template:`
-    <PopupView ref="popupView">
+    <PopupView ref="popupView" :mask="false">
         <table class="basic-table" style="font-size: 12px">
             <thead>
-                <tr> <th width=200> 席位名称 </th>  <th width=80> 买入 </th>  <th width=80> 卖出 </th> <th width=80> 净额 </th> </tr>
+                <tr> <th width=130> 席位名称 </th>  <th width=60> 买入 </th>  <th width=60> 卖出 </th> <th width=60> 净额 </th> </tr>
             </thead>
             <tbody>
                 <tr v-for="(row, idx) in buys">
@@ -1041,6 +1042,8 @@ let LHB_TableView = {
                 {title: '热度', key: 'hots', width: 50, sortable: true},
                 {title: '涨跌幅', key: 'change', width: 70, sortable: true},
                 {title: '成交额', key: 'amountY', width: 70, sortable: true},
+                {title: '买入', key: 'mrje', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
+                {title: '净买入', key: 'jme', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
                 {title: '上榜类型', key: 'title', width: 100, cellRender: yzRender},
                 {title: '分时图', key: 'fs', width: 300}],
             datas: null,
@@ -1059,7 +1062,7 @@ let LHB_TableView = {
             let td = event.target.closest('td');
             let rr = td.getBoundingClientRect();
             this.rowData = rowData;
-            this.$refs.detailView.show(rr.left, rr.bottom);
+            this.$refs.detailView.show(rr.left, rr.top);
         }
     },
     template: `

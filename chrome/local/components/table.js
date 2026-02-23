@@ -248,7 +248,10 @@ let DefaultRender = {
     yRender(h, rowData, column) {
         let z = rowData[column.key];
         if (typeof(z) == 'number') {
-            z = parseInt(z / 100000000) + '亿';
+            z = z / 100000000;
+            if (z < 10) z = z.toFixed(1);
+            else z = parseInt(z);
+            z = `${z}亿`;
         }
         return h('span', z);
     },
@@ -256,10 +259,11 @@ let DefaultRender = {
     y2Render(h, rowData, column) {
         let z = rowData[column.key];
         if (typeof(z) == 'number') {
-            if (z < 1) z = z.toFixed(1);
+            if (z < 10) z = z.toFixed(1);
             else z = parseInt(z);
+            z = `${z}亿`;
         }
-        return h('span', `${z}亿`);
+        return h('span', z);
     },
     // 涨停原因
     ztReasonRender(h, rowData, column) {

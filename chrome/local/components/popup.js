@@ -91,8 +91,8 @@ let PopupView = {
         },
         show(x, y) {
             this.visible = true;
-            if (typeof(x) == 'number') this.x = x;
-            if (typeof(y) == 'number') this.y = y;
+            if (x != undefined) this.x = x;
+            if (y != undefined) this.y = y;
         },
     },
     beforeMount() {
