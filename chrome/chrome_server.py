@@ -782,10 +782,10 @@ class Server:
             cols = ['hots', 'ths_ztReason']
         elif tag == 'ZB':
             cnd = (cls_orm.CLS_UpDown.limit_up_days == 0) & (cls_orm.CLS_UpDown.is_down == 0)
-            cols = ['ths_hy', 'ths_ztReason', 'hots', ]
+            cols = ['ths_hy', 'ths_ztReason', 'hots', 'cls_ztReason']
         elif tag == 'DT':
             cnd = cls_orm.CLS_UpDown.is_down == 1
-            cols = ['ths_hy', 'ths_ztReason', 'hots', ]
+            cols = ['ths_hy', 'ths_ztReason', 'hots', 'cls_ztReason']
         qr = cls_orm.CLS_UpDown.select().where(cls_orm.CLS_UpDown.day == day, cnd)
         if orderBy:
             qr = qr.order_by(orderBy)
