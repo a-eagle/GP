@@ -31,6 +31,9 @@ let App = {
             this.curDay = val;
             // console.log('[App.onCurDayChanged] curDay', val);
         },
+        refresh() {
+            this.$notifyListener('cur-day-changed', this.curDay);
+        }
     },
     beforeMount() {
         this.getTradeDays();
@@ -56,6 +59,7 @@ let GlobalView = {
         onCurDayChanged(newVal) {
             this.pageData = this.getPageDate(newVal);
             this.$emit('cur-day-changed', this.curDay);
+            this.$notifyListener('cur-day-changed', this.curDay);
         },
         getPageDate(curDay) {
             if (! this.datas || !curDay)
@@ -138,14 +142,15 @@ let GlobalView = {
 let AmountCompareView = {
     inject: ['curDay'],
     data() {
-        this.$watch('curDay', this.onCurDayChanged);
+        // this.$watch('curDay', this.onCurDayChanged);
+        this.$addListener('cur-day-changed', (day) => this.onCurDayChanged(day));
         return {
             data : null,
 		    result : null,
             selTime: null,
             PAD_LEFT: 80,
             PAD_RIGHT: 200,
-            PAD_TOP: 5, 
+            PAD_TOP: 5,
             PAD_BOTTOM: 30,
         };
     },
@@ -414,7 +419,8 @@ let AmountCompareView = {
 let TimeDegreeView = {
     inject: ['curDay'],
     data() {
-        this.$watch('curDay', this.onCurDayChanged);
+        // this.$watch('curDay', this.onCurDayChanged);
+        this.$addListener('cur-day-changed', (day) => this.onCurDayChanged(day));
         return {PCW: 920, PCH: 150, canvasWidth: 960, chartData: null, redo: 1};
     },
     methods: {
@@ -489,7 +495,8 @@ let TimeDegreeView = {
 let _ZdfbView = {
     inject: ['curDay'],
     data() {
-        this.$watch('curDay', this.onCurDayChanged);
+        // this.$watch('curDay', this.onCurDayChanged);
+        this.$addListener('cur-day-changed', (day) => this.onCurDayChanged(day));
         return {
             day: '', degree: '', zdfb: {}, d: 0, degreeTxt: '--',
             degreeStyle: {'text-align': 'center', 'line-height': 1, 'font-size': '30px', 'margin-top': '-35px', color: '#52c2a3'}, // color:${color};
@@ -551,7 +558,8 @@ let _ZdfbView = {
 let HotAnchrosView = {
     inject: ['curDay'],
     data() {
-        this.$watch('curDay', this.onCurDayChanged);
+        // this.$watch('curDay', this.onCurDayChanged);
+        this.$addListener('cur-day-changed', (day) => this.onCurDayChanged(day));
         return {
             redo: 1,
         };
@@ -579,7 +587,8 @@ let HotAnchrosView = {
 let HotAnchrosGroupView = {
     inject: ['curDay'],
     data() {
-        this.$watch('curDay', this.onCurDayChanged);
+        // this.$watch('curDay', this.onCurDayChanged);
+        this.$addListener('cur-day-changed', (day) => this.onCurDayChanged(day));
         return {
             datas: null,
         };
@@ -727,7 +736,8 @@ let TabNaviView = {
 let BaseTableView = {
     inject: ['curDay'],
     data() {
-        this.$watch('curDay', this.onCurDayChanged);
+        // this.$watch('curDay', this.onCurDayChanged);
+        this.$addListener('cur-day-changed', (day) => this.onCurDayChanged(day));
         return {};
     },
     mounted() {
@@ -773,7 +783,7 @@ let ZT_TableView = {
     },
     methods: {
         onCurDayChanged() {
-            this.url = `/query-cls-updown/ZT/${this.curDay}`;
+            this.url = `/query-cls-updown/ZT/${this.curDay}?_t=${new Date().getTime()}`;
         },
     }
 };
@@ -798,7 +808,7 @@ let LB_TableView = {
     },
     methods: {
         onCurDayChanged() {
-            this.url = `/query-cls-updown/LB/${this.curDay}`;
+            this.url = `/query-cls-updown/LB/${this.curDay}?_t=${new Date().getTime()}`;
         },
     }
 };
@@ -823,7 +833,7 @@ let ZB_TableView = {
     },
     methods: {
         onCurDayChanged() {
-            this.url = `/query-cls-updown/ZB/${this.curDay}`;
+            this.url = `/query-cls-updown/ZB/${this.curDay}?_t=${new Date().getTime()}`;
         },
     }
 };
@@ -849,7 +859,7 @@ let DT_TableView = {
     },
     methods: {
         onCurDayChanged() {
-            this.url = `/query-cls-updown/DT/${this.curDay}`;
+            this.url = `/query-cls-updown/DT/${this.curDay}?_t=${new Date().getTime()}`;
         },
         onLoadDataDone(datas) {
             let day = this.curDay.replaceAll('-', '');
@@ -894,7 +904,7 @@ let Hots_TableView = {
     },
     methods: {
         onCurDayChanged() {
-            this.url = `/top-hots/${this.curDay}`;
+            this.url = `/top-hots/${this.curDay}?_t=${new Date().getTime()}`;
         },
     }
 };
@@ -920,7 +930,7 @@ let Amount_TableView = {
     },
     methods: {
         onCurDayChanged() {
-            this.url = `/top-amounts/${this.curDay}`;
+            this.url = `/top-amounts/${this.curDay}?_t=${new Date().getTime()}`;
         },
     }
 };

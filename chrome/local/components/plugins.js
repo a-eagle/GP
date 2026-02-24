@@ -43,7 +43,7 @@ const Plugin = {
         app.config.globalProperties.$addListener = function(name, listener, arg) {
             Listener.addListener(name, listener, arg);
         };
-        app.config.globalProperties.$notifyListener = (name, event) => Listener.notify(name, event);
+        app.config.globalProperties.$notifyListener = (name, event) => Listener.notifyListener(name, event);
         app.config.globalProperties.$store = function(name, val) {
             return Store.wrap(name, val);
         }
