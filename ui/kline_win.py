@@ -423,9 +423,35 @@ class IndicatorVisibleManager:
         menu.show(x, y)
 
     def onMemuItem(self, evt, args):
-        evt.item['indicator'].visible = evt.item['checked']
+        indicator = evt.item['indicator']
+        indicator.visible = evt.item['checked']
         self.win.calcIndicatorsRect()
         self.win.invalidWindow()
+        self.setIndicatorVisible(indicator, indicator.visible)
+        
+    def setIndicatorVisible(self, indicator, visible):
+        platformKey = platform.node()
+        obj = my_orm.MySettings.get_or_none(my_orm.MySettings.platform == platformKey,
+                                      my_orm.MySettings.mainKey == 'IndicatorVisible',
+                                      my_orm.MySettings.subKey == indicator.__class__.__name__)
+        val = 'true' if visible else 'false'
+        if obj:
+            obj.val = val
+            obj.save()
+        else:
+            my_orm.MySettings.create(platform = platformKey, mainKey = 'IndicatorVisible', 
+                                     subKey = indicator.__class__.__name__, val = val)
+
+    @staticmethod
+    def getIndicatorVisible(indicatorClass, default = True):
+        platformKey = platform.node()
+        obj = my_orm.MySettings.get_or_none(my_orm.MySettings.platform == platformKey,
+                                      my_orm.MySettings.mainKey == 'IndicatorVisible',
+                                      my_orm.MySettings.subKey == indicatorClass.__name__)
+        if obj:
+            visible = True if obj.val == 'true' else False
+            return visible
+        return default
 
 class TextLineManager:
     class Pos:
@@ -1337,6 +1363,8 @@ class KLineWindow(base_win.BaseWindow):
 
     @staticmethod
     def createDefault():
+        def V(c, visible):
+            return {'visible': IndicatorVisibleManager.getIndicatorVisible(c, visible)}
         win = KLineWindow()
         win.addIndicator(RateIndicator(win, {'height': 60, 'margins': (15, 2)}))
         win.addIndicator(AmountIndicator(win, {'height': 60, 'margins': (10, 2)}))
@@ -1344,13 +1372,13 @@ class KLineWindow(base_win.BaseWindow):
         win.addIndicator(ScqxIndicator(win))
         win.addIndicator(LsAmountIndicator(win))
         win.addIndicator(HotIndicator(win))
-        win.addIndicator(Amount2Indicator(win))
+        win.addIndicator(Amount2Indicator(win, V(Amount2Indicator, False)))
         win.addIndicator(ThsZT_Indicator(win))
         win.addIndicator(ClsZT_Indicator(win))
-        win.addIndicator(ZhangSuIndicator(win, {'visible': False}))
+        win.addIndicator(ZhangSuIndicator(win, V(ZhangSuIndicator, False)))
         win.addIndicator(LhbIndicator(win))
-        win.addIndicator(GnLdIndicator(win, {'visible': False}))
-        win.addIndicator(Code_ZT_NumIndicator(win, {'visible': False}))
+        win.addIndicator(GnLdIndicator(win, V(GnLdIndicator, False)))
+        win.addIndicator(Code_ZT_NumIndicator(win, V(Code_ZT_NumIndicator, False)))
         return win
 
     @staticmethod

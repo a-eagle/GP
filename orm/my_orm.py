@@ -20,13 +20,14 @@ class TextLine(base_orm.BaseModel):
         database = db_def
 
 class MySettings(base_orm.BaseModel):
-    mainKey =  pw.CharField()
-    subKey =  pw.CharField(null = True)
+    platform = pw.CharField(default = '')
+    mainKey =  pw.CharField(default = '')
+    subKey =  pw.CharField(default = '')
     val = pw.CharField(null = True)
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
     
     class Meta:
         database = db_def
 
-db_def.create_tables([TextLine])
+db_def.create_tables([TextLine, MySettings])
 
