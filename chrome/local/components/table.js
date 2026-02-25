@@ -17,6 +17,7 @@ let BasicTable = {
     props: {
         columns: {type: Array, default: () => []},
         datas: {type: Array, default: () => []},
+        pageSize: {type: Number, default: 0}, // 本地分页, 0表示不分页
     },
     emits:['click-cell', 'click-row', 'dblclick-cell', 'dblclick-row'],
     data() {
@@ -25,6 +26,7 @@ let BasicTable = {
             tableCss: 'basic-table',
             filterDatas: this.datas.slice(),
             curSelRow: null,
+            curPage: 0,
         }
     },
     methods : {
@@ -166,6 +168,25 @@ let BasicTable = {
             rowData.dynamicZf = tl.zf;
             rowData.zs = tl.zs;
         },
+        renderPagenite() {
+            if (! this.columns?.length || !this.filterDatas?.length || this.pageSize <= 0 || this.filterDatas.length <= this.pageSize) {
+                return null;
+            }
+            const {h} = Vue;
+            let items = [];
+            const maxPage = parseInt((this.filterDatas.length + this.pageSize - 1) / this.pageSize);
+            for (let i = 1; i <= maxPage; i++) {
+                items.push(h('span',
+                    {class: {'page-item': true, 'page-item-select': i == this._curPage},
+                    //  onClick: () => this.onChangePage(i)
+                    },
+                    i));
+            }
+            let tr = h('tr', {style: 'border: 0;'}, [h('td', {colSpan: this.columns.length, style: 'border: 0;'}, [
+                h('div', {class: 'pagenite'}, items)
+            ])]);
+            return tr;
+        },
     },
     render() {
         // console.log('BaseTable.render');
@@ -206,6 +227,8 @@ let BasicTable = {
             }, tds);
             trs.push(tr);
         }
+        // let pagenites = this.renderPagenite();
+        // if (pagenites) trs.push(pagenites);
         let tbody = h('tbody', trs);
         let table = h('table', {class: this.tableCss}, [theader, tbody]); // this.$slots.default()
         return table;

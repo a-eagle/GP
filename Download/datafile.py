@@ -868,6 +868,15 @@ class TdxChuncker:
             self.chunck_T(c, *ex, lastDays)
 
 if __name__ == '__main__':
+    mm = T_DataModel('999999')
+    days = mm.loadDays()
+    lastMonth = None
+    for d in days:
+        if d // 100 % 100 != lastMonth:
+            print('')
+        print(d, end=' ')
+        lastMonth = d // 100 % 100
+
     w = TdxChuncker()
     # CODE = '600000'
     # dm = T_DataModel(CODE)

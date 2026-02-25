@@ -738,7 +738,7 @@ let BaseTableView = {
     data() {
         // this.$watch('curDay', this.onCurDayChanged);
         this.$addListener('cur-day-changed', (day) => this.onCurDayChanged(day));
-        return {};
+        return {pageSize: 0};
     },
     mounted() {
         this.onCurDayChanged();
@@ -757,7 +757,7 @@ let BaseTableView = {
             <input style="border:solid 1px #999; height:25px;" @keydown.enter="doSearch($event.target.value)" />
         </div>
         <stock-table ref="stable" :columns="columns" 
-            :url="url" :day="curDay" style="width:100%;" 
+            :url="url" :day="curDay" style="width:100%;" :pageSize="pageSize"
             @load-data-done="onLoadDataDone" @click-cell="onClickCell" >
         </stock-table>
     `,
@@ -888,6 +888,7 @@ let Hots_TableView = {
     extends: BaseTableView,
     data() {
         return {
+            pageSize: 100,
             columns: [{title: '', key: '_index_', width: 60},
                 {title: '股票/代码', key: 'code', width: 80},
                 {title: '行业', key: 'ths_hy', width: 100, sortable: true},
