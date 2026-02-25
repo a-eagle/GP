@@ -367,9 +367,11 @@ let TimeLineView = {
     },
     mounted() {
         viewMgr.add(this);
+        // console.log('[TimeLineView.mounted] + key-id=', this.key)
     },
     unmounted() {
         viewMgr.remove(this);
+        // console.log('[TimeLineView.unmounted] - key-id=', this.key)
     },
     render() {
         return Vue.h('canvas', {'key-id': this.key, class: 'timeline', style: `width:${this.width}px; height: ${this.height}px; background-color: #fafafa;`, width: this.width, height: this.height});

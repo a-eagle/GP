@@ -17,16 +17,32 @@ let BasicTable = {
     props: {
         columns: {type: Array, default: () => []},
         datas: {type: Array, default: () => []},
-        pageSize: {type: Number, default: 0}, // 本地分页, 0表示不分页
     },
-    emits:['click-cell', 'click-row', 'dblclick-cell', 'dblclick-row'],
+    emits:['click-cell', 'click-row', 'dblclick-cell', 'dblclick-row', 'data-filtered', 'sort-changed'],
     data() {
         // console.log('BasicTable.data()');
         return {
             tableCss: 'basic-table',
             filterDatas: this.datas.slice(),
             curSelRow: null,
-            curPage: 0,
+            pageSize: 0, // 0: no pagenite  // 本地分页
+            curPage: 1, // page start from 1
+        }
+    },
+    computed: {
+        hasLocalPagenite() {
+            if (this.pageSize <= 0 || this.curPage <= 0) {
+                return false;
+            }
+            return true;
+        },
+        localPageDataIndexs() {
+            if (this.pageSize <= 0 || this.curPage <= 0 || !this.filterDatas) {
+                return {from: 0, to: this.filterDatas.length};
+            }
+            let fromIdx = Math.min(this.pageSize * (this.curPage - 1), this.filterDatas.length);
+            let endIdx = Math.min(fromIdx + this.pageSize, this.filterDatas.length);
+            return {from: fromIdx, to: endIdx};
         }
     },
     methods : {
@@ -59,11 +75,13 @@ let BasicTable = {
             let _sorter = column.sorter ? column.sorter : this.getDefaultSorter(column.key);
             let ws = function(a, b) {return _sorter(a, b, column.key, column._sort);}
             this.filterDatas.sort(ws);
+            this.$emit('sort-changed', column)
         },
         clearSort() {
             for (let h of this.columns) {
                 if ( h.sortable) h._sort = '';
             }
+            this.$emit('sort-changed')
         },
         onClickCell(event, rowData, column) {
             this.$emit('click-cell', rowData, column, event, this);
@@ -92,6 +110,7 @@ let BasicTable = {
             }
             this.filterDatas = rs;
             this.clearSort();
+            this.$emit('data-filtered', text)
         },
         getSearchConditions(text) {
             let qs, cond, qrs = new Set();
@@ -168,28 +187,16 @@ let BasicTable = {
             rowData.dynamicZf = tl.zf;
             rowData.zs = tl.zs;
         },
-        renderPagenite() {
-            if (! this.columns?.length || !this.filterDatas?.length || this.pageSize <= 0 || this.filterDatas.length <= this.pageSize) {
-                return null;
-            }
-            const {h} = Vue;
-            let items = [];
-            const maxPage = parseInt((this.filterDatas.length + this.pageSize - 1) / this.pageSize);
-            for (let i = 1; i <= maxPage; i++) {
-                items.push(h('span',
-                    {class: {'page-item': true, 'page-item-select': i == this._curPage},
-                    //  onClick: () => this.onChangePage(i)
-                    },
-                    i));
-            }
-            let tr = h('tr', {style: 'border: 0;'}, [h('td', {colSpan: this.columns.length, style: 'border: 0;'}, [
-                h('div', {class: 'pagenite'}, items)
-            ])]);
-            return tr;
+        changeLocalPage(curPage, pageSize) {
+            this.curPage = curPage;
+            this.pageSize = pageSize;
+            this.onLocalPageChanged()
+        },
+        onLocalPageChanged() {
         },
     },
     render() {
-        // console.log('BaseTable.render');
+        console.log('BaseTable.render', this.localPageDataIndexs);
         const {h} = Vue;
         let hds = [];
         for (let column of this.columns) {
@@ -203,7 +210,8 @@ let BasicTable = {
         }
         let theader = h('thead', h('tr', hds));
         let trs = [];
-        for (let i = 0; i < this.filterDatas.length; i++) {
+        let idxs = this.localPageDataIndexs;
+        for (let i = idxs.from; i < idxs.to; i++) {
             let tds = [];
             let rowData = this.filterDatas[i];
             rowData._index_ = i + 1;
@@ -227,8 +235,6 @@ let BasicTable = {
             }, tds);
             trs.push(tr);
         }
-        // let pagenites = this.renderPagenite();
-        // if (pagenites) trs.push(pagenites);
         let tbody = h('tbody', trs);
         let table = h('table', {class: this.tableCss}, [theader, tbody]); // this.$slots.default()
         return table;
@@ -516,6 +522,11 @@ let StockTable = {
                 this.checkVisbileTimeline.obs = null;
             }
         },
+        onLocalPageChanged() {
+            this.$nextTick(()=> {
+                this.checkVisbileTimeline()
+            });
+        },
     },
     mounted() {
         // console.log('[StockTable].mounted')
@@ -548,7 +559,7 @@ let ServerPageniteView = {
             else url += '&';
             return `${url}curPage=${this._curPage}&pageSize=${this.pageSize}`;
         },
-        onChangePage(page) {
+        changePage(page) {
             this._curPage = page;
         },
     },
@@ -572,7 +583,7 @@ let ServerPageniteView = {
         for (let i = 1; i <= maxPage; i++) {
             items.push(h('span',
                 {class: {'page-item': true, 'page-item-select': i == this._curPage},
-                 onClick: () => this.onChangePage(i)
+                 onClick: () => this.changePage(i)
                 }, 
                 i));
         }
@@ -584,25 +595,23 @@ let ServerPageniteView = {
 let LocalPageniteView = {
     emits: ['page-changed'],
     props: {
+        pageSize: {default: 50, type: Number},
     },
     data() {
         return {
             total : 0,
             curPage : 1, // start from 1
-            pageSize: 50,
+            _pageSize : this.pageSize,
         };
     },
     methods: {
-        // curPage: start from 1
-        reset(datas) {
-            this.curPage = 1;
-            this.total = datas?.length || 0;
+        setTotal(datasNum) {
+            this.total = (typeof(datasNum) == 'number' && datasNum >= 0) ? datasNum : 0;
+            this.changePage(1); // reset to first page
         },
-        onChangePage(page) {
-            if (this.curPage == page)
-                return;
+        changePage(page) {
             this.curPage = page;
-            this.$emit('page-changed', {curPage: this.curPage, pageSize: this.pageSize});
+            this.$emit('page-changed', {curPage: this.curPage, pageSize: this._pageSize});
         },
     },
     // call before created()
@@ -615,11 +624,11 @@ let LocalPageniteView = {
     render() {
         const {h} = Vue;
         let items = [];
-        const maxPage = parseInt((this._total + this.pageSize - 1) / this.pageSize);
+        const maxPage = parseInt((this.total + this._pageSize - 1) / this._pageSize);
         for (let i = 1; i <= maxPage; i++) {
             items.push(h('span',
                 {class: {'page-item': true, 'page-item-select': i == this.curPage},
-                 onClick: () => this.onChangePage(i)
+                 onClick: () => this.changePage(i)
                 },
                 i));
         }

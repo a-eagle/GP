@@ -738,7 +738,7 @@ let BaseTableView = {
     data() {
         // this.$watch('curDay', this.onCurDayChanged);
         this.$addListener('cur-day-changed', (day) => this.onCurDayChanged(day));
-        return {pageSize: 0};
+        return {pageSize: 50};
     },
     mounted() {
         this.onCurDayChanged();
@@ -747,19 +747,30 @@ let BaseTableView = {
         doSearch(text) {
             this.$refs.stable.filter(text);
         },
-        onLoadDataDone(datas) {
+        onLoadDataDone() {
+            let datas = this.$refs.stable.filterDatas;
+            this.$refs.pageniteView.setTotal(datas?.length);
         },
         onClickCell(rowData, column, event, tableView) {
-        }
+        },
+        onPageChanged(pageInfo) {
+            this.$refs.stable.changeLocalPage(pageInfo.curPage, pageInfo.pageSize);
+        },
     },
     template: `
         <div style="text-align:center; width:100%; display: flex; justify-content: center;  ">
             <input style="border:solid 1px #999; height:25px;" @keydown.enter="doSearch($event.target.value)" />
         </div>
-        <stock-table ref="stable" :columns="columns" 
-            :url="url" :day="curDay" style="width:100%;"
-            @load-data-done="onLoadDataDone" @click-cell="onClickCell" >
+        <stock-table ref="stable" :columns="columns"
+            @sort-changed="onLoadDataDone"
+            @data-filtered="onLoadDataDone"
+            @load-data-done="onLoadDataDone"
+            :url="url" :day="curDay" style="width:100%;"  
+            @click-cell="onClickCell" >
         </stock-table>
+        <LocalPageniteView ref="pageniteView" :pageSize="pageSize" 
+            @page-changed="onPageChanged">
+        </LocalPageniteView>
     `,
 };
 
@@ -888,7 +899,6 @@ let Hots_TableView = {
     extends: BaseTableView,
     data() {
         return {
-            pageSize: 100,
             columns: [{title: '', key: '_index_', width: 60},
                 {title: '股票/代码', key: 'code', width: 80},
                 {title: '行业', key: 'ths_hy', width: 100, sortable: true},
@@ -1080,11 +1090,14 @@ let LHB_TableView = {
         <div style="text-align:center; width:100%;display: flex; justify-content: center; ">
             <input style="border:solid 1px #999; height:25px;" @keydown.enter="doSearch($event.target.value)" />
         </div>
-        <stock-table ref="stable" :columns="columns"
+        <stock-table ref="stable" :columns="columns" :pageSize="pageSize"
             :url="url" :day="curDay" style="width:100%;"
             @load-data-done="onLoadDataDone" @click-cell="onClickCell" >
         </stock-table>
         <LHB_DetailView ref='detailView' :rowData="rowData"> </LHB_DetailView>
+        <LocalPageniteView ref="pageniteView" :pageSize="pageSize" 
+            @page-changed="onPageChanged">
+        </LocalPageniteView>
     `,
 };
 
