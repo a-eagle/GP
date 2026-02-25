@@ -757,7 +757,7 @@ let BaseTableView = {
             <input style="border:solid 1px #999; height:25px;" @keydown.enter="doSearch($event.target.value)" />
         </div>
         <stock-table ref="stable" :columns="columns" 
-            :url="url" :day="curDay" style="width:100%;" :pageSize="pageSize"
+            :url="url" :day="curDay" style="width:100%;"
             @load-data-done="onLoadDataDone" @click-cell="onClickCell" >
         </stock-table>
     `,
