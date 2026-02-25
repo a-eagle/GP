@@ -1363,7 +1363,7 @@ class KLineWindow(base_win.BaseWindow):
 
     @staticmethod
     def createDefault():
-        def V(c, visible):
+        def V(c, visible = True):
             return {'visible': IndicatorVisibleManager.getIndicatorVisible(c, visible)}
         win = KLineWindow()
         win.addIndicator(RateIndicator(win, {'height': 60, 'margins': (15, 2)}))
@@ -1376,7 +1376,7 @@ class KLineWindow(base_win.BaseWindow):
         win.addIndicator(ThsZT_Indicator(win))
         win.addIndicator(ClsZT_Indicator(win))
         win.addIndicator(ZhangSuIndicator(win, V(ZhangSuIndicator, False)))
-        win.addIndicator(LhbIndicator(win))
+        win.addIndicator(LhbIndicator(win, V(LhbIndicator)))
         win.addIndicator(GnLdIndicator(win, V(GnLdIndicator, False)))
         win.addIndicator(Code_ZT_NumIndicator(win, V(Code_ZT_NumIndicator, False)))
         return win
