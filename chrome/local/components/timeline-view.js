@@ -11,7 +11,8 @@ class TimeLineViewManager {
         this.thread.start(500);
     }
     nextViewId() {
-        return this.viewId++;
+        let v = this.viewId++;
+        return 'TimeLine-' + v;
     }
     add(view) {
         this.views[view.key] = view;

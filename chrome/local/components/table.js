@@ -10,7 +10,7 @@ import utils from './utils.js';
  *      
  *  }, ...]
  */
-let uniqueKey = 1000000;
+let UNIQUE_KEY = 100000000;
 
 let BasicTable = {
     name: 'BasicTable',
@@ -196,7 +196,7 @@ let BasicTable = {
         },
     },
     render() {
-        console.log('BaseTable.render', this.localPageDataIndexs);
+        // console.log('BaseTable.render', this.localPageDataIndexs);
         const {h} = Vue;
         let hds = [];
         for (let column of this.columns) {
@@ -225,7 +225,7 @@ let BasicTable = {
                 }, cellVal));
             }
             if (! rowData._rkey) {
-                rowData._rkey = uniqueKey++;
+                rowData._rkey = UNIQUE_KEY++;
             }
             let tr = h('tr', {
                 key: rowData._rkey,
