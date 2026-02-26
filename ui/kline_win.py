@@ -489,17 +489,21 @@ class Polygon:
         for p in points:
             self.points.append(p)
 
+    def addPoint(self, point):
+        self.points.append(point)
+
 class Dragable(Polygon):
     def __init__(self) -> None:
         super().__init__()
         self.pressPoint = None
+        self.movePoint = None
 
     def onLButtonDown(self, x, y):
         self.pressPoint = None
         if not self.points:
             return False
         if self.isPointIn(Point(x, y)):
-            self.pressPoint = Point(x, y)
+            self.pressPoint = self.movePoint = Point(x, y)
             self.onDragBegin(x, y)
             return True
         return False
@@ -508,6 +512,7 @@ class Dragable(Polygon):
         if not self.pressPoint:
             return False
         self.onDrag(x, y)
+        self.movePoint = Point(x, y)
         return True
 
     def onLButtonUp(self, x, y):
@@ -515,6 +520,7 @@ class Dragable(Polygon):
             return False
         self.onDragEnd(x, y)
         self.pressPoint = None
+        self.movePoint = None
         return True
     
     def onDragBegin(self, x, y):
@@ -590,12 +596,18 @@ class LineView(Dragable):
         super().__init__()
         self.textLine = textLine
         self.win = win
+        self.orgDragPolygn = Polygon()
         if textLine._startPos:
             self.startPos = self.Pos(pos = textLine._startPos)
+            xy = self.getXYByPos(self.startPos)
+            if xy:
+                self.orgDragPolygn.addPoint(Point(*xy))
         else:
             self.startPos = self.Pos()
         if textLine._endPos:
             self.endPos = self.Pos(pos = textLine._endPos)
+            xy = self.getXYByPos(self.endPos)
+            self.orgDragPolygn.addPoint(Point(*xy))
         else:
             self.endPos = self.Pos()
     
@@ -623,8 +635,8 @@ class LineView(Dragable):
             return True # need save to .lines
         return False
     
-    def getXYByPos(self, klineIndicator : KLineIndicator, pos):
-        kl = klineIndicator
+    def getXYByPos(self, pos):
+        kl : KLineIndicator = self.win.klineIndicator
         vr = kl.visibleRange
         if not vr or not pos or not pos.isValid():
             return None
@@ -639,14 +651,15 @@ class LineView(Dragable):
             return None
         return (x, y)
     
-    def onDraw(self, hdc, kl : KLineIndicator, hilight):
+    def onDraw(self, hdc, hilight):
         if self.textLine.kind == 'text':
-            self.onDrawText(hdc, kl, hilight)
+            self.onDrawText(hdc, hilight)
         else:
-            self.onDrawLine(hdc, kl, hilight)
+            self.onDrawLine(hdc, hilight)
 
-    def onDrawText(self, hdc, kl : KLineIndicator, hilight):
+    def onDrawText(self, hdc, hilight):
         drawer = Drawer.instance()
+        kl : KLineIndicator = self.win.klineIndicator
         vr = kl.visibleRange
         if not self.isValid() or not vr:
             return
@@ -663,7 +676,8 @@ class LineView(Dragable):
         if hilight:
             drawer.drawRect(hdc, rc, 0x00a0a0)
 
-    def onDrawLine(self,  hdc, kl : KLineIndicator, hilight):
+    def onDrawLine(self,  hdc, hilight):
+        kl : KLineIndicator = self.win.klineIndicator
         drawer = Drawer.instance()
         vr = kl.visibleRange
         if not self.isValid() or not vr:
@@ -699,33 +713,76 @@ class LineView(Dragable):
                 if x > 0 and y > 0 and x < W and y < H:
                     win32gui.SetPixel(hdc, x, y, 0x30f030)
 
+    def getPosByXY(self, x, y):
+        kl : KLineIndicator = self.win.klineIndicator
+        if not kl.visibleRange:
+            return None
+        idx = kl.getIdxAtX(x)
+        if idx < 0:
+            return None
+        day = kl.data[idx].day
+        cx = kl.getCenterX(idx)
+        price = kl.getValueAtY(y)
+        if not price:
+            return None
+        return LineView.Pos(day, x - cx, price['value'])
+
+    def onDragBegin(self, x, y):
+        pass
+
+    def onDrag(self, x, y):
+        dx = x - self.movePoint.x
+        dy = y - self.movePoint.y
+        self.move(dx, dy)
+        self.orgDragPolygn.move(dx, dy)
+
+    def onDragEnd(self, x, y):
+        dx = x - self.movePoint.x
+        dy = y - self.movePoint.y
+        self.move(dx, dy)
+        # save Line to db
+        if self.textLine.kind == 'text':
+            first = self.orgDragPolygn.points[0]
+            self.startPos = self.getPosByXY(first.x, first.y)
+        elif self.textLine.kind == 'line':
+            first = self.orgDragPolygn.points[0]
+            self.startPos = self.getPosByXY(first.x, first.y)
+            last = self.orgDragPolygn.points[1]
+            self.endPos = self.getPosByXY(last.x, last.y)
+        self.save()
+
+
 class DrawTextManager(base_win.Listener):
     def __init__(self, win) -> None:
         super().__init__()
-        self.win : KLineWindow = win
+        self.win = win
         self.curLine = None
-        self.isDrawing = False
+        self.drawing = False
 
     def beginNew(self, code):
-        self.isDrawing = True
+        self.drawing = True
         curLine = my_orm.TextLine(code = code, kind = 'text')
         self.curLine = LineView(curLine, self.win)
 
+    def beginUpdate(self, lineView):
+        self.cancel()
+        if not lineView:
+            return
+        self.drawing = True
+        self.curLine = lineView
+
     def end(self):
-        if not self.isDrawing or not self.curLine:
-            self.isDrawing = False
-            self.curLine = None
+        if not self.drawing or not self.curLine:
+            self.cancel()
             return False
-        self.isDrawing = False
         self.curLine.save()
-        # self.lines.append(self.curLine)
         cl = self.curLine
-        self.curLine = None
+        self.cancel()
         self.notifyListener(self.Event('AppendLine', cl))
         return True
 
     def cancel(self):
-        self.isDrawing = False
+        self.drawing = False
         self.curLine = None
 
     def openEditText(self):
@@ -737,17 +794,34 @@ class DrawTextManager(base_win.Listener):
         dlg.show(* win32gui.GetCursorPos())
 
     def onInputEnd(self, evt, args):
-        if evt.ok:
+        if evt.ok and evt.text:
             self.curLine.textLine.info = evt.text
             self.end()
         else:
             self.cancel()
 
+    def onLButtonDown(self, x, y):
+        return self.drawing
+
+    def onMouseMove(self, x, y):
+        return self.drawing
+
+    def onLButtonUp(self, x, y):
+        if not self.drawing:
+            return False
+        pos = self.curLine.getPosByXY(x, y)
+        if not pos:
+            self.cancel()
+            return True
+        self.curLine.startPos = pos
+        self.openEditText()
+        return True
+
 class DrawLineManager(base_win.Listener):
     def __init__(self, win) -> None:
         super().__init__()
-        self.win : KLineWindow = win
-        self.curLine = None
+        self.win = win
+        self.curLine : LineView = None
         self.drawing = False
 
     def beginNew(self, code):
@@ -757,14 +831,11 @@ class DrawLineManager(base_win.Listener):
 
     def end(self):
         if not self.drawing or not self.curLine:
-            self.drawing = False
-            self.curLine = None
+            self.cancel()
             return False
-        self.drawing = False
         self.curLine.save()
         cl = self.curLine
-        # self.lines.append(self.curLine)
-        self.curLine = None
+        self.cancel()
         self.notifyListener(self.Event('AppendLine', cl))
         return True
 
@@ -775,6 +846,38 @@ class DrawLineManager(base_win.Listener):
     def isDrawing(self):
         return self.drawing and self.curLine and \
                self.curLine.startPos and self.curLine.startPos.day > 0
+
+    def onLButtonDown(self, x, y):
+        if not self.drawing:
+            return False
+        pos = self.curLine.getPosByXY(x, y)
+        if not pos:
+            self.cancel()
+            return False
+        pos.dx = 0 # modify line dx to 0
+        self.curLine.startPos = pos
+        return True
+
+    def onMouseMove(self, x, y):
+        if not self.isDrawing():
+            self.cancel()
+            return False
+        pos = self.curLine.getPosByXY(x, y)
+        if pos:
+            self.curLine.endPos = pos
+            self.curLine.endPos.dx = 0 # modify dx to 0
+        self.win.invalidWindow()
+        return True
+
+    def onLButtonUp(self, x, y):
+        if not self.isDrawing():
+            self.cancel()
+            return False
+        self.curLine.endPos = self.curLine.getPosByXY(x, y)
+        self.curLine.endPos.dx = 0 # modify dx to 0
+        self.end()
+        self.win.invalidWindow()
+        return True
 
 class TextLineManager:
     def __init__(self, win) -> None:
@@ -790,6 +893,12 @@ class TextLineManager:
         self.code = None
         self.lines = []
         self.selLine = None
+
+    def beginNew(self, kind):
+        if kind == 'text':
+            self.drawTextMgr.beginNew(self.code)
+        elif kind == 'line':
+            self.drawLineMgr.beginNew(self.code)
 
     def onAppendLine(self, event):
         self.lines.append(event.src)
@@ -813,20 +922,6 @@ class TextLineManager:
                 break
         self.win.invalidWindow()
 
-    def getPosByXY(self, x, y):
-        kl = self.win.klineIndicator
-        if not kl.visibleRange:
-            return None
-        idx = kl.getIdxAtX(x)
-        if idx < 0:
-            return None
-        day = kl.data[idx].day
-        cx = kl.getCenterX(idx)
-        price = kl.getValueAtY(y)
-        if not price:
-            return None
-        return LineView.Pos(day, x - cx, price['value'])
-
     def onDraw(self, hdc):
         kl = self.win.klineIndicator
         for line in self.lines:
@@ -842,68 +937,49 @@ class TextLineManager:
         return None
 
     def onLButtonDown(self, x, y):
-        self.captureMouse = False
-        if self.curLine and self.isDrawing: # is drawing line
-            kl = self.win.klineIndicator
-            if self.curLine.textLine.kind == 'line':
-                pos = self.getPosByXY(x, y)
-                if not pos:
-                    self.cancel()
-                    return False
-                pos.dx = 0 # modify line dx to 0
-                self.curLine.startPos = pos
-                self.captureMouse = True
-                return True
-        else: #click on text
-            old = self.selLine
-            self.selLine = self.getLineViewByXY(x, y)
-            if old and old != self.selLine:
-                old.save()
-                self.win.invalidWindow()
-            if self.selLine:
-                self.selLine.onLButtonDown(x, y)
-                self.captureMouse = True
-            return self.selLine != None
+        flag = self.drawTextMgr.onLButtonDown(x, y)
+        flag = flag or self.drawLineMgr.onLButtonDown(x, y)
+        if flag:
+            return True
+        # check click on LineView
+        old = self.selLine
+        self.selLine = self.getLineViewByXY(x, y)
+        if old != self.selLine and self.selLine:
+            self.win.invalidWindow()
+        flag = self.drager.onLButtonDown(x, y, self.selLine)
+        if flag:
+            return True
         return False
     
     def onLButtonUp(self, x, y):
-        self.captureMouse = False
-        if not self.isDrawing or not self.curLine:
-            return False
-        kl = self.win.klineIndicator
-        if self.curLine.textLine.kind == 'line':
-            if not self.isStartDrawLine():
-                self.cancel()
-                return True
-            self.curLine.endPos = self.getPosByXY(x, y)
-            self.curLine.endPos.dx = 0 # modify dx to 0
-            self.end()
-            self.win.invalidWindow()
-        elif self.curLine.textLine.kind == 'text':
-            self.curLine.startPos = self.getPosByXY(x, y)
-            if not self.curLine.startPos:
-                self.cancel()
-                return True
-            self.openEditText()
-        return True
+        flag = self.drawTextMgr.onLButtonDown(x, y)
+        flag = flag or self.drawLineMgr.onLButtonDown(x, y)
+        if flag:
+            return True
+        # test drag
+        flag = self.drager.onLButtonUp(x, y)
+        if flag:
+            return True
+        return False
 
     def onMouseMove(self, x, y):
-        if self.isStartDrawLine():
-            pos = self.getPosByXY(x, y)
-            if pos:
-                self.curLine.endPos = pos
-                self.curLine.endPos.dx = 0 # modify dx to 0
+        flag = self.drawTextMgr.onMouseMove(x, y)
+        flag = flag or self.drawLineMgr.onMouseMove(x, y)
+        if flag:
+            return True
+        # test drag
+        flag = self.drager.onMouseMove(x, y)
+        if flag:
             self.win.invalidWindow()
             return True
-        return self.captureMouse
+        return False
 
     def onDblClick(self, x, y):
         self.selLine = self.getLineViewByXY(x, y)
         if not self.selLine or self.selLine.textLine.kind != 'text':
             return False
-        self.isDrawing = True
-        self.curLine = self.selLine
-        self.openEditText()
+        self.drawTextMgr.beginUpdate(self.selLine)
+        self.drawTextMgr.openEditText()
         return True
 
     def onKeyDown(self, key):
@@ -911,26 +987,6 @@ class TextLineManager:
             self.delLine2(self.selLine)
             self.selLine = None
             return
-        if key == win32con.VK_LEFT:
-            self.selLine.startPos.dx -= 4
-            self.win.invalidWindow()
-        elif key == win32con.VK_RIGHT:
-            self.selLine.startPos.dx += 4
-            self.win.invalidWindow()
-        elif key == win32con.VK_UP:
-            sy = self.win.klineIndicator.getYAtValue(self.selLine.startPos.price)
-            sy = max(sy - 5, 1)
-            val = self.win.klineIndicator.getValueAtY(sy)
-            if val:
-                self.selLine.startPos.price = val['value']
-            self.win.invalidWindow()
-        elif key == win32con.VK_DOWN:
-            sy = self.win.klineIndicator.getYAtValue(self.selLine.startPos.price)
-            sy = min(sy + 5, self.win.klineIndicator.height - 3)
-            val = self.win.klineIndicator.getValueAtY(sy)
-            if val:
-                self.selLine.startPos.price = val['value']
-            self.win.invalidWindow()
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg >= win32con.WM_KEYFIRST and msg <= win32con.WM_KEYLAST and self.selLine:
@@ -953,7 +1009,6 @@ class TextLineManager:
                 return self.onMouseMove(x, y)
             if msg == win32con.WM_LBUTTONDBLCLK:
                 return self.onDblClick(x, y)
-            return self.captureMouse
         return False
 
 class RangeSelectorManager:
