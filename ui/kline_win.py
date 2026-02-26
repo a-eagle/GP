@@ -94,7 +94,7 @@ class ContextMenuManager:
               {'title': 'LINE'},
               {'title': '画线(直线)', 'name': 'draw-line'},
               {'title': '画线(文本)', 'name': 'draw-text'},
-              {'title': '删除直线', 'name': 'del-draw-line', 'day': selDay},
+            #   {'title': '删除直线', 'name': 'del-draw-line', 'day': selDay},
               {'title': '计算涨跌幅', 'name': 'calc-zdf'},
             #   {'title': 'LINE'},
             #   {'title': '标记', 'name': 'mark-color', 'sub-menu': self.getMarkColors},
@@ -454,35 +454,99 @@ class IndicatorVisibleManager:
         return default
 
 class Point:
-    def __init__(self, x, y) -> None:
-        self.x = x
-        self.y = y
+    def __init__(self, day = 0, dx = 0, price = 0, pos = None) -> None:
+        self.day = day
+        self.dx = dx
+        self.price = price
+        if pos:
+            self.load(pos)
+
+    def toXY(self, kl : KLineIndicator):
+        vr = kl.visibleRange
+        if not vr or not self.isValid():
+            return None
+        idx = kl.model.getItemIdx(self.day)
+        if idx < vr[0] or idx >= vr[1]:
+            return None
+        x = kl.getCenterX(idx) + self.dx
+        if x < 0 or x > kl.width:
+            return None
+        y = kl.getYAtValue(self.price)
+        if y < 0 or y >= kl.height:
+            return None
+        return (x, y)
+
+    @staticmethod
+    def fromXY(x, y, kl : KLineIndicator):
+        if not kl.visibleRange:
+            return None
+        idx = kl.getIdxAtX(x)
+        if idx < 0:
+            return None
+        day = kl.data[idx].day
+        cx = kl.getCenterX(idx)
+        price = kl.getValueAtY(y)
+        if not price:
+            return None
+        return Point(day, x - cx, price['value'])
+
+    def setXY(self, x, y, kl : KLineIndicator):
+        point = Point.fromXY(x, y, kl)
+        if not point:
+            return False
+        self.day = point.day
+        self.dx = point.dx
+        self.price = point.price
+        return True
+
+    def move(self, dx, dy, kl : KLineIndicator):
+        xy = self.toXY(kl)
+        if not xy:
+            return False
+        x, y = xy[0] + dx, xy[1] + dy
+        return self.setXY(x, y, kl)
+
+    def dump(self):
+        obj = {'day': self.day, 'dx': self.dx, 'price': self.price}
+        return json.dumps(obj)
+
+    def load(self, txt):
+        if not txt:
+            return
+        obj = json.loads(txt)
+        for k in obj:
+            setattr(self, k, obj[k])
 
     def isValid(self):
-        return (isinstance(self.x, float) or isinstance(self.x, int)) and \
-            (isinstance(self.y, float) or isinstance(self.y, int))
+        return self.day > 0 and self.price > 0
+
+    def __repr__(self) -> str:
+        return self.dump()
+
+    def __eq__(self, m) -> bool:
+        return self.day == m.day and self.dx == m.dx and self.price == m.price
 
 class Polygon:
     def __init__(self) -> None:
-        self.points = []
+        self.points = [] # Point array
     
-    def isPointIn(self, point: Point):
-        x, y = point.x, point.y
+    def isPointIn(self, x, y, kl : KLineIndicator):
         N = len(self.points)
         inside = False
         for i in range(N):
-            p1 = self.points[i]
-            p2 = self.points[(i + 1) % N]
+            p1 = self.points[i].getXY(kl)
+            p2 = self.points[(i + 1) % N].getXY(kl)
+            if not p1 or not p2:
+                return False
             x1, y1 = p1.x, p1.y
             x2, y2 = p2.x, p2.y
             if ((y1 > y) != (y2 > y)) and (x < (x2 - x1) * (y - y1) / (y2 - y1) + x1):
                 inside = not inside
         return inside
     
-    def move(self, dx, dy):
+    def move(self, dx, dy, kl : KLineIndicator):
         for p in self.points:
-            p.x += dx
-            p.y += dy
+            p.move(dx, dy, kl)
 
     def setPoints(self, *points):
         self.points.clear()
@@ -492,45 +556,65 @@ class Polygon:
     def addPoint(self, point):
         self.points.append(point)
 
-class Dragable(Polygon):
+    def toXYPoints(self, kl : KLineIndicator):
+        pts = []
+        for p in self.points:
+            xy = p.getXY(kl)
+            if not xy:
+                return None
+            pts.append(xy)
+        return pts
+
+    def isEmpty(self):
+        return len(self.points) != 0
+
+class Dragable:
     def __init__(self) -> None:
         super().__init__()
-        self.pressPoint = None
-        self.movePoint = None
+        self.outShape = Polygon()
+        self.orgShape = Polygon()
+        self.pressXY = None
+        self.moveXY = None
+        self.draging = False
 
-    def onLButtonDown(self, x, y):
-        self.pressPoint = None
-        if not self.points:
+    def onLButtonDown(self, x, y, kl : KLineIndicator):
+        self.draging = False
+        self.pressXY = None
+        self.moveXY = None
+        if not self.outShape.isEmpty():
             return False
-        if self.isPointIn(Point(x, y)):
-            self.pressPoint = self.movePoint = Point(x, y)
-            self.onDragBegin(x, y)
+        if self.outShape.isPointIn(x, y, kl):
+            self.pressXY = self.moveXY = (x, y)
+            self.draging = True
             return True
         return False
 
-    def onMouseMove(self, x, y):
-        if not self.pressPoint:
+    def onMouseMove(self, x, y, kl : KLineIndicator):
+        if not self.draging:
+            self.draging = False
             return False
-        self.onDrag(x, y)
-        self.movePoint = Point(x, y)
+        dx, dy = x - self.moveXY[0], y - self.moveXY[1]
+        if dx == 0 and dy == 0:
+            return True
+        self.outShape.move(dx, dy, kl)
+        self.orgShape.move(dx, dy, kl)
+        self.moveXY = (x, y)
         return True
 
-    def onLButtonUp(self, x, y):
-        if not self.pressPoint:
+    def onLButtonUp(self, x, y, kl : KLineIndicator):
+        if not self.draging:
             return False
+        self.onMouseMove(x, y, kl) # modify shape posints
         self.onDragEnd(x, y)
-        self.pressPoint = None
-        self.movePoint = None
+        self.pressXY = None
+        self.moveXY = None
+        self.draging = False
         return True
     
-    def onDragBegin(self, x, y):
-        pass
-    def onDrag(self, x, y):
-        pass
     def onDragEnd(self, x, y):
         pass
 
-class Drager:
+class DragManager:
     def __init__(self) -> None:
         self.capture = False
         self.target = None
@@ -540,116 +624,65 @@ class Drager:
         self.target = None
 
     def isDraging(self):
-        return self.capture and self.target
+        return self.capture and self.target and self.target.draging
 
-    def onLButtonDown(self, x, y, target : Dragable):
+    def onLButtonDown(self, x, y, target : Dragable, kl : KLineIndicator):
         self.reset()
         if not target:
             return False
-        if target.onLButtonDown(x, y):
+        if target.onLButtonDown(x, y, kl):
             self.capture = True
             self.target = target
             return True
         return False
 
-    def onMouseMove(self, x, y):
+    def onMouseMove(self, x, y, kl : KLineIndicator):
         if not self.isDraging():
-            self.reset()
             return False
-        flag = self.target.onMouseMove(x, y)
+        flag = self.target.onMouseMove(x, y, kl)
         return True
 
-    def onLButtonUp(self, x, y):
+    def onLButtonUp(self, x, y, kl : KLineIndicator):
         if not self.isDraging():
-            self.reset()
             return False
-        flag = self.target.onLButtonUp(x, y)
+        flag = self.target.onLButtonUp(x, y, kl)
+        self.reset()
         return True
 
 class LineView(Dragable):
-    class Pos:
-        def __init__(self, day = 0, dx = 0, price = 0, pos = None) -> None:
-            self.day = day
-            self.dx = dx
-            self.price = price
-            if pos:
-                self.load(pos)
-
-        def dump(self):
-            obj = {'day': self.day, 'dx': self.dx, 'price': self.price}
-            return json.dumps(obj)
-
-        def load(self, txt):
-            if not txt:
-                return
-            obj = json.loads(txt)
-            for k in obj:
-                setattr(self, k, obj[k])
-
-        def isValid(self):
-            return self.day > 0 and self.price > 0
-
-        def __repr__(self) -> str:
-            return self.dump()
-
     def __init__(self, textLine, win) -> None:
         super().__init__()
         self.textLine = textLine
         self.win = win
-        self.orgDragPolygn = Polygon()
         if textLine._startPos:
-            self.startPos = self.Pos(pos = textLine._startPos)
-            xy = self.getXYByPos(self.startPos)
-            if xy:
-                self.orgDragPolygn.addPoint(Point(*xy))
+            self.startPos = Point(pos = textLine._startPos)
         else:
-            self.startPos = self.Pos()
+            self.startPos = Point()
         if textLine._endPos:
-            self.endPos = self.Pos(pos = textLine._endPos)
-            xy = self.getXYByPos(self.endPos)
-            self.orgDragPolygn.addPoint(Point(*xy))
+            self.endPos = Point(pos = textLine._endPos)
         else:
-            self.endPos = self.Pos()
+            self.endPos = Point()
     
     def isValid(self):
         if self.textLine.kind == 'line':
             return self.startPos and self.startPos.isValid() and \
                 self.endPos and self.endPos.isValid()
         return self.startPos and self.startPos.isValid() and self.textLine.info
-    
-    # return true: New save, false: Update save
+
     def save(self):
         line = self.textLine
         if not line:
             return
         oldId = line.id
-        if line.kind == 'line' and self.isValid():
-            line._startPos = self.startPos.dump()
-            line._endPos = self.endPos.dump()
-            line.save()
-        elif line.kind == 'text' and self.isValid():
-            line._startPos = self.startPos.dump()
-            line.save()
-        if not oldId:
-            # self.lines.append(line)
-            return True # need save to .lines
-        return False
-    
-    def getXYByPos(self, pos):
-        kl : KLineIndicator = self.win.klineIndicator
-        vr = kl.visibleRange
-        if not vr or not pos or not pos.isValid():
-            return None
-        idx = kl.model.getItemIdx(pos.day)
-        if idx < vr[0] or idx >= vr[1]:
-            return None
-        x = kl.getCenterX(idx) + pos.dx
-        if x < 0 or x > kl.width:
-            return None
-        y = kl.getYAtValue(pos.price)
-        if y < 0 or y >= kl.height:
-            return None
-        return (x, y)
+        if line.kind == 'line':
+            if self.isValid() and self.startPos != self.endPos:
+                line._startPos = self.startPos.dump()
+                line._endPos = self.endPos.dump()
+                line.save()
+        elif line.kind == 'text':
+            if self.isValid():
+                line._startPos = self.startPos.dump()
+                line.save()
     
     def onDraw(self, hdc, hilight):
         if self.textLine.kind == 'text':
@@ -663,18 +696,19 @@ class LineView(Dragable):
         vr = kl.visibleRange
         if not self.isValid() or not vr:
             return
+        if not self.outShape.isEmpty():
+            self.outShape.addPoint()
+            pass
         textLine = self.textLine
         size = drawer.calcTextSize(hdc, textLine.info)
-        xy = self.getXYByPos(kl, self.startPos)
+        xy = self.startPos.toXY(kl)
         if not xy:
             return
         rc = (*xy, xy[0] + size[0], xy[1] + size[1])
         left, top, right, bottom = rc
-        self.setPoints(Point(left, top), Point(right, top), Point(right, bottom), Point(left, bottom))
-        drawer.drawText(hdc, textLine.info, rc, color = 0x404040, align = win32con.DT_LEFT)
-        # if line == self.selLine:
         if hilight:
-            drawer.drawRect(hdc, rc, 0x00a0a0)
+            drawer.drawRect(hdc, rc, 0xA0A0A0)
+        drawer.drawText(hdc, textLine.info, rc, color = 0x404040, align = win32con.DT_LEFT)
 
     def onDrawLine(self,  hdc, hilight):
         kl : KLineIndicator = self.win.klineIndicator
@@ -682,18 +716,24 @@ class LineView(Dragable):
         vr = kl.visibleRange
         if not self.isValid() or not vr:
             return
-        sxy = self.getXYByPos(kl, self.startPos)
-        exy = self.getXYByPos(kl, self.endPos)
+        sxy = self.getXYByPos(self.startPos)
+        exy = self.getXYByPos(self.endPos)
         if not sxy or not exy:
             return
-        left, top, right, bottom = sxy[0] - 2, sxy[1] - 2, exy[0] + 2, exy[1] + 2
+        left, top, right, bottom = min(sxy[0], exy[0]) - 4, min(sxy[1], exy[1]) - 4, \
+             max(exy[0], sxy[0]) + 4, max(exy[1], sxy[1]) + 4
         self.setPoints(Point(left, top), Point(right, top), Point(right, bottom), Point(left, bottom))
         drawer.drawLine(hdc, *sxy, *exy, 0x30f030, width = 1)
         self.drawLineArrow(hdc, *sxy, *exy)
         if hilight:
-            pots = [(d.x, d.y) for d in self.points]
-            drawer.use(hdc, drawer.getPen(0x00a0a0))
-            win32gui.PolylineTo(hdc, pots)
+            self.drawPoints(hdc)
+    
+    def drawPoints(self, hdc):
+        drawer = Drawer.instance()
+        pots = [(d.x, d.y) for d in self.points]
+        pots.append(pots[0]) # close path
+        drawer.use(hdc, drawer.getPen(0xA0A0A0, style = win32con.PS_DOT))
+        win32gui.PolylineTo(hdc, pots)
 
     def drawLineArrow(self, hdc, sx, sy, ex, ey):
         drawer = Drawer.instance()
@@ -713,44 +753,50 @@ class LineView(Dragable):
                 if x > 0 and y > 0 and x < W and y < H:
                     win32gui.SetPixel(hdc, x, y, 0x30f030)
 
-    def getPosByXY(self, x, y):
-        kl : KLineIndicator = self.win.klineIndicator
-        if not kl.visibleRange:
-            return None
-        idx = kl.getIdxAtX(x)
-        if idx < 0:
-            return None
-        day = kl.data[idx].day
-        cx = kl.getCenterX(idx)
-        price = kl.getValueAtY(y)
-        if not price:
-            return None
-        return LineView.Pos(day, x - cx, price['value'])
+    # def getPosByXY(self, x, y):
+    #     kl : KLineIndicator = self.win.klineIndicator
+    #     if not kl.visibleRange:
+    #         return None
+    #     idx = kl.getIdxAtX(x)
+    #     if idx < 0:
+    #         return None
+    #     day = kl.data[idx].day
+    #     cx = kl.getCenterX(idx)
+    #     price = kl.getValueAtY(y)
+    #     if not price:
+    #         return None
+    #     return LineView.Pos(day, x - cx, price['value'])
 
     def onDragBegin(self, x, y):
+        print('[LineView.onDragBegin]', x, y)
         pass
 
     def onDrag(self, x, y):
-        dx = x - self.movePoint.x
-        dy = y - self.movePoint.y
+        print('[LineView.onDrag]', x, y)
+        dx = x - self.moveXY.x
+        dy = y - self.moveXY.y
         self.move(dx, dy)
         self.orgDragPolygn.move(dx, dy)
 
     def onDragEnd(self, x, y):
-        dx = x - self.movePoint.x
-        dy = y - self.movePoint.y
+        print('[LineView.onDragEnd]', x, y)
+        dx = x - self.moveXY.x
+        dy = y - self.moveXY.y
         self.move(dx, dy)
         # save Line to db
+        pts = self.orgDragPolygn.points
         if self.textLine.kind == 'text':
-            first = self.orgDragPolygn.points[0]
-            self.startPos = self.getPosByXY(first.x, first.y)
+            if len(pts) == 1:
+                first = pts[0]
+                self.startPos = self.getPosByXY(first.x, first.y)
+                self.save()
         elif self.textLine.kind == 'line':
-            first = self.orgDragPolygn.points[0]
-            self.startPos = self.getPosByXY(first.x, first.y)
-            last = self.orgDragPolygn.points[1]
-            self.endPos = self.getPosByXY(last.x, last.y)
-        self.save()
-
+            if len(pts) == 2:
+                first = pts[0]
+                self.startPos = self.getPosByXY(first.x, first.y)
+                last = pts[1]
+                self.endPos = self.getPosByXY(last.x, last.y)
+                self.save()
 
 class DrawTextManager(base_win.Listener):
     def __init__(self, win) -> None:
@@ -882,7 +928,7 @@ class DrawLineManager(base_win.Listener):
 class TextLineManager:
     def __init__(self, win) -> None:
         self.win : KLineWindow = win
-        self.drager = Drager()
+        self.drager = DragManager()
         self.drawTextMgr = DrawTextManager(win)
         self.drawLineMgr = DrawLineManager(win)
         self.drawTextMgr.addNamedListener('AppendLine', self.onAppendLine)
@@ -915,6 +961,8 @@ class TextLineManager:
             self.changeCode(self.code)
     
     def delLine2(self, line):
+        if not line:
+            return
         for i in range(len(self.lines)):
             if self.lines[i] == line:
                 line.textLine.delete_instance()
@@ -925,9 +973,9 @@ class TextLineManager:
     def onDraw(self, hdc):
         kl = self.win.klineIndicator
         for line in self.lines:
-            line.onDraw(hdc, kl, self.selLine == line)
+            line.onDraw(hdc, self.selLine == line)
         if self.drawLineMgr.isDrawing():
-            self.drawLineMgr.curLine.onDraw(hdc, kl, False)
+            self.drawLineMgr.curLine.onDraw(hdc, False)
 
     def getLineViewByXY(self, x, y):
         point = Point(x, y)
