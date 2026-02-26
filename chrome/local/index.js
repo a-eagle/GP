@@ -765,7 +765,7 @@ let BaseTableView = {
             @sort-changed="onLoadDataDone"
             @data-filtered="onLoadDataDone"
             @load-data-done="onLoadDataDone"
-            :url="url" :day="curDay" style="width:100%;"  
+            :url="url" :day="curDay" style="width:100%;"
             @click-cell="onClickCell" >
         </stock-table>
         <LocalPageniteView ref="pageniteView" :pageSize="pageSize" 
