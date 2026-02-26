@@ -524,6 +524,42 @@ class Dragable(Polygon):
     def onDragEnd(self, x, y):
         pass
 
+class Drager:
+    def __init__(self) -> None:
+        self.capture = False
+        self.target = None
+
+    def reset(self):
+        self.capture = False
+        self.target = None
+
+    def isDraging(self):
+        return self.capture and self.target
+
+    def onLButtonDown(self, x, y, target : Dragable):
+        self.reset()
+        if not target:
+            return False
+        if target.onLButtonDown(x, y):
+            self.capture = True
+            self.target = target
+            return True
+        return False
+
+    def onMouseMove(self, x, y):
+        if not self.isDraging():
+            self.reset()
+            return False
+        flag = self.target.onMouseMove(x, y)
+        return True
+
+    def onLButtonUp(self, x, y):
+        if not self.isDraging():
+            self.reset()
+            return False
+        flag = self.target.onLButtonUp(x, y)
+        return True
+
 class LineView(Dragable):
     class Pos:
         def __init__(self, day = 0, dx = 0, price = 0, pos = None) -> None:
@@ -663,18 +699,100 @@ class LineView(Dragable):
                 if x > 0 and y > 0 and x < W and y < H:
                     win32gui.SetPixel(hdc, x, y, 0x30f030)
 
+class DrawTextManager(base_win.Listener):
+    def __init__(self, win) -> None:
+        super().__init__()
+        self.win : KLineWindow = win
+        self.curLine = None
+        self.isDrawing = False
+
+    def beginNew(self, code):
+        self.isDrawing = True
+        curLine = my_orm.TextLine(code = code, kind = 'text')
+        self.curLine = LineView(curLine, self.win)
+
+    def end(self):
+        if not self.isDrawing or not self.curLine:
+            self.isDrawing = False
+            self.curLine = None
+            return False
+        self.isDrawing = False
+        self.curLine.save()
+        # self.lines.append(self.curLine)
+        cl = self.curLine
+        self.curLine = None
+        self.notifyListener(self.Event('AppendLine', cl))
+        return True
+
+    def cancel(self):
+        self.isDrawing = False
+        self.curLine = None
+
+    def openEditText(self):
+        dlg = dialog.MultiInputDialog()
+        dlg.createWindow(self.win.hwnd, (0, 0, 250, 200), style = win32con.WS_POPUP)
+        dlg.setModal(True)
+        dlg.addNamedListener('InputEnd', self.onInputEnd)
+        dlg.setText(self.curLine.textLine.info)
+        dlg.show(* win32gui.GetCursorPos())
+
+    def onInputEnd(self, evt, args):
+        if evt.ok:
+            self.curLine.textLine.info = evt.text
+            self.end()
+        else:
+            self.cancel()
+
+class DrawLineManager(base_win.Listener):
+    def __init__(self, win) -> None:
+        super().__init__()
+        self.win : KLineWindow = win
+        self.curLine = None
+        self.drawing = False
+
+    def beginNew(self, code):
+        self.drawing = True
+        curLine = my_orm.TextLine(code = code, kind = 'line')
+        self.curLine = LineView(curLine, self.win)
+
+    def end(self):
+        if not self.drawing or not self.curLine:
+            self.drawing = False
+            self.curLine = None
+            return False
+        self.drawing = False
+        self.curLine.save()
+        cl = self.curLine
+        # self.lines.append(self.curLine)
+        self.curLine = None
+        self.notifyListener(self.Event('AppendLine', cl))
+        return True
+
+    def cancel(self):
+        self.drawing = False
+        self.curLine = None
+
+    def isDrawing(self):
+        return self.drawing and self.curLine and \
+               self.curLine.startPos and self.curLine.startPos.day > 0
+
 class TextLineManager:
     def __init__(self, win) -> None:
         self.win : KLineWindow = win
-        self.captureMouse = False
+        self.drager = Drager()
+        self.drawTextMgr = DrawTextManager(win)
+        self.drawLineMgr = DrawLineManager(win)
+        self.drawTextMgr.addNamedListener('AppendLine', self.onAppendLine)
+        self.drawLineMgr.addNamedListener('AppendLine', self.onAppendLine)
         self._reset()
 
     def _reset(self):
         self.code = None
         self.lines = []
-        self.isDrawing = False
-        self.curLine = None
         self.selLine = None
+
+    def onAppendLine(self, event):
+        self.lines.append(event.src)
 
     def changeCode(self, code):
         self._reset()
@@ -686,12 +804,6 @@ class TextLineManager:
     def reload(self):
         if self.code:
             self.changeCode(self.code)
-
-    # kind = 'text' | 'line'
-    def beginNew(self, kind):
-        self.isDrawing = True
-        curLine = my_orm.TextLine(code = self.code, kind = kind)
-        self.curLine = LineView(curLine, self.win)
     
     def delLine2(self, line):
         for i in range(len(self.lines)):
@@ -700,20 +812,6 @@ class TextLineManager:
                 self.lines.pop(i)
                 break
         self.win.invalidWindow()
-
-    def end(self):
-        if not self.isDrawing or not self.curLine:
-            self.isDrawing = False
-            self.curLine = None
-            return
-        self.isDrawing = False
-        self.curLine.save()
-        self.lines.append(self.curLine)
-        self.curLine = None
-
-    def cancel(self):
-        self.isDrawing = False
-        self.curLine = None
 
     def getPosByXY(self, x, y):
         kl = self.win.klineIndicator
@@ -732,9 +830,9 @@ class TextLineManager:
     def onDraw(self, hdc):
         kl = self.win.klineIndicator
         for line in self.lines:
-            line.onDraw(hdc, kl, self.curLine == line)
-        if self.isDrawing and self.curLine and self.curLine.isValid():
-            self.curLine.onDraw(hdc, kl, False)
+            line.onDraw(hdc, kl, self.selLine == line)
+        if self.drawLineMgr.isDrawing():
+            self.drawLineMgr.curLine.onDraw(hdc, kl, False)
 
     def getLineViewByXY(self, x, y):
         point = Point(x, y)
@@ -768,13 +866,6 @@ class TextLineManager:
             return self.selLine != None
         return False
     
-    def onInputEnd(self, evt, args):
-        if evt.ok:
-            self.curLine.textLine.info = evt.text
-            self.end()
-        else:
-            self.cancel()
-
     def onLButtonUp(self, x, y):
         self.captureMouse = False
         if not self.isDrawing or not self.curLine:
@@ -795,18 +886,6 @@ class TextLineManager:
                 return True
             self.openEditText()
         return True
-
-    def openEditText(self):
-        dlg = dialog.MultiInputDialog()
-        dlg.createWindow(self.win.hwnd, (0, 0, 250, 200), style = win32con.WS_POPUP)
-        dlg.setModal(True)
-        dlg.addNamedListener('InputEnd', self.onInputEnd)
-        dlg.setText(self.curLine.textLine.info)
-        dlg.show(* win32gui.GetCursorPos())
-
-    def isStartDrawLine(self):
-        return self.isDrawing and self.curLine and self.curLine.textLine.kind == 'line' and \
-               self.curLine.startPos and self.curLine.startPos.day > 0
 
     def onMouseMove(self, x, y):
         if self.isStartDrawLine():
