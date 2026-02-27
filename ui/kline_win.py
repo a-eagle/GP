@@ -744,9 +744,9 @@ class LineView(Dragable):
         if self.shape.isEmpty():
             self.shape.addPoint(self.startPos)
         self.shape._textSize = size
-        if hilight:
-            drawer.drawRect(hdc, rc, 0xA0A0A0)
         drawer.drawText(hdc, textLine.info, rc, color = 0x404040, align = win32con.DT_LEFT)
+        if hilight:
+            self.drawOutShape(hdc)
 
     def calcTextOutShape(self):
         kl : KLineIndicator = self.win.klineIndicator
@@ -759,11 +759,12 @@ class LineView(Dragable):
             return None
         x, y = sxy
         w, h = size
+        left, top, right, bottom = x - B, y - B, x + w + B, y + h + B
         outShape = Polygon()
-        outShape.addXYPoint(x - B, y - B, kl)
-        outShape.addXYPoint(x - B, y + h + B, kl)
-        outShape.addXYPoint(x + w + B, y + h + B, kl)
-        outShape.addXYPoint(x + w + B, y - B, kl)
+        outShape.addXYPoint(left, top, kl)
+        outShape.addXYPoint(right, top, kl)
+        outShape.addXYPoint(right, bottom, kl)
+        outShape.addXYPoint(left, bottom, kl)
         return outShape
 
     def calcLineOutShape(self):
@@ -812,12 +813,12 @@ class LineView(Dragable):
         kl : KLineIndicator = self.win.klineIndicator
         drawer = Drawer.instance()
         out = self.getOutShape()
-        if not out or out.isEmpty():
+        if not out or not out.isValid():
             return
         pots = [p.toXY(kl) for p in out.points]
         pots.append(pots[0]) # close path
         drawer.use(hdc, drawer.getPen(0xA0A0A0, style = win32con.PS_DOT))
-        win32gui.PolylineTo(hdc, pots)
+        win32gui.Polyline(hdc, pots)
 
     def drawLineArrow(self, hdc, sx, sy, ex, ey):
         drawer = Drawer.instance()
@@ -827,7 +828,7 @@ class LineView(Dragable):
         drawer.fillRect(hdc, rc, 0x30f030)
 
     def onDragBegin(self, x, y):
-        print('[LineView.onDragBegin]', x, y)
+        # print('[LineView.onDragBegin]', x, y)
         pass
 
     def onDrag(self, x, y):
