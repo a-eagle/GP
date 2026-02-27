@@ -142,7 +142,7 @@ class Indicator:
         i = idx - self.visibleRange[0]
         x = i * (self.getItemWidth() + self.getItemSpace())
         x += self.getItemWidth() // 2
-        return x
+        return int(x)
     
     def getIdxAtX(self, x):
         if not self.visibleRange:

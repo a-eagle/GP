@@ -1,4 +1,4 @@
-import os, sys, functools, copy, datetime, json, time, traceback
+import os, sys, functools, copy, datetime, json, time, traceback, copy
 import win32gui, win32con, win32api, pyperclip
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -94,7 +94,7 @@ class ContextMenuManager:
               {'title': 'LINE'},
               {'title': '画线(直线)', 'name': 'draw-line'},
               {'title': '画线(文本)', 'name': 'draw-text'},
-            #   {'title': '删除直线', 'name': 'del-draw-line', 'day': selDay},
+              {'title': '删除画线', 'name': 'del-draw-line', 'enable': self.win.lineMgr.isSelected()},
               {'title': '计算涨跌幅', 'name': 'calc-zdf'},
             #   {'title': 'LINE'},
             #   {'title': '标记', 'name': 'mark-color', 'sub-menu': self.getMarkColors},
@@ -257,7 +257,7 @@ class ContextMenuManager:
             self.win.lineMgr.beginNew('text')
             pass
         elif name == 'del-draw-line':
-            self.win.lineMgr.delLine(evt.item['day'])
+            self.win.lineMgr.delSelectLine()
         elif name == 'mark-color':
             self.markColor(evt.item)
         elif name == 'simple-indicator':
@@ -476,6 +476,13 @@ class Point:
             return None
         return (x, y)
 
+    def update(self, point):
+        if not point:
+            return
+        self.day = point.day
+        self.dx = point.dx
+        self.price = point.price
+
     @staticmethod
     def fromXY(x, y, kl : KLineIndicator):
         if not kl.visibleRange:
@@ -494,9 +501,7 @@ class Point:
         point = Point.fromXY(x, y, kl)
         if not point:
             return False
-        self.day = point.day
-        self.dx = point.dx
-        self.price = point.price
+        self.update(point)
         return True
 
     def move(self, dx, dy, kl : KLineIndicator):
@@ -534,8 +539,12 @@ class Polygon:
         N = len(self.points)
         inside = False
         for i in range(N):
-            p1 = self.points[i].toXY(kl)
-            p2 = self.points[(i + 1) % N].toXY(kl)
+            pp1 = self.points[i]
+            pp2 = self.points[(i + 1) % N]
+            if not pp1 or not pp2:
+                return False
+            p1 = pp1.toXY(kl)
+            p2 = pp2.toXY(kl)
             if not p1 or not p2:
                 return False
             x1, y1 = p1[0], p1[1]
@@ -572,20 +581,30 @@ class Polygon:
     def isEmpty(self):
         return len(self.points) == 0
 
+    def isValid(self):
+        if self.isEmpty():
+            return False
+        for p in self.points:
+            if not p or not p.isValid():
+                return False
+        return True
+
 class Dragable:
     def __init__(self) -> None:
         super().__init__()
-        self.outShape = Polygon()
-        self.orgShape = Polygon()
+        self.shape = Polygon()
         self.pressXY = None
         self.moveXY = None
         self.draging = False
+
+    def getOutShape(self) -> Polygon:
+        return None
 
     def onLButtonDown(self, x, y, kl : KLineIndicator):
         self.draging = False
         self.pressXY = None
         self.moveXY = None
-        if self.outShape.isPointIn(x, y, kl):
+        if self.getOutShape().isPointIn(x, y, kl):
             self.pressXY = self.moveXY = (x, y)
             self.draging = True
             return True
@@ -598,8 +617,7 @@ class Dragable:
         dx, dy = x - self.moveXY[0], y - self.moveXY[1]
         if dx == 0 and dy == 0:
             return True
-        self.outShape.move(dx, dy, kl)
-        self.orgShape.move(dx, dy, kl)
+        self.shape.move(dx, dy, kl)
         self.moveXY = (x, y)
         return True
 
@@ -690,6 +708,21 @@ class LineView(Dragable):
                 line._startPos = self.startPos.dump()
                 line.save()
     
+    def getOutShape(self) -> Polygon:
+        if not self.isValid():
+            return None
+        shape = None
+        if self.textLine.kind == 'text':
+            shape = self.calcTextOutShape()
+        elif self.textLine.kind == 'line':
+            shape = self.calcLineOutShape()
+        if shape and shape.isValid():
+            return shape
+        return None
+
+    def clearShape(self):
+        self.shape.points.clear()
+
     def onDraw(self, hdc, hilight):
         if self.textLine.kind == 'text':
             self.onDrawText(hdc, hilight)
@@ -708,18 +741,55 @@ class LineView(Dragable):
         if not xy:
             return
         rc = (*xy, xy[0] + size[0], xy[1] + size[1])
-        left, top, right, bottom = rc
-        if self.outShape.isEmpty():
-            self.outShape.addXYPoint(left, top, kl)
-            self.outShape.addXYPoint(right, top, kl)
-            self.outShape.addXYPoint(right, bottom, kl)
-            self.outShape.addXYPoint(left, bottom, kl)
-        if self.orgShape.isEmpty():
-            self.orgShape.addPoint(self.startPos)
+        if self.shape.isEmpty():
+            self.shape.addPoint(self.startPos)
+        self.shape._textSize = size
         if hilight:
             drawer.drawRect(hdc, rc, 0xA0A0A0)
         drawer.drawText(hdc, textLine.info, rc, color = 0x404040, align = win32con.DT_LEFT)
 
+    def calcTextOutShape(self):
+        kl : KLineIndicator = self.win.klineIndicator
+        B = 4
+        size = getattr(self.shape, '_textSize')
+        if not size:
+            return None
+        sxy = self.startPos.toXY(kl)
+        if not sxy:
+            return None
+        x, y = sxy
+        w, h = size
+        outShape = Polygon()
+        outShape.addXYPoint(x - B, y - B, kl)
+        outShape.addXYPoint(x - B, y + h + B, kl)
+        outShape.addXYPoint(x + w + B, y + h + B, kl)
+        outShape.addXYPoint(x + w + B, y - B, kl)
+        return outShape
+
+    def calcLineOutShape(self):
+        kl : KLineIndicator = self.win.klineIndicator
+        B = 4
+        sxy = self.startPos.toXY(kl)
+        exy = self.endPos.toXY(kl)
+        if not sxy or not exy:
+            return None
+        outShape = Polygon()
+        if exy[1] > sxy[1]:
+            sxy, exy = exy, sxy
+        sx, sy = sxy
+        ex, ey = exy
+        if abs(ey - sy) <= abs(ex - sx):
+            outShape.addXYPoint(sx, sy - B, kl)
+            outShape.addXYPoint(sx, sy + B, kl)
+            outShape.addXYPoint(ex, ey + B, kl)
+            outShape.addXYPoint(ex, ey - B, kl)
+        else:
+            outShape.addXYPoint(sx - B, sy, kl)
+            outShape.addXYPoint(sx + B, sy, kl)
+            outShape.addXYPoint(ex + B, ey, kl)
+            outShape.addXYPoint(ex - B, ey, kl)
+        return outShape
+            
     def onDrawLine(self,  hdc, hilight):
         kl : KLineIndicator = self.win.klineIndicator
         drawer = Drawer.instance()
@@ -730,16 +800,9 @@ class LineView(Dragable):
         exy = self.endPos.toXY(kl)
         if not sxy or not exy:
             return
-        left, top, right, bottom = min(sxy[0], exy[0]) - 4, min(sxy[1], exy[1]) - 4, \
-             max(exy[0], sxy[0]) + 4, max(exy[1], sxy[1]) + 4
-        if self.outShape.isEmpty():
-            self.outShape.addXYPoint(left, top, kl)
-            self.outShape.addXYPoint(right, top, kl)
-            self.outShape.addXYPoint(right, bottom, kl)
-            self.outShape.addXYPoint(left, bottom, kl)
-        if self.orgShape.isEmpty():
-            self.orgShape.addPoint(self.startPos)
-            self.orgShape.addPoint(self.endPos)
+        if self.shape.isEmpty():
+            self.shape.addPoint(self.startPos)
+            self.shape.addPoint(self.endPos)
         drawer.drawLine(hdc, *sxy, *exy, 0x30f030, width = 1)
         self.drawLineArrow(hdc, *sxy, *exy)
         if hilight:
@@ -748,7 +811,10 @@ class LineView(Dragable):
     def drawOutShape(self, hdc):
         kl : KLineIndicator = self.win.klineIndicator
         drawer = Drawer.instance()
-        pots = [p.toXY(kl) for p in self.outShape.points]
+        out = self.getOutShape()
+        if not out or out.isEmpty():
+            return
+        pots = [p.toXY(kl) for p in out.points]
         pots.append(pots[0]) # close path
         drawer.use(hdc, drawer.getPen(0xA0A0A0, style = win32con.PS_DOT))
         win32gui.PolylineTo(hdc, pots)
@@ -757,19 +823,8 @@ class LineView(Dragable):
         drawer = Drawer.instance()
         if sx == ex and sy == ey:
             return
-        if sx != ex:
-            rc = (ex - 2, ey - 2, ex + 3, ey + 3)
-            drawer.fillRect(hdc, rc, 0x30f030)
-            return
-        W, H = self.win.getClientSize()
-        # draw vertical line arrow
-        d = 1 if ey < sy else -1
-        for n in range(4):
-            for dx in range(-n, n + 1):
-                x = sx + dx
-                y = ey + n * d
-                if x > 0 and y > 0 and x < W and y < H:
-                    win32gui.SetPixel(hdc, x, y, 0x30f030)
+        rc = (ex - 2, ey - 2, ex + 3, ey + 3)
+        drawer.fillRect(hdc, rc, 0x30f030)
 
     def onDragBegin(self, x, y):
         print('[LineView.onDragBegin]', x, y)
@@ -779,13 +834,12 @@ class LineView(Dragable):
         kl : KLineIndicator = self.win.klineIndicator
         dx = x - self.moveXY[0]
         dy = y - self.moveXY[1]
-        self.outShape.move(dx, dy, kl)
-        self.orgShape.move(dx, dy, kl)
+        self.shape.move(dx, dy, kl)
 
     def onDragEnd(self, x, y):
         self.onDrag(x, y)
         # save Line to db
-        pts = self.orgShape.points
+        pts = self.shape.points
         if self.textLine.kind == 'text':
             if len(pts) == 1:
                 self.startPos = pts[0]
@@ -816,8 +870,7 @@ class DrawTextManager(base_win.Listener):
         self.curLine = lineView
 
     def end(self):
-        if not self.drawing or not self.curLine:
-            self.cancel()
+        if not self.drawing:
             return False
         self.curLine.save()
         cl = self.curLine
@@ -853,11 +906,11 @@ class DrawTextManager(base_win.Listener):
     def onLButtonUp(self, x, y):
         if not self.drawing:
             return False
-        pos = self.curLine.getPosByXY(x, y)
+        pos = Point.fromXY(x, y, self.win.klineIndicator)
         if not pos:
             self.cancel()
             return True
-        self.curLine.startPos = pos
+        self.curLine.startPos.update(pos)
         self.openEditText()
         return True
 
@@ -874,13 +927,14 @@ class DrawLineManager(base_win.Listener):
         self.curLine = LineView(curLine, self.win)
 
     def end(self):
-        if not self.drawing or not self.curLine:
-            self.cancel()
+        if not self.drawing:
             return False
         self.curLine.save()
         cl = self.curLine
         self.cancel()
+        cl.clearShape()
         self.notifyListener(self.Event('AppendLine', cl))
+        self.win.invalidWindow()
         return True
 
     def cancel(self):
@@ -888,28 +942,25 @@ class DrawLineManager(base_win.Listener):
         self.curLine = None
 
     def isDrawing(self):
-        return self.drawing and self.curLine and \
-               self.curLine.startPos and self.curLine.startPos.day > 0
+        return self.drawing and self.curLine and self.curLine.startPos.isValid()
 
     def onLButtonDown(self, x, y):
         if not self.drawing:
             return False
-        pos = self.curLine.getPosByXY(x, y)
+        pos = Point.fromXY(x, y, self.win.klineIndicator)
         if not pos:
             self.cancel()
             return False
-        pos.dx = 0 # modify line dx to 0
-        self.curLine.startPos = pos
+        # pos.dx = 0 # modify line dx to 0
+        self.curLine.startPos.update(pos)
         return True
 
     def onMouseMove(self, x, y):
-        if not self.isDrawing():
-            self.cancel()
+        if not self.drawing:
             return False
-        pos = self.curLine.getPosByXY(x, y)
-        if pos:
-            self.curLine.endPos = pos
-            self.curLine.endPos.dx = 0 # modify dx to 0
+        pos = Point.fromXY(x, y, self.win.klineIndicator)
+        self.curLine.endPos.update(pos)
+        # self.curLine.endPos.dx = 0 # modify dx to 0
         self.win.invalidWindow()
         return True
 
@@ -917,8 +968,8 @@ class DrawLineManager(base_win.Listener):
         if not self.isDrawing():
             self.cancel()
             return False
-        self.curLine.endPos = self.curLine.getPosByXY(x, y)
-        self.curLine.endPos.dx = 0 # modify dx to 0
+        pos = Point.fromXY(x, y, self.win.klineIndicator)
+        self.curLine.endPos.update(pos)
         self.end()
         self.win.invalidWindow()
         return True
@@ -947,7 +998,7 @@ class TextLineManager:
         elif kind == 'line':
             self.drawLineMgr.beginNew(self.code)
 
-    def onAppendLine(self, event):
+    def onAppendLine(self, event, args):
         self.lines.append(event.src)
 
     def changeCode(self, code):
@@ -971,6 +1022,9 @@ class TextLineManager:
                 break
         self.win.invalidWindow()
 
+    def delSelectLine(self):
+        self.delLine2(self.selLine)
+
     def onDraw(self, hdc):
         kl = self.win.klineIndicator
         for line in self.lines:
@@ -981,7 +1035,8 @@ class TextLineManager:
     def getLineViewByXY(self, x, y):
         kl = self.win.klineIndicator
         for i in range(len(self.lines) - 1, -1, -1):
-            if self.lines[i].outShape.isPointIn(x, y, kl):
+            shape = self.lines[i].getOutShape()
+            if shape and shape.isPointIn(x, y, kl):
                 return self.lines[i]
         return None
 
@@ -994,7 +1049,7 @@ class TextLineManager:
         # check click on LineView
         old = self.selLine
         self.selLine = self.getLineViewByXY(x, y)
-        if old != self.selLine and self.selLine:
+        if old != self.selLine:
             self.win.invalidWindow()
         flag = self.drager.onLButtonDown(x, y, self.selLine)
         if flag:
@@ -1002,8 +1057,8 @@ class TextLineManager:
         return False
     
     def onLButtonUp(self, x, y):
-        flag = self.drawTextMgr.onLButtonDown(x, y)
-        flag = flag or self.drawLineMgr.onLButtonDown(x, y)
+        flag = self.drawTextMgr.onLButtonUp(x, y)
+        flag = flag or self.drawLineMgr.onLButtonUp(x, y)
         if flag:
             return True
         # test drag
@@ -1963,7 +2018,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '002202' #      1B0688
+    CODE = '600172' #      1B0688 002202
     win = kline_utils.createKLineWindowByCode(CODE)
     win.changeCode(CODE)
     win.setCodeList([CODE, '002792', '002149', '002565', '301079', '300058', '688523'])
