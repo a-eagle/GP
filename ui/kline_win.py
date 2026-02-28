@@ -695,18 +695,16 @@ class LineView(Dragable):
 
     def save(self):
         line = self.textLine
-        if not line:
+        if not line or not self.isValid():
             return
         oldId = line.id
-        if line.kind == 'line':
-            if self.isValid() and self.startPos != self.endPos:
-                line._startPos = self.startPos.dump()
-                line._endPos = self.endPos.dump()
-                line.save()
+        if line.kind == 'line' and self.startPos != self.endPos:
+            line._startPos = self.startPos.dump()
+            line._endPos = self.endPos.dump()
+            line.save()
         elif line.kind == 'text':
-            if self.isValid():
-                line._startPos = self.startPos.dump()
-                line.save()
+            line._startPos = self.startPos.dump()
+            line.save()
     
     def getOutShape(self) -> Polygon:
         if not self.isValid():
