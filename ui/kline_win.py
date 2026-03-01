@@ -686,6 +686,8 @@ class LineView(Dragable):
             self.endPos = Point(pos = textLine._endPos)
         else:
             self.endPos = Point()
+        self.shape.addPoint(self.startPos)
+        self.shape.addPoint(self.endPos)
     
     def isValid(self):
         if self.textLine.kind == 'line':
@@ -694,16 +696,18 @@ class LineView(Dragable):
         return self.startPos and self.startPos.isValid() and self.textLine.info
 
     def save(self):
-        line = self.textLine
+        line : my_orm.TextLine = self.textLine
         if not line or not self.isValid():
             return
         oldId = line.id
         if line.kind == 'line' and self.startPos != self.endPos:
             line._startPos = self.startPos.dump()
             line._endPos = self.endPos.dump()
+            line.updateTime = datetime.datetime.now()
             line.save()
         elif line.kind == 'text':
             line._startPos = self.startPos.dump()
+            line.updateTime = datetime.datetime.now()
             line.save()
     
     def getOutShape(self) -> Polygon:
@@ -739,8 +743,6 @@ class LineView(Dragable):
         if not xy:
             return
         rc = (*xy, xy[0] + size[0], xy[1] + size[1])
-        if self.shape.isEmpty():
-            self.shape.addPoint(self.startPos)
         self.shape._textSize = size
         drawer.drawText(hdc, textLine.info, rc, color = 0x404040, align = win32con.DT_LEFT)
         if hilight:
@@ -799,9 +801,6 @@ class LineView(Dragable):
         exy = self.endPos.toXY(kl)
         if not sxy or not exy:
             return
-        if self.shape.isEmpty():
-            self.shape.addPoint(self.startPos)
-            self.shape.addPoint(self.endPos)
         drawer.drawLine(hdc, *sxy, *exy, 0x30f030, width = 1)
         self.drawLineArrow(hdc, *sxy, *exy)
         if hilight:
@@ -839,15 +838,7 @@ class LineView(Dragable):
         self.onDrag(x, y)
         # save Line to db
         pts = self.shape.points
-        if self.textLine.kind == 'text':
-            if len(pts) == 1:
-                self.startPos = pts[0]
-                self.save()
-        elif self.textLine.kind == 'line':
-            if len(pts) == 2:
-                self.startPos = pts[0]
-                self.endPos = pts[1]
-                self.save()
+        self.save()
 
 class DrawTextManager(base_win.Listener):
     def __init__(self, win) -> None:

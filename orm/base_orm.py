@@ -113,26 +113,69 @@ class BaseModel(pw.Model):
                 rs.append((name, datetime.date, defaultVal))
         return rs
 
+class ModelManager:
+    def getColumns(self, model : pw.Model):
+        tableName = model._meta.table_name
+        db : pw.SqliteDatabase = model._meta.database
+        cc = db.execute_sql(f"PRAGMA table_info({tableName})")
+        rs = cc.fetchall()
+        cols = []
+        for col in rs:
+            colName = col[1]
+            cols.append(colName)
+        return cols
+
+    def hasColumn(self, model : pw.Model, columnName : str):
+        cols = self.getColumns(model)
+        return columnName in cols
+
+     # modify table of add field
+    def addField(self, model : pw.Model, field : pw.Field):
+        # field : pw.Field = model._meta.fields.get(fieldName, None)
+        columnName = field.column_name
+        if self.hasColumn(model, columnName):
+            return
+        tableName = model._meta.table_name
+        sql = f"alter table {tableName} add column {columnName} {field.field_type}"
+        if hasattr(field, 'max_length'):
+            sql += f'({field.max_length})'
+        if field.null == False:
+            sql += ' NOT NULL '
+        db : pw.SqliteDatabase = model._meta.database
+        db.execute_sql(sql)
+
+    # TODO  has bug
+    def dropField(self, model : pw.Model, columnName: str):
+        if not self.hasColumn(model, columnName):
+            return
+        tableName = model._meta.table_name
+        sql = f"alter table {tableName} drop column {columnName}"
+        db : pw.SqliteDatabase = model._meta.database
+        db.execute_sql(sql) # why has bug ?
+
 class TestModel(BaseModel):
     user = pw.CharField() #
-    sex = pw.CharField(null = True, default = None) #
-    old = pw.IntegerField(null = True, default = 0 )
+    old = pw.IntegerField(null = True, default = 0, column_name = 'OLD_x')
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
-if __name__ == '__main__':
-    bm = TestModel(user = 'Hello; Ni; Hao; Ma;', old=10)
-    bm2 = TestModel(old = '10')
-    bm3 = {'user': 'NewUser'}
+    sex = pw.CharField(null = True, default = datetime.date.today, column_name = 'sex_n') #
+    paiMing = pw.IntegerField(default = 10)
 
-    def spliter(val : str):
-        if not val:
-            return []
-        sp = val.split(';')
-        rs = []
-        for s in sp:
-            s = s.strip()
-            if s:
-                rs.append(s)
-        return rs
-    vv = bm.diffAttrOfList('user', 'Ma; Hello;Ni;Hao;se', spliter)
-    print(vv)
+    class Meta:
+        # database = db_test
+        table_name = 'TestModel_N'
+
+def test():
+    db_test = pw.SqliteDatabase(f'test.db')
+    TestModel._meta.database = db_test
+    db_test.create_tables([TestModel])
+    ModelManager().addField(TestModel, TestModel.paiMing)
+    ModelManager().addField(TestModel, TestModel.sex)
+    tb = TestModel()
+    tb.create(user = 'xde', old = 15, sex = 'MF')
+    
+
+if __name__ == '__main__':
+    # test()
+    pass
+    

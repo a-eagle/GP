@@ -25,7 +25,7 @@ class MySettings(base_orm.BaseModel):
     subKey =  pw.CharField(default = '')
     val = pw.CharField(null = True)
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
-    
+
     class Meta:
         database = db_def
 
