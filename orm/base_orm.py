@@ -114,7 +114,8 @@ class BaseModel(pw.Model):
         return rs
 
 class ModelManager:
-    def getColumns(self, model : pw.Model):
+    @classmethod
+    def getColumns(clazz, model : pw.Model):
         tableName = model._meta.table_name
         db : pw.SqliteDatabase = model._meta.database
         cc = db.execute_sql(f"PRAGMA table_info({tableName})")
@@ -125,15 +126,17 @@ class ModelManager:
             cols.append(colName)
         return cols
 
-    def hasColumn(self, model : pw.Model, columnName : str):
-        cols = self.getColumns(model)
+    @classmethod
+    def hasColumn(clazz, model : pw.Model, columnName : str):
+        cols = clazz.getColumns(model)
         return columnName in cols
 
+    @classmethod
      # modify table of add field
-    def addField(self, model : pw.Model, field : pw.Field):
+    def addField(clazz, model : pw.Model, field : pw.Field):
         # field : pw.Field = model._meta.fields.get(fieldName, None)
         columnName = field.column_name
-        if self.hasColumn(model, columnName):
+        if clazz.hasColumn(model, columnName):
             return
         tableName = model._meta.table_name
         sql = f"alter table {tableName} add column {columnName} {field.field_type}"
@@ -145,8 +148,9 @@ class ModelManager:
         db.execute_sql(sql)
 
     # TODO  has bug
-    def dropField(self, model : pw.Model, columnName: str):
-        if not self.hasColumn(model, columnName):
+    @classmethod
+    def dropField(clazz, model : pw.Model, columnName: str):
+        if not clazz.hasColumn(model, columnName):
             return
         tableName = model._meta.table_name
         sql = f"alter table {tableName} drop column {columnName}"
@@ -169,8 +173,9 @@ def test():
     db_test = pw.SqliteDatabase(f'test.db')
     TestModel._meta.database = db_test
     db_test.create_tables([TestModel])
-    ModelManager().addField(TestModel, TestModel.paiMing)
-    ModelManager().addField(TestModel, TestModel.sex)
+    ModelManager.dropField(TestModel, 'paiMing')
+    ModelManager.addField(TestModel, TestModel.paiMing)
+    ModelManager.addField(TestModel, TestModel.sex)
     tb = TestModel()
     tb.create(user = 'xde', old = 15, sex = 'MF')
     
