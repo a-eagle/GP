@@ -751,7 +751,7 @@ class LineView(Dragable):
     def calcTextOutShape(self):
         kl : KLineIndicator = self.win.klineIndicator
         B = 4
-        size = getattr(self.shape, '_textSize')
+        size = getattr(self.shape, '_textSize', None)
         if not size:
             return None
         sxy = self.startPos.toXY(kl)
