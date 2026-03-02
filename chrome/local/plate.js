@@ -189,7 +189,7 @@ let CodeTabView = {
         this.url = `/plate/${code}?day=${day}`;
     },
     template: `
-        <stock-table :columns="columns" :url="url" :day="day" > </stock-table>
+        <stock-table :columns="columns" :url="url" :day="day" style="width:100%;"> </stock-table>
     `,
 };
 
