@@ -837,7 +837,8 @@ class LineView(Dragable):
     def onDragEnd(self, x, y):
         self.onDrag(x, y)
         # save Line to db
-        pts = self.shape.points
+        if self.pressXY == (x, y):
+            return
         self.save()
 
 class DrawTextManager(base_win.Listener):
@@ -1706,7 +1707,19 @@ class KLineWindow(base_win.BaseWindow):
         win.addIndicator(RateIndicator(win, {'height': 60, 'margins': (15, 2)}))
         win.addIndicator(AmountIndicator(win, {'height': 60, 'margins': (10, 2)}))
         return win
-    
+
+class XuanGuWindow(BaseWindow):
+    def __init__(self) -> None:
+        super().__init__()
+        self.css['bgColor'] = 0x202020
+
+    def onDraw(self, hdc):
+        W, H = self.getClientSize()
+        self.drawer.drawText(hdc, '【选股标准】', (0, 0, W, 25), color = 0xff00ff)
+        self.drawer.drawText(hdc, '【1型】由横盘蓄势开始启动首日,可上涨3日', (0, 25, W, 70), color = 0x00ffff, align = win32con.DT_WORDBREAK)
+        self.drawer.drawText(hdc, '【2型】向上突破时买入', (0, 80, W, 110), color = 0x00ffff, align = win32con.DT_WORDBREAK)
+        self.drawer.drawText(hdc, '买低位股，安全，不追高', (0, 110, W, 130), color = 0x00ffff, align = win32con.DT_WORDBREAK)
+
 class CodeWindow(BaseWindow):
     def __init__(self, klineWin) -> None:
         super().__init__()
@@ -1919,6 +1932,9 @@ class KLineCodeWindow(base_win.BaseWindow):
         btn.createWindow(self.hwnd, (0, 0, 40, 30))
         btn.addNamedListener('Click', self.onLeftRight)
         rightLayout.addContent(btn, {'margins': (0, 10, 0, 0)})
+        xgWin = XuanGuWindow()
+        xgWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 200))
+        rightLayout.addContent(xgWin, {'margins': (0, 15, 0, 5)})
         self.layout.setContent(0, 1, rightLayout)
         self.layout.resize(0, 0, *self.getClientSize())
 
