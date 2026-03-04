@@ -1073,6 +1073,10 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.inputs = ''
         self.detailWin = None
         base_win.ThreadPool.instance().start()
+        
+        self.faskViewWin = None
+        self.faskViewRect = (20, 30, 100, 50)
+        base_win.ThsShareMemory.instance().addListener(self.onListenThsCode)
 
     def show(self, x, y):
         win32gui.SetWindowPos(self.hwnd, 0, x, y, 0, 0, win32con.SWP_NOZORDER | win32con.SWP_NOSIZE) #  | win32con.SWP_NOACTIVATE
@@ -1082,6 +1086,13 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         w = win32api.GetSystemMetrics(0) # desktop width
         rect = (w - self.MAX_SIZE[0] - 100, 200, *self.MAX_SIZE)
         super().createWindow(parentWnd, rect)
+
+    def isZS(self):
+        return self.curCode and self.curCode[0 : 2] == '88'
+
+    def onDrawZS(self, hdc):
+        self.drawer.fillRect(hdc, self.faskViewRect, 0x303030)
+        self.drawer.drawText(hdc, '快速预览', self.faskViewRect, 0xff00ff, win32con.DT_VCENTER | win32con.DT_CENTER | win32con.DT_SINGLELINE)
 
     def onDraw(self, hdc):
         W, H = self.getClientSize()
@@ -1096,8 +1107,10 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.drawer.use(hdc, self.drawer.getFont(fontSize = 14, weight=1000))
         self.drawer.fillRect(hdc, rc, 0x101010)
         self.drawer.drawText(hdc, cs, rc, 0x00D7FF)
-        
-        if not self.data or not self.curCode or self.curCode[0] == '8':
+        if self.isZS():
+            self.onDrawZS(hdc)
+            return
+        if not self.data or not self.curCode:
             return
         self.drawer.use(hdc, self.drawer.getFont(fontSize = 14, weight=1000))
         y1, y2 = 22, 45
@@ -1235,6 +1248,28 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.wbData = newWb
         self.invalidWindow()
 
+    def onOpenFaskView(self):
+        if not self.curCode:
+            return
+        SX = 360
+        DW = win32api.GetSystemMetrics (win32con.SM_CXSCREEN) - SX
+        DH = win32api.GetSystemMetrics (win32con.SM_CYSCREEN) - 35
+        style = win32con.WS_VISIBLE | win32con.WS_POPUPWINDOW | win32con.WS_CAPTION
+        win = kline_utils.createKLineWindow(None, (SX, 0, DW, DH), style)
+        win32gui.SetWindowPos(win.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+        win.addNamedListener('OnDestory', self.onDestoryFaskView)
+        self.faskViewWin = win
+
+    def onDestoryFaskView(self, evt, args):
+        self.faskViewWin = None
+
+    def onListenThsCode(self, code, day, flag):
+        if not self.faskViewWin:
+            return
+        if not (flag & base_win.ThsShareMemory.FLAG_CHANGE_CODE):
+            return
+        self.faskViewWin.changeCode(code)
+
     def onOpenKLine(self):
         if self.curCode and self.curCode[0 : 2] == '88':
             data = {'code': self.curCode, 'day': None}
@@ -1355,7 +1390,12 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         if msg == win32con.WM_NCLBUTTONDBLCLK:
             return True
         if msg == win32con.WM_LBUTTONDBLCLK:
-            self.onOpenKLine()
+            x, y = (lParam & 0xffff), (lParam >> 16) & 0xffff
+            isInFaskView = x >= self.faskViewRect[0] and x < self.faskViewRect[2] and y >= self.faskViewRect[1] and y < self.faskViewRect[3]
+            if self.isZS() and isInFaskView:
+                self.onOpenFaskView()
+            else:
+                self.onOpenKLine()
             return True
         if msg == win32con.WM_LBUTTONDOWN:
             win32gui.SetFocus(self.hwnd)
@@ -1451,11 +1491,12 @@ if __name__ == '__main__':
     #win.changeLastDay(20250102)
     #win32gui.PumpMessages()
 
-    # win = CodeBasicWindow()
-    # win.createWindow(None)
-    # win.changeCode('001298')
-    # win.show(300, 500)
-    # win32gui.PumpMessages()
+    win = CodeBasicWindow()
+    win.createWindow(None)
+    win.changeCode('881166')
+    win.show(300, 500)
+    win32gui.PumpMessages()
+
     fromDay = datetime.date.today() - datetime.timedelta(days = 60)
     fromDay = int(fromDay.strftime('%Y%m%d'))
     maxHot_2 = ths_orm.THS_HotZH.select(pw.fn.min(ths_orm.THS_HotZH.zhHotOrder)).where(ths_orm.THS_HotZH.code == 603716, ths_orm.THS_HotZH.day >= fromDay).scalar()

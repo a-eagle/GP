@@ -3396,7 +3396,9 @@ class RichTextRender:
         EY = rect[3]
         self._calcSpecsRect(hdc, drawer, rect)
         for item in self.specs:
-            rc = item['rect']
+            rc = item.get('rect', None)
+            if not rc:
+                continue
             if rc[1] >= EY: #or rc[3] > EY
                 continue
             fnt = drawer.getFont(fontSize = self._getAttr(item, 'fontSize'))
@@ -3418,6 +3420,9 @@ class ThsShareMemory:
     POS_SEL_DAY = 1
     POS_MARK_DAY = 2
 
+    FLAG_CHANGE_CODE = 1
+    FLAG_CHANGE_DAY = 2
+
     _thread = None
 
     def __init__(self, create : bool = False, name = 'Ths-Share-window-Memory') -> None:
@@ -3436,19 +3441,16 @@ class ThsShareMemory:
             ins.open()
         return ins
 
-    # func = function(code, day)
-    def addListener(self, name, func):
-        if not name or not func:
+    # func = function(code, day, changeFlags)
+    def addListener(self, func):
+        if not func:
             return
-        for lt in self.listeners:
-            if lt['name'] == name:
-                return
-        self.listeners.append({'name' : name, 'func' : func})
+        if func not in self.listeners:
+            self.listeners.append(func)
 
-    def notifyListener(self, curCode, curDay):
-        for ls in self.listeners:
-            func = ls['func']
-            func(curCode, curDay)
+    def notifyListener(self, curCode, curDay, changeFlags):
+        for func in self.listeners:
+            func(curCode, curDay, changeFlags)
 
     def onListenThread(self):
         curDay, curCode = 0, 0
@@ -3458,10 +3460,14 @@ class ThsShareMemory:
             code = self.readCode()
             if day == 0 or code == 0:
                 continue
-            if day != curDay or code != curCode:
-                curDay = day
-                curCode = code
-                self.notifyListener(curCode, curDay)
+            flag = 0
+            flag = flag | (self.FLAG_CHANGE_CODE if code != curCode else 0)
+            flag = flag | (self.FLAG_CHANGE_DAY if day != curDay else 0)
+            if not flag:
+                continue
+            curDay = day
+            curCode = code
+            self.notifyListener(curCode, curDay, flag)
 
     def open(self):
         if self.shm:
