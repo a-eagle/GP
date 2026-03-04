@@ -85,7 +85,7 @@ class ContextMenuManager:
         else:
             mm.extend([
                 {'title': 'LINE'},
-                {'title': '查看板块个股', 'name': 'open-cur-zs', 'day': selDay, 'enable': selDay > 0 and self.win.refIndicator.isValid()},
+                {'title': '查看板块个股', 'name': 'open-cur-zs', 'day': selDay, 'enable': selDay > 0},
             ])
         mm.extend([
               {'title': 'LINE'},
@@ -226,11 +226,11 @@ class ContextMenuManager:
         elif name == 'open-ref-thszs':
             code = evt.item['code']
             day = evt.item["day"]
-            self._openRefThsZs(code, day)
+            self.openRefZs(code, day)
         elif name == 'open-ref-clszs':
             code = evt.item['code']
             day = evt.item["day"]
-            self._openRefClsZs(code, day)
+            self.openRefZs(code, day)
         elif name == 'open-ref-global':
             day = evt.item["day"]
             self.openRefGlobal(day)
@@ -242,10 +242,7 @@ class ContextMenuManager:
         elif name == 'open-cur-zs':
             code = self.win.klineIndicator.code
             day = evt.item["day"]
-            if code[0 : 2] == '88':
-                self._openRefThsZs(code, day)
-            else:
-                self._openRefClsZs(code, day)
+            self.openRefZs(code, day)
         elif name == 'add-ref-zs':
             code = evt.item['code']
             self.win.refIndicator.changeCode(code, self.win.klineIndicator.period)

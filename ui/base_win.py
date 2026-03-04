@@ -3343,7 +3343,7 @@ class ComboBox(Editor):
 
 # support \n
 class RichTextRender:
-    NEW_LINE = {'text': '\n', 'color': 0, 'bgColor': 0, 'fontSize': 12, 'args': None}
+    NEW_LINE = {'text': '\n', 'color': 0, 'bgColor': 0, 'fontSize': 0, 'args': None}
 
     def __init__(self, lineHeight = 20) -> None:
         self.specs = []
@@ -3378,10 +3378,11 @@ class RichTextRender:
         x, y = SX, SY
         for item in self.specs:
             text = self._getAttr(item, 'text')
-            fnt = drawer.getFont(fontSize = item['fontSize'])
-            drawer.use(hdc, fnt)
+            if item['fontSize'] > 0:
+                fnt = drawer.getFont(fontSize = item['fontSize'])
+                drawer.use(hdc, fnt)
             sw, *_ = win32gui.GetTextExtentPoint32(hdc, text)
-            if sw + x <= EX:
+            if sw + x <= EX and (item is not self.NEW_LINE):
                 item['rect'] = (x, y, x + sw, y + self.lineHeight)
             else:
                 x = SX

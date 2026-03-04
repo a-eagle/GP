@@ -567,7 +567,13 @@ class Server:
         rs = {}
         zh = None
         for c in codes:
-            code = self._getStdCode(c)
+            if isinstance(c, str):
+                code = c
+            elif isinstance(c, dict):
+                code = c.get('secu_code', '') or c.get('code', '')
+            elif hasattr(c, 'code'):
+                code = getattr(c, 'code')
+            code = self._getStdCode(code)
             it = {'code': code, 'secu_code': self._getSecuCode(code)}
             rs[it['secu_code']] = it
             cl = gn_utils.cls_gntc_s.get(code, None) or {}
@@ -598,9 +604,16 @@ class Server:
     def getPlate(self, code):
         try:
             if code[0 : 3] == 'cls':
-                return self.getPlateCls(code)
+                data = self.getPlateCls(code)
             if code[0 : 2] == '88':
-                return self.getPlateThs(code)
+                data = self.getPlateThs(code)
+            day = flask.request.args.get('day', None)
+            infos = self._queryCodesInfo(day, ['ths_hy'], data)
+            for r in data:
+                sc = r['secu_code']
+                if sc in infos:
+                    r.update(infos[sc])
+            return data
         except Exception as e:
             traceback.print_exc()
         return []

@@ -3,10 +3,8 @@ import init from './components/init.js'
 import {DefaultRender} from './components/table.js'
 
 let App = {
-    created() {
-        // console.log('[App.created]');
-    },
     data() {
+        console.log('App.data()')
         return {
             code: null, name: null,
             info: {},
@@ -28,6 +26,7 @@ let App = {
         },
     },
     created() {
+        console.log('App.created()')
         let code = utils.getLocationParams('code');
         let name = utils.getLocationParams('name');
         this.code = code;
@@ -159,23 +158,29 @@ let NewsTabView = {
 
 let CodeTabView = {
     data() {
+        let code = utils.getLocationParams('code');
+        let isTHS = code && code.substring(0, 2) == '88';
+        let columns = [
+            {title: '', key:  '_index_', width: 50},
+            {title: '股票/代码', key: 'code', width: 80},
+            {title: '同花顺行业', key: 'ths_hy', width: 120},
+            {title: '涨跌幅', key: 'change', width: 70, sortable: true},
+            {title: '最高热度', key: 'maxHot', width: 70, sortable: true},
+            {title: '热度', key: 'hots', width: 50, sortable: true},
+            {title: '成交额', key: 'dynamicAmount', width: 50, sortable: true}, // amount
+            {title: '5日最高成交额', key: 'max_5_vol', width: 70, sortable: true, cellRender: DefaultRender.yRender},
+            {title: '20日最高成交额', key: 'max_20_vol', width: 70, sortable: true, cellRender: DefaultRender.yRender},
+            // {title: '流通市值', key: 'cmc', width: 70, sortable: true},
+            {title: '简介', key: 'assoc_desc', width: 250},
+            {title: '分时图', key: 'fs', width: 300},
+        ];
+        if (isTHS) {
+            columns[3].key = 'dynamicZf'; // modify 涨跌幅
+        }
         return {
             url: null,
             day: null,
-            columns: [
-                {title: '', key:  '_index_', width: 50},
-                {title: '股票/代码', key: 'code', width: 80},
-                {title: '同花顺行业', key: 'ths_hy', width: 120},
-                {title: '涨跌幅', key: 'change', width: 70, sortable: true},
-                {title: '最高热度', key: 'maxHot', width: 70, sortable: true},
-                {title: '热度', key: 'hots', width: 50, sortable: true},
-                {title: '成交额', key: 'amount', width: 50, sortable: true},
-                {title: '5日最高成交额', key: 'max_5_vol', width: 70, sortable: true, cellRender: DefaultRender.yRender},
-                {title: '20日最高成交额', key: 'max_20_vol', width: 70, sortable: true, cellRender: DefaultRender.yRender},
-                // {title: '流通市值', key: 'cmc', width: 70, sortable: true},
-                {title: '简介', key: 'assoc_desc', width: 250},
-                {title: '分时图', key: 'fs', width: 300},
-            ],
+            columns : columns,
         }
     },
     async mounted() {

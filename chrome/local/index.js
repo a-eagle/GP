@@ -516,8 +516,7 @@ let _ZdfbView = {
                     this.degreeTxt = String(this.degree) + '°';
                 }
                 this.d = `${d} 227`;
-                if (this.degree && this.degree >= 50)
-                    this.degreeStyle.color = 'red';
+                this.degreeStyle.color = this.degree && this.degree >= 50 ? 'red' : '#52c2a3';
                 this.$nextTick(() => {
                     let canvas = this.$refs.zdfbCanvas;
                     let view = new ZdfbView(canvas);
