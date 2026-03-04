@@ -451,10 +451,11 @@ class IndicatorVisibleManager:
         return default
 
 class Point:
-    def __init__(self, day = 0, dx = 0, price = 0, pos = None) -> None:
+    def __init__(self, day = 0, dx = 0, price = 0, dy = 0, pos = None) -> None:
         self.day = day
         self.dx = dx
         self.price = price
+        self.dy = dy
         if pos:
             self.load(pos)
 
@@ -468,7 +469,7 @@ class Point:
         x = kl.getCenterX(idx) + self.dx
         if x < 0 or x > kl.width:
             return None
-        y = kl.getYAtValue(self.price)
+        y = kl.getYAtValue(self.price) + self.dy
         if y < 0 or y >= kl.height:
             return None
         return (x, y)
@@ -479,6 +480,7 @@ class Point:
         self.day = point.day
         self.dx = point.dx
         self.price = point.price
+        self.dy = point.dy
 
     @staticmethod
     def fromXY(x, y, kl : KLineIndicator):
@@ -502,14 +504,11 @@ class Point:
         return True
 
     def move(self, dx, dy, kl : KLineIndicator):
-        xy = self.toXY(kl)
-        if not xy:
-            return False
-        x, y = xy[0] + dx, xy[1] + dy
-        return self.setXY(x, y, kl)
+        self.dx += dx
+        self.dy += dy
 
     def dump(self):
-        obj = {'day': self.day, 'dx': self.dx, 'price': self.price}
+        obj = {'day': self.day, 'dx': self.dx, 'price': self.price, 'dy': self.dy}
         return json.dumps(obj)
 
     def load(self, txt):
@@ -526,7 +525,7 @@ class Point:
         return self.dump()
 
     def __eq__(self, m) -> bool:
-        return self.day == m.day and self.dx == m.dx and self.price == m.price
+        return self.day == m.day and self.dx == m.dx and self.price == m.price and self.dy == m.dy
 
 class Polygon:
     def __init__(self) -> None:
@@ -684,7 +683,8 @@ class LineView(Dragable):
         else:
             self.endPos = Point()
         self.shape.addPoint(self.startPos)
-        self.shape.addPoint(self.endPos)
+        if textLine.kind == 'line':
+            self.shape.addPoint(self.endPos)
     
     def isValid(self):
         if self.textLine.kind == 'line':
