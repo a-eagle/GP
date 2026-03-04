@@ -37,4 +37,4 @@ db_def.create_tables([TextLine, MySettings])
 if base_orm.VersionManager.getVersion('TextLine') == 0:
     db_def.drop_tables([TextLine])
     db_def.create_tables([TextLine])
-    base_orm.VersionManager.saveVersion(1)
+    base_orm.VersionManager.saveVersion('TextLine', 1)
