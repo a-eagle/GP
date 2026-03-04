@@ -2,6 +2,7 @@ import peewee as pw
 import os, sys, datetime
 
 path = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(path)
 
 class ModelManager:
     @classmethod
@@ -74,7 +75,7 @@ class ModelManager:
 
     # move table from a database to another database
     @classmethod
-    def moveTableData(clazz, fromDb : pw.SqliteDatabase, destModel : pw.Model, modifyFunc = None):
+    def copyTableData(clazz, fromDb : pw.SqliteDatabase, destModel : pw.Model, modifyFunc = None):
         cols = [] # (field.name, column_name)
         for k in destModel._meta.columns:
             field = destModel._meta.columns[k]
@@ -103,70 +104,33 @@ class ModelManager:
 class TestModel(pw.Model):
     user = pw.CharField() #
     old = pw.IntegerField(null = True, default = 0, column_name = 'OLD_x')
-    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+    # updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
-    sex = pw.CharField(null = True, default = datetime.date.today, column_name = 'sex_n') #
-    paiMing = pw.IntegerField(default = 10)
-    score = pw.IntegerField(column_name = 'cc_score')
+    # sex = pw.CharField(null = True, default = datetime.date.today, column_name = 'sex_n') #
+    # paiMing = pw.IntegerField(default = 10)
+    # score = pw.IntegerField(column_name = 'cc_score', default = 0)
 
     class Meta:
         # database = db_test
         table_name = 'TestModel_New'
 
 def test_ModelManager():
-    db_test = pw.SqliteDatabase(f'test.db')
+    db_test = pw.SqliteDatabase(f'db/test.db')
     TestModel._meta.database = db_test
-    # db_test.create_tables([TestModel])
-    ModelManager.addField(TestModel, TestModel.paiMing)
-    ModelManager.addField(TestModel, TestModel.sex)
+    db_test.create_tables([TestModel])
+    # ModelManager.addField(TestModel, TestModel.paiMing)
+    # ModelManager.addField(TestModel, TestModel.sex)
     # ModelManager.addField(TestModel, TestModel.score)
     # ModelManager.renameField(TestModel, TestModel.score, 'score')
     # ModelManager.renameTable(db_test, 'TestModel_N', 'TestModel_New')
-    tb = TestModel()
-    tb.create(user = 'xde', old = 15, sex = 'MF')
     
-def move_cls():
-    import cls_orm
-    db_tck = pw.SqliteDatabase(f'{path}/db/tck.db')
-    ModelManager.moveTableData(db_tck, cls_orm.CLS_UpDown)
-    ModelManager.moveTableData(db_tck, cls_orm.CLS_SCQX)
-    ModelManager.moveTableData(db_tck, cls_orm.CLS_SCQX_Time)
-    ModelManager.moveTableData(db_tck, cls_orm.CLS_HotTc)
-    ModelManager.moveTableData(db_tck, cls_orm.CLS_ZT)
+    # tb = TestModel.get_by_id(3)
+    # m = TestModel.update(tb.__data__, id = 10, old = 25).where(TestModel.id == tb.id)
+    # m.execute()
+    # print(m)
 
-def diffDb(dbName):
-    newDb = pw.SqliteDatabase(f'db/{dbName}')
-    oldDb = pw.SqliteDatabase(f'db/OLD/{dbName}')
-    # newDb.connect()
-    # oldDb.connect()
-    rs = newDb.execute_sql("SELECT name FROM sqlite_master WHERE type='table'")
-    tables = []
-    for r in rs:
-        tables.append(r[0])
-    for t in tables:
-        sql = f'select count(*) from {t}'
-        rs = newDb.execute_sql(sql)
-        new = next(iter(rs))[0]
-        rs = oldDb.execute_sql(sql)
-        old = next(iter(rs))[0]
-        # print(t, new, old)
-        if new != old:
-            print(t, new, old)
-
-# diff all db & db/OLD *.db  of tables record count
-def diffDbs():
-    dbNames = os.listdir('db')
-    for n in range(len(dbNames) - 1, 0, -1):
-        if '.db' not in dbNames[n]:
-            dbNames.pop(n)
-    print(dbNames)
-
-    for d in dbNames:
-        if d == 'codes.db':
-            continue
-        print('--------', d, '---------')
-        diffDb(d)
-
+    # TestModel.create(user = 'user4')
+    
 if __name__ == '__main__':
     test_ModelManager()
     pass

@@ -1712,13 +1712,16 @@ class XuanGuWindow(BaseWindow):
     def __init__(self) -> None:
         super().__init__()
         self.css['bgColor'] = 0x202020
+        self.render = base_win.RichTextRender(30)
+        self.render.addText('【选股标准】\n', 0x00ffff, fontSize = 14)
+        self.render.addText('【1型】由横盘蓄势开始启动\n       首日,可上涨3日\n', 0x00ffff, fontSize = 14)
+        self.render.addText('【2型】向上突破时买入\n', 0x00ffff, fontSize = 14)
+        self.render.addText('* 买低位股，安全，不追高\n', 0x00ffff, fontSize = 14)
+        self.render.addText('* 必须是热点有持续性板块\n', 0x00ffff, fontSize = 14)
 
     def onDraw(self, hdc):
         W, H = self.getClientSize()
-        self.drawer.drawText(hdc, '【选股标准】', (0, 0, W, 25), color = 0xff00ff)
-        self.drawer.drawText(hdc, '【1型】由横盘蓄势开始启动首日,可上涨3日', (0, 25, W, 70), color = 0x00ffff, align = win32con.DT_WORDBREAK)
-        self.drawer.drawText(hdc, '【2型】向上突破时买入', (0, 80, W, 110), color = 0x00ffff, align = win32con.DT_WORDBREAK)
-        self.drawer.drawText(hdc, '买低位股，安全，不追高', (0, 110, W, 130), color = 0x00ffff, align = win32con.DT_WORDBREAK)
+        self.render.draw(hdc, self.drawer, (0, 0, W, H))
 
 class CodeWindow(BaseWindow):
     def __init__(self, klineWin) -> None:

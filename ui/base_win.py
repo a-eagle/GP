@@ -3341,7 +3341,10 @@ class ComboBox(Editor):
             # no return
         return super().winProc(hwnd, msg, wParam, lParam)
 
+# support \n
 class RichTextRender:
+    NEW_LINE = {'text': '\n', 'color': 0, 'bgColor': 0, 'fontSize': 12, 'args': None}
+
     def __init__(self, lineHeight = 20) -> None:
         self.specs = []
         self.lineHeight = lineHeight
@@ -3352,7 +3355,14 @@ class RichTextRender:
     # fontSize: int
     # args: any param, used for function
     def addText(self, text, color = None, bgColor = None, fontSize = 12, args = None):
-        self.specs.append({'text': text, 'color': color, 'bgColor': bgColor, 'fontSize': fontSize, 'args': args})
+        if not text:
+            return
+        text = text.replace('\r\n', '\n').replace('\r', '\n')
+        ls = text.split('\n')
+        for idx, item in enumerate(ls):
+            self.specs.append({'text': item, 'color': color, 'bgColor': bgColor, 'fontSize': fontSize, 'args': args})
+            if idx != len(ls) - 1:
+                self.specs.append(self.NEW_LINE)
 
     def _getAttr(self, spec, attr):
         val = None

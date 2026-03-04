@@ -1,25 +1,28 @@
 import peewee as pw
-import sys, datetime, os
+import sys, datetime, os, time
 
 path = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(path)
 from orm import base_orm
 
 db_def = pw.SqliteDatabase(f'{path}/db/My.db') # 题材库
 
 # 画线
 class TextLine(base_orm.BaseModel):
-    # keys = ('code', 'kind', '_startPos', '_endPos', 'info')
+    keys = ('keyID', )
     code = pw.CharField()
     kind = pw.CharField()
     _startPos = pw.CharField(default = None)
     _endPos = pw.CharField(default = None, null = True)
     info = pw.CharField(default = None, null = True)
+    keyID = pw.FloatField(default = time.time)
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
     
     class Meta:
         database = db_def
 
 class MySettings(base_orm.BaseModel):
+    keys = ('platform', 'mainKey', 'subKey')
     platform = pw.CharField(default = '')
     mainKey =  pw.CharField(default = '')
     subKey =  pw.CharField(default = '')
@@ -31,3 +34,7 @@ class MySettings(base_orm.BaseModel):
 
 db_def.create_tables([TextLine, MySettings])
 
+if base_orm.VersionManager.getVersion('TextLine') == 0:
+    db_def.drop_tables([TextLine])
+    db_def.create_tables([TextLine])
+    base_orm.VersionManager.saveVersion(1)

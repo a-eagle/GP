@@ -1,6 +1,8 @@
 import peewee as pw
 import sys, datetime, os, inspect
 
+path = os.path.dirname(os.path.dirname(__file__))
+
 class BaseModel(pw.Model):
     # return change: diffrents dict object {name: (old, new), ...}  | not change: {} empty dict
     # newObj: peewee.Model object | dict
@@ -113,4 +115,32 @@ class BaseModel(pw.Model):
                 rs.append((name, datetime.date, defaultVal))
         return rs
 
+db_version = pw.SqliteDatabase(f'{path}/db/Version.db')
+
+class VersionModel(BaseModel):
+    keys = ('keyID', )
+    name = pw.CharField()
+    version = pw.IntegerField()
+
+    class Meta:
+        database = db_version
+        
+db_version.create_tables([VersionModel])
+
+class VersionManager:
+
+    @classmethod
+    def getVersion(clazz, modelName : str):
+        obj = VersionModel.get_or_none(VersionModel.name == modelName)
+        if obj:
+            return obj.version
+        return 0
+    
+    @classmethod
+    def saveVersion(clazz, modelName : str, version : int):
+        obj = VersionModel.get_or_none(VersionModel.name == modelName)
+        if obj:
+            obj.version = version
+        else:
+            VersionModel.create(name = modelName, version = version)
     
