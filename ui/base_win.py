@@ -3449,6 +3449,7 @@ class ThsShareMemory:
             self.listeners.append(func)
 
     def notifyListener(self, curCode, curDay, changeFlags):
+        print('ThsShareMemory.notifyListener', curCode, curDay, changeFlags, self.listeners)
         for func in self.listeners:
             try:
                 func(curCode, curDay, changeFlags)

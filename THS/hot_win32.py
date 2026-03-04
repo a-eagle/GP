@@ -12,7 +12,7 @@ thsWindow = ths_win.ThsWindow()
 thsFPWindow = ths_win.ThsFuPingWindow()
 simpleWindow = tips_win.SimpleWindow('HOT')
 simpleWindow2 = tips_win.SimpleWindow('ZT_GN')
-thsShareMem = base_win.ThsShareMemory()
+thsShareMem = base_win.ThsShareMemory.instance()
 simpleHotZHWindow = tips_win.SimpleHotZHWindow()
 codeBasicWindow = tips_win.CodeBasicWindow()
 thsSelDayWin = ths_win.ThsSelDayWindow()
@@ -153,7 +153,7 @@ def subprocess_main():
         if thsWindow.init():
             break
         time.sleep(1.5)
-    thsShareMem.open()
+    # thsShareMem.open()
     #hotWindow.createWindow(thsWindow.topHwnd)
     simpleWindow.createWindow(thsWindow.topHwnd)
     simpleWindow2.createWindow(thsWindow.topHwnd)
@@ -284,7 +284,7 @@ class MarkMain(base_win.BaseWindow):
         return super().winProc(hwnd, msg, wParam, lParam)
 
 if __name__ == '__main__':
-    tsm = base_win.ThsShareMemory(True)
+    tsm = base_win.ThsShareMemory.instance()
     tsm.open()
     #zsOcr = ths_ocr.ThsZhangShuOcrUtils()
     #zsOcr.start()
