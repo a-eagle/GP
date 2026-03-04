@@ -2024,7 +2024,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '600172' #      1B0688 002202
+    CODE = '300617' #      1B0688 002202  600172
     win = kline_utils.createKLineWindowByCode(CODE)
     win.changeCode(CODE)
     win.setCodeList([CODE, '002792', '002149', '002565', '301079', '300058', '688523'])

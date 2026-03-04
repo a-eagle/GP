@@ -287,8 +287,21 @@ class KLineIndicator(Indicator):
             return 0xff0000
         if zdt == 'DT' or zdt == 'DTZB':
             return 0x00ffff
+        low = data.low
+        high = data.high
+        if idx > 0:
+            pre = self.data[idx - 1].close
+            low = min(pre, low)
+            high = max(pre, high)
+        zhengFu = (high - low) / low * 100
+        # up
         if data.close >= data.open:
+            if zhengFu >= 7:
+                return 0x6600CC
             return 0x0000ff
+        # down
+        if zhengFu >= 7:
+            return 0x808000
         return 0xfcfc54
 
     def draw(self, hdc, drawer):
@@ -1829,7 +1842,5 @@ class Amount2Indicator(CustomIndicator):
 
 if __name__ == '__main__':
     #base_win.ThreadPool.instance().start()
-    a = set(['A', 'B', 'C'])
-    print(a[0])
     pass
     #win32gui.PumpMessages()
