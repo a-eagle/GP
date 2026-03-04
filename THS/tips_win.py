@@ -1255,7 +1255,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         DW = win32api.GetSystemMetrics (win32con.SM_CXSCREEN) - SX
         DH = win32api.GetSystemMetrics (win32con.SM_CYSCREEN) - 35
         style = win32con.WS_VISIBLE | win32con.WS_POPUPWINDOW | win32con.WS_CAPTION
-        win = kline_utils.createKLineWindow(None, (SX, 0, DW, DH), style)
+        win = kline_utils.createKLineWindow(None, (SX + 10, 0, DW, DH), style)
         win32gui.SetWindowPos(win.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
         win.addNamedListener('OnDestory', self.onDestoryFaskView)
         self.faskViewWin = win
@@ -1264,6 +1264,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.faskViewWin = None
 
     def onListenThsCode(self, code, day, flag):
+        print('[onListenThsCode]', code, day, flag)
         if not self.faskViewWin:
             return
         if not (flag & base_win.ThsShareMemory.FLAG_CHANGE_CODE):

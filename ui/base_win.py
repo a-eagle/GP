@@ -3450,7 +3450,10 @@ class ThsShareMemory:
 
     def notifyListener(self, curCode, curDay, changeFlags):
         for func in self.listeners:
-            func(curCode, curDay, changeFlags)
+            try:
+                func(curCode, curDay, changeFlags)
+            except Exception as e:
+                traceback.print_exc()
 
     def onListenThread(self):
         curDay, curCode = 0, 0
@@ -3458,7 +3461,7 @@ class ThsShareMemory:
             time.sleep(0.5)
             day = self.readSelDay()
             code = self.readCode()
-            if day == 0 or code == 0:
+            if day == 0 and code == 0:
                 continue
             flag = 0
             flag = flag | (self.FLAG_CHANGE_CODE if code != curCode else 0)
@@ -3467,7 +3470,7 @@ class ThsShareMemory:
                 continue
             curDay = day
             curCode = code
-            self.notifyListener(curCode, curDay, flag)
+            self.notifyListener(f'{curCode :06d}', curDay, flag)
 
     def open(self):
         if self.shm:
