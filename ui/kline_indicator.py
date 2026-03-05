@@ -297,11 +297,11 @@ class KLineIndicator(Indicator):
         # up
         if data.close >= data.open:
             if zhengFu >= 7:
-                return 0x6600CC
+                return 0xff00ff
             return 0x0000ff
         # down
-        if zhengFu >= 7:
-            return 0x808000
+        # if zhengFu >= 7:
+            # return 0x8b8b00
         return 0xfcfc54
 
     def draw(self, hdc, drawer):
