@@ -920,7 +920,6 @@ class DrawLineManager(base_win.Listener):
         self.curLine.save()
         cl = self.curLine
         self.cancel()
-        cl.clearShape()
         self.notifyListener(self.Event('AppendLine', cl))
         self.win.invalidWindow()
         return True

@@ -296,8 +296,8 @@ class KLineIndicator(Indicator):
         zhengFu = (high - low) / low * 100
         # up
         if data.close >= data.open:
-            if zhengFu >= 7:
-                return 0xff00ff
+            # if zhengFu >= 7:
+            #     return 0xff00ff
             return 0x0000ff
         # down
         # if zhengFu >= 7:
