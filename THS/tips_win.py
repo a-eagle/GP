@@ -1074,8 +1074,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.detailWin = None
         base_win.ThreadPool.instance().start()
         
-        self.faskViewWin = None
-        self.faskViewRect = (20, 30, 100, 50)
+        self.klineWin = None
         base_win.ThsShareMemory.instance().addListener(self.onListenThsCode)
 
     def show(self, x, y):
@@ -1108,20 +1107,20 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.drawer.fillRect(hdc, rc, 0x101010)
         self.drawer.drawText(hdc, cs, rc, 0x00D7FF)
         if self.isZS():
-            self.onDrawZS(hdc)
+            # self.onDrawZS(hdc)
             return
         if not self.data or not self.curCode:
             return
         self.drawer.use(hdc, self.drawer.getFont(fontSize = 14, weight=1000))
         y1, y2 = 22, 45
         rc = (LR, y1, LW // 2 - PD, y1 + 20)
-        v = int(self.data.get('ltsz', 0) / 100000000) #亿 # 流通市值
-        cs1 =  f'{v :d} 亿'
+        v = int((self.data.get('ltsz', 0) or 0) / 100000000) #亿 # 流通市值
+        cs1 =  f'{v :d} 亿' if v else '-'
         self.drawer.drawText(hdc, '流通值', rc, 0xcccccc, align=win32con.DT_LEFT)
         self.drawer.drawText(hdc, cs1, rc, 0xF4E202, align=win32con.DT_RIGHT)
         rc = (LR, y2, LW // 2 - PD, y2 + 20)
-        v = int(self.data.get('zsz', 0) / 100000000) #亿 总市值
-        cs1 =  f'{v :d} 亿'
+        v = int((self.data.get('zsz', 0) or 0) / 100000000) #亿 总市值
+        cs1 =  f'{v :d} 亿' if v else '-'
         self.drawer.drawText(hdc, '总市值', rc, 0xcccccc, align=win32con.DT_LEFT)
         self.drawer.drawText(hdc, cs1, rc, 0xF4E202, align=win32con.DT_RIGHT)
 
@@ -1248,36 +1247,29 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.wbData = newWb
         self.invalidWindow()
 
-    def onOpenFaskView(self):
-        if not self.curCode:
-            return
-        SX = 360
-        DW = win32api.GetSystemMetrics (win32con.SM_CXSCREEN) - SX
-        DH = win32api.GetSystemMetrics (win32con.SM_CYSCREEN) - 35
-        style = win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW | win32con.WS_CAPTION
-        win = kline_utils.createKLineWindow(None, (SX + 10, 0, DW, DH), style)
-        win32gui.SetWindowPos(win.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
-        win.addNamedListener('OnDestory', self.onDestoryFaskView)
-        self.faskViewWin = win
-
-    def onDestoryFaskView(self, evt, args):
-        self.faskViewWin = None
+    def onDestoryKLineWin(self, evt, args):
+        self.klineWin = None
 
     def onListenThsCode(self, code, day, flag):
-        if not self.faskViewWin:
+        if not self.klineWin:
             return
         if not (flag & base_win.ThsShareMemory.FLAG_CHANGE_CODE):
             return
-        self.faskViewWin.changeCode(code)
+        self.klineWin.changeCode(code)
 
     def onOpenKLine(self):
+        win = None
         if self.curCode and self.curCode[0 : 2] == '88':
             data = {'code': self.curCode, 'day': None}
-            kline_utils.openInCurWindow(None, data)
-            return
+            win = kline_utils.openInCurWindow(None, data)
         if self.data and 'code' in self.data and self.data['code']:
             data = {'code': self.data['code'], 'day': None}
-            kline_utils.openInCurWindow(None, data)
+            win = kline_utils.openInCurWindow(None, data)
+        if not win:
+            return
+        win32gui.SetWindowPos(win.hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+        win.addNamedListener('OnDestory', self.onDestoryKLineWin)
+        self.klineWin = win
 
     class DetailWindow(base_win.NoActivePopupWindow):
         def __init__(self) -> None:
@@ -1391,11 +1383,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
             return True
         if msg == win32con.WM_LBUTTONDBLCLK:
             x, y = (lParam & 0xffff), (lParam >> 16) & 0xffff
-            isInFaskView = x >= self.faskViewRect[0] and x < self.faskViewRect[2] and y >= self.faskViewRect[1] and y < self.faskViewRect[3]
-            if self.isZS() and isInFaskView:
-                self.onOpenFaskView()
-            else:
-                self.onOpenKLine()
+            self.onOpenKLine()
             return True
         if msg == win32con.WM_LBUTTONDOWN:
             win32gui.SetFocus(self.hwnd)
@@ -1493,7 +1481,7 @@ if __name__ == '__main__':
 
     win = CodeBasicWindow()
     win.createWindow(None)
-    win.changeCode('881166')
+    win.changeCode('300018')
     win.show(300, 500)
     win32gui.PumpMessages()
 

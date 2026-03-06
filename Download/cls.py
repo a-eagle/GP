@@ -511,15 +511,5 @@ class ClsUrl:
 if __name__ == '__main__':
     print(platform.node())
     cu = ClsUrl()
-    fs = cu.loadIndexFenShi('1A0001', 20251201)
+    fs = cu.loadBasic('000039')
     print(fs)
-    pass
-    fs2 = cu.loadFenShi('1A0001')
-    fs3 = cu.loadFenShi('399001')
-    print(fs2)
-    print(fs3)
-    pass
-    params = {'sql': 'select count(*) from CLS_SCQX'}
-    resp = requests.post('http://113.44.136.221:8080/query-by-sql/cls', json = params)
-    txt = resp.content.decode()
-    print(txt)
