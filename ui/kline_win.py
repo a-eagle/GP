@@ -472,7 +472,7 @@ class Point:
         y = kl.getYAtValue(self.price) + self.dy
         if y < 0 or y >= kl.height:
             return None
-        return (x, y)
+        return (int(x), int(y))
 
     def update(self, point):
         if not point:
@@ -758,10 +758,15 @@ class LineView(Dragable):
         w, h = size
         left, top, right, bottom = x - B, y - B, x + w + B, y + h + B
         outShape = Polygon()
-        outShape.addXYPoint(left, top, kl)
-        outShape.addXYPoint(right, top, kl)
-        outShape.addXYPoint(right, bottom, kl)
-        outShape.addXYPoint(left, bottom, kl)
+        pt = Point.fromXY(left, top, kl)
+        outShape.addPoint(pt)
+        pts = ((right, top), (right, bottom), (left, bottom))
+        for p in pts:
+            ptn = Point()
+            ptn.update(pt)
+            ptn.dx += p[0] - left
+            ptn.dy += p[1] - top
+            outShape.addPoint(ptn)
         return outShape
 
     def calcLineOutShape(self):
@@ -810,6 +815,10 @@ class LineView(Dragable):
         if not out or not out.isValid():
             return
         pots = [p.toXY(kl) for p in out.points]
+        # check is valid
+        for p in pots:
+            if not p:
+                return
         pots.append(pots[0]) # close path
         drawer.use(hdc, drawer.getPen(0xA0A0A0, style = win32con.PS_DOT))
         win32gui.Polyline(hdc, pots)
