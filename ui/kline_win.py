@@ -2014,17 +2014,15 @@ class KLineCodeWindow(base_win.BaseWindow):
         self.updateCodeIdxView()
 
     def winProc(self, hwnd, msg, wParam, lParam):
-        if msg == win32con.WM_ACTIVATE and self.klineWin.hwnd:
-            ac = wParam & 0xffff
-            # if ac == win32con.WA_INACTIVE and self.klineWin.hwnd:
-                # win32gui.SetFocus(self.klineWin.hwnd)
-            # return True
+        if msg == win32con.WM_SETFOCUS:
+            win32gui.SetFocus(self.klineWin.hwnd)
+            return True
         return super().winProc(hwnd, msg, wParam, lParam)
 
 if __name__ == '__main__':
     import kline_utils
     CODE = '300617' #      1B0688 002202  600172
-    win = kline_utils.createKLineWindowByCode(CODE)
+    win = kline_utils.createKLineWindowByCode(CODE) #, None, (800, 0, 600, 700))
     win.changeCode(CODE)
     win.setCodeList([CODE, '002792', '002149', '002565', '301079', '300058', '688523'])
     win.mainWin = True
