@@ -307,8 +307,8 @@ class Server:
         # 下载个股板块概念信息
         if (curTime >= '22:00') and not self.downloadInfos.get(f'hygn-{day}', False):
             self.downloadInfos[f'hygn-{day}'] = True
-            # if now.weekday() == 1: # 每周二
-            self.download_hygn('[4/7]')
+            if now.weekday() in (1, 3, 5): # 每周1, 3, 5
+                self.download_hygn('[4/7]')
             # else:
                 # console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn] skip, only week 2 download')
             time.sleep(60)
@@ -320,7 +320,7 @@ class Server:
                 pass
             else:
                 self.downloadInfos[f'hygn_ttm-{day}'] = True
-                console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn-PeTtm] skip, no download anymore') # only week 3 download
+                # console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn-PeTtm] skip, no download anymore') # only week 3 download
             time.sleep(60)
         # 下载个股跌停
         if (curTime >= '22:00') and not self.downloadInfos.get(f'dt-{day}', False):

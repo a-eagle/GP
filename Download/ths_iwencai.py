@@ -290,7 +290,7 @@ class HygnDownloader:
     # 个股行业概念
     # @return update-datas, insert-datas
     def download(self):
-        rs = iwencai_load_list(question = '个股及行业板块, 按热度排序', maxPage = 3) # ,maxPage = 1, 流通a股,限售股,流通市值,总市值
+        rs = iwencai_load_list(question = '个股及行业板块', internalTime = 10) # ,maxPage = 1, 流通a股,限售股,流通市值,总市值
         inserts, updates, diffs = [], [], []
         objs = {}
         for d in ths_orm.THS_GNTC.select():
@@ -303,7 +303,7 @@ class HygnDownloader:
     
     # no record diffs, only update gn and gn_code
     def simpleDownload(self):
-        rs = iwencai_load_list(question = '个股及行业板块, 按热度排序')
+        rs = iwencai_load_list(question = '个股及行业板块')
         objs = {}
         for d in ths_orm.THS_GNTC.select():
             objs[d.code] = d
@@ -322,7 +322,7 @@ class HygnDownloader:
             gncodes = ';'.join(gncode)
             if obj.gn == dest['gn'] and obj.gn_code == gncodes:
                 continue
-            print('update ', obj.code, obj.name)
+            # print('[ths_iwencai.simpleDownload] update ', obj.code, obj.name)
             obj.gn = dest['gn']
             obj.gn_code = gncodes
             obj.updateTime = datetime.datetime.now()
@@ -346,7 +346,7 @@ class HygnDownloader:
         gncodes = ';'.join(gncode)
         if obj.gn == dest['gn'] and obj.gn_code == gncodes:
             return False
-        print('update ', obj.code, obj.name)
+        # print('[ths_iwencai.simpleDownloadByCode] update ', obj.code, obj.name)
         obj.gn = dest['gn']
         obj.gn_code = gncodes
         obj.updateTime = datetime.datetime.now()
