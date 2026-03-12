@@ -498,9 +498,7 @@ def save_hot(hots):
 # @return  data : list
 # code, 指数简称, 指数@涨跌幅:前复权[20240709]
 def download_zs_zd():
-    rs1 = iwencai_load_list('同花顺概念指数或同花顺行业指数,按涨跌幅从大到小排序', 'zhishu', 'click', maxPage = 1)
-    rs2 = iwencai_load_list('同花顺概念指数或同花顺行业指数,按涨跌幅从小到大排序', 'zhishu', 'click', maxPage = 1)
-    rs = rs1 + rs2
+    rs = iwencai_load_list('同花顺概念指数或同花顺行业指数,按涨跌幅从大到小排序', 'zhishu', 'click')
     datas = []
     亿 = 100000000
     RK = '指数@涨跌幅:前复权['

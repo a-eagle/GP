@@ -3,7 +3,7 @@ import sys, datetime, os
 
 path = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(path)
-from orm import base_orm
+from orm import base_orm, orm_urils
 
 db_gntc = pw.SqliteDatabase(f'{path}/db/THS_GNTC.db')
 # 同花顺--概念题材
@@ -68,6 +68,7 @@ class THS_ZS(base_orm.BaseModel):
     keys = ('code', )
     code = pw.CharField() #指数代码
     name = pw.CharField() #指数名称
+    parentCode = pw.CharField(null = True)
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
@@ -75,22 +76,16 @@ class THS_ZS(base_orm.BaseModel):
         # primary_key = False
         # create view 同花顺指数_view (code, name) as select code, name from 同花顺指数涨跌信息 where day = (select max(day) from 同花顺指数涨跌信息)
 
+orm_urils.ModelManager.addField(THS_ZS, THS_ZS.parentCode)
+
 # 同花顺指数涨跌信息
 class THS_ZS_ZD(base_orm.BaseModel):
     keys = ('day', 'code')
     day = pw.CharField() # YYYY-MM-DD
     code = pw.CharField() #指数代码
     name = pw.CharField(null = True) #指数名称
-    close = pw.FloatField(default = 0)
-    open = pw.FloatField(default = 0)
-    high = pw.FloatField(default = 0)
-    rate = pw.FloatField(default = 0)
-    money = pw.FloatField(default = 0) #亿(元)
-    vol = pw.FloatField(default = 0) # 亿(股)
-    zdf = pw.FloatField(default = 0) #涨跌幅
     zdf_topLevelPM = pw.IntegerField(default = 0) # 一级概念、行业排名
-    zdf_PM = pw.IntegerField(default = 0) # 全部排名
-    markColor = pw.IntegerField(null = True, column_name = 'mark_1') # 标记 1
+    zdf_PM = pw.IntegerField(default = 0) # 二级排名
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
