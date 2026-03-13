@@ -1262,7 +1262,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         if self.curCode and self.curCode[0 : 2] == '88':
             data = {'code': self.curCode, 'day': None}
             win = kline_utils.openInCurWindow(None, data)
-        if self.data and 'code' in self.data and self.data['code']:
+        elif self.data and 'code' in self.data and self.data['code']:
             data = {'code': self.data['code'], 'day': None}
             win = kline_utils.openInCurWindow(None, data)
         if not win:
