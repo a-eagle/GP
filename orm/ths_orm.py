@@ -69,6 +69,14 @@ class THS_ZS(base_orm.BaseModel):
     code = pw.CharField() #指数代码
     name = pw.CharField() #指数名称
     parentCode = pw.CharField(null = True)
+    close = pw.FloatField(default = 0)
+    open = pw.FloatField(default = 0)
+    high = pw.FloatField(default = 0)
+    rate = pw.FloatField(default = 0)
+    money = pw.FloatField(default = 0)
+    vol = pw.FloatField(default = 0)
+    zdf = pw.FloatField(default = 0)
+    markColor = pw.IntegerField(null = True, column_name = 'mark_1')
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
