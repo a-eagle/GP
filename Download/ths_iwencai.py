@@ -520,25 +520,37 @@ def download_zs_zd():
             elif '换手率' in k: obj.rate = float(row[k])
         if obj.name:
             obj.name = obj.name.replace(' ', '')
-    datas.sort(key = lambda d : d.zdf, reverse = True)
+    # datas.sort(key = lambda d : d.zdf, reverse = True)
     return datas
 
 def save_zs_zd(datas):
+    zsInfos = {}
+    for qr in ths_orm.THS_ZS.select():
+        zsInfos[qr.code] = qr
+    topLevelDatas = []
+    for d in datas:
+        item = zsInfos.get(d.code, None)
+        d.parentCode = item.parentCode if item else None
+        if not item:
+            print('[ths_iwencai.save_zs_zd] not find ', d)
+        if not d.parentCode:
+            topLevelDatas.append(d)
+    for i in range(len(topLevelDatas)):
+        if i <= len(topLevelDatas) // 2:
+            topLevelDatas[i].zdf_topLevelPM = i + 1
+        else:
+            topLevelDatas[i].zdf_topLevelPM = i - len(topLevelDatas)
+    mdatas = {}
+    for d in datas:
+        mdatas[d.code] = d
     for i in range(len(datas)):
         if i <= len(datas) // 2:
             datas[i].zdf_PM = i + 1
         else:
             datas[i].zdf_PM = i - len(datas)
-    # subGn = ('AIGC概念', 'ChatGP概念', 'MLOps概念', 'MCU芯片', '中芯国际概念', '光刻胶', 'EDR概念', '比亚迪概念', '钠离子电池',
-    #          '钒电池', 'PVDF概念', '高压快冲', '血氧仪', '智能家居', '智能音箱', '智能穿戴', '无线耳机', '核电', '光热发电',
-    #          '风电', '光伏概念', '光伏建筑', '钙钛矿电池', 'TOPCON电池', 'HJT电池', '超超临界发电', '生物质能发电',
-    #          '数据中心', '信创', '网络安全', '国产操作系统', '数字货币', '数字乡村')
-    topLevels = [d for d in datas if d.code[0 : 3] != '884'] # and (d.name not in subGn)
-    for i in range(len(topLevels)):
-        if i <= len(topLevels) // 2:
-            topLevels[i].zdf_topLevelPM = i + 1
-        else:
-            topLevels[i].zdf_topLevelPM = i - len(topLevels)
+        parentCode = datas[i].parentCode
+        if parentCode: # 二级指数
+            datas[i].zdf_topLevelPM = mdatas[parentCode].zdf_topLevelPM
     day = datas[0].day
     q = ths_orm.THS_ZS_ZD.select().where(ths_orm.THS_ZS_ZD.day == day).dicts()
     ex = {}
@@ -546,8 +558,6 @@ def save_zs_zd(datas):
         ex[it['code']] = True
     ndatas = []
     for it in datas:
-        # if abs(it.zdf_PM) > 100: # 排名100以后的不看
-            # continue
         if it.code not in ex:
             ndatas.append(it)
     ths_orm.THS_ZS_ZD.bulk_create(ndatas, 50)
@@ -767,7 +777,8 @@ if __name__ == '__main__':
     # rs = download_hygn()
     # rs = download_hygn_by_code('000547') # 600297 600811 +002183  +300136
     # print(rs)
-    hy = HygnDownloader()
-    hy.checkGnMatch()
-    pass
+    # hy = HygnDownloader()
+    # hy.checkGnMatch()
+    datas = download_zs_zd()
+    save_zs_zd(datas)
     
