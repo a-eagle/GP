@@ -184,6 +184,7 @@ class ZSCardView(CardView):
     def __init__(self, cardWindow):
         super().__init__(cardWindow)
         self.selectDay = 0
+        self.code = None
 
     def onDraw(self, hdc):
         if not self.zsData:
@@ -239,9 +240,24 @@ class ZSCardView(CardView):
         win32gui.DeleteObject(pen)
     
     def updateCode(self, code):
+        if type(code) == int:
+            code = f'{code :06d}'
+        self.code = code
         self.zsData = self.getZSInfo(code)
-        name = self.zsData[0]['name'] if self.zsData else ''
-        win32gui.SetWindowText(self.hwnd, f'{code} {name}')
+
+    def getWindowTitle(self):
+        if not self.code:
+            return '--'
+        obj = ths_orm.THS_ZS.get_or_none(ths_orm.THS_ZS.code == self.code)
+        name = obj.name if obj else ''
+        parentName = ''
+        if obj and obj.parentCode:
+            parent = ths_orm.THS_ZS.get_or_none(ths_orm.THS_ZS.code == obj.parentCode)
+            if parent:
+                parentName = parent.name
+        if parentName:
+            return f'{parentName} -> {name}'
+        return name
 
     def formateDay(self, day):
         if not day:
@@ -252,8 +268,6 @@ class ZSCardView(CardView):
         return day
 
     def getZSInfo(self, zsCode):
-        if type(zsCode) == int:
-            zsCode = f'{zsCode :06d}'
         qr = ths_orm.THS_ZS_ZD.select().where(ths_orm.THS_ZS_ZD.code == zsCode).order_by(ths_orm.THS_ZS_ZD.day.asc())
         data = [d.__data__ for d in qr]
         datars = {}
