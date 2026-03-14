@@ -3,6 +3,7 @@ import sys, datetime, os, inspect
 
 path = os.path.dirname(os.path.dirname(__file__))
 
+# 有updateTime属性的才会被纳入数据同步范围
 class BaseModel(pw.Model):
     # return change: diffrents dict object {name: (old, new), ...}  | not change: {} empty dict
     # newObj: peewee.Model object | dict

@@ -130,6 +130,63 @@ def update_THS_ZS(onlyMaxDay = True):
     THS_ZS.bulk_create(inserts, 100)
     THS_ZS.bulk_update(updates, ['name'], 100)
 
+def update_THS_ZS_ZD_pm():
+    zsInfos = {}
+    for it in THS_ZS.select():
+        zsInfos[it.code] = it
+    sql = 'select day, count(*) as cc from 同花顺指数涨跌信息 group by day'
+    cursor = db_thszszd.cursor()
+    cursor.execute(sql)
+    days = cursor.fetchall()
+    def getParentCode(code):
+        return zsInfos[code].parentCode if code in zsInfos else None
+    def isTopLevel(code):
+        pc = getParentCode(code)
+        return pc == None
+    for day, count in days:
+        print('[ths_orm.update_THS_ZS_ZD_pm]', day, count)
+        qr = THS_ZS_ZD.select().where(THS_ZS_ZD.day == day).order_by(THS_ZS_ZD.zdf.desc())
+        datas = [d for d in qr]
+        datas2 = []
+        datas3 = []
+        topLevelDatas = []
+        for row in datas:
+            if row.code not in zsInfos:
+                # print('[ths_orm.update_THS_ZS_ZD_pm] not find row: ', row.code, row.name)
+                row.zdf_topLevelPM = 0
+                row.zdf_PM = 0
+                datas3.append(row)
+                continue
+            datas2.append(row)
+            if isTopLevel(row.code):
+                topLevelDatas.append(row)
+        for i in range(len(topLevelDatas)):
+            if i <= len(topLevelDatas) // 2:
+                topLevelDatas[i].zdf_topLevelPM = i + 1
+            else:
+                topLevelDatas[i].zdf_topLevelPM = i - len(topLevelDatas)
+        mdatas = {}
+        for d in datas2:
+            mdatas[d.code] = d
+        for i in range(len(datas2)):
+            if i <= len(datas2) // 2:
+                datas2[i].zdf_PM = i + 1
+            else:
+                datas2[i].zdf_PM = i - len(datas2)
+            parentCode = getParentCode(datas2[i].code)
+            if parentCode: # 二级指数
+                if parentCode not in mdatas:
+                    # print('[ths_orm.update_THS_ZS_ZD_pm] Not find level-2 parent ',  datas2[i].code, datas2[i].name)
+                    datas2[i].zdf_topLevelPM = 0
+                else:
+                    datas2[i].zdf_topLevelPM = mdatas[parentCode].zdf_topLevelPM
+        THS_ZS_ZD.bulk_update(datas2, ['zdf_PM', 'zdf_topLevelPM'], 100)
+        THS_ZS_ZD.bulk_update(datas3, ['zdf_PM', 'zdf_topLevelPM'], 100)
+
+if base_orm.VersionManager.getVersion('THS_ZS_ZD') == 0:
+    base_orm.VersionManager.saveVersion('THS_ZS_ZD', 1)
+    update_THS_ZS_ZD_pm()
+
 db_ths_zt = pw.SqliteDatabase(f'{path}/db/THS_ZT.db') # THS.db --> THS_ZT.db
 # 同花顺涨停
 class THS_ZT(base_orm.BaseModel):
@@ -170,4 +227,4 @@ db_ths_zt.create_tables([THS_ZT])
 db_ths_codes.create_tables([THS_CodesInfo])
 
 if __name__ == '__main__':
-    update_THS_ZS()
+    pass
