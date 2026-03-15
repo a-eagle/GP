@@ -3,7 +3,7 @@ import sys, datetime, os, time
 
 path = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(path)
-from orm import base_orm
+from orm import base_orm, orm_urils
 
 db_def = pw.SqliteDatabase(f'{path}/db/My.db') # 题材库
 
@@ -12,6 +12,7 @@ class TextLine(base_orm.BaseModel):
     keys = ('keyID', )
     code = pw.CharField()
     kind = pw.CharField()
+    period = pw.CharField(null = True)
     _startPos = pw.CharField(default = None)
     _endPos = pw.CharField(default = None, null = True)
     info = pw.CharField(default = None, null = True)
@@ -35,6 +36,12 @@ class MySettings(base_orm.BaseModel):
 db_def.create_tables([TextLine, MySettings])
 
 if base_orm.VersionManager.getVersion('TextLine') == 0:
+    base_orm.VersionManager.saveVersion('TextLine', 1)
     db_def.drop_tables([TextLine])
     db_def.create_tables([TextLine])
-    base_orm.VersionManager.saveVersion('TextLine', 1)
+
+if base_orm.VersionManager.getVersion('TextLine') == 1:
+    base_orm.VersionManager.saveVersion('TextLine', 2)
+    orm_urils.ModelManager.addField(TextLine, TextLine.period)
+    TextLine.update(period = 'day').execute()
+

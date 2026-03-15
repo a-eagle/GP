@@ -856,7 +856,8 @@ class DrawTextManager(base_win.Listener):
 
     def beginNew(self, code):
         self.drawing = True
-        curLine = my_orm.TextLine(code = code, kind = 'text')
+        period = self.win.klineIndicator.period
+        curLine = my_orm.TextLine(code = code, kind = 'text', period = period)
         self.curLine = LineView(curLine, self.win)
 
     def beginUpdate(self, lineView):
@@ -920,7 +921,8 @@ class DrawLineManager(base_win.Listener):
 
     def beginNew(self, code):
         self.drawing = True
-        curLine = my_orm.TextLine(code = code, kind = 'line')
+        period = self.win.klineIndicator.period
+        curLine = my_orm.TextLine(code = code, kind = 'line', period = period)
         self.curLine = LineView(curLine, self.win)
 
     def end(self):
@@ -1000,7 +1002,8 @@ class TextLineManager:
     def changeCode(self, code):
         self._reset()
         self.code = code
-        q = my_orm.TextLine.select().where(my_orm.TextLine.code == code)
+        period = self.win.klineIndicator.period
+        q = my_orm.TextLine.select().where(my_orm.TextLine.code == code, my_orm.TextLine.period == period)
         for row in q:
             self.lines.append(LineView(row, self.win))
     
@@ -1575,9 +1578,9 @@ class KLineWindow(base_win.BaseWindow):
         elif keyCode == 28:
             ks = ('day', 'week', 'month')
             idx = (ks.index(self.klineIndicator.period) + 1) % len(ks)
-            peroid = ks[idx]
+            period = ks[idx]
             if self.klineIndicator.code:
-                self.changeCode(self.klineIndicator.code, peroid)
+                self.changeCode(self.klineIndicator.code, period)
 
     def makeVisible(self, idx):
         self.calcIndicatorsRect()
@@ -1990,7 +1993,7 @@ class KLineCodeWindow(base_win.BaseWindow):
             self.klineWin.marksMgr.setMarkDay(day)
         self.updateCodeIdxView()
 
-    def changeCode(self, code, peroid = 'day'):
+    def changeCode(self, code, period = 'day'):
         try:
             if type(code) == int:
                 code = f'{code :06d}'
@@ -1998,7 +2001,7 @@ class KLineCodeWindow(base_win.BaseWindow):
                 code = code[2 : ]
             self.code = code
             self.codeWin.changeCode(code)
-            self.klineWin.changeCode(code, peroid)
+            self.klineWin.changeCode(code, period)
             self.notifyListener(self.Event('ChangeCode', self, code = code))
         except Exception as e:
             traceback.print_exc()
