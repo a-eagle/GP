@@ -65,7 +65,8 @@ class Server:
         self.app.add_url_rule('/top-amounts/<day>', view_func = self.loadTopAmounts)
         self.app.add_url_rule('/query-lhb/<day>', view_func = self.loadLHB)
         self.app.add_url_rule('/last-trade-day', view_func = self.getLastTradeDay)
-        
+        self.app.add_url_rule('/top-zhangfu/<day>', view_func = self.loadTopZhangFu)
+        self.app.add_url_rule('/top-diefu/<day>', view_func = self.loadTopDieFu)
         
         self.app.run('0.0.0.0', 8080, use_reloader = False, debug = False)
 
@@ -1003,6 +1004,47 @@ class Server:
         ds = ths_iwencai.getTradeDays()
         today = self.formatDay(ds[-1])
         return {'day': today}
+
+    def loadTopZhangFu(self, day):
+        if not day:
+            day = str(ths_iwencai.getTradeDaysInt()[0])
+        if type(day) == str:
+            day = day.replace('-', '')
+        q = f"{day}涨幅按大到小排序，且涨幅大于5%，成交额，流通市值,总市值"
+        datas = self._loadZDFDatas(day, q)
+        return datas
+
+    def _loadZDFDatas(self, day, question):
+        rs = ths_iwencai.iwencai_load_list(question, internalTime = 0.1)
+        datas = []
+        for line in rs:
+            columns = ths_iwencai.ThsColumns(line)
+            code = columns.getColumnValue('code', str)
+            if code[0] not in '036':
+                continue
+            row = {'code': code, 'name': columns.getColumnValue('股票简称', str)}
+            row['secu_code'] = self._getSecuCode(code)
+            row['zdf'] = columns.getColumnValue('涨跌幅:前复权', float)
+            row['zsz'] = int(columns.getColumnValue('总市值', float) / 100000000)
+            row['zhenfu'] = columns.getColumnValue('振幅', float)
+            row['cje'] = columns.getColumnValue('成交额', float) / 100000000
+            row['hy'] = columns.getColumnValue('所属同花顺行业', str)
+            datas.append(row)
+        infos = self._queryCodesInfo(day, ['hots'], datas)
+        for d in datas:
+            sc = d['secu_code']
+            if sc in infos:
+                d.update(infos[sc])
+        return datas
+
+    def loadTopDieFu(self, day):
+        if not day:
+            day = str(ths_iwencai.getTradeDaysInt()[0])
+        if type(day) == str:
+            day = day.replace('-', '')
+        q = f"{day}跌幅按大到小排序，且跌幅大于5%，成交额，流通市值,总市值"
+        datas = self._loadZDFDatas(day, q)
+        return datas
 
 if __name__ == '__main__':
     svr = Server()

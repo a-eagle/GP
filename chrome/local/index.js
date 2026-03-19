@@ -713,7 +713,8 @@ let TabNaviView = {
             items: [{name: 'zt-table-view', title: '涨停池'}, {name: 'lb-table-view', title: '连板池'},
                         {name: 'zb-table-view', title: '炸板池'}, {name: 'dt-table-view', title: '跌停池'},
                         {name: 'hots-table-view', title: '热度榜'}, {name: 'amount-table-view', title: '成交额'}, 
-                        {name: 'lhb-table-view', title: '龙虎榜'}, ],
+                        {name: 'lhb-table-view', title: '龙虎榜'},  {name: 'ZFB_TableView', title: '涨幅榜'}, 
+                        {name: 'DFB_TableView', title: '跌幅榜'}],
             curTabCntView: 'zt-table-view',
         }
     },
@@ -728,7 +729,7 @@ let TabNaviView = {
                 {{item.title}}
             </div>
         </div>
-        <keep-alive>  <component :is="curTabCntView">  </component> </keep-alive>
+        <keep-alive>  <component :is="curTabCntView" >  </component> </keep-alive>
     `,
 };
 
@@ -1100,6 +1101,62 @@ let LHB_TableView = {
     `,
 };
 
+let ZFB_TableView = {
+    extends: BaseTableView,
+    components: {
+    },
+    data() {
+        return {
+            columns: [{title: '', key: '_index_', width: 60},
+                {title: '股票/代码', key: 'code', width: 80},
+                {title: '行业', key: 'hy', width: 100, sortable: true},
+                // {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true},
+                // {title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true},
+                {title: '热度', key: 'hots', width: 50, sortable: true},
+                {title: '涨跌幅', key: 'zdf', width: 70, sortable: true, cellRender: DefaultRender.zf2Render},
+                {title: '振幅', key: 'zhenfu', width: 70, sortable: true, cellRender: DefaultRender.zf2Render},
+                {title: '成交额', key: 'cje', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
+                {title: '总市值', key: 'zsz', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
+                {title: '分时图', key: 'fs', width: 300}],
+            datas: null,
+            url: null,
+        }
+    },
+    methods: {
+        onCurDayChanged() {
+            this.url = `/top-zhangfu/${this.curDay}`;
+        },
+    },
+};
+
+let DFB_TableView = {
+    extends: BaseTableView,
+    components: {
+    },
+    data() {
+        return {
+            columns: [{title: '', key: '_index_', width: 60},
+                {title: '股票/代码', key: 'code', width: 80},
+                {title: '行业', key: 'hy', width: 100, sortable: true},
+                // {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true},
+                // {title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true},
+                {title: '热度', key: 'hots', width: 50, sortable: true},
+                {title: '涨跌幅', key: 'zdf', width: 70, sortable: true, cellRender: DefaultRender.zf2Render},
+                {title: '振幅', key: 'zhenfu', width: 70, sortable: true, cellRender: DefaultRender.zf2Render},
+                {title: '成交额', key: 'cje', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
+                {title: '总市值', key: 'zsz', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
+                {title: '分时图', key: 'fs', width: 300}],
+            datas: null,
+            url: null,
+        }
+    },
+    methods: {
+        onCurDayChanged() {
+            this.url = `/top-diefu/${this.curDay}`;
+        },
+    },
+};
+
 function registerComponents(app) {
     app.component('GlobalView', GlobalView);
     app.component('AmountCompareView', AmountCompareView);
@@ -1115,6 +1172,8 @@ function registerComponents(app) {
     app.component('HotsTableView', Hots_TableView);
     app.component('AmountTableView', Amount_TableView);
     app.component('LhbTableView', LHB_TableView);
+    app.component('ZFB_TableView', ZFB_TableView);
+    app.component('DFB_TableView', DFB_TableView);
 }
 
 export default {

@@ -273,6 +273,18 @@ let DefaultRender = {
         }
         return h('span', attrs, val);
     },
+    // 涨幅2
+    zf2Render(h, rowData, column) {
+        let zf = rowData[column.key];
+        let val = '';
+        let attrs = {};
+        if (typeof(zf) == 'number') {
+            val = zf.toFixed(1) + '%';
+            if (zf >= 0) attrs.style = 'color: #de0422';
+            else attrs.style = 'color: #52C2A3';
+        }
+        return h('span', attrs, val);
+    },
     // 元 -> 亿元
     yRender(h, rowData, column) {
         let z = rowData[column.key];
