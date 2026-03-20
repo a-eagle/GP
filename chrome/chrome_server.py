@@ -1023,6 +1023,8 @@ class Server:
             if code[0] not in '036':
                 continue
             row = {'code': code, 'name': columns.getColumnValue('股票简称', str)}
+            if 'ST' in row['name'].upper():
+                continue
             row['secu_code'] = self._getSecuCode(code)
             row['zdf'] = columns.getColumnValue('涨跌幅:前复权', float)
             row['zsz'] = int(columns.getColumnValue('总市值', float) / 100000000)
