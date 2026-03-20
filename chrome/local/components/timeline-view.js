@@ -45,7 +45,14 @@ class TimeLineViewManager {
                 view.loadData(day, resolve);
             }
         };
-        let task = new Task(view.key, 100, run);
+        // 当日是否是正在交易
+        let today = utils.formatDate(new Date());
+        today = today.replace('-', '');
+        let delay = 0;
+        if (today == day.replace('-', '')) {
+            delay = 100;
+        }
+        let task = new Task(view.key, delay, run);
         this.addUniqueTask(view.key, task);
     }
     

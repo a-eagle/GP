@@ -1117,7 +1117,8 @@ let ZFB_TableView = {
                 {title: '振幅', key: 'zhenfu', width: 70, sortable: true, cellRender: DefaultRender.zf2Render},
                 {title: '成交额', key: 'cje', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
                 {title: '总市值', key: 'zsz', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
-                {title: '分时图', key: 'fs', width: 300}],
+                {title: '分时图', key: 'fs', width: 300}
+            ],
             datas: null,
             url: null,
         }
@@ -1145,7 +1146,8 @@ let DFB_TableView = {
                 {title: '振幅', key: 'zhenfu', width: 70, sortable: true, cellRender: DefaultRender.zf2Render},
                 {title: '成交额', key: 'cje', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
                 {title: '总市值', key: 'zsz', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
-                {title: '分时图', key: 'fs', width: 300}],
+                {title: '分时图', key: 'fs', width: 300}
+            ],
             datas: null,
             url: null,
         }
