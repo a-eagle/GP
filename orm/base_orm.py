@@ -1,10 +1,34 @@
 import peewee as pw
-import sys, datetime, os, inspect
+import sys, datetime, os, inspect, json
 
 path = os.path.dirname(os.path.dirname(__file__))
 
+db_delete = pw.SqliteDatabase(f'{path}/db/Delete.db')
+class DeleteModel(pw.Model):
+    keys = ('modelName', 'keyValues')
+    modelName = pw.CharField()
+    keyValues = pw.CharField()
+    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+
+    class Meta:
+        database = db_delete
+
+db_delete.create_tables([DeleteModel])
+
 # 有updateTime属性的才会被纳入数据同步范围
 class BaseModel(pw.Model):
+
+    def delete_instance(self, recursive: bool = False, delete_nullable: bool = False):
+        clazz = self.__class__
+        keys = getattr(clazz, 'keys', None)
+        if keys:
+            modelName = clazz.__name__
+            kv = {}
+            for k in keys:
+                kv[k] = getattr(self, k, None)
+            keyValues = json.dumps(kv)
+            DeleteModel.create(modelName = modelName, keyValues = keyValues)
+        return super().delete_instance(recursive, delete_nullable)
     # return change: diffrents dict object {name: (old, new), ...}  | not change: {} empty dict
     # newObj: peewee.Model object | dict
     # attrNames: list | tuple | dict, compare attrs. if None, then compare all fields
@@ -118,8 +142,9 @@ class BaseModel(pw.Model):
 
 db_version = pw.SqliteDatabase(f'{path}/db/Version.db')
 
+
+# 无updateTime，数据库不自动同步更新
 class VersionModel(BaseModel):
-    keys = ('keyID', )
     name = pw.CharField()
     version = pw.IntegerField()
 
@@ -127,6 +152,8 @@ class VersionModel(BaseModel):
         database = db_version
         
 db_version.create_tables([VersionModel])
+
+
 
 class VersionManager:
 

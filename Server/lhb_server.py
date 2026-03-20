@@ -196,7 +196,7 @@ class Server:
             else:
                 #print('Load day ' + str(dayFrom))
                 self.loadOneDayLHB(dayFrom.strftime('%Y-%m-%d'))
-                time.sleep(1.2)
+                time.sleep(10)
             dayFrom = dayFrom + delta
     
     def loadOneTime(self):

@@ -4,7 +4,7 @@ import requests, json, logging
 import peewee as pw, flask, flask_cors
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from orm import chrome_orm, cls_orm, d_orm, lhb_orm, my_orm, ths_orm
+from orm import chrome_orm, cls_orm, d_orm, lhb_orm, my_orm, ths_orm, base_orm
 from download import config, console, ths_iwencai, cls
 
 MIN_UPDATE_TIME = datetime.datetime(2025, 6, 11, 8, 0, 0)
@@ -122,6 +122,8 @@ class Server:
         cl = Client()
         insertNum, updateNum = cl.diffDatas(model, datas, self.logFile)
         console.writeln_1(console.RED, f"{ormFile}.{ormClass} ==> push insert {insertNum}, update {updateNum} row datas", datetime.datetime.now())
+        if model == base_orm.DeleteModel:
+            mgr.execDeleteModels(datas)
         return {'status': 'OK', 'msg': 'Success'}
 
 class Client:
@@ -179,6 +181,8 @@ class Client:
             updateTimeStr = datetime.datetime.fromtimestamp(updateTimeStamp)
             console.write_1(console.GREEN, f'Update datas {ormFile}.{ormClass} --> ')
             console.writeln_1(console.GREEN, f' insert {insertNum} update {updateNum} time: {updateTimeStr}')
+            if model == base_orm.DeleteModel:
+                mgr.execDeleteModels(datas)
         except Exception as e:
             traceback.print_exc()
 
@@ -285,8 +289,11 @@ class Client:
         return None
 
 class DbTableManager:
+    all_models = None
+
     def __init__(self) -> None:
-        self.modules = [chrome_orm, cls_orm, d_orm, my_orm, lhb_orm, ths_orm]
+        # base_orm 必须放在最后面
+        self.modules = [chrome_orm, cls_orm, d_orm, my_orm, lhb_orm, ths_orm, base_orm]
 
     def _addUpdateTimeColumn(self, cursor, tableName):
         cursor.execute(f'pragma table_info({tableName})')
@@ -307,6 +314,8 @@ class DbTableManager:
         return rs
     
     def getAllModels(self):
+        if self.__class__.all_models:
+            return self.__class__.all_models
         rs = []
         for m in self.modules:
             names = dir(m)
@@ -320,7 +329,16 @@ class DbTableManager:
                 if '.' in fn:
                     fn = fn[fn.index('.') + 1 : ]
                 rs.append({'ormFileName': fn, 'ormFile': m, 'ormClass': obj, 'ormClassName': obj.__name__})
+        self.__class__.all_models = rs
         return rs
+
+    # return {ormFileName, ormFile, ormClass, ormClassName}
+    def getModelInfo(self, ormClassName):
+        rs = self.getAllModels()
+        for r in rs:
+            if r['ormClassName'] == ormClassName:
+                return r
+        return None
     
     # return datetime object
     def getMaxUpdateTime(self, model):
@@ -359,6 +377,35 @@ class DbTableManager:
                 return obj
             return None
         return None
+
+    def execDeleteModel(self, obj : dict):
+        if not obj:
+            return
+        info = self.getModelInfo(obj['modelName'])
+        if not info:
+            print('[DbTableManager.execDeleteModel] not orm class: ', obj['modelName'])
+            return
+        if not obj['keyValues']:
+            print('[DbTableManager.execDeleteModel] no keyValues', obj['modelName'], obj['updateTime'])
+            return
+        destClass : pw.Model = info['ormClass']
+        cnd = []
+        kv = json.loads(obj['keyValues'])
+        for k in kv:
+            cnd.append(getattr(destClass, k) == kv[k])
+        destObj = destClass.get_or_none(*cnd)
+        if not destObj:
+            print('[DbTableManager.execDeleteModel] not find object', obj['modelName'], obj['keyValues'], obj['updateTime'])
+            return
+        tableName = destClass._meta.table_name
+        db = destClass._meta.database
+        db.execute_sql(f'delete from {tableName} where id = {destObj.id}')
+
+    def execDeleteModels(self, datas : list):
+        if not datas:
+            return
+        for d in datas:
+            self.execDeleteModel(d)
 
 if __name__ == '__main__':
     if config.isServerMachine():
