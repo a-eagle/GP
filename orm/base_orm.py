@@ -8,7 +8,7 @@ def nowTimeInt():
     return ms
 
 def datetimeToInt(dt : datetime.datetime):
-    return dt.timestamp() * 1000 * 1000
+    return int(dt.timestamp() * 1000 * 1000)
 
 def diffUpdateTime(first, second):
     if type(first) == int:
