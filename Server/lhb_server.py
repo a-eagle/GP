@@ -161,7 +161,7 @@ class Server:
                 continue
             r = self.loadOneGP(gp['code'], day, gp['name'])
             result.extend(r)
-        with lhb_orm.db_lhb.atomic():
+        with lhb_orm.TdxLHB._meta.database.atomic():
             for batch in pw.chunked(result, 10):
                 dd = lhb_orm.TdxLHB.insert_many(batch)
                 dd.execute()
@@ -174,8 +174,8 @@ class Server:
     def loadTdxLHB(self, dayFrom = None):
         if not dayFrom:
             dayFrom = datetime.date(2023, 1, 1)
-        cursor = lhb_orm.db_lhb.cursor()
-        rs = cursor.execute('select min(日期), max(日期) from tdxlhb').fetchall()
+        cursor = lhb_orm.TdxLHB._meta.database.cursor()
+        rs = cursor.execute('select min(day), max(day) from tdxlhb').fetchall()
         rs = rs[0]
         if rs[0]:
             minDay = datetime.datetime.strptime(rs[0], '%Y-%m-%d').date()
