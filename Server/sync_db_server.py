@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from orm import chrome_orm, cls_orm, d_orm, lhb_orm, my_orm, ths_orm, base_orm
 from download import config, console, ths_iwencai, cls
 
-MIN_UPDATE_TIME = datetime.datetime(2025, 6, 11, 8, 0, 0)
+MIN_UPDATE_TIME = base_orm.datetimeToInt(datetime.datetime(2025, 6, 11, 8, 0, 0))
 
 IGNORE_PUSH_ORM = ['THS_Hot']
 
@@ -87,7 +87,7 @@ class Server:
             maxTime = mgr.getMaxUpdateTime(m['ormClass'])
             if not maxTime:
                 maxTime = MIN_UPDATE_TIME
-            rs.append({'ormFile': m['ormFileName'], 'ormClass': m['ormClassName'], 'updateTime': maxTime.timestamp()})
+            rs.append({'ormFile': m['ormFileName'], 'ormClass': m['ormClassName'], 'updateTime': str(maxTime)})
         return rs
     
     # updateTime float
@@ -98,7 +98,7 @@ class Server:
         model = mgr.getOrmClass(ormFile, ormClass)
         if not model:
             return {'status': 'Fail', 'msg': f'Not find orm class"{ormClass}" in "{ormFile}"'}
-        dt = datetime.datetime.fromtimestamp(float(updateTime))
+        dt = int(updateTime)
         qr = model.select().where(model.updateTime > dt).dicts()
         # print(qr)
         datas = []
@@ -160,15 +160,15 @@ class Client:
     def loadUpdateData(self, item):
         try:
             mgr = DbTableManager()
-            ormFile, ormClass, updateTimeStamp = item['ormFile'], item['ormClass'], item['updateTime']
+            ormFile, ormClass, updateTimeStamp = item['ormFile'], item['ormClass'], int(item['updateTime'])
             model = mgr.getOrmClass(ormFile, ormClass)
             if not model:
                 print(f"[Client.loadUpdateData] Not find model: {ormFile} {ormClass}")
                 return
             maxTime = mgr.getMaxUpdateTime(model)
-            if maxTime.timestamp() >= updateTimeStamp:
+            if maxTime >= updateTimeStamp:
                 return
-            resp = requests.get(f"{config.SYNC_DB_SERVER_BASE_URL}/getUpdateData/{ormFile}/{ormClass}/{maxTime.timestamp()}")
+            resp = requests.get(f"{config.SYNC_DB_SERVER_BASE_URL}/getUpdateData/{ormFile}/{ormClass}/{maxTime}")
             txt = resp.content.decode()
             rs = json.loads(txt)
             if not rs:
@@ -178,7 +178,7 @@ class Client:
                 return
             datas = rs['data']
             insertNum, updateNum = self.diffDatas(model, datas)
-            updateTimeStr = datetime.datetime.fromtimestamp(updateTimeStamp)
+            updateTimeStr = datetime.datetime.fromtimestamp(updateTimeStamp / 1000 / 1000)
             console.write_1(console.GREEN, f'Update datas {ormFile}.{ormClass} --> ')
             console.writeln_1(console.GREEN, f' insert {insertNum} update {updateNum} time: {updateTimeStr}')
             if model == base_orm.DeleteModel:
@@ -189,7 +189,7 @@ class Client:
     def pushUpdateData(self, item):
         try:
             mgr = DbTableManager()
-            ormFile, ormClass, updateTime = item['ormFile'], item['ormClass'], item['updateTime']
+            ormFile, ormClass, updateTime = item['ormFile'], item['ormClass'], int(item['updateTime'])
             if ormClass in IGNORE_PUSH_ORM:
                 return
             model = mgr.getOrmClass(ormFile, ormClass)
@@ -199,9 +199,9 @@ class Client:
             maxTime = mgr.getMaxUpdateTime(model)
             if not maxTime:
                 maxTime = MIN_UPDATE_TIME
-            if maxTime.timestamp() <= updateTime:
+            if maxTime <= updateTime:
                 return
-            dt = datetime.datetime.fromtimestamp(float(updateTime))
+            dt = updateTime
             qr = model.select().where(model.updateTime > dt).dicts()
             datas = []
             for it in qr:
@@ -295,14 +295,6 @@ class DbTableManager:
         # base_orm 必须放在最后面
         self.modules = [chrome_orm, cls_orm, d_orm, my_orm, lhb_orm, ths_orm, base_orm]
 
-    def _addUpdateTimeColumn(self, cursor, tableName):
-        cursor.execute(f'pragma table_info({tableName})')
-        rs = cursor.fetchall()
-        for r in rs:
-            if r[1] == 'updateTime':
-                return
-        cursor.execute(f'alter table {tableName} add column updateTime datetime')
-
     def getAllDatabases(self):
         rs = []
         for m in self.modules:
@@ -346,24 +338,6 @@ class DbTableManager:
         if not maxTime:
             maxTime = MIN_UPDATE_TIME
         return maxTime
-
-    def addUpdateTimeFiled(self):
-        for m in self.modules:
-            names = dir(m)
-            for name in names:
-                db = getattr(m, name)
-                # check is database
-                if not isinstance(db, pw.SqliteDatabase):
-                    continue
-                # check is pw.Model
-                #if not isinstance(obj, type.__class__) or not issubclass(obj, pw.Model):
-                #    continue
-                #print(f.__name__, '==>', name, db)
-                cc = db.cursor()
-                cc.execute('SELECT name FROM sqlite_master WHERE type="table"')
-                tables = cc.fetchall()
-                for t in tables:
-                    self._addUpdateTimeColumn(cc, t[0])
 
     def getOrmClass(self, ormFileName, ormClassName):
         for m in self.modules:

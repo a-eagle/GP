@@ -7,6 +7,9 @@ def nowTimeInt():
     ms = int(time.time() * 1000 * 1000)
     return ms
 
+def datetimeToInt(dt : datetime.datetime):
+    return dt.timestamp() * 1000 * 1000
+
 def initMysqlDb():
     import pymysql
     conn = pymysql.connect(host='localhost', user='root', password='root@2025')
