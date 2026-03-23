@@ -5,43 +5,34 @@ path = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(path)
 from orm import base_orm, orm_urils
 
-db_def = pw.SqliteDatabase(f'{path}/db/My.db') # 题材库
-
 # 画线
 class TextLine(base_orm.BaseModel):
     keys = ('keyID', )
-    code = pw.CharField()
-    kind = pw.CharField()
-    period = pw.CharField(null = True)
-    _startPos = pw.CharField(default = None)
-    _endPos = pw.CharField(default = None, null = True)
-    info = pw.CharField(default = None, null = True)
-    keyID = pw.FloatField(default = time.time)
+    code = pw.CharField(max_length = 12)
+    kind = pw.CharField(max_length = 24)
+    period = pw.CharField(null = True, max_length = 24)
+    _startPos = pw.CharField(default = None, max_length = 120)
+    _endPos = pw.CharField(default = None, null = True, max_length = 120)
+    info = pw.CharField(default = None, null = True, max_length = 1024)
+    keyID = pw.DoubleField(default = time.time)
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
     
-    class Meta:
-        database = db_def
+    # class Meta:
+        # database = db_def
 
 class MySettings(base_orm.BaseModel):
     keys = ('platform', 'mainKey', 'subKey')
     platform = pw.CharField(default = '')
     mainKey =  pw.CharField(default = '')
     subKey =  pw.CharField(default = '')
-    val = pw.CharField(null = True)
+    val = pw.CharField(null = True, max_length = 1024)
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
-    class Meta:
-        database = db_def
+    # class Meta:
+        # database = db_def
 
-db_def.create_tables([TextLine, MySettings])
+base_orm.db_mysql.create_tables([TextLine, MySettings])
 
-if base_orm.VersionManager.getVersion('TextLine') == 0:
-    base_orm.VersionManager.saveVersion('TextLine', 1)
-    db_def.drop_tables([TextLine])
-    db_def.create_tables([TextLine])
-
-if base_orm.VersionManager.getVersion('TextLine') == 1:
-    base_orm.VersionManager.saveVersion('TextLine', 2)
-    orm_urils.ModelManager.addField(TextLine, TextLine.period)
-    TextLine.update(period = 'day').execute()
+if __name__ == '__main__':
+    pass
 

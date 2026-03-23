@@ -3,20 +3,22 @@ import sys, datetime, os, inspect, json
 
 path = os.path.dirname(os.path.dirname(__file__))
 
-db_delete = pw.SqliteDatabase(f'{path}/db/Delete.db')
+db_mysql = pw.MySQLDatabase('GP', host='localhost', port=3306, user='root', password='root@2025')
+
 class DeleteModel(pw.Model):
     keys = ('modelName', 'keyValues')
-    modelName = pw.CharField()
-    keyValues = pw.CharField()
+    modelName = pw.CharField(max_length = 50)
+    keyValues = pw.CharField(max_length = 1024)
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
     class Meta:
-        database = db_delete
-
-db_delete.create_tables([DeleteModel])
+        database = db_mysql
 
 # 有updateTime属性的才会被纳入数据同步范围
 class BaseModel(pw.Model):
+
+    class Meta:
+        database = db_mysql
 
     def delete_instance(self, recursive: bool = False, delete_nullable: bool = False):
         clazz = self.__class__
@@ -140,20 +142,13 @@ class BaseModel(pw.Model):
                 rs.append((name, datetime.date, defaultVal))
         return rs
 
-db_version = pw.SqliteDatabase(f'{path}/db/Version.db')
-
 
 # 无updateTime，数据库不自动同步更新
 class VersionModel(BaseModel):
     name = pw.CharField()
     version = pw.IntegerField()
 
-    class Meta:
-        database = db_version
-        
-db_version.create_tables([VersionModel])
-
-
+db_mysql.create_tables([DeleteModel, VersionModel])
 
 class VersionManager:
 
@@ -172,3 +167,5 @@ class VersionManager:
         else:
             VersionModel.create(name = modelName, version = version)
     
+if __name__ == '__main__':
+    pass

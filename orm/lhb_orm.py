@@ -2,41 +2,27 @@ import peewee as pw
 import sys, datetime, os, json
 
 path = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(path)
 from orm import base_orm
-
-db_lhb = pw.SqliteDatabase(f'{path}/db/LHB.db')
 
 class TdxLHB(base_orm.BaseModel):
     keys = ('code', 'day')
-    day = pw.CharField(column_name = '日期' ) # YYYY-MM-DD
-    code = pw.CharField()
-    name = pw.CharField()
-    title = pw.CharField(column_name = '上榜类型', null=True)
-    price = pw.FloatField(column_name = '收盘价', null=True)
-    zd = pw.FloatField(column_name = '涨跌幅' , null=True)
-    #vol = pw.IntegerField(column_name = '成交量_万' , null=True) # 万股
-    cjje = pw.DecimalField(column_name = '成交额_亿' , null=True, decimal_places = 1, max_digits = 10) # 亿元
-    
-    mrje = pw.DecimalField(column_name = '买入金额_亿' , null=True, decimal_places = 1, max_digits = 10) #  (亿元)
-    #mrjeRate = pw.IntegerField(column_name = '买入金额_占比' , null=True) #  (占总成交比例%)
-    mcje = pw.DecimalField(column_name = '卖出金额_亿' , null=True, decimal_places = 1, max_digits = 10) #  (亿元)
-    #mcjeRate = pw.IntegerField(column_name = '卖出金额_占比' , null=True) #  (占总成交比例%)
-    jme = pw.DecimalField(column_name = '净买额_亿' , null=True, decimal_places = 1, max_digits = 10) #  (亿元)
-    # famous = pw.CharField(column_name = '知名游资' , null=True)
-    detail = pw.CharField(column_name = '详细', null = True)
+    day = pw.CharField(max_length = 12) # YYYY-MM-DD
+    code = pw.CharField(max_length = 12)
+    name = pw.CharField(max_length = 24)
+    title = pw.CharField( null=True, max_length = 240) # 上榜类型
+    price = pw.FloatField( null=True) # 收盘价
+    zd = pw.FloatField(null=True) # 涨跌幅
+    cjje = pw.DecimalField(null=True, decimal_places = 1, max_digits = 10) #  成交额_亿(亿元)
+    mrje = pw.DecimalField(null=True, decimal_places = 1, max_digits = 10) #  买入金额_亿(亿元)
+    mcje = pw.DecimalField(null=True, decimal_places = 1, max_digits = 10) #  卖出金额_亿(亿元)
+    jme = pw.DecimalField(null=True, decimal_places = 1, max_digits = 10) #  净买额_亿(亿元)
+    detail = pw.CharField(null = True, max_length = 8092) #详细
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
-    class Meta:
-        database = db_lhb
 
-
-db_lhb.create_tables([TdxLHB])
+base_orm.db_mysql.create_tables([TdxLHB])
 
 
 if __name__ == '__main__':
-    def trs(it):
-        detail = json.loads(it.detail)
-        it.detail = json.dumps(detail, ensure_ascii = False)
-    import orm_urils
-    lhbOld = pw.SqliteDatabase(f'{orm_urils.path}/db/LHB-old.db')
-    orm_urils.move_table_data(lhbOld, TdxLHB, trs)
+    pass

@@ -5,21 +5,33 @@ path = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(path)
 
 class ModelManager:
+    USE_MYSQL = True
+    USE_SQLITE = False
+
     @classmethod
     def getColumns(clazz, model : pw.Model):
         tableName = model._meta.table_name
         db : pw.SqliteDatabase = model._meta.database
-        cc = db.execute_sql(f"PRAGMA table_info({tableName})")
+        if clazz.USE_SQLITE:
+            cc = db.execute_sql(f"PRAGMA table_info({tableName})")
+        elif clazz.USE_MYSQL:
+            cc = db.execute_sql(f"desc {tableName}")
         rs = cc.fetchall()
         cols = []
         for col in rs:
-            colName = col[1]
+            if clazz.USE_SQLITE:
+                colName = col[1]
+            elif clazz.USE_MYSQL:
+                colName = col[0]
             cols.append(colName)
         return cols
 
     @classmethod
     def listTables(clazz, db : pw.SqliteDatabase):
-        cc = db.execute_sql('select name from sqlite_master where type="table"')
+        if clazz.USE_SQLITE:
+            cc = db.execute_sql('select name from sqlite_master where type="table"')
+        elif clazz.USE_MYSQL:
+            cc = db.execute_sql('show tables')
         rs = cc.fetchall()
         names = []
         for r in rs:
@@ -60,7 +72,7 @@ class ModelManager:
         if not clazz.hasColumn(model, oldColumnName):
             return
         tableName = model._meta.table_name
-        sql = f"ALTER TABLE {tableName} rename COLUMN {oldColumnName} to {columnName}"
+        sql = f"ALTER TABLE {tableName} rename COLUMN {oldColumnName} to {columnName}" # sqlite & mysql 8.0
         db : pw.SqliteDatabase = model._meta.database
         db.execute_sql(sql)
 
@@ -70,22 +82,30 @@ class ModelManager:
             return
         if not clazz.hasTable(db, oldTableName):
             return
-        sql = f"ALTER TABLE {oldTableName} rename to {newTableName}"
+        if clazz.USE_SQLITE:
+            sql = f"ALTER TABLE {oldTableName} rename to {newTableName}"
+        elif clazz.USE_MYSQL:
+            sql = f"ALTER TABLE {oldTableName} rename {newTableName}"
         db.execute_sql(sql)
 
     # move table from a database to another database
     @classmethod
-    def copyTableData(clazz, fromDb : pw.SqliteDatabase, destModel : pw.Model, modifyFunc = None):
+    def copyTableData(clazz, fromDb : pw.SqliteDatabase, destModel : pw.Model, srcTableName = None, descSrcColsMap : dict = {}, modifyFunc = None):
         cols = [] # (field.name, column_name)
         for k in destModel._meta.columns:
             field = destModel._meta.columns[k]
             if k == 'id':
                 continue
-            cols.append((field.name, field.column_name))
+            if field.name in descSrcColsMap:
+                cols.append((field.name, descSrcColsMap[field.name]))
+            else:
+                cols.append((field.name, field.column_name))
         #print(cols)
         # build query select sql
         c = map(lambda x: x[1], cols)
-        sql = 'select ' + ', '.join(c) + ' from ' + destModel._meta.table_name
+        if not srcTableName:
+            srcTableName = destModel._meta.table_name
+        sql = 'select ' + ', '.join(c) + ' from ' + srcTableName
         cc = fromDb.cursor()
         cc.execute(sql)
         rs = cc.fetchall()

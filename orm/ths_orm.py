@@ -5,19 +5,18 @@ path = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(path)
 from orm import base_orm, orm_urils
 
-db_gntc = pw.SqliteDatabase(f'{path}/db/THS_GNTC.db')
 # 同花顺--概念题材
 class THS_GNTC(base_orm.BaseModel):
     keys = ('code', )
-    code = pw.CharField() #股票代码
-    name = pw.CharField() #股票名称
-    gn = pw.CharField(null=True) # 常规概念，每概概念之间用;分隔
-    gn_code = pw.CharField(null=True) # 常规概念对应的代码;分隔
-    hy = pw.CharField(null=True) # 行业
-    hy_2_name = pw.CharField(null=True) # 二级行业名称
-    hy_2_code = pw.CharField(null=True) # 二级行业代码
-    hy_3_name = pw.CharField(null=True) # 三级行业名称
-    hy_3_code = pw.CharField(null=True) # 三级行业代码
+    code = pw.CharField(max_length = 12) #股票代码
+    name = pw.CharField(max_length = 64) #股票名称
+    gn = pw.CharField(null=True, max_length = 4096) # 常规概念，每概概念之间用;分隔
+    gn_code = pw.CharField(null=True, max_length = 4096) # 常规概念对应的代码;分隔
+    hy = pw.CharField(null=True, max_length = 120) # 行业
+    hy_2_name = pw.CharField(null=True, max_length = 120) # 二级行业名称
+    hy_2_code = pw.CharField(null=True, max_length = 120) # 二级行业代码
+    hy_3_name = pw.CharField(null=True, max_length = 120) # 三级行业名称
+    hy_3_code = pw.CharField(null=True, max_length = 120) # 三级行业代码
     zgb = pw.FloatField(null=True) # 总股本 股
     ltag = pw.FloatField(null=True) # 流通a股 股
     xsg = pw.FloatField(null=True) # 限售股 股
@@ -27,77 +26,49 @@ class THS_GNTC(base_orm.BaseModel):
     peTTM = pw.FloatField(null=True) # 市盈率(pe,ttm)
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
-    class Meta:
-        database = db_gntc
-        table_name = '概念题材'
-
-db_hot = pw.SqliteDatabase(f'{path}/db/THS_Hot.db')
-db_hot_zh = pw.SqliteDatabase(f'{path}/db/THS_HotZH.db')
-
 # 同花顺--个股热度排名
 class THS_Hot(base_orm.BaseModel):
     # no keys
-    day = pw.IntegerField(column_name = '日期') # 刷新日期
+    day = pw.IntegerField() # 刷新日期
     code = pw.IntegerField() #股票代码
-    time = pw.IntegerField(column_name = '时间') # 刷新时间  HHMM
-    hotValue = pw.IntegerField(column_name = '热度值_万' ) #
-    hotOrder = pw.IntegerField(column_name = '热度排名' ) #
+    time = pw.IntegerField() # 刷新时间  HHMM
+    hotValue = pw.IntegerField() # 热度值_万
+    hotOrder = pw.IntegerField() # 热度排名
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
-
-    class Meta:
-        database = db_hot
-        table_name = '个股热度排名'
 
 # 同花顺--个股热度综合排名
 class THS_HotZH(base_orm.BaseModel):
     keys = ('day', 'code')
-    day = pw.IntegerField(column_name = '日期') # 刷新日期
+    day = pw.IntegerField() # 日期
     code = pw.IntegerField() #股票代码
-    avgHotValue = pw.IntegerField(column_name = '平均热度值_万' )
-    avgHotOrder = pw.FloatField(column_name = '平均热度排名' )
-    zhHotOrder = pw.IntegerField(column_name = '综合热度排名' )
+    avgHotValue = pw.IntegerField() # 平均热度值_万
+    avgHotOrder = pw.FloatField() # 平均热度排名
+    zhHotOrder = pw.IntegerField() # 综合热度排名
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
-    class Meta:
-        database = db_hot_zh
-        table_name = '个股热度综合排名'
-
-db_thszs = pw.SqliteDatabase(f'{path}/db/THS_ZS.db')
-db_thszszd = pw.SqliteDatabase(f'{path}/db/THS_ZS_ZD.db')
 class THS_ZS(base_orm.BaseModel):
     keys = ('code', )
-    code = pw.CharField() #指数代码
-    name = pw.CharField() #指数名称
-    parentCode = pw.CharField(null = True)
+    code = pw.CharField(max_length=12) #指数代码
+    name = pw.CharField(max_length=96) #指数名称
+    parentCode = pw.CharField(null = True, max_length=12)
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
-
-    class Meta:
-        database = db_thszs
-        # primary_key = False
-        # create view 同花顺指数_view (code, name) as select code, name from 同花顺指数涨跌信息 where day = (select max(day) from 同花顺指数涨跌信息)
-
-orm_urils.ModelManager.addField(THS_ZS, THS_ZS.parentCode)
 
 # 同花顺指数涨跌信息
 class THS_ZS_ZD(base_orm.BaseModel):
     keys = ('day', 'code')
-    day = pw.CharField() # YYYY-MM-DD
-    code = pw.CharField() #指数代码
-    name = pw.CharField(null = True) #指数名称
+    day = pw.CharField(max_length=12) # YYYY-MM-DD
+    code = pw.CharField(max_length=12) #指数代码
+    name = pw.CharField(null = True, max_length=96) #指数名称
     zdf_topLevelPM = pw.IntegerField(default = 0) # 一级概念、行业排名
     zdf_PM = pw.IntegerField(default = 0) # 二级排名
-    close = pw.FloatField(default = 0)
-    open = pw.FloatField(default = 0)
-    high = pw.FloatField(default = 0)
-    rate = pw.FloatField(default = 0)
-    money = pw.FloatField(default = 0)
-    vol = pw.FloatField(default = 0)
+    # close = pw.FloatField(default = 0)
+    # open = pw.FloatField(default = 0)
+    # high = pw.FloatField(default = 0)
+    # rate = pw.FloatField(default = 0)
+    # money = pw.FloatField(default = 0)
+    # vol = pw.FloatField(default = 0)
     zdf = pw.FloatField(default = 0)
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
-
-    class Meta:
-        database = db_thszszd
-        table_name = '同花顺指数涨跌信息'
 
 def update_THS_ZS(onlyMaxDay = True):
     qr = None
@@ -130,101 +101,29 @@ def update_THS_ZS(onlyMaxDay = True):
     THS_ZS.bulk_create(inserts, 100)
     THS_ZS.bulk_update(updates, ['name'], 100)
 
-def update_THS_ZS_ZD_pm():
-    zsInfos = {}
-    for it in THS_ZS.select():
-        zsInfos[it.code] = it
-    sql = 'select day, count(*) as cc from 同花顺指数涨跌信息 group by day'
-    cursor = db_thszszd.cursor()
-    cursor.execute(sql)
-    days = cursor.fetchall()
-    def getParentCode(code):
-        return zsInfos[code].parentCode if code in zsInfos else None
-    def isTopLevel(code):
-        pc = getParentCode(code)
-        return pc == None
-    for day, count in days:
-        print('[ths_orm.update_THS_ZS_ZD_pm]', day, count)
-        qr = THS_ZS_ZD.select().where(THS_ZS_ZD.day == day).order_by(THS_ZS_ZD.zdf.desc())
-        datas = [d for d in qr]
-        datas2 = []
-        datas3 = []
-        topLevelDatas = []
-        for row in datas:
-            if row.code not in zsInfos:
-                # print('[ths_orm.update_THS_ZS_ZD_pm] not find row: ', row.code, row.name)
-                row.zdf_topLevelPM = 0
-                row.zdf_PM = 0
-                datas3.append(row)
-                continue
-            datas2.append(row)
-            if isTopLevel(row.code):
-                topLevelDatas.append(row)
-        for i in range(len(topLevelDatas)):
-            if i <= len(topLevelDatas) // 2:
-                topLevelDatas[i].zdf_topLevelPM = i + 1
-            else:
-                topLevelDatas[i].zdf_topLevelPM = i - len(topLevelDatas)
-        mdatas = {}
-        for d in datas2:
-            mdatas[d.code] = d
-        for i in range(len(datas2)):
-            if i <= len(datas2) // 2:
-                datas2[i].zdf_PM = i + 1
-            else:
-                datas2[i].zdf_PM = i - len(datas2)
-            parentCode = getParentCode(datas2[i].code)
-            if parentCode: # 二级指数
-                if parentCode not in mdatas:
-                    # print('[ths_orm.update_THS_ZS_ZD_pm] Not find level-2 parent ',  datas2[i].code, datas2[i].name)
-                    datas2[i].zdf_topLevelPM = 0
-                else:
-                    datas2[i].zdf_topLevelPM = mdatas[parentCode].zdf_topLevelPM
-        THS_ZS_ZD.bulk_update(datas2, ['zdf_PM', 'zdf_topLevelPM'], 100)
-        THS_ZS_ZD.bulk_update(datas3, ['zdf_PM', 'zdf_topLevelPM'], 100)
-
-if base_orm.VersionManager.getVersion('THS_ZS_ZD') == 0:
-    base_orm.VersionManager.saveVersion('THS_ZS_ZD', 1)
-    update_THS_ZS_ZD_pm()
-
-db_ths_zt = pw.SqliteDatabase(f'{path}/db/THS_ZT.db') # THS.db --> THS_ZT.db
 # 同花顺涨停
 class THS_ZT(base_orm.BaseModel):
     keys = ('code', 'day')
-    code = pw.CharField()
-    name = pw.CharField(null = True)
-    day = pw.CharField() # YYYY-MM-DD
-    ztTime = pw.CharField(null = True, column_name='涨停时间')
-    status = pw.CharField(null = True, column_name='状态')
-    ztReason = pw.CharField(null = True, column_name='涨停原因')
-    #ztNum = pw.IntegerField(null=True, column_name='涨停数量')
+    code = pw.CharField(max_length=12)
+    name = pw.CharField(null = True, max_length=24)
+    day = pw.CharField(max_length=12) # YYYY-MM-DD
+    ztTime = pw.CharField(null = True, max_length=24, column_name='') # 涨停时间
+    status = pw.CharField(null = True, max_length=24, column_name='') # 状态
+    ztReason = pw.CharField(null = True, max_length=120, column_name='') # 涨停原因
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
-    class Meta:
-        database = db_ths_zt
-
-db_ths_codes = pw.SqliteDatabase(f'{path}/db/THS_Codes.db')
 # 个股信息
 class THS_CodesInfo(base_orm.BaseModel):
     keys = ('code', )
-    code = pw.CharField()
-    name = pw.CharField(null = True)
+    code = pw.CharField(max_length=12)
+    name = pw.CharField(null = True, max_length=24)
 
-    jrl = pw.CharField(null = True) # 近4年净利润
-    jrl_2 = pw.CharField(null = True) # 近4季度净利润
-    yysr = pw.CharField(null = True) # 近4年营业收入
+    jrl = pw.CharField(null = True, max_length=512) # 近4年净利润
+    jrl_2 = pw.CharField(null = True, max_length=512) # 近4季度净利润
+    yysr = pw.CharField(null = True, max_length=512) # 近4年营业收入
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
-    class Meta:
-        database = db_ths_codes
-
-db_hot.create_tables([THS_Hot])
-db_hot_zh.create_tables([THS_HotZH])
-db_thszs.create_tables([THS_ZS])
-db_thszszd.create_tables([THS_ZS_ZD])
-db_gntc.create_tables([THS_GNTC])
-db_ths_zt.create_tables([THS_ZT])
-db_ths_codes.create_tables([THS_CodesInfo])
+base_orm.db_mysql.create_tables([THS_Hot, THS_HotZH, THS_ZS, THS_ZS_ZD, THS_GNTC, THS_ZT, THS_CodesInfo])
 
 if __name__ == '__main__':
     pass

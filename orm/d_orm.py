@@ -1,29 +1,21 @@
 import peewee as pw
 import sys, datetime, os
 
-path = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from orm import base_orm
-
-db_pankou = pw.SqliteDatabase(f'{path}/db/PanKou.db')
-db_zhangsu = pw.SqliteDatabase(f'{path}/db/ZhangSu.db')
-db_diff_bkgn = pw.SqliteDatabase(f'{path}/db/DiffBkGn.db')
 
 # 涨停盘口(收盘)
 class ZT_PanKou(base_orm.BaseModel):
     keys = ('day', 'code')
-    day = pw.CharField() # YYYY-MM-DD
-    code = pw.CharField()
-    info = pw.CharField()
+    day = pw.CharField(max_length = 12) # YYYY-MM-DD
+    code = pw.CharField(max_length = 12)
+    info = pw.CharField(max_length = 1024)
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
-    class Meta:
-        database = db_pankou
-
-db_hotvol = pw.SqliteDatabase(f'{path}/db/HotVol.db')
 #热度股成交量前100信息
 class HotVol(base_orm.BaseModel):
     keys = ('day', )
-    day = pw.CharField() # YYYY-MM-DD
+    day = pw.CharField(max_length = 12) # YYYY-MM-DD
     p1 = pw.IntegerField() # 第一  亿元
     p10 = pw.IntegerField() # 第20
     p20 = pw.IntegerField() # 第20
@@ -36,10 +28,6 @@ class HotVol(base_orm.BaseModel):
     avg50_100 = pw.IntegerField() # 前51 ~ 100平均
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
-    class Meta:
-        database = db_hotvol
-
-
 # Local涨速
 class LocalSpeedModel(base_orm.BaseModel):
     keys = ('day', 'code')
@@ -51,21 +39,15 @@ class LocalSpeedModel(base_orm.BaseModel):
     zf = pw.FloatField() #涨幅
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
 
-    class Meta:
-        database = db_zhangsu
-        table_name = 'LocalZS'
 
 class DiffBkGnModel(base_orm.BaseModel):
-    code = pw.CharField()
-    name = pw.CharField(null = True)
-    day = pw.CharField() # modify day
-    op = pw.CharField() # add | remove
-    zsCode = pw.CharField(null = True)
-    zsName = pw.CharField(null = True)
+    code = pw.CharField(max_length = 12)
+    name = pw.CharField(null = True, max_length = 48)
+    day = pw.CharField(max_length = 12) # modify day
+    op = pw.CharField(max_length = 12) # add | remove
+    zsCode = pw.CharField(null = True, max_length = 12)
+    zsName = pw.CharField(null = True, max_length = 24)
     updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
-
-    class Meta:
-        database = db_diff_bkgn
 
 def createDiffBkGn(code, name, diffrents):
     if not diffrents:
@@ -92,7 +74,7 @@ def createDiffBkGn(code, name, diffrents):
             rs.append(it)
     return rs
 
-# db_pankou.create_tables([ZT_PanKou])
-db_hotvol.create_tables([HotVol])
-db_zhangsu.create_tables([LocalSpeedModel])
-db_diff_bkgn.create_tables([DiffBkGnModel])
+base_orm.db_mysql.create_tables([ZT_PanKou, HotVol, LocalSpeedModel, DiffBkGnModel])
+
+if __name__ == '__main__':
+    pass
