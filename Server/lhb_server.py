@@ -175,7 +175,8 @@ class Server:
         if not dayFrom:
             dayFrom = datetime.date(2023, 1, 1)
         cursor = lhb_orm.TdxLHB._meta.database.cursor()
-        rs = cursor.execute('select min(day), max(day) from tdxlhb').fetchall()
+        cursor.execute('select min(day), max(day) from tdxlhb')
+        rs = cursor.fetchall()
         rs = rs[0]
         if rs[0]:
             minDay = datetime.datetime.strptime(rs[0], '%Y-%m-%d').date()
@@ -216,6 +217,6 @@ if __name__ == '__main__':
     svr = Server()
     svr.debug = True
     #svr.loadOneGP('000062', '2024-08-20', '深圳华强')
-    svr.loadTdxLHB(datetime.date(2025, 4, 30))
+    svr.loadTdxLHB() # datetime.date(2025, 4, 30)
 
     

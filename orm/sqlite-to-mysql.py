@@ -21,7 +21,7 @@ def motifyTextLine(info):
 
 def move():
     import orm_urils
-    orm_urils.ModelManager.copyTableData(pw.SqliteDatabase('db/delete.db'), base_orm.DeleteModel)
+    # orm_urils.ModelManager.copyTableData(pw.SqliteDatabase('db/delete.db'), base_orm.DeleteModel)
     orm_urils.ModelManager.copyTableData(pw.SqliteDatabase('db/Version.db'), base_orm.VersionModel)
     orm_urils.ModelManager.copyTableData(pw.SqliteDatabase('db/chrome.db'), chrome_orm.MyNote, modifyFunc=motifyUpdateTime)
     orm_urils.ModelManager.copyTableData(pw.SqliteDatabase('db/cls_gntc_n.db'),  cls_orm.CLS_GNTC, modifyFunc=motifyUpdateTime)
