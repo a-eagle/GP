@@ -14,8 +14,8 @@ class TextLine(base_orm.BaseModel):
     _startPos = pw.CharField(default = None, max_length = 120)
     _endPos = pw.CharField(default = None, null = True, max_length = 120)
     info = pw.CharField(default = None, null = True, max_length = 1024)
-    keyID = pw.DoubleField(default = time.time)
-    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+    keyID = pw.BigIntegerField(default = base_orm.nowTimeInt)
+    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
     
     # class Meta:
         # database = db_def
@@ -26,7 +26,7 @@ class MySettings(base_orm.BaseModel):
     mainKey =  pw.CharField(default = '')
     subKey =  pw.CharField(default = '')
     val = pw.CharField(null = True, max_length = 1024)
-    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
     # class Meta:
         # database = db_def

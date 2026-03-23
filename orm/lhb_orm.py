@@ -18,7 +18,7 @@ class TdxLHB(base_orm.BaseModel):
     mcje = pw.DecimalField(null=True, decimal_places = 1, max_digits = 10) #  卖出金额_亿(亿元)
     jme = pw.DecimalField(null=True, decimal_places = 1, max_digits = 10) #  净买额_亿(亿元)
     detail = pw.CharField(null = True, max_length = 8092) #详细
-    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
 
 base_orm.db_mysql.create_tables([TdxLHB])

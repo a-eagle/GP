@@ -8,7 +8,7 @@ from orm import base_orm
 class MyNote(base_orm.BaseModel):
     tag = pw.CharField() #
     cnt = pw.CharField(null = True, max_length = 1024 * 30) #
-    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
 # 颜色标记
 class MyMarkColor(base_orm.BaseModel):
@@ -18,7 +18,7 @@ class MyMarkColor(base_orm.BaseModel):
     name = pw.CharField(null = True) #
     color = pw.CharField(null = True) # html/css color
     day  = pw.CharField(null = True) # YYYY-MM-DD
-    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
 base_orm.db_mysql.create_tables([MyNote, MyMarkColor])
 

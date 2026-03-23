@@ -1,7 +1,25 @@
 import peewee as pw
-import sys, datetime, os, inspect, json
+import sys, datetime, os, inspect, json, time
 
 path = os.path.dirname(os.path.dirname(__file__))
+
+def nowTimeInt():
+    ms = int(time.time() * 1000 * 1000)
+    return ms
+
+def initMysqlDb():
+    import pymysql
+    conn = pymysql.connect(host='localhost', user='root', password='root@2025')
+    cs = conn.cursor()
+    cs.execute('show databases')
+    rs = cs.fetchall()
+    dbs = [r[0].upper() for r in rs]
+    if 'GP' in dbs:
+        return
+    cs.execute('create database GP')
+    conn.close()
+
+initMysqlDb()
 
 db_mysql = pw.MySQLDatabase('GP', host='localhost', port=3306, user='root', password='root@2025')
 
@@ -9,10 +27,12 @@ class DeleteModel(pw.Model):
     keys = ('modelName', 'keyValues')
     modelName = pw.CharField(max_length = 50)
     keyValues = pw.CharField(max_length = 1024)
-    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+    updateTime = pw.BigIntegerField(null = True, default = nowTimeInt)
 
     class Meta:
         database = db_mysql
+
+
 
 # 有updateTime属性的才会被纳入数据同步范围
 class BaseModel(pw.Model):
@@ -142,7 +162,6 @@ class BaseModel(pw.Model):
                 rs.append((name, datetime.date, defaultVal))
         return rs
 
-
 # 无updateTime，数据库不自动同步更新
 class VersionModel(BaseModel):
     name = pw.CharField()
@@ -166,6 +185,7 @@ class VersionManager:
             obj.version = version
         else:
             VersionModel.create(name = modelName, version = version)
-    
+
+
 if __name__ == '__main__':
-    pass
+    print(nowTimeInt())

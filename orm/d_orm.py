@@ -10,7 +10,7 @@ class ZT_PanKou(base_orm.BaseModel):
     day = pw.CharField(max_length = 12) # YYYY-MM-DD
     code = pw.CharField(max_length = 12)
     info = pw.CharField(max_length = 1024)
-    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
 #热度股成交量前100信息
 class HotVol(base_orm.BaseModel):
@@ -26,7 +26,7 @@ class HotVol(base_orm.BaseModel):
     avg10_20 = pw.IntegerField() # 前11 ~ 20平均
     avg20_50 = pw.IntegerField() # 前21 ~ 50平均
     avg50_100 = pw.IntegerField() # 前51 ~ 100平均
-    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
 # Local涨速
 class LocalSpeedModel(base_orm.BaseModel):
@@ -37,7 +37,7 @@ class LocalSpeedModel(base_orm.BaseModel):
     endMinute  = pw.IntegerField()
     minuts =  pw.IntegerField() # 时间
     zf = pw.FloatField() #涨幅
-    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
 
 class DiffBkGnModel(base_orm.BaseModel):
@@ -47,7 +47,7 @@ class DiffBkGnModel(base_orm.BaseModel):
     op = pw.CharField(max_length = 12) # add | remove
     zsCode = pw.CharField(null = True, max_length = 12)
     zsName = pw.CharField(null = True, max_length = 24)
-    updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
 def createDiffBkGn(code, name, diffrents):
     if not diffrents:

@@ -115,16 +115,16 @@ class ModelManager:
             for i, c in enumerate(cols):
                 params[c[0]] = row[i]
             #print(params)
+            if modifyFunc:
+                modifyFunc(params)
             item = destModel(**params)
             inserts.append(item)
-            if modifyFunc:
-                modifyFunc(item)
         destModel.bulk_create(inserts, 50)
 
 class TestModel(pw.Model):
     user = pw.CharField() #
     old = pw.IntegerField(null = True, default = 0, column_name = 'OLD_x')
-    # updateTime = pw.DateTimeField(null = True, default = datetime.datetime.now)
+    # updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
     # sex = pw.CharField(null = True, default = datetime.date.today, column_name = 'sex_n') #
     # paiMing = pw.IntegerField(default = 10)
