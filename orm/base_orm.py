@@ -10,6 +10,13 @@ def nowTimeInt():
 def datetimeToInt(dt : datetime.datetime):
     return dt.timestamp() * 1000 * 1000
 
+def diffUpdateTime(first, second):
+    if type(first) == int:
+        first = datetime.datetime.fromtimestamp(first / 1000 / 1000)
+    if type(second) == int:
+        second = datetime.datetime.fromtimestamp(second / 1000 / 1000)
+    return first - second
+
 def initMysqlDb():
     import pymysql
     conn = pymysql.connect(host='localhost', user='root', password='root@2025')
@@ -34,8 +41,6 @@ class DeleteModel(pw.Model):
 
     class Meta:
         database = db_mysql
-
-
 
 # 有updateTime属性的才会被纳入数据同步范围
 class BaseModel(pw.Model):

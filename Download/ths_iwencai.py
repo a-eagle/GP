@@ -261,7 +261,7 @@ class HygnDownloader:
             self.adjustHyGnCode(obj)
             if 'gn' in diffrents:
                 diffrents['gn_code'] = (gncc, obj.gn_code)
-            obj.updateTime = datetime.datetime.now()
+            obj.updateTime = base_orm.nowTimeInt()
             diffs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
         obj._diff_attrs_ = diffrents
         obj._diff_gn_ = diffs
@@ -325,7 +325,7 @@ class HygnDownloader:
             # print('[ths_iwencai.simpleDownload] update ', obj.code, obj.name)
             obj.gn = dest['gn']
             obj.gn_code = gncodes
-            obj.updateTime = datetime.datetime.now()
+            obj.updateTime = base_orm.nowTimeInt()
             obj.save()
 
     def simpleDownloadByCode(self, code):
@@ -349,7 +349,7 @@ class HygnDownloader:
         # print('[ths_iwencai.simpleDownloadByCode] update ', obj.code, obj.name)
         obj.gn = dest['gn']
         obj.gn_code = gncodes
-        obj.updateTime = datetime.datetime.now()
+        obj.updateTime = base_orm.nowTimeInt()
         obj.save()
     
     def checkGnMatch(self):
@@ -415,7 +415,7 @@ def download_hygn_pe():
         if not obj:
             continue
         if obj.peTTM != peTTM or obj.pe != pe:
-            obj.updateTime = datetime.datetime.now()
+            obj.updateTime = base_orm.nowTimeInt()
         obj.peTTM = peTTM
         obj.pe = pe
         obj.save()

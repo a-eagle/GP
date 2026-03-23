@@ -4,7 +4,7 @@ import requests, json, logging
 import peewee as pw
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from orm import cls_orm, d_orm, ths_orm
+from orm import cls_orm, d_orm, ths_orm, base_orm
 from download import console, cls, ths_iwencai
 
 class Server:
@@ -34,7 +34,7 @@ class Server:
             if obj.ztReason != it['ztReason'] or obj.detail != it['detail']:
                 obj.ztReason = it['ztReason']
                 obj.detail = it['detail']
-                obj.updateTime = datetime.datetime.now()
+                obj.updateTime = base_orm.nowTimeInt()
                 updateNum += 1
                 obj.save()
         else:
@@ -131,7 +131,7 @@ class Server:
             else:
                 obj.fb = json.dumps(fb)
                 obj.zhqd = degree
-                obj.updateTime = datetime.datetime.now()
+                obj.updateTime = base_orm.nowTimeInt()
                 obj.save()
             console.writeln_1(console.CYAN, f'{tag} [CLS-Degree]', day, ' -> ', degree)
             return True
@@ -394,7 +394,7 @@ class Server:
                     continue
                 # check update time
                 if obj.updateTime:
-                    timeout : datetime.timedelta = obj.updateTime - datetime.datetime.now()
+                    timeout : datetime.timedelta = base_orm.diffUpdateTime(obj.updateTime, datetime.datetime.now())
                     if timeout.days <= 10:
                         continue
                 info = cls.ClsUrl().loadBkGnOfCode(code)
@@ -403,11 +403,11 @@ class Server:
                     continue
                 if obj:
                     if diff(obj, info, attrs):
-                        obj.updateTime = datetime.datetime.now()
+                        obj.updateTime = base_orm.nowTimeInt()
                         obj.save() # update
                         u += 1
                 else:
-                    info.updateTime = datetime.datetime.now()
+                    info.updateTime = base_orm.nowTimeInt()
                     info.save() # create new
                     i += 1
                 time.sleep(20)
@@ -528,7 +528,7 @@ class Server:
                 cls_orm.CLS_SCQX.create(day = day, zdfb = fb)
             else:
                 obj.zdfb = fb
-                obj.updateTime = datetime.datetime.now()
+                obj.updateTime = base_orm.nowTimeInt()
                 obj.save()
             console.writeln_1(console.CYAN, f'{tag} [Cls-EastMoney-Zdfb] {self.formatNowTime(True)}')
             return True

@@ -5,7 +5,7 @@ import datetime, time, sys, os, re
 
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from orm import d_orm, ths_orm, cls_orm
+from orm import d_orm, ths_orm, cls_orm, base_orm
 from download import henxin, console, ths_iwencai
 from utils import hot_utils
 
@@ -124,7 +124,7 @@ class Server:
                     obj.status = it['status']
                 if it['ztReason']:
                     obj.ztReason = it['ztReason']
-                obj.updateTime = datetime.datetime.now()
+                obj.updateTime = base_orm.nowTimeInt()
                 obj.save()
                 updateNum += 1
         if insertNum or updateNum:
@@ -263,7 +263,7 @@ class Server:
                 obj = cls_orm.CLS_UpDown.get_or_none(cls_orm.CLS_UpDown.secu_code == d['secu_code'], cls_orm.CLS_UpDown.day == d['day'])
                 if obj:
                     obj.up_reason = d['up_reason']
-                    obj.updateTime = datetime.datetime.now()
+                    obj.updateTime = base_orm.nowTimeInt()
                     obj.save()
                     unum += 1
             console.writeln_1(console.GREEN, f'{tag} [THS-DT] {self.formatNowTime(True)} update {unum}')
@@ -363,7 +363,7 @@ class Server:
             jrlData = ths_iwencai.download_jrl()
         else:
             jrlData = ths_iwencai.download_jrl_2()
-        ud = datetime.datetime.now()
+        ud = base_orm.nowTimeInt()
         ex = {}
         def diff(obj, new):
             changed = False
