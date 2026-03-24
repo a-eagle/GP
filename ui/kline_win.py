@@ -2,7 +2,7 @@ import os, sys, functools, copy, datetime, json, time, traceback, copy
 import win32gui, win32con, win32api, pyperclip
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from orm import chrome_orm, my_orm, d_orm
+from orm import chrome_orm, my_orm, d_orm, base_orm
 from ui import base_win, dialog
 from utils import gn_utils
 from ui.kline_indicator import *
@@ -700,11 +700,11 @@ class LineView(Dragable):
         if line.kind == 'line' and self.startPos != self.endPos:
             line._startPos = self.startPos.dump()
             line._endPos = self.endPos.dump()
-            line.updateTime = datetime.datetime.now()
+            line.updateTime = base_orm.nowTimeInt()
             line.save()
         elif line.kind == 'text':
             line._startPos = self.startPos.dump()
-            line.updateTime = datetime.datetime.now()
+            line.updateTime = base_orm.nowTimeInt()
             line.save()
     
     def getOutShape(self) -> Polygon:
@@ -1407,7 +1407,7 @@ class KLineWindow(base_win.BaseWindow):
         if code[0 : 3] == '399':
             return
         obj : cls_orm.CLS_GNTC = cls_orm.CLS_GNTC.get_or_none(code = code)
-        if obj and obj.updateTime and datetime.date.today() == obj.updateTime.date():
+        if obj and obj.updateTime and datetime.date.today() == base_orm.updateTimeToDateTime(obj.updateTime).date():
             return
         info = cls.ClsUrl().loadBkGnOfCode(code)
         if not obj:
@@ -1415,7 +1415,7 @@ class KLineWindow(base_win.BaseWindow):
         else:
             diffrents = obj.diff(info, excludeAttrNames = ['updateTime'])
             if diffrents:
-                obj.updateTime = datetime.datetime.now()
+                obj.updateTime = base_orm.nowTimeInt()
                 obj.save()
                 rs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
                 if rs:
@@ -1839,8 +1839,12 @@ class CodeWindow(BaseWindow):
         y += RH
         self.drawer.drawText(hdc, '涨幅', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         zf = (sdatas[-1].close -  pre) / pre * 100
+        zf2 = ''
+        if zf < -10:
+            zf2 = (pre - sdatas[-1].close) / sdatas[-1].close * 100
+            zf2 = f'（{int(zf2)}%）'
         # color = 0x0000E6 if zf >= 0 else 0x00E600
-        self.drawer.drawText(hdc, f'{int(zf)} %', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        self.drawer.drawText(hdc, f'{int(zf)}% {zf2}', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         y += RH
         self.drawer.drawText(hdc, '最大涨幅', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         maxVal, minVal = 0, 10000000
@@ -1849,12 +1853,15 @@ class CodeWindow(BaseWindow):
             maxVal = max(maxVal, it.high)
             minVal = min(minVal, it.low)
             totalRate += it.rate
+        mzf2 = ''
         if zf > 0:
             mzf = (maxVal -  pre) / pre * 100
         else:
             mzf = (minVal -  pre) / pre * 100
+            mzf2 = (pre - minVal) / minVal * 100
+            mzf2 = f'（{int(mzf2)}%）'
         # color = 0x0000E6 if zf >= 0 else 0x00E600
-        self.drawer.drawText(hdc, f'{int(mzf)} %', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        self.drawer.drawText(hdc, f'{int(mzf)}% {mzf2}', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         y += RH
         self.drawer.drawText(hdc, '总换手率', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         self.drawer.drawText(hdc, f'{int(totalRate)} %', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)

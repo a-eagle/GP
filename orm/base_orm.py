@@ -10,6 +10,13 @@ def nowTimeInt():
 def datetimeToInt(dt : datetime.datetime):
     return int(dt.timestamp() * 1000 * 1000)
 
+def updateTimeToDateTime(updateTime):
+    if not updateTime:
+        return None
+    seconds = updateTime / 1000 / 1000
+    dt = datetime.datetime.fromtimestamp(seconds)
+    return dt
+
 def diffUpdateTime(first, second):
     if type(first) == int:
         first = datetime.datetime.fromtimestamp(first / 1000 / 1000)

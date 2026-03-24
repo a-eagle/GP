@@ -178,7 +178,7 @@ class Client:
                 return
             datas = rs['data']
             insertNum, updateNum = self.diffDatas(model, datas)
-            updateTimeStr = datetime.datetime.fromtimestamp(updateTimeStamp / 1000 / 1000)
+            updateTimeStr = base_orm.updateTimeToDateTime(updateTimeStamp)
             console.write_1(console.GREEN, f'Update datas {ormFile}.{ormClass} --> ')
             console.writeln_1(console.GREEN, f' insert {insertNum} update {updateNum} time: {updateTimeStr}')
             if model == base_orm.DeleteModel:
