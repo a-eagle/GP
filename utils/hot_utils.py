@@ -6,7 +6,7 @@ from orm.ths_orm import THS_Hot, THS_HotZH, THS_GNTC
 
 # param day : int
 def calcHotZHOnDay(day : int):
-    qq = THS_Hot.select(THS_Hot.day, THS_Hot.code, pw.fn.avg(THS_Hot.hotValue), pw.fn.sum(THS_Hot.hotOrder), pw.fn.count()).group_by(THS_Hot.day, THS_Hot.code).where(THS_Hot.day == day).tuples()
+    qq = THS_Hot.select(THS_Hot.day, THS_Hot.code, pw.fn.avg(THS_Hot.hotValue), pw.fn.sum(THS_Hot.hotOrder), pw.fn.count('*')).group_by(THS_Hot.day, THS_Hot.code).where(THS_Hot.day == day).tuples()
     count = THS_Hot.select(THS_Hot.time).distinct().where(THS_Hot.day == day).count()
     rowDatas = []
     for row in qq:

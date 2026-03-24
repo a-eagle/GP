@@ -303,7 +303,7 @@ class BkGnView:
         endDay = days[0]
         self.hotDaysRange = (fromDay, endDay)
         rs = []
-        qr = cls_orm.CLS_HotTc.select(cls_orm.CLS_HotTc.name, pw.fn.count()).where(cls_orm.CLS_HotTc.day >= fromDay, cls_orm.CLS_HotTc.day <= endDay, cls_orm.CLS_HotTc.up == True).group_by(cls_orm.CLS_HotTc.name).tuples()
+        qr = cls_orm.CLS_HotTc.select(cls_orm.CLS_HotTc.name, pw.fn.count('*')).where(cls_orm.CLS_HotTc.day >= fromDay, cls_orm.CLS_HotTc.day <= endDay, cls_orm.CLS_HotTc.up == True).group_by(cls_orm.CLS_HotTc.name).tuples()
         for it in qr:
             clsName, num = it
             rs.append((clsName.strip(), num))
