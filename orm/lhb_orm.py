@@ -6,7 +6,7 @@ sys.path.append(path)
 from orm import base_orm
 
 class TdxLHB(base_orm.BaseModel):
-    keys = ('code', 'day')
+    keys = ('code', 'day', 'title')
     day = pw.CharField(max_length = 12) # YYYY-MM-DD
     code = pw.CharField(max_length = 12)
     name = pw.CharField(max_length = 24)
