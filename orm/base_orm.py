@@ -24,20 +24,6 @@ def diffUpdateTime(first, second):
         second = datetime.datetime.fromtimestamp(second / 1000 / 1000)
     return first - second
 
-def initMysqlDb():
-    import pymysql
-    conn = pymysql.connect(host='localhost', user='root', password='root@2025')
-    cs = conn.cursor()
-    cs.execute('show databases')
-    rs = cs.fetchall()
-    dbs = [r[0].upper() for r in rs]
-    if 'GP' in dbs:
-        return
-    cs.execute('create database GP')
-    conn.close()
-
-initMysqlDb()
-
 db_mysql = pw.MySQLDatabase('GP', host='localhost', port=3306, user='root', password='root@2025')
 
 class DeleteModel(pw.Model):

@@ -113,7 +113,7 @@ class Main:
 
     LOCK_STATUS_LOCK = 100
     LOCK_STATUS_UNLOCK = 200
-    MAX_IDLE_TIME = 7 * 60 * 1000
+    MAX_IDLE_TIME = 5 * 60 * 1000
     
     def __init__(self, locker : ScreenLocker) -> None:
         self.locker = locker
