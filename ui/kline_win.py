@@ -1842,7 +1842,7 @@ class CodeWindow(BaseWindow):
         zf2 = ''
         if zf < -10:
             zf2 = (pre - sdatas[-1].close) / sdatas[-1].close * 100
-            zf2 = f'（{int(zf2)}%）'
+            zf2 = f'（+{int(zf2)}%）'
         # color = 0x0000E6 if zf >= 0 else 0x00E600
         self.drawer.drawText(hdc, f'{int(zf)}% {zf2}', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         y += RH
@@ -1859,7 +1859,7 @@ class CodeWindow(BaseWindow):
         else:
             mzf = (minVal -  pre) / pre * 100
             mzf2 = (pre - minVal) / minVal * 100
-            mzf2 = f'（{int(mzf2)}%）'
+            mzf2 = f'（+{int(mzf2)}%）'
         # color = 0x0000E6 if zf >= 0 else 0x00E600
         self.drawer.drawText(hdc, f'{int(mzf)}% {mzf2}', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         y += RH
