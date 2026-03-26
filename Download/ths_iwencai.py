@@ -4,6 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from orm import ths_orm, d_orm, base_orm
 from download import henxin, memcache, console
+from utils import cutils
 
 class ThsColumns:
     def __init__(self, item) -> None:
@@ -261,7 +262,7 @@ class HygnDownloader:
             self.adjustHyGnCode(obj)
             if 'gn' in diffrents:
                 diffrents['gn_code'] = (gncc, obj.gn_code)
-            obj.updateTime = base_orm.nowTimeInt()
+            obj.updateTime = cutils.nowTimeInt()
             diffs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
         obj._diff_attrs_ = diffrents
         obj._diff_gn_ = diffs
@@ -325,7 +326,7 @@ class HygnDownloader:
             # print('[ths_iwencai.simpleDownload] update ', obj.code, obj.name)
             obj.gn = dest['gn']
             obj.gn_code = gncodes
-            obj.updateTime = base_orm.nowTimeInt()
+            obj.updateTime = cutils.nowTimeInt()
             obj.save()
 
     def simpleDownloadByCode(self, code):
@@ -349,7 +350,7 @@ class HygnDownloader:
         # print('[ths_iwencai.simpleDownloadByCode] update ', obj.code, obj.name)
         obj.gn = dest['gn']
         obj.gn_code = gncodes
-        obj.updateTime = base_orm.nowTimeInt()
+        obj.updateTime = cutils.nowTimeInt()
         obj.save()
     
     def checkGnMatch(self):
@@ -415,7 +416,7 @@ def download_hygn_pe():
         if not obj:
             continue
         if obj.peTTM != peTTM or obj.pe != pe:
-            obj.updateTime = base_orm.nowTimeInt()
+            obj.updateTime = cutils.nowTimeInt()
         obj.peTTM = peTTM
         obj.pe = pe
         obj.save()

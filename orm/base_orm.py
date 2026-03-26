@@ -2,35 +2,9 @@ import peewee as pw
 from playhouse.shortcuts import ReconnectMixin
 from playhouse.pool import PooledMySQLDatabase
 import sys, datetime, os, inspect, json, time
+from utils import cutils
 
 path = os.path.dirname(os.path.dirname(__file__))
-
-def nowTimeInt():
-    ms = int(time.time() * 1000 * 1000)
-    return ms
-
-def datetimeToInt(dt : datetime.datetime):
-    return int(dt.timestamp() * 1000 * 1000)
-
-def updateTimeToDateTime(updateTime):
-    if not updateTime:
-        return None
-    if type(updateTime) == str:
-        updateTime = int(updateTime)
-    seconds = updateTime / 1000 / 1000
-    dt = datetime.datetime.fromtimestamp(seconds)
-    return dt
-
-def diffUpdateTime(first, second):
-    if type(first) == str:
-        first = int(first)
-    if type(second) == str:
-        second = int(second)
-    if type(first) == int:
-        first = datetime.datetime.fromtimestamp(first / 1000 / 1000)
-    if type(second) == int:
-        second = datetime.datetime.fromtimestamp(second / 1000 / 1000)
-    return first - second
 
 class ReconnectMysqlDatabase(ReconnectMixin, pw.MySQLDatabase):
     pass
@@ -42,14 +16,13 @@ class DeleteModel(pw.Model):
     keys = ('modelName', 'keyValues')
     modelName = pw.CharField(max_length = 50)
     keyValues = pw.CharField(max_length = 1024)
-    updateTime = pw.BigIntegerField(null = True, default = nowTimeInt)
+    updateTime = pw.BigIntegerField(null = True, default = cutils.nowTimeInt)
 
     class Meta:
         database = db_mysql
 
 # 有updateTime属性的才会被纳入数据同步范围
 class BaseModel(pw.Model):
-
     class Meta:
         database = db_mysql
 
@@ -175,6 +148,9 @@ class BaseModel(pw.Model):
                 rs.append((name, datetime.date, defaultVal))
         return rs
 
+class NeedSyncModel(BaseModel):
+    updateTime = pw.BigIntegerField(null = True, default = cutils.nowTimeInt)
+
 # 无updateTime，数据库不自动同步更新
 class VersionModel(BaseModel):
     name = pw.CharField()
@@ -201,4 +177,4 @@ class VersionManager:
 
 
 if __name__ == '__main__':
-    print(nowTimeInt())
+    pass

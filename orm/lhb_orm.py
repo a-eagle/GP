@@ -5,7 +5,7 @@ path = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(path)
 from orm import base_orm
 
-class TdxLHB(base_orm.BaseModel):
+class TdxLHB(base_orm.NeedSyncModel):
     keys = ('code', 'day', 'title')
     day = pw.CharField(max_length = 12) # YYYY-MM-DD
     code = pw.CharField(max_length = 12)
@@ -18,8 +18,6 @@ class TdxLHB(base_orm.BaseModel):
     mcje = pw.DecimalField(null=True, decimal_places = 1, max_digits = 10) #  卖出金额_亿(亿元)
     jme = pw.DecimalField(null=True, decimal_places = 1, max_digits = 10) #  净买额_亿(亿元)
     detail = pw.CharField(null = True, max_length = 8092) #详细
-    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
-
 
 base_orm.db_mysql.create_tables([TdxLHB])
 

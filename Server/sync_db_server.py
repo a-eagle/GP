@@ -6,8 +6,9 @@ import peewee as pw, flask, flask_cors
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from orm import chrome_orm, cls_orm, d_orm, lhb_orm, my_orm, ths_orm, base_orm
 from download import config, console, ths_iwencai, cls
+from utils import cutils
 
-MIN_UPDATE_TIME = base_orm.datetimeToInt(datetime.datetime(2025, 6, 11, 8, 0, 0))
+MIN_UPDATE_TIME = cutils.datetimeToInt(datetime.datetime(2025, 6, 11, 8, 0, 0))
 
 IGNORE_PUSH_ORM = ['THS_Hot']
 
@@ -178,7 +179,7 @@ class Client:
                 return
             datas = rs['data']
             insertNum, updateNum = self.diffDatas(model, datas)
-            updateTimeStr = base_orm.updateTimeToDateTime(updateTimeStamp)
+            updateTimeStr = cutils.updateTimeToDateTime(updateTimeStamp)
             console.write_1(console.GREEN, f'Update datas {ormFile}.{ormClass} --> ')
             console.writeln_1(console.GREEN, f' insert {insertNum} update {updateNum} time: {updateTimeStr}')
             if model == base_orm.DeleteModel:

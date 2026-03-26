@@ -6,7 +6,7 @@ sys.path.append(path)
 from orm import base_orm, orm_urils
 
 # 同花顺--概念题材
-class THS_GNTC(base_orm.BaseModel):
+class THS_GNTC(base_orm.NeedSyncModel):
     keys = ('code', )
     code = pw.CharField(max_length = 12) #股票代码
     name = pw.CharField(max_length = 64) #股票名称
@@ -24,37 +24,33 @@ class THS_GNTC(base_orm.BaseModel):
     zsz = pw.FloatField(null=True) #  总市值
     pe = pw.FloatField(null=True) # 静态市盈率
     peTTM = pw.FloatField(null=True) # 市盈率(pe,ttm)
-    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
 # 同花顺--个股热度排名
-class THS_Hot(base_orm.BaseModel):
+class THS_Hot(base_orm.NeedSyncModel):
     # no keys
     day = pw.IntegerField() # 刷新日期
     code = pw.IntegerField() #股票代码
     time = pw.IntegerField() # 刷新时间  HHMM
     hotValue = pw.IntegerField() # 热度值_万
     hotOrder = pw.IntegerField() # 热度排名
-    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
 # 同花顺--个股热度综合排名
-class THS_HotZH(base_orm.BaseModel):
+class THS_HotZH(base_orm.NeedSyncModel):
     keys = ('day', 'code')
     day = pw.IntegerField() # 日期
     code = pw.IntegerField() #股票代码
     avgHotValue = pw.IntegerField() # 平均热度值_万
     avgHotOrder = pw.FloatField() # 平均热度排名
     zhHotOrder = pw.IntegerField() # 综合热度排名
-    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
-class THS_ZS(base_orm.BaseModel):
+class THS_ZS(base_orm.NeedSyncModel):
     keys = ('code', )
     code = pw.CharField(max_length=12) #指数代码
     name = pw.CharField(max_length=96) #指数名称
     parentCode = pw.CharField(null = True, max_length=12)
-    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
 # 同花顺指数涨跌信息
-class THS_ZS_ZD(base_orm.BaseModel):
+class THS_ZS_ZD(base_orm.NeedSyncModel):
     keys = ('day', 'code')
     day = pw.CharField(max_length=12) # YYYY-MM-DD
     code = pw.CharField(max_length=12) #指数代码
@@ -68,7 +64,6 @@ class THS_ZS_ZD(base_orm.BaseModel):
     # money = pw.FloatField(default = 0)
     # vol = pw.FloatField(default = 0)
     zdf = pw.FloatField(default = 0)
-    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
 def update_THS_ZS(onlyMaxDay = True):
     qr = None
@@ -102,7 +97,7 @@ def update_THS_ZS(onlyMaxDay = True):
     THS_ZS.bulk_update(updates, ['name'], 100)
 
 # 同花顺涨停
-class THS_ZT(base_orm.BaseModel):
+class THS_ZT(base_orm.NeedSyncModel):
     keys = ('code', 'day')
     code = pw.CharField(max_length=12)
     name = pw.CharField(null = True, max_length=24)
@@ -110,10 +105,9 @@ class THS_ZT(base_orm.BaseModel):
     ztTime = pw.CharField(null = True, max_length=24, column_name='') # 涨停时间
     status = pw.CharField(null = True, max_length=24, column_name='') # 状态
     ztReason = pw.CharField(null = True, max_length=120, column_name='') # 涨停原因
-    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
 # 个股信息
-class THS_CodesInfo(base_orm.BaseModel):
+class THS_CodesInfo(base_orm.NeedSyncModel):
     keys = ('code', )
     code = pw.CharField(max_length=12)
     name = pw.CharField(null = True, max_length=24)
@@ -121,7 +115,6 @@ class THS_CodesInfo(base_orm.BaseModel):
     jrl = pw.CharField(null = True, max_length=512) # 近4年净利润
     jrl_2 = pw.CharField(null = True, max_length=512) # 近4季度净利润
     yysr = pw.CharField(null = True, max_length=512) # 近4年营业收入
-    updateTime = pw.BigIntegerField(null = True, default = base_orm.nowTimeInt)
 
 base_orm.db_mysql.create_tables([THS_Hot, THS_HotZH, THS_ZS, THS_ZS_ZD, THS_GNTC, THS_ZT, THS_CodesInfo])
 

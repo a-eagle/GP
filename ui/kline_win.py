@@ -4,7 +4,7 @@ import win32gui, win32con, win32api, pyperclip
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from orm import chrome_orm, my_orm, d_orm, base_orm
 from ui import base_win, dialog
-from utils import gn_utils
+from utils import cutils, gn_utils
 from ui.kline_indicator import *
 from ui import bkgn_view
 from download import henxin, console
@@ -700,11 +700,11 @@ class LineView(Dragable):
         if line.kind == 'line' and self.startPos != self.endPos:
             line._startPos = self.startPos.dump()
             line._endPos = self.endPos.dump()
-            line.updateTime = base_orm.nowTimeInt()
+            line.updateTime = cutils.nowTimeInt()
             line.save()
         elif line.kind == 'text':
             line._startPos = self.startPos.dump()
-            line.updateTime = base_orm.nowTimeInt()
+            line.updateTime = cutils.nowTimeInt()
             line.save()
     
     def getOutShape(self) -> Polygon:
@@ -1407,7 +1407,7 @@ class KLineWindow(base_win.BaseWindow):
         if code[0 : 3] == '399':
             return
         obj : cls_orm.CLS_GNTC = cls_orm.CLS_GNTC.get_or_none(code = code)
-        if obj and obj.updateTime and datetime.date.today() == base_orm.updateTimeToDateTime(obj.updateTime).date():
+        if obj and obj.updateTime and datetime.date.today() == cutils.updateTimeToDateTime(obj.updateTime).date():
             return
         info = cls.ClsUrl().loadBkGnOfCode(code)
         if not obj:
@@ -1415,7 +1415,7 @@ class KLineWindow(base_win.BaseWindow):
         else:
             diffrents = obj.diff(info, excludeAttrNames = ['updateTime'])
             if diffrents:
-                obj.updateTime = base_orm.nowTimeInt()
+                obj.updateTime = cutils.nowTimeInt()
                 obj.save()
                 rs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
                 if rs:
