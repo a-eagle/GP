@@ -9,8 +9,8 @@ path = os.path.dirname(os.path.dirname(__file__))
 class ReconnectMysqlDatabase(ReconnectMixin, pw.MySQLDatabase):
     pass
 
-# db_mysql = ReconnectMysqlDatabase('GP', host='localhost', port=3306, user='root', password='root@2025')
-db_mysql = PooledMySQLDatabase('GP', host='localhost', port=3306, user='root', password='root@2025', max_connections = 5)
+db_mysql = ReconnectMysqlDatabase('GP', host='localhost', port=3306, user='root', password='root@2025')
+# db_mysql = PooledMySQLDatabase('GP', host='localhost', port=3306, user='root', password='root@2025', max_connections = 5)
 
 class DeleteModel(pw.Model):
     keys = ('modelName', 'keyValues')
