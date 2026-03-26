@@ -1,5 +1,6 @@
 import peewee as pw
 from playhouse.shortcuts import ReconnectMixin
+from playhouse.pool import PooledMySQLDatabase
 import sys, datetime, os, inspect, json, time
 
 path = os.path.dirname(os.path.dirname(__file__))
@@ -14,11 +15,17 @@ def datetimeToInt(dt : datetime.datetime):
 def updateTimeToDateTime(updateTime):
     if not updateTime:
         return None
+    if type(updateTime) == str:
+        updateTime = int(updateTime)
     seconds = updateTime / 1000 / 1000
     dt = datetime.datetime.fromtimestamp(seconds)
     return dt
 
 def diffUpdateTime(first, second):
+    if type(first) == str:
+        first = int(first)
+    if type(second) == str:
+        second = int(second)
     if type(first) == int:
         first = datetime.datetime.fromtimestamp(first / 1000 / 1000)
     if type(second) == int:
@@ -28,7 +35,8 @@ def diffUpdateTime(first, second):
 class ReconnectMysqlDatabase(ReconnectMixin, pw.MySQLDatabase):
     pass
 
-db_mysql = ReconnectMysqlDatabase('GP', host='localhost', port=3306, user='root', password='root@2025')
+# db_mysql = ReconnectMysqlDatabase('GP', host='localhost', port=3306, user='root', password='root@2025')
+db_mysql = PooledMySQLDatabase('GP', host='localhost', port=3306, user='root', password='root@2025', max_connections = 5)
 
 class DeleteModel(pw.Model):
     keys = ('modelName', 'keyValues')
