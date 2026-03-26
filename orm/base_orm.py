@@ -1,4 +1,5 @@
 import peewee as pw
+from playhouse.shortcuts import ReconnectMixin
 import sys, datetime, os, inspect, json, time
 
 path = os.path.dirname(os.path.dirname(__file__))
@@ -24,7 +25,10 @@ def diffUpdateTime(first, second):
         second = datetime.datetime.fromtimestamp(second / 1000 / 1000)
     return first - second
 
-db_mysql = pw.MySQLDatabase('GP', host='localhost', port=3306, user='root', password='root@2025')
+class ReconnectMysqlDatabase(ReconnectMixin, pw.MySQLDatabase):
+    pass
+
+db_mysql = ReconnectMysqlDatabase('GP', host='localhost', port=3306, user='root', password='root@2025')
 
 class DeleteModel(pw.Model):
     keys = ('modelName', 'keyValues')
