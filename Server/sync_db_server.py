@@ -304,7 +304,9 @@ class DbTableManager:
             names = dir(m)
             for name in names:
                 obj = getattr(m, name)
-                if not isinstance(obj, type.__class__) or not issubclass(obj, base_orm.NeedSyncModel):
+                if not isinstance(obj, type.__class__) or not issubclass(obj, pw.Model):
+                    continue
+                if obj.__name__ == 'NeedSyncModel':
                     continue
                 if not hasattr(obj, 'updateTime'):
                     continue
