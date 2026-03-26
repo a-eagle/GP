@@ -296,16 +296,6 @@ class DbTableManager:
         # base_orm 必须放在最后面
         self.modules = [chrome_orm, cls_orm, d_orm, my_orm, lhb_orm, ths_orm, base_orm]
 
-    def getAllDatabases(self):
-        rs = []
-        for m in self.modules:
-            names = dir(m)
-            for name in names:
-                db = getattr(m, name)
-                if isinstance(db, pw.SqliteDatabase):
-                    rs.append(db)
-        return rs
-    
     def getAllModels(self):
         if self.__class__.all_models:
             return self.__class__.all_models
@@ -314,7 +304,7 @@ class DbTableManager:
             names = dir(m)
             for name in names:
                 obj = getattr(m, name)
-                if not isinstance(obj, type.__class__) or not issubclass(obj, pw.Model):
+                if not isinstance(obj, type.__class__) or not issubclass(obj, base_orm.NeedSyncModel):
                     continue
                 if not hasattr(obj, 'updateTime'):
                     continue

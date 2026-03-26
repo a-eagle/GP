@@ -21,7 +21,6 @@ class DeleteModel(pw.Model):
     class Meta:
         database = db_mysql
 
-# 有updateTime属性的才会被纳入数据同步范围
 class BaseModel(pw.Model):
     class Meta:
         database = db_mysql
@@ -148,10 +147,11 @@ class BaseModel(pw.Model):
                 rs.append((name, datetime.date, defaultVal))
         return rs
 
+# 有updateTime属性的才会被纳入数据同步范围
+# 无updateTime，数据库不自动同步更新
 class NeedSyncModel(BaseModel):
     updateTime = pw.BigIntegerField(null = True, default = cutils.nowTimeInt)
 
-# 无updateTime，数据库不自动同步更新
 class VersionModel(BaseModel):
     name = pw.CharField()
     version = pw.IntegerField()
