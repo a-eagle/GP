@@ -45,6 +45,8 @@ class LocalSyncManager:
         mgr = DbTableManager()
         datas = []
         for m in LocalSyncModel.select():
+            if m.modelName == 'THS_Hot':
+                continue
             mi = mgr.getModelInfo(m.modelName)
             model = mi['ormClass']
             qr = model.select().where(model.updateTime > m.localMaxTime).dicts()
