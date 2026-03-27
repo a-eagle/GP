@@ -215,6 +215,20 @@ class Client:
             traceback.print_exc()
         return None
 
+    def downloadDbTableFile(self, model : pw.Model):
+        MYSQL_PATH = r'C:\ProgramData\MySQL\MySQL Server 8.0\Data\gp'
+        fileName = model._meta.table_name + '.ibd'
+        try:
+            resp = requests.get(f'{config.SYNC_DB_SERVER_BASE_URL}//load-db-table-file/{fileName}')
+            txt = resp.content.decode()
+            rbs = base64.b64decode(txt)
+            f = open(os.path.join(MYSQL_PATH, fileName), 'wb')
+            f.write(rbs)
+            f.close()
+        except Exception as e:
+            traceback.print_exc()
+        return None
+
 class DbTableManager:
     tableModels = None # [Model-class, ....]
 
@@ -348,7 +362,6 @@ class DbTableManager:
         return 2, obj
 
 if __name__ == '__main__':
-    Server.listDbTableFiles()
     if config.isServerMachine():
         svr = Server()
         svr.start()
