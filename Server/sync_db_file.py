@@ -8,8 +8,8 @@ from download import config, console
 from Server.sync_db_server import *
 
 class LocalSyncModel(pw.Model):
-        modelName = pw.CharField()
-        localMaxTime = pw.IntegerField()
+    modelName = pw.CharField()
+    localMaxTime = pw.IntegerField()
 
 class LocalSyncDataModel(pw.Model):
     modelName = pw.CharField()
