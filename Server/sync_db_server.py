@@ -108,8 +108,6 @@ class Server:
         return rs
 
     def pushUpdateData(self, modelName):
-        if modelName in IGNORE_PUSH_ORM:
-            return
         mgr = DbTableManager()
         model = mgr.getTableModel(modelName)
         if not model:
@@ -118,8 +116,7 @@ class Server:
         datas = json.loads(txt)
         if not datas:
             return {'status': 'Fail', 'msg': 'No data'}
-        cl = Client()
-        insertNum, updateNum = cl.diffDatas(model, datas, self.logFile)
+        insertNum, updateNum = mgr.diffDatas(model, datas, self.logFile)
         console.writeln_1(console.RED, f"{modelName} ==> push insert {insertNum}, update {updateNum} row datas", datetime.datetime.now())
         if model == base_orm.DeleteModel:
             mgr.execDeleteModels(datas)
@@ -153,12 +150,12 @@ class Client:
         if not rs:
             return
         for r in rs:
-            self.loadUpdateData(r)
+            self.downloadUpdateData(r)
             if r['modelName'] in ['THS_Hot']:
                 continue
             self.pushUpdateData(r)
 
-    def loadUpdateData(self, item):
+    def downloadUpdateData(self, item):
         try:
             mgr = DbTableManager()
             modelName, updateTime = item['modelName'], int(item['updateTime'])
@@ -178,7 +175,7 @@ class Client:
                 print('[loadUpdateData] ', rs)
                 return
             datas = rs['data']
-            insertNum, updateNum = self.diffDatas(model, datas)
+            insertNum, updateNum = mgr.diffDatas(model, datas)
             updateTimeStr = cutils.updateTimeToDateTime(updateTime)
             console.write_1(console.GREEN, f'Update datas {modelName} --> ')
             console.writeln_1(console.GREEN, f' insert {insertNum} update {updateNum} time: {updateTimeStr}')
@@ -208,70 +205,6 @@ class Client:
             console.writeln_1(console.RED, f'Push datas {modelName} --> num: {len(datas)} time: {maxTime} =>', rjs['msg'])
         except Exception as e:
             traceback.print_exc()
-
-    def diffDatas(self, model, datas : list, logFile = None):
-        if not datas:
-            return 0, 0
-        for d in datas:
-            if 'id' in d:
-                d.pop('id')
-        if not getattr(model, 'keys', None):
-            ds = [model(**d) for d in datas]
-            model.bulk_create(ds, 50)
-            self.logManyRow('Append', model, datas, logFile)
-            return len(datas), 0
-        inserts, updates = [], []
-        for d in datas:
-            tag, rs = self.diffOneData(model, d, logFile)
-            if tag == 1: inserts.append(rs)
-            elif tag == 2: updates.append(rs)
-        if inserts:
-            times = (len(inserts) + 49) // 50
-            for i in range(times):
-                si = i * 50
-                ei = min(si + 50, len(inserts))
-                model.insert_many(inserts[si : ei]).execute() # insert
-        if updates:
-            fields = [col for col in model._meta.fields]
-            model.bulk_update(updates, fields, 50)
-        if logFile: logFile.flush()
-        return len(inserts), len(updates)
-
-    def logOneRow(self, tag, model, data, logFile):
-        if not logFile:
-            return
-        if data:
-            ds = json.dumps(data, ensure_ascii = False)
-        else:
-            ds = 'None'
-        now = datetime.datetime.now()
-        logFile.write(f'[{str(now)}] {tag} {model.__name__} {ds} \n')
-
-    def logManyRow(self, tag, model, datas, logFile):
-        if not datas or not logFile:
-            return
-        for d in datas:
-            self.logOneRow(tag, model, d, logFile)
-        logFile.flush()
-
-    def diffOneData(self, model, data, logFile):
-        cnd = {}
-        for k in model.keys:
-            cnd[k] = data[k]
-        obj = model.get_or_none(**cnd)
-        if not obj: # insert
-            # model.create(**data)
-            self.logOneRow('Append', model, data, logFile)
-            return 1, data
-        updateDiffs = {'id': obj.id}
-        # update
-        for k in data:
-            if getattr(obj, k, None) != data[k]:
-                setattr(obj, k, data[k])
-                updateDiffs[k] = data[k]
-        # obj.save()
-        self.logOneRow('Update', model, updateDiffs, logFile)
-        return 2, obj
 
     def getMaxUpdateTimeAll_Server(self):
         try:
@@ -350,6 +283,70 @@ class DbTableManager:
             return
         for d in datas:
             self.execDeleteModel(d)
+
+    def diffDatas(self, model, datas : list, logFile = None):
+        if not datas:
+            return 0, 0
+        for d in datas:
+            if 'id' in d:
+                d.pop('id')
+        if not getattr(model, 'keys', None):
+            ds = [model(**d) for d in datas]
+            model.bulk_create(ds, 50)
+            self.logManyRow('Append', model, datas, logFile)
+            return len(datas), 0
+        inserts, updates = [], []
+        for d in datas:
+            tag, rs = self.diffOneData(model, d, logFile)
+            if tag == 1: inserts.append(rs)
+            elif tag == 2: updates.append(rs)
+        if inserts:
+            times = (len(inserts) + 49) // 50
+            for i in range(times):
+                si = i * 50
+                ei = min(si + 50, len(inserts))
+                model.insert_many(inserts[si : ei]).execute() # insert
+        if updates:
+            fields = [col for col in model._meta.fields]
+            model.bulk_update(updates, fields, 50)
+        if logFile: logFile.flush()
+        return len(inserts), len(updates)
+
+    def logOneRow(self, tag, model, data, logFile):
+        if not logFile:
+            return
+        if data:
+            ds = json.dumps(data, ensure_ascii = False)
+        else:
+            ds = 'None'
+        now = datetime.datetime.now()
+        logFile.write(f'[{str(now)}] {tag} {model.__name__} {ds} \n')
+
+    def logManyRow(self, tag, model, datas, logFile):
+        if not datas or not logFile:
+            return
+        for d in datas:
+            self.logOneRow(tag, model, d, logFile)
+        logFile.flush()
+
+    def diffOneData(self, model, data, logFile):
+        cnd = {}
+        for k in model.keys:
+            cnd[k] = data[k]
+        obj = model.get_or_none(**cnd)
+        if not obj: # insert
+            # model.create(**data)
+            self.logOneRow('Append', model, data, logFile)
+            return 1, data
+        updateDiffs = {'id': obj.id}
+        # update
+        for k in data:
+            if getattr(obj, k, None) != data[k]:
+                setattr(obj, k, data[k])
+                updateDiffs[k] = data[k]
+        # obj.save()
+        self.logOneRow('Update', model, updateDiffs, logFile)
+        return 2, obj
 
 if __name__ == '__main__':
     if config.isServerMachine():
