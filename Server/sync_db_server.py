@@ -202,7 +202,8 @@ class Client:
             resp = requests.post(f"{config.SYNC_DB_SERVER_BASE_URL}/pushUpdateData/{modelName}", json = datas)
             txt = resp.content.decode()
             rjs = json.loads(txt)
-            console.writeln_1(console.RED, f'Push datas {modelName} --> num: {len(datas)} time: {maxTime} =>', rjs['msg'])
+            maxTimeStr = cutils.updateTimeToDateTime(maxTime)
+            console.writeln_1(console.RED, f'Push datas {modelName} --> num: {len(datas)} time: {maxTimeStr} =>', rjs['msg'])
         except Exception as e:
             traceback.print_exc()
 
