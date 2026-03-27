@@ -32,21 +32,19 @@ class Server:
         self.app.add_url_rule('/cls-proxy', view_func = self.loadClsProxy, methods = ['GET'])
         self.app.add_url_rule('/pushUpdateData/<modelName>', view_func = self.pushUpdateData, methods = ['POST'])
         self.app.add_url_rule('/remote', view_func = self.remote, methods = ['GET'])
-        self.app.add_url_rule('/list-db-files', view_func = self.listDbFiles, methods = ['GET'])
-        self.app.add_url_rule('/load-db-file/<fileName>', view_func = self.loadDbFile, methods = ['GET'])
+        self.app.add_url_rule('/list-db-table-files', view_func = self.listDbTableFiles, methods = ['GET'])
+        self.app.add_url_rule('/load-db-table-file/<fileName>', view_func = self.loadDbTableFile, methods = ['GET'])
         self.app.run('0.0.0.0', 8090, use_reloader = False, debug = False)
 
-    def listDbFiles(self):
-        path = __file__[0 : __file__.upper().index('GP') + 2]
-        path = os.path.join(path, 'db')
-        return os.listdir(path)
+    def listDbTableFiles(self):
+        MYSQL_PATH = r'C:\ProgramData\MySQL\MySQL Server 8.0\Data\gp'
+        return os.listdir(MYSQL_PATH)
 
-    def loadDbFile(self, fileName):
-        path = __file__[0 : __file__.upper().index('GP') + 2]
-        path = os.path.join(path, 'db')
-        filePath = os.path.join(path, fileName)
+    def loadDbTableFile(self, fileName):
+        MYSQL_PATH = r'C:\ProgramData\MySQL\MySQL Server 8.0\Data\gp'
+        filePath = os.path.join(MYSQL_PATH, fileName)
         if not os.path.exists(filePath):
-            return {'status': 'Fail', 'msg': f'Db file not exists: {fileName}'}
+            return {'status': 'Fail', 'msg': f'Db table file not exists: {fileName}'}
         f = open(filePath, 'rb')
         bs = f.read()
         f.close()
@@ -350,6 +348,7 @@ class DbTableManager:
         return 2, obj
 
 if __name__ == '__main__':
+    Server.listDbTableFiles()
     if config.isServerMachine():
         svr = Server()
         svr.start()
