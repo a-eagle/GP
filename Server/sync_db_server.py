@@ -10,8 +10,6 @@ from utils import cutils
 
 MIN_UPDATE_TIME = cutils.datetimeToInt(datetime.datetime(2025, 6, 11, 8, 0, 0))
 
-IGNORE_PUSH_ORM = ['THS_Hot']
-
 class Server:
     def __init__(self) -> None:
         self.app = flask.Flask(__name__)
@@ -156,6 +154,8 @@ class Client:
             return
         for r in rs:
             self.loadUpdateData(r)
+            if r['modelName'] in ['THS_Hot']:
+                continue
             self.pushUpdateData(r)
 
     def loadUpdateData(self, item):
@@ -191,8 +191,6 @@ class Client:
         try:
             mgr = DbTableManager()
             modelName, updateTime = item['modelName'], int(item['updateTime'])
-            if modelName in IGNORE_PUSH_ORM:
-                return
             model = mgr.getTableModel(modelName)
             if not model:
                 print(f"[Client.pushUpdateData] Not find model: {modelName}")
