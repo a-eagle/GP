@@ -35,7 +35,7 @@ class LocalSyncManager:
         db = self.openDatabase()
         db.create_tables([LocalSyncModel, LocalSyncDataModel])
         dbMgr = DbTableManager()
-        for m in dbMgr.getAllModels():
+        for m in dbMgr.getAllTableModels():
             ut = dbMgr.getMaxUpdateTime(m['ormClass'])
             LocalSyncModel.create(modelName = m['ormClassName'], localMaxTime = ut)
         db.close()
@@ -47,7 +47,7 @@ class LocalSyncManager:
         for m in LocalSyncModel.select():
             if m.modelName == 'THS_Hot':
                 continue
-            mi = mgr.getModelInfo(m.modelName)
+            mi = mgr.getTableModel(m.modelName)
             model = mi['ormClass']
             qr = model.select().where(model.updateTime > m.localMaxTime).dicts()
             for rr in qr:
@@ -66,7 +66,7 @@ class LocalSyncManager:
             mdatas[m.modelName].append(value)
         for name in mdatas:
             datas = mdatas[name]
-            mi = mgr.getModelInfo(name)
+            mi = mgr.getTableModel(name)
             model = mi['ormClass']
             client = Client()
             insertNum, updateNum = client.diffDatas(model, datas)

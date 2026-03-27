@@ -29,10 +29,10 @@ class Server:
         pass
 
     def start(self):
-        self.app.add_url_rule('/getUpdateData/<ormFile>/<ormClass>/<updateTime>', view_func = self.getUpdateData, methods = ['GET', 'POST'])
+        self.app.add_url_rule('/getUpdateData/<modelName>/<updateTime>', view_func = self.getUpdateData, methods = ['GET', 'POST'])
         self.app.add_url_rule('/getMaxUpdateTimeAll', view_func = self.getMaxUpdateTimeAll, methods = ['GET', 'POST'])
         self.app.add_url_rule('/cls-proxy', view_func = self.loadClsProxy, methods = ['GET'])
-        self.app.add_url_rule('/pushUpdateData/<ormFile>/<ormClass>', view_func = self.pushUpdateData, methods = ['POST'])
+        self.app.add_url_rule('/pushUpdateData/<modelName>', view_func = self.pushUpdateData, methods = ['POST'])
         self.app.add_url_rule('/remote', view_func = self.remote, methods = ['GET'])
         self.app.add_url_rule('/list-db-files', view_func = self.listDbFiles, methods = ['GET'])
         self.app.add_url_rule('/load-db-file/<fileName>', view_func = self.loadDbFile, methods = ['GET'])
@@ -80,49 +80,49 @@ class Server:
         js = json.loads(rs)
         return js
 
+    # return [{modelName, updateTime: str}, ]
     def getMaxUpdateTimeAll(self):
         mgr = DbTableManager()
-        models = mgr.getAllModels()
+        models = mgr.getAllTableModels()
         rs = []
         for m in models:
-            maxTime = mgr.getMaxUpdateTime(m['ormClass'])
+            maxTime = mgr.getMaxUpdateTime(m)
             if not maxTime:
                 maxTime = MIN_UPDATE_TIME
-            rs.append({'ormFile': m['ormFileName'], 'ormClass': m['ormClassName'], 'updateTime': str(maxTime)})
+            rs.append({'modelName': m.__name__, 'updateTime': str(maxTime)})
         return rs
     
     # updateTime float
-    def getUpdateData(self, ormFile, ormClass, updateTime):
+    def getUpdateData(self, modelName, updateTime):
         if not updateTime:
             return {'status': 'Fail', 'msg': f'Request updateTime param'}
         mgr = DbTableManager()
-        model = mgr.getOrmClass(ormFile, ormClass)
+        model = mgr.getTableModel(modelName)
         if not model:
-            return {'status': 'Fail', 'msg': f'Not find orm class"{ormClass}" in "{ormFile}"'}
-        dt = int(updateTime)
-        qr = model.select().where(model.updateTime > dt).dicts()
+            return {'status': 'Fail', 'msg': f'Not find Model class "{modelName}" '}
+        updateTime = int(updateTime)
+        qr = model.select().where(model.updateTime > updateTime).dicts()
         # print(qr)
         datas = []
         for it in qr:
             datas.append(it)
-            it['updateTime'] = str(it['updateTime'])
         rs = {'status': 'OK', 'msg':'Success', 'data': datas}
         return rs
-    
-    def pushUpdateData(self, ormFile, ormClass):
-        if ormClass in IGNORE_PUSH_ORM:
+
+    def pushUpdateData(self, modelName):
+        if modelName in IGNORE_PUSH_ORM:
             return
         mgr = DbTableManager()
-        model = mgr.getOrmClass(ormFile, ormClass)
+        model = mgr.getTableModel(modelName)
         if not model:
-            return {'status': 'Fail', 'msg': f'Not find orm class"{ormClass}" in "{ormFile}"'}
+            return {'status': 'Fail', 'msg': f'Not find orm class "{modelName}"'}
         txt = flask.request.data
         datas = json.loads(txt)
         if not datas:
             return {'status': 'Fail', 'msg': 'No data'}
         cl = Client()
         insertNum, updateNum = cl.diffDatas(model, datas, self.logFile)
-        console.writeln_1(console.RED, f"{ormFile}.{ormClass} ==> push insert {insertNum}, update {updateNum} row datas", datetime.datetime.now())
+        console.writeln_1(console.RED, f"{modelName} ==> push insert {insertNum}, update {updateNum} row datas", datetime.datetime.now())
         if model == base_orm.DeleteModel:
             mgr.execDeleteModels(datas)
         return {'status': 'OK', 'msg': 'Success'}
@@ -161,15 +161,15 @@ class Client:
     def loadUpdateData(self, item):
         try:
             mgr = DbTableManager()
-            ormFile, ormClass, updateTimeStamp = item['ormFile'], item['ormClass'], int(item['updateTime'])
-            model = mgr.getOrmClass(ormFile, ormClass)
+            modelName, updateTime = item['modelName'], int(item['updateTime'])
+            model = mgr.getTableModel(modelName)
             if not model:
-                print(f"[Client.loadUpdateData] Not find model: {ormFile} {ormClass}")
+                print(f"[Client.loadUpdateData] Not find model: {modelName}")
                 return
             maxTime = mgr.getMaxUpdateTime(model)
-            if maxTime >= updateTimeStamp:
+            if maxTime >= updateTime:
                 return
-            resp = requests.get(f"{config.SYNC_DB_SERVER_BASE_URL}/getUpdateData/{ormFile}/{ormClass}/{maxTime}")
+            resp = requests.get(f"{config.SYNC_DB_SERVER_BASE_URL}/getUpdateData/{modelName}/{maxTime}")
             txt = resp.content.decode()
             rs = json.loads(txt)
             if not rs:
@@ -179,8 +179,8 @@ class Client:
                 return
             datas = rs['data']
             insertNum, updateNum = self.diffDatas(model, datas)
-            updateTimeStr = cutils.updateTimeToDateTime(updateTimeStamp)
-            console.write_1(console.GREEN, f'Update datas {ormFile}.{ormClass} --> ')
+            updateTimeStr = cutils.updateTimeToDateTime(updateTime)
+            console.write_1(console.GREEN, f'Update datas {modelName} --> ')
             console.writeln_1(console.GREEN, f' insert {insertNum} update {updateNum} time: {updateTimeStr}')
             if model == base_orm.DeleteModel:
                 mgr.execDeleteModels(datas)
@@ -190,28 +190,24 @@ class Client:
     def pushUpdateData(self, item):
         try:
             mgr = DbTableManager()
-            ormFile, ormClass, updateTime = item['ormFile'], item['ormClass'], int(item['updateTime'])
-            if ormClass in IGNORE_PUSH_ORM:
+            modelName, updateTime = item['modelName'], int(item['updateTime'])
+            if modelName in IGNORE_PUSH_ORM:
                 return
-            model = mgr.getOrmClass(ormFile, ormClass)
+            model = mgr.getTableModel(modelName)
             if not model:
-                print(f"[Client.pushUpdateData] Not find model: {ormFile} {ormClass}")
+                print(f"[Client.pushUpdateData] Not find model: {modelName}")
                 return
             maxTime = mgr.getMaxUpdateTime(model)
-            if not maxTime:
-                maxTime = MIN_UPDATE_TIME
             if maxTime <= updateTime:
                 return
-            dt = updateTime
-            qr = model.select().where(model.updateTime > dt).dicts()
+            qr = model.select().where(model.updateTime > updateTime).dicts()
             datas = []
             for it in qr:
                 datas.append(it)
-                it['updateTime'] = str(it['updateTime'])
-            resp = requests.post(f"{config.SYNC_DB_SERVER_BASE_URL}/pushUpdateData/{ormFile}/{ormClass}", json = datas)
+            resp = requests.post(f"{config.SYNC_DB_SERVER_BASE_URL}/pushUpdateData/{modelName}", json = datas)
             txt = resp.content.decode()
             rjs = json.loads(txt)
-            console.writeln_1(console.RED, f'Push datas {ormFile}.{ormClass} --> num: {len(datas)} time: {maxTime} =>', rjs['msg'])
+            console.writeln_1(console.RED, f'Push datas {modelName} --> num: {len(datas)} time: {maxTime} =>', rjs['msg'])
         except Exception as e:
             traceback.print_exc()
 
@@ -290,17 +286,17 @@ class Client:
         return None
 
 class DbTableManager:
-    all_models = None
+    tableModels = None # [Model-class, ....]
 
     def __init__(self) -> None:
-        # base_orm 必须放在最后面
-        self.modules = [chrome_orm, cls_orm, d_orm, my_orm, lhb_orm, ths_orm, base_orm]
+        # base_orm 必须放在最后面，因为DeleteModel必须最后执行
+        self.files = [chrome_orm, cls_orm, d_orm, my_orm, lhb_orm, ths_orm, base_orm]
 
-    def getAllModels(self):
-        if self.__class__.all_models:
-            return self.__class__.all_models
+    def getAllTableModels(self):
+        if self.__class__.tableModels:
+            return self.__class__.tableModels
         rs = []
-        for m in self.modules:
+        for m in self.files:
             names = dir(m)
             for name in names:
                 obj = getattr(m, name)
@@ -310,18 +306,15 @@ class DbTableManager:
                     continue
                 if not hasattr(obj, 'updateTime'):
                     continue
-                fn = m.__name__
-                if '.' in fn:
-                    fn = fn[fn.index('.') + 1 : ]
-                rs.append({'ormFileName': fn, 'ormFile': m, 'ormClass': obj, 'ormClassName': obj.__name__})
-        self.__class__.all_models = rs
+                rs.append(obj)
+        self.__class__.tableModels = rs
         return rs
 
-    # return {ormFileName, ormFile, ormClass, ormClassName}
-    def getModelInfo(self, ormClassName):
-        rs = self.getAllModels()
+    # return Model-class
+    def getTableModel(self, modelName):
+        rs = self.getAllTableModels()
         for r in rs:
-            if r['ormClassName'] == ormClassName:
+            if r.__name__ == modelName:
                 return r
         return None
     
@@ -332,30 +325,16 @@ class DbTableManager:
             maxTime = MIN_UPDATE_TIME
         return maxTime
 
-    def getOrmClass(self, ormFileName, ormClassName):
-        for m in self.modules:
-            simpleName = m.__name__
-            if '.' in m.__name__:
-                simpleName = simpleName[m.__name__.index('.') + 1 : ]
-            if simpleName != ormFileName:
-                continue
-            obj = getattr(m, ormClassName, None)
-            if inspect.isclass(obj) and issubclass(obj, pw.Model):
-                return obj
-            return None
-        return None
-
     def execDeleteModel(self, obj : dict):
         if not obj:
             return
-        info = self.getModelInfo(obj['modelName'])
-        if not info:
+        destClass : pw.Model = self.getTableModel(obj['modelName'])
+        if not destClass:
             print('[DbTableManager.execDeleteModel] not orm class: ', obj['modelName'])
             return
         if not obj['keyValues']:
             print('[DbTableManager.execDeleteModel] no keyValues', obj['modelName'], obj['updateTime'])
             return
-        destClass : pw.Model = info['ormClass']
         cnd = []
         kv = json.loads(obj['keyValues'])
         for k in kv:
