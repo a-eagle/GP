@@ -4,6 +4,7 @@ import sys, datetime, os, time
 path = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(path)
 from orm import base_orm, orm_urils
+from utils import cutils
 
 # 画线
 class TextLine(base_orm.NeedSyncModel):
@@ -14,6 +15,7 @@ class TextLine(base_orm.NeedSyncModel):
     _startPos = pw.CharField(default = None, max_length = 120)
     _endPos = pw.CharField(default = None, null = True, max_length = 120)
     info = pw.CharField(default = None, null = True, max_length = 1024)
+    keyID = pw.BigIntegerField(null = True, default = cutils.nowTimeInt)
     
     # class Meta:
         # database = db_def
