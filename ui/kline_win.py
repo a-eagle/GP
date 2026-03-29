@@ -827,8 +827,16 @@ class LineView(Dragable):
         drawer = Drawer.instance()
         if sx == ex and sy == ey:
             return
-        rc = (ex - 2, ey - 2, ex + 3, ey + 3)
-        drawer.fillRect(hdc, rc, 0x30f030)
+        if sx >= ex - 3 and sx <= ex + 3: # vertical line
+            if ey > sy:
+                pts = [(ex - 3, ey), (ex + 3, ey), (ex, ey + 3)]
+            else:
+                pts = [(ex - 3, ey), (ex + 3, ey), (ex, ey - 3)]
+            drawer.use(hdc, drawer.getBrush(0x30f030))
+            win32gui.Polygon(hdc, pts)
+        else:
+            rc = (ex - 2, ey - 2, ex + 3, ey + 3)
+            drawer.fillRect(hdc, rc, 0x30f030)
 
     def onDragBegin(self, x, y):
         # print('[LineView.onDragBegin]', x, y)
