@@ -258,7 +258,7 @@ let DefaultRender = {
         if (rowData[column.key]) val =  String(rowData[column.key]) + '°';
         return h('span', val);
     },
-    // 涨幅
+    // 涨幅 * 100
     zfRender(h, rowData, column) {
         let zf = rowData[column.key];
         let val = '';

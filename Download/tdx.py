@@ -286,8 +286,8 @@ class Main:
                 ld.fxAll_2()
                 chuncker = TdxChuncker()
                 chuncker.removeNotCodes()
-                chuncker.chunckAll_T_ByHots(100)
                 chuncker.removeInvalidCodes()
+                chuncker.chunckAll_T_ByLastDay(90)
             else:
                 chuncker = TdxChuncker()
                 chuncker.removeNotCodes()

@@ -714,7 +714,7 @@ let TabNaviView = {
                         {name: 'zb-table-view', title: '炸板池'}, {name: 'dt-table-view', title: '跌停池'},
                         {name: 'hots-table-view', title: '热度榜'}, {name: 'amount-table-view', title: '成交额'}, 
                         {name: 'lhb-table-view', title: '龙虎榜'},  {name: 'ZFB_TableView', title: '涨幅榜'}, 
-                        {name: 'DFB_TableView', title: '跌幅榜'}],
+                        {name: 'DFB_TableView', title: '跌幅榜'}, {name:'ZSB_TableView', title:'涨速榜'}],
             curTabCntView: 'zt-table-view',
         }
     },
@@ -1159,6 +1159,33 @@ let DFB_TableView = {
     },
 };
 
+let ZSB_TableView = {
+    extends: BaseTableView,
+    components: {
+    },
+    data() {
+        return {
+            columns: [{title: '', key: '_index_', width: 60},
+                {title: '股票/代码', key: 'code', width: 80},
+                {title: '行业', key: 'ths_hy', width: 100, sortable: true},
+                {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true},
+                {title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true},
+                {title: '热度', key: 'hots', width: 50, sortable: true},
+                {title: '涨速', key: 'zf', width: 70, sortable: true, cellRender: DefaultRender.zf2Render},
+                {title: '开始时间', key: 'fromMinute', width: 50, sortable: true},
+                {title: '分时图', key: 'fs', width: 300}
+            ],
+            datas: null,
+            url: null,
+        }
+    },
+    methods: {
+        onCurDayChanged() {
+            this.url = `/top-speed/${this.curDay}`;
+        },
+    },
+};
+
 function registerComponents(app) {
     app.component('GlobalView', GlobalView);
     app.component('AmountCompareView', AmountCompareView);
@@ -1176,6 +1203,7 @@ function registerComponents(app) {
     app.component('LhbTableView', LHB_TableView);
     app.component('ZFB_TableView', ZFB_TableView);
     app.component('DFB_TableView', DFB_TableView);
+    app.component('ZSB_TableView', ZSB_TableView);
 }
 
 export default {

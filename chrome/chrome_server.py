@@ -67,6 +67,7 @@ class Server:
         self.app.add_url_rule('/last-trade-day', view_func = self.getLastTradeDay)
         self.app.add_url_rule('/top-zhangfu/<day>', view_func = self.loadTopZhangFu)
         self.app.add_url_rule('/top-diefu/<day>', view_func = self.loadTopDieFu)
+        self.app.add_url_rule('/top-speed/<day>', view_func = self.loadTopSpeed)
         
         self.app.run('0.0.0.0', 8080, use_reloader = False, debug = False)
 
@@ -574,9 +575,12 @@ class Server:
                 code = c.get('secu_code', '') or c.get('code', '')
             elif hasattr(c, 'code'):
                 code = getattr(c, 'code')
+            if type(code) == int:
+                code = f'{code: 06d}'
             code = self._getStdCode(code)
             it = {'code': code, 'secu_code': self._getSecuCode(code)}
             rs[it['secu_code']] = it
+            rs[code] = it
             cl = gn_utils.cls_gntc_s.get(code, None) or {}
             th = gn_utils.ths_gntc_s.get(code, None) or {}
             if 'name' in cols:
@@ -588,7 +592,7 @@ class Server:
             if 'ltsz' in cols:
                 it['ltsz'] = th.get('ltsz', 0) # 流通市值
             if 'hots' in cols:
-                if not day or len(day) < 8:
+                if not day:
                     day = None
                 if zh is None:
                     zh = dynHotZH.getHotsZH(day) or {}
@@ -1046,6 +1050,26 @@ class Server:
             day = day.replace('-', '')
         q = f"{day}跌幅按大到小排序，且跌幅大于5%，成交额，流通市值,总市值"
         datas = self._loadZDFDatas(day, q)
+        return datas
+
+    def loadTopSpeed(self, day):
+        if not day:
+            day = ths_iwencai.getTradeDaysInt()[0]
+        if type(day) == str:
+            day = day.replace('-', '')
+        day = int(day)
+        qr = d_orm.LocalSpeedModel.select(d_orm.LocalSpeedModel.code,
+            d_orm.LocalSpeedModel.day, d_orm.LocalSpeedModel.fromMinute,
+            d_orm.LocalSpeedModel.endMinute, d_orm.LocalSpeedModel.zf,
+            ).where(d_orm.LocalSpeedModel.day == day).group_by(d_orm.LocalSpeedModel.code).dicts()
+        datas = []
+        for q in qr:
+            datas.append(q)
+        infos = self._queryCodesInfo(day, ['name', 'ths_hy', 'ths_ztReason', 'cls_ztReason', 'hots'], datas)
+        for d in datas:
+            sc = d['code']
+            if sc in infos:
+                d.update(infos[sc])
         return datas
 
 if __name__ == '__main__':

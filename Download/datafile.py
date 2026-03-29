@@ -794,6 +794,8 @@ class TdxChuncker:
         if not days:
             os.remove(path)
             return
+        if not df.isLocalFileValid():
+            return
         ldays = df.loadDays()
         exdays = set()
         for d in days:
@@ -814,7 +816,7 @@ class TdxChuncker:
                 exdays.add(ldays[i])
         exdays = list(exdays)
         exdays.sort()
-        print(exdays)
+        # print('[datafile.chunck_T]', exdays)
         # read & write
         RL = 32
         PAGE = RL * TDX_MINUTES_IN_DAY
