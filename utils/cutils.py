@@ -26,3 +26,22 @@ def diffUpdateTime(first, second):
     if type(second) == int:
         second = datetime.datetime.fromtimestamp(second / 1000 / 1000)
     return first - second
+
+# date = int | str | datetime | date
+# return YYYY-MM-DD
+def formateDate(date):
+    if not date:
+        return None
+    if type(date) == int:
+        date = str(date)
+    if type(date) == str:
+        date = date.strip()
+        if len(date) == 10:
+            return date
+        if len(date) == 8:
+            return f'{date[0 : 4]}-{date[4 : 6]}-{date[6 : 8]}'
+        return date
+    if isinstance(date, datetime.date):
+        date = date.strftime('%Y-%m-%d')
+        return date
+    return date

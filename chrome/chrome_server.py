@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from ui import base_win, timeline, kline_utils, kline_win
 from download import config, ths_iwencai, datafile, ths_iwencai, henxin, cls, memcache
 from orm import d_orm, cls_orm, chrome_orm, lhb_orm, my_orm, ths_orm
-from utils import hot_utils, gn_utils
+from utils import hot_utils, gn_utils, cutils
 
 class Server:
     BASE_CLS_PARAMS = {"os": "web", "sv":"8.4.6", "app": "CailianpressWeb"}
@@ -68,6 +68,7 @@ class Server:
         self.app.add_url_rule('/top-zhangfu/<day>', view_func = self.loadTopZhangFu)
         self.app.add_url_rule('/top-diefu/<day>', view_func = self.loadTopDieFu)
         self.app.add_url_rule('/top-speed/<day>', view_func = self.loadTopSpeed)
+        self.app.add_url_rule('/top-textline/<day>', view_func = self.loadTopTextLine)
         
         self.app.run('0.0.0.0', 8080, use_reloader = False, debug = False)
 
@@ -1065,6 +1066,42 @@ class Server:
         datas = []
         for q in qr:
             datas.append(q)
+        infos = self._queryCodesInfo(day, ['name', 'ths_hy', 'ths_ztReason', 'cls_ztReason', 'hots'], datas)
+        for d in datas:
+            sc = d['code']
+            if sc in infos:
+                d.update(infos[sc])
+        return datas
+
+    def loadTopTextLine(self, day):
+        def getMaxDay(textline : my_orm.TextLine):
+            day = 0
+            if textline._startPos:
+                day = json.loads(textline._startPos).get('day', 0)
+            if textline._endPos:
+                day2 = json.loads(textline._endPos).get('day', 0)
+                day = max(day, day2)
+            return day
+        now = datetime.datetime.now()
+        fromTime = now - datetime.timedelta(days = 30)
+        fromTime = cutils.datetimeToInt(fromTime)
+        qr = my_orm.TextLine.select().where(my_orm.TextLine.updateTime > fromTime)
+        mdatas = {}
+        for it in qr:
+            mday = getMaxDay(it)
+            if not mday:
+                continue
+            mday = cutils.formateDate(mday)
+            uday = cutils.updateTimeToDateTime(it.updateTime)
+            uday = uday.strftime('%Y-%m-%d')
+            if it.code not in mdatas:
+                mdatas[it.code] = {'code': it.code, 'maxDay': mday, 'updateDay': uday}
+            else:
+                item = mdatas[it.code]
+                item['maxDay'] = max(item['maxDay'], mday)
+                item['updateDay'] = max(item['updateDay'], uday)
+        datas = [mdatas[k] for k in mdatas]
+        datas.sort(key = lambda d: d['updateDay'], reverse = True)
         infos = self._queryCodesInfo(day, ['name', 'ths_hy', 'ths_ztReason', 'cls_ztReason', 'hots'], datas)
         for d in datas:
             sc = d['code']
