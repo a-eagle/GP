@@ -69,6 +69,7 @@ class Server:
         self.app.add_url_rule('/top-diefu/<day>', view_func = self.loadTopDieFu)
         self.app.add_url_rule('/top-speed/<day>', view_func = self.loadTopSpeed)
         self.app.add_url_rule('/top-textline/<day>', view_func = self.loadTopTextLine)
+        self.app.add_url_rule('/my-select', view_func = self.loadMySelect)
         
         self.app.run('0.0.0.0', 8080, use_reloader = False, debug = False)
 
@@ -607,6 +608,13 @@ class Server:
                 it['cls_ztReason'] = zt['cls_ztReason'] if zt else ''
         return rs
 
+    def _updateCodesInfo(self, day, cols, datas):
+        infos = self._queryCodesInfo(day, cols, datas)
+        for d in datas:
+            sc = d['code']
+            if sc in infos:
+                d.update(infos[sc])
+
     def getPlate(self, code):
         try:
             if code[0 : 3] == 'cls':
@@ -1107,6 +1115,15 @@ class Server:
             sc = d['code']
             if sc in infos:
                 d.update(infos[sc])
+        return datas
+
+    def loadMySelect(self):
+        datas = []
+        qr = my_orm.MySelect.select().dicts()
+        for it in qr:
+            datas.append(it)
+        day = None
+        self._updateCodesInfo(day, ['ths_hy'], datas)
         return datas
 
 if __name__ == '__main__':

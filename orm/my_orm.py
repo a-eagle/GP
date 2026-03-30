@@ -17,9 +17,6 @@ class TextLine(base_orm.NeedSyncModel):
     info = pw.CharField(default = None, null = True, max_length = 1024)
     keyID = pw.BigIntegerField(null = True, default = cutils.nowTimeInt)
     
-    # class Meta:
-        # database = db_def
-
 class MySettings(base_orm.NeedSyncModel):
     keys = ('platform', 'mainKey', 'subKey')
     platform = pw.CharField(default = '')
@@ -27,10 +24,13 @@ class MySettings(base_orm.NeedSyncModel):
     subKey =  pw.CharField(default = '')
     val = pw.CharField(null = True, max_length = 1024)
 
-    # class Meta:
-        # database = db_def
+class MySelect(base_orm.NeedSyncModel):
+    keys = ('code')
+    code = pw.CharField()
+    name =  pw.CharField(null = True)
+    day =  pw.CharField()
 
-base_orm.db_mysql.create_tables([TextLine, MySettings])
+base_orm.db_mysql.create_tables([TextLine, MySettings, MySelect])
 
 if __name__ == '__main__':
     pass

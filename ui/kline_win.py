@@ -96,9 +96,9 @@ class ContextMenuManager:
               {'title': '画线(文本)', 'name': 'draw-text'},
               {'title': '删除画线', 'name': 'del-draw-line', 'enable': self.win.lineMgr.isSelected()},
               {'title': '计算涨跌幅', 'name': 'calc-zdf'},
-            #   {'title': 'LINE'},
-            #   {'title': '标记', 'name': 'mark-color', 'sub-menu': self.getMarkColors},
-            #   {'title': '简单指标', 'name': 'simple-indicator', 'checked': self.win.simpleIndicator},
+              {'title': 'LINE'},
+              {'title': '加自选 +', 'name': 'add-my-select'},
+              {'title': '删自选 -', 'name': 'del-my-select'},
         ])
         return mm
     
@@ -265,6 +265,18 @@ class ContextMenuManager:
             self.win.calcIndicatorsRect()
         elif name == 'calc-zdf':
             self.win.calcZdfMgr.ready()
+        elif name == 'add-my-select':
+            code = self.win.klineIndicator.code
+            name = self.win.klineIndicator.model.name
+            obj = my_orm.MySelect.get_or_none(my_orm.MySelect == code)
+            if not obj:
+                today = datetime.date.today().strftime('%Y-%m-%d')
+                my_orm.MySelect.create(code = code, name = name, day = today)
+        elif name == 'del-my-select':
+            code = self.win.klineIndicator.code
+            obj = my_orm.MySelect.get_or_none(my_orm.MySelect == code)
+            if obj:
+                obj.delete_instance()
 
     def markColor(self, item):
         code = self.win.klineIndicator.model.code

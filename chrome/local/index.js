@@ -715,7 +715,7 @@ let TabNaviView = {
                         {name: 'hots-table-view', title: '热度榜'}, {name: 'amount-table-view', title: '成交额'}, 
                         {name: 'lhb-table-view', title: '龙虎榜'},  {name: 'ZFB_TableView', title: '涨幅榜'}, 
                         {name: 'DFB_TableView', title: '跌幅榜'}, {name:'ZSB_TableView', title:'涨速榜'},
-                        {name:'TextLine_TableView', title:'画线榜'},
+                        {name:'TextLine_TableView', title:'画线榜'}, {name: 'MySelect_TableView', title:'自选股'},
                     ],
             curTabCntView: 'zt-table-view',
         }
@@ -1215,6 +1215,29 @@ let TextLine_TableView = {
     },
 };
 
+let MySelect_TableView = {
+    extends: BaseTableView,
+    components: {
+    },
+    data() {
+        return {
+            columns: [{title: '', key: '_index_', width: 60},
+                {title: '股票/代码', key: 'code', width: 80},
+                {title: '行业', key: 'ths_hy', width: 120, sortable: true},
+                {title: '加入日期', key: 'day', width: 90, sortable: true},
+                {title: '分时图', key: 'fs', width: 300}
+            ],
+            datas: null,
+            url: null,
+        }
+    },
+    methods: {
+        onCurDayChanged() {
+            this.url = `/my-select`;
+        },
+    },
+};
+
 function registerComponents(app) {
     app.component('GlobalView', GlobalView);
     app.component('AmountCompareView', AmountCompareView);
@@ -1234,6 +1257,7 @@ function registerComponents(app) {
     app.component('DFB_TableView', DFB_TableView);
     app.component('ZSB_TableView', ZSB_TableView);
     app.component('TextLine_TableView', TextLine_TableView);
+    app.component('MySelect_TableView', MySelect_TableView);
 }
 
 export default {
