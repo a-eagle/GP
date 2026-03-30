@@ -961,9 +961,24 @@ class DrawLineManager(base_win.Listener):
         self.curLine.startPos.update(pos)
         return True
 
+    # 调水平线 | 垂直线
+    def modifyHorVerLine(self, x, y):
+        if not self.win.getKeyState(win32con.VK_CONTROL):
+            return x, y
+        xy = self.curLine.startPos.toXY(self.win.klineIndicator)
+        if xy:
+            dx = abs(x - xy[0])
+            dy = abs(y - xy[1])
+            if dx >= dy:
+                y = xy[1] # modify to hor-line
+            else:
+                x = xy[0] # modify to ver-line
+        return x, y
+
     def onMouseMove(self, x, y):
         if not self.drawing:
             return False
+        x, y = self.modifyHorVerLine(x, y)
         pos = Point.fromXY(x, y, self.win.klineIndicator)
         self.curLine.endPos.update(pos)
         # self.curLine.endPos.dx = 0 # modify dx to 0
@@ -974,6 +989,7 @@ class DrawLineManager(base_win.Listener):
         if not self.isDrawing():
             self.cancel()
             return False
+        x, y = self.modifyHorVerLine(x, y)
         pos = Point.fromXY(x, y, self.win.klineIndicator)
         self.curLine.endPos.update(pos)
         self.end()

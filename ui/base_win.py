@@ -168,6 +168,10 @@ class BaseWindow(Listener):
         if win32gui.IsWindow(self.hwnd):
             win32gui.InvalidateRect(self.hwnd, None, True)
 
+    # is ctrl shift key is pressed
+    def getKeyState(self, vk):
+        return (win32api.GetKeyState(vk) & 0x80000000) != 0
+    
 class Thread:
     _num = 0
     def __init__(self, threadName = None) -> None:
@@ -2337,10 +2341,6 @@ class BaseEditor(BaseWindow):
     
     def onKillFocus(self):
         pass
-    
-    # is ctrl shift key is pressed
-    def getKeyState(self, vk):
-        return (win32api.GetKeyState(vk) & 0x80000000) != 0
 
     def copyToClipboard(self, text):
         if not text:
