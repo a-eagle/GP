@@ -25,7 +25,7 @@ class MySettings(base_orm.NeedSyncModel):
     val = pw.CharField(null = True, max_length = 1024)
 
 class MySelect(base_orm.NeedSyncModel):
-    keys = ('code')
+    keys = ('code', )
     code = pw.CharField()
     name =  pw.CharField(null = True)
     day =  pw.CharField()
