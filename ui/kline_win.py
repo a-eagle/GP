@@ -741,7 +741,7 @@ class LineView(Dragable):
             return
         rc = (*xy, xy[0] + size[0], xy[1] + size[1])
         self.shape._textSize = size
-        drawer.drawText(hdc, textLine.info, rc, color = 0x404040, align = win32con.DT_LEFT)
+        drawer.drawText(hdc, textLine.info, rc, rgb = 0x4985E7, align = win32con.DT_LEFT)
         if hilight:
             self.drawOutShape(hdc)
 
@@ -1649,7 +1649,7 @@ class KLineWindow(base_win.BaseWindow):
         self.lineMgr.onDraw(hdc)
         win32gui.RestoreDC(hdc, sdc)
         # draw mouse
-        if self.mouseXY and not self.lineMgr.isSelected():
+        if self.mouseXY: # and not self.lineMgr.isSelected():
             mx, my = self.mouseXY
             idt = self.getIndicatorByPoint(*self.mouseXY)
             if idt:
@@ -2048,7 +2048,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '300617' #      1B0688 002202  600172
+    CODE = '002866' #      1B0688 002202  600172
     win = kline_utils.createKLineWindowByCode(CODE) #, None, (800, 0, 600, 700))
     win.changeCode(CODE)
     win.setCodeList([CODE, '002792', '002149', '002565', '301079', '300058', '688523'])

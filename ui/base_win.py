@@ -533,13 +533,17 @@ class Drawer:
     
     # rect = list or tuple (left, top, right, botton)
     # color = int(0xbbggrr color) | None(not set color)
-    def drawText(self, hdc, text, rect, color = None, align = win32con.DT_CENTER):
+    def drawText(self, hdc, text, rect, color = None, align = win32con.DT_CENTER, rgb = None):
         if text is None or not rect:
             return
         if not isinstance(text, str):
             text = str(text)
         if not isinstance(text, str):
             text = str(text)
+        if type(rgb) == int:
+            r, g, b = (rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff
+            rgb = r | (g << 8) | (b << 16)
+            win32gui.SetTextColor(hdc, rgb)
         if type(color) == int:
             win32gui.SetTextColor(hdc, color)
         if type(rect) == list:
