@@ -1226,7 +1226,8 @@ let MySelect_TableView = {
                 {title: '股票/代码', key: 'code', width: 80},
                 {title: '行业', key: 'ths_hy', width: 120, sortable: true},
                 {title: '加入日期', key: 'day', width: 90, sortable: true},
-                {title: '分时图', key: 'fs', width: 300}
+                {title: '分时图', key: 'fs', width: 300},
+                {title: '操作', key: 'op', width: 120, cellRender : this.opCellRender},
             ],
             datas: null,
             url: null,
@@ -1235,6 +1236,24 @@ let MySelect_TableView = {
     methods: {
         onCurDayChanged() {
             this.url = `/my-select`;
+        },
+        opCellRender(h, rowData, column) {
+            return h('button', {onclick: () => this.onDelete(rowData), innerText: '删除'});
+        },
+        async onDelete(rowData) {
+            let url = '/delete-my-select/' + rowData.id;
+            const resp = await axios.get(url);
+            let dd = resp.data;
+            if (dd && dd.status == 'OK') {
+                let datas = this.$refs.stable.filterDatas;
+                datas.splice(rowData._index_ - 1, 1);
+                datas = this.$refs.stable.datas;
+                for (let i = 0; i < datas.length; i++) {
+                    if (datas[i].id == rowData.id) {
+                        datas.splice(rowData._index_ - 1, 1);
+                    }
+                }
+            }
         },
     },
 };

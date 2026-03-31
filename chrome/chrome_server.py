@@ -70,6 +70,7 @@ class Server:
         self.app.add_url_rule('/top-speed/<day>', view_func = self.loadTopSpeed)
         self.app.add_url_rule('/top-textline/<day>', view_func = self.loadTopTextLine)
         self.app.add_url_rule('/my-select', view_func = self.loadMySelect)
+        self.app.add_url_rule('/delete-my-select/<id>', view_func = self.deleteMySelect)
         
         self.app.run('0.0.0.0', 8080, use_reloader = False, debug = False)
 
@@ -1125,6 +1126,12 @@ class Server:
         day = None
         self._updateCodesInfo(day, ['ths_hy'], datas)
         return datas
+
+    def deleteMySelect(self, id):
+        obj = my_orm.MySelect.get_or_none(id = id)
+        if obj:
+            obj.delete_instance()
+        return {'status': 'OK'}
 
 if __name__ == '__main__':
     svr = Server()
