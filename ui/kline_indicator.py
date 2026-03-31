@@ -16,8 +16,10 @@ def getTypeByCode(code):
         code = f'{code :06d}'
     if type(code) != str:
         return None
-    if code[0] in ('0', '3', '6'): # , '8'
+    if code[0] == '8':
         return 'ths'
+    if code[0] in ('0', '3', '6'):
+        return 'cls'
     if code[0 : 2] in ('sh', 'sz'):
         return 'cls'
     if code[0 : 3] == 'cls':
