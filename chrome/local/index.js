@@ -715,7 +715,8 @@ let TabNaviView = {
                         {name: 'hots-table-view', title: '热度榜'}, {name: 'amount-table-view', title: '成交额'}, 
                         {name: 'lhb-table-view', title: '龙虎榜'},  {name: 'ZFB_TableView', title: '涨幅榜'}, 
                         {name: 'DFB_TableView', title: '跌幅榜'}, {name:'ZSB_TableView', title:'涨速榜'},
-                        {name:'TextLine_TableView', title:'画线榜'}, {name: 'MySelect_TableView', title:'自选股'},
+                        // {name:'TextLine_TableView', title:'画线榜'},
+                        {name: 'MySelect_TableView', title:'自选股'},
                     ],
             curTabCntView: 'zt-table-view',
         }

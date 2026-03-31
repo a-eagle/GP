@@ -274,7 +274,7 @@ class ContextMenuManager:
                 my_orm.MySelect.create(code = code, name = name, day = today)
         elif name == 'del-my-select':
             code = self.win.klineIndicator.code
-            obj = my_orm.MySelect.get_or_none(my_orm.MySelect == code)
+            obj = my_orm.MySelect.get_or_none(my_orm.MySelect.code == code)
             if obj:
                 obj.delete_instance()
 
