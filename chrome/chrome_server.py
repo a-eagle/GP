@@ -71,6 +71,7 @@ class Server:
         self.app.add_url_rule('/top-textline/<day>', view_func = self.loadTopTextLine)
         self.app.add_url_rule('/my-select', view_func = self.loadMySelect)
         self.app.add_url_rule('/delete-my-select/<id>', view_func = self.deleteMySelect)
+        self.app.add_url_rule('/top-zszd/<day>', view_func = self.loadTopZSZD)
         
         self.app.run('0.0.0.0', 8080, use_reloader = False, debug = False)
 
@@ -1024,7 +1025,7 @@ class Server:
             day = str(ths_iwencai.getTradeDaysInt()[0])
         if type(day) == str:
             day = day.replace('-', '')
-        q = f"{day}涨幅按大到小排序，且涨幅大于5%，成交额，流通市值,总市值"
+        q = f"{day}涨幅按大到小排序，且涨幅大于4.5%，成交额，流通市值,总市值"
         datas = self._loadZDFDatas(day, q)
         return datas
 
@@ -1045,6 +1046,7 @@ class Server:
             row['zhenfu'] = columns.getColumnValue('振幅', float)
             row['cje'] = columns.getColumnValue('成交额', float) / 100000000
             row['hy'] = columns.getColumnValue('所属同花顺行业', str)
+            row['gn'] = gn_utils.get_THS_GNTC(code)
             datas.append(row)
         infos = self._queryCodesInfo(day, ['hots'], datas)
         for d in datas:
@@ -1058,7 +1060,7 @@ class Server:
             day = str(ths_iwencai.getTradeDaysInt()[0])
         if type(day) == str:
             day = day.replace('-', '')
-        q = f"{day}跌幅按大到小排序，且跌幅大于5%，成交额，流通市值,总市值"
+        q = f"{day}跌幅按大到小排序，且跌幅大于4.5%，成交额，流通市值,总市值"
         datas = self._loadZDFDatas(day, q)
         return datas
 
@@ -1132,6 +1134,15 @@ class Server:
         if obj:
             obj.delete_instance()
         return {'status': 'OK'}
+
+    def loadTopZSZD(self, day):
+        if len(day) == 8:
+            day = f'{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}'
+        rs = []
+        q = ths_orm.THS_ZS_ZD.select(ths_orm.THS_ZS_ZD.code, ths_orm.THS_ZS_ZD.name).where(ths_orm.THS_ZS_ZD.day == day, ths_orm.THS_ZS_ZD.zdf_PM == 0).order_by(ths_orm.THS_ZS_ZD.zdf_topLevelPM.asc()).limit(50).dicts()
+        for it in q:
+            rs.append(it)
+        return rs
 
 if __name__ == '__main__':
     svr = Server()

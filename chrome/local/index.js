@@ -713,8 +713,10 @@ let TabNaviView = {
             items: [{name: 'zt-table-view', title: '涨停池'}, {name: 'lb-table-view', title: '连板池'},
                         {name: 'zb-table-view', title: '炸板池'}, {name: 'dt-table-view', title: '跌停池'},
                         {name: 'hots-table-view', title: '热度榜'}, {name: 'amount-table-view', title: '成交额'}, 
-                        {name: 'lhb-table-view', title: '龙虎榜'},  {name: 'ZFB_TableView', title: '涨幅榜'}, 
-                        {name: 'DFB_TableView', title: '跌幅榜'}, {name:'ZSB_TableView', title:'涨速榜'},
+                        {name: 'lhb-table-view', title: '龙虎榜'},  
+                        {name: 'ZFB_TableView', title: '涨幅榜'}, 
+                        // {name: 'DFB_TableView', title: '跌幅榜'}, 
+                        {name:'ZSB_TableView', title:'涨速榜'},
                         // {name:'TextLine_TableView', title:'画线榜'},
                         {name: 'MySelect_TableView', title:'自选股'},
                     ],
@@ -744,6 +746,7 @@ let BaseTableView = {
         return {pageSize: 50};
     },
     mounted() {
+        console.log('[BaseTableView.mounted]');
         this.onCurDayChanged();
     },
     methods: {
@@ -761,7 +764,7 @@ let BaseTableView = {
         },
     },
     template: `
-        <div style="text-align:center; width:100%; display: flex; justify-content: center;  ">
+        <div ref="ops" style="text-align:center; width:100%; display: flex; justify-content: center;  ">
             <input style="border:solid 1px #999; height:25px;" @keydown.enter="doSearch($event.target.value)" />
         </div>
         <stock-table ref="stable" :columns="columns"
@@ -771,7 +774,7 @@ let BaseTableView = {
             :url="url" :day="curDay" style="width:100%;"
             @click-cell="onClickCell" >
         </stock-table>
-        <LocalPageniteView ref="pageniteView" :pageSize="pageSize" 
+        <LocalPageniteView ref="pageniteView" :pageSize="pageSize"
             @page-changed="onPageChanged">
         </LocalPageniteView>
     `,
@@ -1124,12 +1127,21 @@ let ZFB_TableView = {
             ],
             datas: null,
             url: null,
+            zsDatas: null,
         }
     },
     methods: {
         onCurDayChanged() {
             this.url = `/top-zhangfu/${this.curDay}`;
+            axios.get(`/top-zszd/${this.curDay}`).then((resp) => {
+                this.zsDatas = resp.data;
+                console.log('[ZFB_TableView] ', resp);
+            });
         },
+    },
+    mounted() {
+        console.log('[ZFB_TableView.mounted]');
+
     },
 };
 
