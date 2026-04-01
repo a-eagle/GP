@@ -289,21 +289,16 @@ class KLineIndicator(Indicator):
             return 0xff0000
         if zdt == 'DT' or zdt == 'DTZB':
             return 0x00ffff
-        low = data.low
-        high = data.high
-        if idx > 0:
+        if idx > 0: # hilight color
+            is20p = self.model.code[0] == '3' or self.model.code[0 : 3] == '688'
             pre = self.data[idx - 1].close
-            low = min(pre, low)
-            high = max(pre, high)
-        zhengFu = (high - low) / low * 100
+            maxZhenFu = (data.high - pre) / pre * 100
+            if (not is20p and maxZhenFu >= 6) or (is20p and maxZhenFu >= 9):
+                return 0xff00ff
         # up
         if data.close >= data.open:
-            # if zhengFu >= 7:
-            #     return 0xff00ff
             return 0x0000ff
         # down
-        # if zhengFu >= 7:
-            # return 0x8b8b00
         return 0xfcfc54
 
     def draw(self, hdc, drawer):

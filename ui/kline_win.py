@@ -971,13 +971,14 @@ class DrawLineManager(base_win.Listener):
             return False
         # pos.dx = 0 # modify line dx to 0
         self.curLine.startPos.update(pos)
+        self.curLine.startPos.xy = (x, y)
         return True
 
     # 调水平线 | 垂直线
     def modifyHorVerLine(self, x, y):
         if not self.win.getKeyState(win32con.VK_CONTROL):
             return x, y
-        xy = self.curLine.startPos.toXY(self.win.klineIndicator)
+        xy = self.curLine.startPos.xy
         if xy:
             dx = abs(x - xy[0])
             dy = abs(y - xy[1])
