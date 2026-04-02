@@ -32,25 +32,7 @@ class Server:
         self.app.add_url_rule('/cls-proxy', view_func = self.loadClsProxy, methods = ['GET'])
         self.app.add_url_rule('/pushUpdateData/<modelName>', view_func = self.pushUpdateData, methods = ['POST'])
         self.app.add_url_rule('/remote', view_func = self.remote, methods = ['GET'])
-        self.app.add_url_rule('/list-db-table-files', view_func = self.listDbTableFiles, methods = ['GET'])
-        self.app.add_url_rule('/load-db-table-file/<fileName>', view_func = self.loadDbTableFile, methods = ['GET'])
         self.app.run('0.0.0.0', 8090, use_reloader = False, debug = False)
-
-    def listDbTableFiles(self):
-        MYSQL_PATH = r'C:\ProgramData\MySQL\MySQL Server 8.0\Data\gp'
-        return os.listdir(MYSQL_PATH)
-
-    def loadDbTableFile(self, fileName):
-        MYSQL_PATH = r'C:\ProgramData\MySQL\MySQL Server 8.0\Data\gp'
-        filePath = os.path.join(MYSQL_PATH, fileName)
-        if not os.path.exists(filePath):
-            return {'status': 'Fail', 'msg': f'Db table file not exists: {fileName}'}
-        f = open(filePath, 'rb')
-        bs = f.read()
-        f.close()
-        rbs = base64.b64encode(bs)
-        sbs = rbs.decode('utf-8')
-        return {'status': 'OK', 'msg': 'Success', 'data': sbs}
 
     def remote(self):
         func = flask.request.args.get('func', None)
