@@ -485,6 +485,24 @@ class Point:
         if y < 0 or y >= kl.height:
             return None
         return (int(x), int(y))
+    
+    def toNearXY(self, kl : KLineIndicator):
+        vr = kl.visibleRange
+        if not vr or not self.isValid():
+            return None
+        idx = kl.model.getItemIdx(self.day)
+        if idx < vr[0]:
+            x = kl.getCenterX(vr[0])
+        elif idx >= vr[1]:
+            x = kl.getCenterX(vr[1])
+        else:
+            x = kl.getCenterX(idx) + self.dx
+        if x < 0: x = 0
+        if x > kl.width: x = kl.width
+        y = kl.getYAtValue(self.price) + self.dy
+        if y < 0: y = 0
+        if y >= kl.height: y = kl.height - 1
+        return (int(x), int(y))
 
     def update(self, point):
         if not point:
@@ -811,8 +829,13 @@ class LineView(Dragable):
         vr = kl.visibleRange
         if not self.isValid() or not vr:
             return
-        sxy = self.startPos.toXY(kl)
-        exy = self.endPos.toXY(kl)
+        vsDay, veDay = kl.getItemData(vr[0]).day, kl.getItemData(vr[1] - 1).day
+        startPosVisible = self.startPos.day >= vsDay and self.startPos.day <= veDay
+        endPosVisible = self.endPos.day >= vsDay and self.endPos.day <= veDay
+        if not startPosVisible and not endPosVisible:
+            return
+        sxy = self.startPos.toNearXY(kl)
+        exy = self.endPos.toNearXY(kl)
         if not sxy or not exy:
             return
         drawer.drawLine(hdc, *sxy, *exy, 0x30f030, width = 1)
