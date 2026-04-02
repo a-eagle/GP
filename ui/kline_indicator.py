@@ -19,7 +19,7 @@ def getTypeByCode(code):
     if code[0] == '8':
         return 'ths'
     if code[0] in ('0', '3', '6'):
-        return 'cls'
+        return 'ths'
     if code[0 : 2] in ('sh', 'sz'):
         return 'cls'
     if code[0 : 3] == 'cls':

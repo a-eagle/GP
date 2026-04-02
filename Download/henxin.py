@@ -330,7 +330,7 @@ class HexinUrl(Henxin):
             return None
         rs['code'] = code
         timeout = 60
-        if datetime.datetime.now().strftime('%H:%M') > '15:05':
+        if datetime.datetime.now().strftime('%H:%M') > '15:20':
             timeout = 60 * 60 * 1
         memcache.cache.saveCache(f'THS-TodayKLine:{code}', rs, timeout)
         return rs
@@ -358,17 +358,28 @@ class HexinUrl(Henxin):
     # peroid = 'day' | 'week' | 'month'
     def loadKLineData(self, code, peroid):
         rs = self._loadKLineDataPeroid(code, peroid)
-        if peroid == 'week' or peroid == 'month' or not rs or not rs.get('data', None):
+        if not rs or not rs.get('data', None):
             return rs
-        data = rs['data']
-        last = data[-1]
+        if peroid == 'week' or peroid == 'month':
+            return rs
+        datas = rs['data']
+        last = datas[-1]
         todayInt = int(datetime.date.today().strftime('%Y%m%d'))
-        if todayInt == int(rs['today']):
-            todayRs = self.loadTodayKLineData(code)
-            if todayRs and todayRs['data']:
-                if last.day == todayRs['data'].day:
-                    data.pop(-1)
-                data.append(todayRs['data'])
+        if todayInt != int(rs['today']):
+            return rs
+        todayRs = self.loadTodayKLineData(code)
+        todayData = todayRs.get('data', None) if todayRs else None
+        if not todayData:
+            return rs
+        if last.day != todayData.day:
+            datas.append(todayData)
+            return rs
+        if peroid == 'day':
+            datas.pop(-1)
+            datas.append(todayData)
+        else:
+            last.high = max(last.high, todayData.high)
+            last.low = max(last.low, todayData.low)
         return rs
 
     # fenshi: {name:xx, code:xx, pre:xx, date:yyyymmdd(str), data: str;str;..., line:[ItemData...] }  data: 时间，价格，成交额（元），分时均价，成交量（手）;
@@ -493,8 +504,8 @@ class HexinUrl(Henxin):
 
 if __name__ == '__main__':
     hx = HexinUrl()
-    rs = hx.loadKLineData('399001', 'day')
-    print(rs)
+    rs = hx.loadKLineData('002866', 'week')
+    # print(rs)
 
 
 # TOKEN_SERVER_TIME
