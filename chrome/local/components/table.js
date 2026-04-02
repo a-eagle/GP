@@ -349,6 +349,15 @@ let DefaultRender = {
         return h(TimeLineView, {code: rowData.code, day:
             rowData.day, onLoadDataEnd: (tl) => table.onLoadFsEnd(rowData, tl) }
         );
+    },
+    elipse_30(h, rowData, column, table) {
+        let val = rowData[column.key];
+        let title = '';
+        if (val && val.length > 30) {
+            title = val;
+            val = val.substring(0, 30) + '...';
+        }
+        return h('span', {title: title}, val);
     }
 }
 

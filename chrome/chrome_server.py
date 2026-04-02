@@ -593,8 +593,14 @@ class Server:
                 it['cls_hy'] = cl.get('hy', '')
             if 'ths_hy' in cols:
                 it['ths_hy'] = th.get('hy', '')
+            if 'hy' in cols:
+                it['hy'] = th.get('hy', '')
             if 'ltsz' in cols:
                 it['ltsz'] = th.get('ltsz', 0) # 流通市值
+            if 'ths_gn' in cols:
+                it['ths_gn'] = th.get('gn', '')
+            if 'cls_gn' in cols:
+                it['cls_gn'] = cl.get('gn', '')
             if 'hots' in cols:
                 if not day:
                     day = None
@@ -939,6 +945,7 @@ class Server:
         for t in today:
             num = tks.get(KEY(t), 0)
             t['wName'] = f"{t['name']}{num}"
+            t['num'] = num
         return today
     
     def loadHotTcAnchorsGroup(self):
@@ -1025,8 +1032,24 @@ class Server:
             day = str(ths_iwencai.getTradeDaysInt()[0])
         if type(day) == str:
             day = day.replace('-', '')
-        q = f"{day}涨幅按大到小排序，且涨幅大于4.5%，成交额，流通市值,总市值"
+        q = f"{day}涨幅按大到小排序，且涨幅大于4%，成交额，流通市值,总市值"
         datas = self._loadZDFDatas(day, q)
+        mdatas = {}
+        for d in datas:
+            mdatas[d['code']] = d
+        qr = d_orm.LocalSpeedModel.select(d_orm.LocalSpeedModel.code,
+            d_orm.LocalSpeedModel.day, d_orm.LocalSpeedModel.fromMinute,
+            d_orm.LocalSpeedModel.endMinute, d_orm.LocalSpeedModel.zf.alias('zhangSu'),
+            ).where(d_orm.LocalSpeedModel.day == int(day)).group_by(d_orm.LocalSpeedModel.code).dicts()
+        zsDatas = []
+        for it in qr:
+            if it['code'] in mdatas:
+                mdatas[it['code']].update(it)
+            else:
+                zsDatas.append(it)
+                datas.append(it)
+        self._updateCodesInfo(day, ['hots', 'ths_gn', 'cls_gn'], datas)
+        self._updateCodesInfo(day, ['hy', 'name'], zsDatas)
         return datas
 
     def _loadZDFDatas(self, day, question):
@@ -1038,7 +1061,7 @@ class Server:
             if code[0] not in '036':
                 continue
             row = {'code': code, 'name': columns.getColumnValue('股票简称', str)}
-            if 'ST' in row['name'].upper():
+            if ('ST' in row['name'].upper()) or ('退' in row['name']):
                 continue
             row['secu_code'] = self._getSecuCode(code)
             row['zdf'] = columns.getColumnValue('涨跌幅:前复权', float)
@@ -1046,13 +1069,7 @@ class Server:
             row['zhenfu'] = columns.getColumnValue('振幅', float)
             row['cje'] = columns.getColumnValue('成交额', float) / 100000000
             row['hy'] = columns.getColumnValue('所属同花顺行业', str)
-            row['gn'] = gn_utils.get_THS_GNTC(code)
             datas.append(row)
-        infos = self._queryCodesInfo(day, ['hots'], datas)
-        for d in datas:
-            sc = d['secu_code']
-            if sc in infos:
-                d.update(infos[sc])
         return datas
 
     def loadTopDieFu(self, day):

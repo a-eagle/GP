@@ -716,7 +716,7 @@ let TabNaviView = {
                         {name: 'lhb-table-view', title: '龙虎榜'},  
                         {name: 'ZFB_TableView', title: '涨幅榜'}, 
                         // {name: 'DFB_TableView', title: '跌幅榜'}, 
-                        {name:'ZSB_TableView', title:'涨速榜'},
+                        // {name:'ZSB_TableView', title:'涨速榜'},
                         // {name:'TextLine_TableView', title:'画线榜'},
                         {name: 'MySelect_TableView', title:'自选股'},
                     ],
@@ -1120,29 +1120,77 @@ let ZFB_TableView = {
                 // {title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true},
                 {title: '热度', key: 'hots', width: 50, sortable: true},
                 {title: '涨跌幅', key: 'zdf', width: 70, sortable: true, cellRender: DefaultRender.zf2Render},
-                {title: '振幅', key: 'zhenfu', width: 70, sortable: true, cellRender: DefaultRender.zf2Render},
+                {title: '涨速', key: 'zhangSu', width: 70, sortable: true, cellRender: DefaultRender.zf2Render},
                 {title: '成交额', key: 'cje', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
                 {title: '总市值', key: 'zsz', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
+                {title: 'THS概念', key: 'ths_gn', width: 120, sortable: false, cellRender: DefaultRender.elipse_30},
+                {title: 'CLS概念', key: 'cls_gn', width: 120, sortable: false, cellRender: DefaultRender.elipse_30},
                 {title: '分时图', key: 'fs', width: 300}
             ],
             datas: null,
             url: null,
-            zsDatas: null,
+            defHotTc: ['铜缆高速连接 | CPO', '电池', '光纤', '算力', '存储', '创新药 | 化学制药 | 医药', '电力 | 电网 | 风电' ],
+            allHotTc: [],
+            todayHotTc: [],
         }
     },
     methods: {
         onCurDayChanged() {
             this.url = `/top-zhangfu/${this.curDay}`;
-            axios.get(`/top-zszd/${this.curDay}`).then((resp) => {
-                this.zsDatas = resp.data;
-                console.log('[ZFB_TableView] ', resp);
+            axios.get(`/hot-anchors-group?day=${this.curDay}`).then((resp) => {
+                this.allHotTc = [];
+                for (let it of resp.data) {
+                    if (it.code.substring(0, 3) == 'cls')
+                        this.allHotTc.push(it);
+                }
             });
+            axios.get(`/hot-anchors?day=${this.curDay}`).then((resp) => {
+                this.todayHotTc = [];
+                for (let it of resp.data) {
+                    if (it.code.substring(0, 3) == 'cls')
+                        this.todayHotTc.push(it);
+                }
+            });
+        },
+        onSelectHotTc(event) {
+            let val = event.target.value;
+            this.$refs.searchInput.value = val;
+            this.doSearch(val);
+        },
+        formatItem(idx, item) {
+            return `[${idx + 1}]  ${item.name} ${item.up ? '+' : '-'} ${item.num}`;
         },
     },
     mounted() {
         console.log('[ZFB_TableView.mounted]');
-
     },
+    template: `
+        <div ref="ops" style="text-align:center; width:100%; display: flex; justify-content: center;  ">
+            <input ref="searchInput" style="border:solid 1px #999; height:25px;" @keydown.enter="doSearch($event.target.value)" />
+            <select @change="onSelectHotTc($event)" style="margin-left: 10px;">
+                <option value=""></option>
+                <option v-for="(item, idx) in defHotTc" :value="item" > [{{idx + 1}}]  {{item}} </option>
+            </select>
+            <select @change="onSelectHotTc($event)" style="margin-left: 10px;">
+                <option value=""></option>
+                <option v-for="(item, idx) in allHotTc" :value="item.name" > {{formatItem(idx, item)}} </option>
+            </select>
+            <select @change="onSelectHotTc($event)" style="margin-left: 10px;">
+                <option value=""></option>
+                <option v-for="(item, idx) in todayHotTc" :value="item.name" >  {{formatItem(idx, item)}} </option>
+            </select>
+        </div>
+        <stock-table ref="stable" :columns="columns"
+            @sort-changed="onLoadDataDone"
+            @data-filtered="onLoadDataDone"
+            @load-data-done="onLoadDataDone"
+            :url="url" :day="curDay" style="width:100%;"
+            @click-cell="onClickCell" >
+        </stock-table>
+        <LocalPageniteView ref="pageniteView" :pageSize="pageSize"
+            @page-changed="onPageChanged">
+        </LocalPageniteView>
+    `,
 };
 
 let DFB_TableView = {
