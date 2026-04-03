@@ -1788,10 +1788,11 @@ class XuanGuWindow(BaseWindow):
         self.css['bgColor'] = 0x202020
         self.render = base_win.RichTextRender(30)
         self.render.addText('【选股标准】\n', 0x00ffff, fontSize = 14)
+        self.render.addText('** 先选择正确的板块，再选个股\n', 0x00ffff, fontSize = 14)
+        self.render.addText('** 板块不正确，个股就存在不确定性\n', 0x00ffff, fontSize = 14)
         self.render.addText('【1型】由横盘蓄势开始启动\n       首日,可上涨3日\n', 0x00ffff, fontSize = 14)
         self.render.addText('【2型】向上突破时买入\n', 0x00ffff, fontSize = 14)
         self.render.addText('* 买低位股，安全，不追高\n', 0x00ffff, fontSize = 14)
-        self.render.addText('* 必须是热点有持续性板块\n', 0x00ffff, fontSize = 14)
 
     def onDraw(self, hdc):
         W, H = self.getClientSize()
