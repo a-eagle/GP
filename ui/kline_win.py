@@ -476,6 +476,8 @@ class Point:
         if not vr or not self.isValid():
             return None
         idx = kl.model.getItemIdx(self.day)
+        if idx < 0:
+            idx = kl.model.getNearItemIdx(self.day)
         if idx < vr[0] or idx >= vr[1]:
             return None
         x = kl.getCenterX(idx) + self.dx
@@ -491,6 +493,8 @@ class Point:
         if not vr or not self.isValid():
             return None
         idx = kl.model.getItemIdx(self.day)
+        if idx < 0:
+            idx = kl.model.getNearItemIdx(self.day)
         if idx < vr[0]:
             x = kl.getCenterX(vr[0])
         elif idx >= vr[1]:
@@ -802,8 +806,8 @@ class LineView(Dragable):
     def calcLineOutShape(self):
         kl : KLineIndicator = self.win.klineIndicator
         B = 4
-        sxy = self.startPos.toXY(kl)
-        exy = self.endPos.toXY(kl)
+        sxy = self.startPos.toNearXY(kl)
+        exy = self.endPos.toNearXY(kl)
         if not sxy or not exy:
             return None
         outShape = Polygon()
@@ -829,16 +833,11 @@ class LineView(Dragable):
         vr = kl.visibleRange
         if not self.isValid() or not vr:
             return
-        vsDay, veDay = kl.getItemData(vr[0]).day, kl.getItemData(vr[1] - 1).day
-        startPosVisible = self.startPos.day >= vsDay and self.startPos.day <= veDay
-        endPosVisible = self.endPos.day >= vsDay and self.endPos.day <= veDay
-        if not startPosVisible and not endPosVisible:
-            return
         sxy = self.startPos.toNearXY(kl)
         exy = self.endPos.toNearXY(kl)
         if not sxy or not exy:
             return
-        drawer.drawLine(hdc, *sxy, *exy, 0x30f030, width = 1)
+        drawer.drawLine(hdc, *sxy, *exy, rgb = 0x4985E7, width = 1)
         self.drawLineArrow(hdc, *sxy, *exy)
         if hilight:
             self.drawOutShape(hdc)
@@ -2102,7 +2101,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '603222' #      1B0688 002202  600172
+    CODE = '002866' #      1B0688 002202  600172
     win = kline_utils.createKLineWindowByCode(CODE) #, None, (800, 0, 600, 700))
     win.changeCode(CODE)
     win.setCodeList([CODE, '002792', '002149', '002565', '301079', '300058', '688523'])

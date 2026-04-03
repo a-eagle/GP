@@ -490,8 +490,19 @@ class Drawer:
         color = self.hsv2rgb(h, s, v)
         return color
 
+    def rgb2Color(self, rgb):
+        if rgb is None:
+            return None
+        if type(rgb) == int:
+            r, g, b = (rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff
+            color = r | (g << 8) | (b << 16)
+            return color
+        return None
+
     # color = int(0xbbggrr color)
-    def drawLine(self, hdc, sx, sy, ex, ey, color, style = win32con.PS_SOLID, width = 1):
+    def drawLine(self, hdc, sx, sy, ex, ey, color = None, style = win32con.PS_SOLID, width = 1, rgb = None):
+        if type(rgb) == int:
+            color = self.rgb2Color(rgb)
         ps = self.getPen(color, style, width)
         self.use(hdc, ps)
         win32gui.MoveToEx(hdc, sx, sy)
@@ -545,8 +556,7 @@ class Drawer:
         if not isinstance(text, str):
             text = str(text)
         if type(rgb) == int:
-            r, g, b = (rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff
-            rgb = r | (g << 8) | (b << 16)
+            rgb = self.rgb2Color(rgb)
             win32gui.SetTextColor(hdc, rgb)
         if type(color) == int:
             win32gui.SetTextColor(hdc, color)

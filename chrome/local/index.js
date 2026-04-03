@@ -1129,13 +1129,20 @@ let ZFB_TableView = {
             ],
             datas: null,
             url: null,
-            defHotTc: ['铜缆高速连接 | CPO', '电池', '光纤', '算力', '存储', '创新药 | 化学制药 | 医药', '电力 | 电网 | 风电' ],
+            defHotTc: ['铜缆高速连接 | CPO',
+                        '电池',
+                        '光纤',
+                        '算力',
+                        '存储',
+                        '创新药 | 化学制药 | 医药',
+                        '电力 | 电网 | 风电'
+                    ],
             allHotTc: [],
             todayHotTc: [],
         }
     },
     methods: {
-        onCurDayChanged() {
+        onCurDayChanged(day) {
             this.url = `/top-zhangfu/${this.curDay}`;
             axios.get(`/hot-anchors-group?day=${this.curDay}`).then((resp) => {
                 this.allHotTc = [];

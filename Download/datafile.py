@@ -99,6 +99,17 @@ class DataModel:
         if idx >= 0 and idx < len(self.data) and self.data[idx].day == day:
             return idx
         return -1
+    
+    def getNearItemIdx(self, day):
+        if not day or not self.data:
+            return -1
+        if type(day) == str:
+            day = day.replace('-', '')
+            day = int(day)
+        for i in range(len(self.data) - 1, -1, -1):
+            if self.data[i].day >= day:
+                break
+        return i
 
     # dataType = 'DAY' | 'TIME'
     def _getLocalPath(self, dataType):
