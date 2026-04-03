@@ -1005,7 +1005,7 @@ class DrawLineManager(base_win.Listener):
     def modifyHorVerLine(self, x, y):
         if not self.win.getKeyState(win32con.VK_CONTROL):
             return x, y
-        xy = self.curLine.startPos.xy
+        xy = getattr(self.curLine.startPos, 'xy', None)
         if xy:
             dx = abs(x - xy[0])
             dy = abs(y - xy[1])
