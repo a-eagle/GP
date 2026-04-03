@@ -866,11 +866,11 @@ class LineView(Dragable):
                 pts = [(ex - 3, ey), (ex + 3, ey), (ex, ey + 3)]
             else:
                 pts = [(ex - 3, ey), (ex + 3, ey), (ex, ey - 3)]
-            drawer.use(hdc, drawer.getBrush(0x30f030))
+            drawer.use(hdc, drawer.getBrush(0xE78549))
             win32gui.Polygon(hdc, pts)
         else:
             rc = (ex - 2, ey - 2, ex + 3, ey + 3)
-            drawer.fillRect(hdc, rc, 0x30f030)
+            drawer.fillRect(hdc, rc, 0xE78549)
 
     def onDragBegin(self, x, y):
         # print('[LineView.onDragBegin]', x, y)
