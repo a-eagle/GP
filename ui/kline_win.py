@@ -268,10 +268,13 @@ class ContextMenuManager:
         elif name == 'add-my-select':
             code = self.win.klineIndicator.code
             name = self.win.klineIndicator.model.name
-            obj = my_orm.MySelect.get_or_none(my_orm.MySelect == code)
+            obj = my_orm.MySelect.get_or_none(my_orm.MySelect.code == code)
+            today = datetime.date.today().strftime('%Y-%m-%d')
             if not obj:
-                today = datetime.date.today().strftime('%Y-%m-%d')
                 my_orm.MySelect.create(code = code, name = name, day = today)
+            else:
+                obj.day = today
+                obj.save()
         elif name == 'del-my-select':
             code = self.win.klineIndicator.code
             obj = my_orm.MySelect.get_or_none(my_orm.MySelect.code == code)
@@ -786,6 +789,8 @@ class LineView(Dragable):
         if not size:
             return None
         sxy = self.startPos.toXY(kl)
+        if not sxy:
+            sxy = self.startPos.toNearXY(kl)
         if not sxy:
             return None
         x, y = sxy
@@ -1522,11 +1527,11 @@ class KLineWindow(base_win.BaseWindow):
 
     # @return True: 已处理事件,  False:未处理事件
     def winProc(self, hwnd, msg, wParam, lParam):
+        if self.calcZdfMgr.winProc(hwnd, msg, wParam, lParam):
+            return True
         if self.lineMgr.winProc(hwnd, msg, wParam, lParam):
             if msg == win32con.WM_MOUSEMOVE: # 画线过程中仍然显示鼠标
                 self.onMouseMove(lParam & 0xffff, (lParam >> 16) & 0xffff)
-            return True
-        if self.calcZdfMgr.winProc(hwnd, msg, wParam, lParam):
             return True
         if self.rangeSelMgr.winProc(hwnd, msg, wParam, lParam):
             return True
@@ -2101,7 +2106,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '002866' #      1B0688 002202  600172
+    CODE = '002792' #      1B0688 002202  600172
     win = kline_utils.createKLineWindowByCode(CODE) #, None, (800, 0, 600, 700))
     win.changeCode(CODE)
     win.setCodeList([CODE, '002792', '002149', '002565', '301079', '300058', '688523'])

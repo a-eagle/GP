@@ -1163,6 +1163,7 @@ let ZFB_TableView = {
             let val = event.target.value;
             this.$refs.searchInput.value = val;
             this.doSearch(val);
+            event.target.value = '';
         },
         formatItem(idx, item) {
             return `[${idx + 1}]  ${item.name} ${item.up ? '+' : '-'} ${item.num}`;
@@ -1174,16 +1175,15 @@ let ZFB_TableView = {
     template: `
         <div ref="ops" style="text-align:center; width:100%; display: flex; justify-content: center;  ">
             <input ref="searchInput" style="border:solid 1px #999; height:25px;" @keydown.enter="doSearch($event.target.value)" />
-            <select @change="onSelectHotTc($event)" style="margin-left: 10px;">
-                <option value=""></option>
+            <select @change="onSelectHotTc($event)" style="margin-left: 10px;" value="">
                 <option v-for="(item, idx) in defHotTc" :value="item" > [{{idx + 1}}]  {{item}} </option>
             </select>
-            <select @change="onSelectHotTc($event)" style="margin-left: 10px;">
-                <option value=""></option>
+            <select ref="allTcSelect" @change="onSelectHotTc($event)" style="margin-left: 10px;" value="">
+                <option value=""> </option>
                 <option v-for="(item, idx) in allHotTc" :value="item.name" > {{formatItem(idx, item)}} </option>
             </select>
-            <select @change="onSelectHotTc($event)" style="margin-left: 10px;">
-                <option value=""></option>
+            <select ref="todayTcSelect" @change="onSelectHotTc($event)" style="margin-left: 10px;" value="">
+                <option value=""> </option>
                 <option v-for="(item, idx) in todayHotTc" :value="item.name" >  {{formatItem(idx, item)}} </option>
             </select>
         </div>
@@ -1302,7 +1302,7 @@ let MySelect_TableView = {
     },
     methods: {
         onCurDayChanged() {
-            this.url = `/my-select`;
+            this.url = `/my-select?_t=` + Math.random();
         },
         opCellRender(h, rowData, column) {
             return h('button', {onclick: () => this.onDelete(rowData), innerText: '删除'});
