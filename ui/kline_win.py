@@ -1524,6 +1524,8 @@ class KLineWindow(base_win.BaseWindow):
     # @return True: 已处理事件,  False:未处理事件
     def winProc(self, hwnd, msg, wParam, lParam):
         if self.lineMgr.winProc(hwnd, msg, wParam, lParam):
+            if msg == win32con.WM_MOUSEMOVE: # 画线过程中仍然显示鼠标
+                self.onMouseMove(lParam & 0xffff, (lParam >> 16) & 0xffff)
             return True
         if self.calcZdfMgr.winProc(hwnd, msg, wParam, lParam):
             return True
