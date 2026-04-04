@@ -107,7 +107,9 @@ class DataModel:
             day = day.replace('-', '')
             day = int(day)
         for i in range(len(self.data) - 1, -1, -1):
-            if self.data[i].day >= day:
+            if day < self.data[i].day:
+                continue
+            else:
                 break
         return i
 

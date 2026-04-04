@@ -1448,7 +1448,11 @@ class KLineWindow(base_win.BaseWindow):
         return None
 
     def changeCode(self, code, period = 'day'):
-        self.selIdx = -1
+        selDay = 0
+        oldCode = None
+        if self.klineIndicator.model and self.selIdx >= 0:
+            selDay = self.klineIndicator.model.data[self.selIdx].day
+            oldCode = self.klineIndicator.code
         if type(code) == int:
             code = f'{code :06d}'
         if len(code) == 8 and code[0] == 's':
@@ -1458,9 +1462,18 @@ class KLineWindow(base_win.BaseWindow):
         #rs = gn_utils.get_THS_GNTC(code)
         #if rs and rs.get('hy_2_code', None):
         #    self.refIndicator.changeCode(rs['hy_2_code'], period)
+        newSelIdx = -1
+        if code == oldCode and selDay > 0:
+            newSelIdx = self.klineIndicator.model.getItemIdx(selDay)
+            if newSelIdx < 0:
+                newSelIdx = self.klineIndicator.model.getNearItemIdx(selDay)
+        if newSelIdx < 0 and self.klineIndicator.model.data:
+            newSelIdx = len(self.klineIndicator.model.data) - 1
         self.lineMgr.changeCode(code)
-        self.makeVisible(-1)
         self.bkgnView.changeCode(code)
+        self.makeVisible(newSelIdx)
+        self.selIdx = -1
+        self.setSelIdx(newSelIdx)
         self.invalidWindow()
         ThreadPool.instance().addTask_N(self.loadClsBkGn, code)
         self.notifyListener(self.Event('ChangeCode', self, code = code))
