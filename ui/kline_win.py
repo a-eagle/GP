@@ -1559,7 +1559,7 @@ class KLineWindow(base_win.BaseWindow):
             self.onKeyDown(keyCode)
             return True
         if msg == win32con.WM_LBUTTONDOWN:
-            win32gui.SetFocus(self.hwnd)
+            # win32gui.SetFocus(self.hwnd)
             return True
         if msg == win32con.WM_LBUTTONUP:
             x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
@@ -1628,7 +1628,6 @@ class KLineWindow(base_win.BaseWindow):
         self.setSelIdx(idx)
 
     def onKeyDown(self, keyCode):
-        self.notifyListener(self.Event('KeyDown', self, keyCode = keyCode))
         if keyCode == 73: # page up
             pass
         elif keyCode == 81: # page down
@@ -2015,7 +2014,6 @@ class KLineCodeWindow(base_win.BaseWindow):
         self.layout = base_win.GridLayout(('100%', ), ('1fr', DETAIL_WIDTH), (5, 5))
         self.klineWin.createWindow(self.hwnd, (0, 0, 1, 1))
         self.layout.setContent(0, 0, self.klineWin)
-        self.klineWin.addNamedListener('KeyDown', self.klineWinKeyDown)
 
         rightLayout = base_win.FlowLayout()
         self.codeWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 550))
@@ -2037,12 +2035,6 @@ class KLineCodeWindow(base_win.BaseWindow):
         rightLayout.addContent(xgWin, {'margins': (0, 15, 0, 5)})
         self.layout.setContent(0, 1, rightLayout)
         self.layout.resize(0, 0, *self.getClientSize())
-
-    def klineWinKeyDown(self, event, args):
-        if event.keyCode == 73: # page up
-            self.onLeftRight(self.Event('Click', None, info = {'name': 'LEFT'}), None)
-        elif event.keyCode == 81: # page down
-            self.onLeftRight(self.Event('Click', None, info = {'name': 'RIGHT'}), None)
 
     def _getCode(self, d):
         if type(d) == dict:
@@ -2121,9 +2113,14 @@ class KLineCodeWindow(base_win.BaseWindow):
         self.updateCodeIdxView()
 
     def winProc(self, hwnd, msg, wParam, lParam):
-        if msg == win32con.WM_SETFOCUS:
-            win32gui.SetFocus(self.klineWin.hwnd)
-            return True
+        if msg == win32con.WM_KEYDOWN:
+            keyCode = lParam >> 16 & 0xff
+            if keyCode == 73: # page up
+                self.onLeftRight(self.Event('Click', None, info = {'name': 'LEFT'}), None)
+            elif keyCode == 81: # page down
+                self.onLeftRight(self.Event('Click', None, info = {'name': 'RIGHT'}), None)
+            else:
+                self.klineWin.winProc(self.klineWin.hwnd, msg, wParam, lParam)
         return super().winProc(hwnd, msg, wParam, lParam)
 
 if __name__ == '__main__':
