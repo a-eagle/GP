@@ -195,7 +195,7 @@ class ContextMenuManager:
         menu.addNamedListener('Select', self.onMemuItem)
         menu.show(x, y)
 
-    def onMemuItem(self, evt, args):
+    def onMemuItem(self, evt, args = None):
         name = evt.item['name']
         if name == 'sel-idx-on-click':
             self.win.selIdxOnClick = not self.win.selIdxOnClick
@@ -275,11 +275,31 @@ class ContextMenuManager:
             else:
                 obj.day = today
                 obj.save()
+            self.showAlert('[+] 成功加入自选', 0x33dd33)
         elif name == 'del-my-select':
             code = self.win.klineIndicator.code
             obj = my_orm.MySelect.get_or_none(my_orm.MySelect.code == code)
             if obj:
                 obj.delete_instance()
+                self.showAlert('[-] 成功删除自选', 0x33dd33)
+        
+    def showAlert(self, text, textRgb):
+        if not text:
+            return
+        hdc = win32gui.GetDC(self.win.hwnd)
+        win32gui.SetBkMode(hdc, win32con.TRANSPARENT)
+        drawer = Drawer.instance()
+        drawer.use(hdc, drawer.getFont())
+        w, h = win32gui.GetTextExtentPoint32(hdc, text)
+        w += 30
+        h += 20
+        cw, ch = self.win.klineIndicator.width, self.win.klineIndicator.height
+        left = int((cw - w) * 0.7) + self.win.klineIndicator.x
+        top = (ch - h) + self.win.klineIndicator.y
+        rc = (left, top, left + w, top + h)
+        drawer.fillRect(hdc, rc, 0x606060)
+        drawer.drawText(hdc, text, rc, rgb = textRgb, align = Drawer.ALIGN_MULTILINE_CENTER)
+        win32gui.ReleaseDC(self.win.hwnd, hdc)
 
     def markColor(self, item):
         code = self.win.klineIndicator.model.code
@@ -1660,6 +1680,16 @@ class KLineWindow(base_win.BaseWindow):
             period = ks[idx]
             if self.klineIndicator.code:
                 self.changeCode(self.klineIndicator.code, period)
+        elif keyCode == 71: # home
+            vr = self.klineIndicator.visibleRange
+            if vr: self.setSelIdx(vr[0])
+        elif keyCode == 79: # end
+            vr = self.klineIndicator.visibleRange
+            if vr: self.setSelIdx(vr[1] - 1)
+        elif keyCode == 82: # insert
+            self.contextMenuMgr.onMemuItem(self.Event('A', self, item={'name': 'add-my-select'}))
+        elif keyCode == 83: # delete
+            self.contextMenuMgr.onMemuItem(self.Event('A', self, item={'name': 'del-my-select'}))
 
     def makeVisible(self, idx):
         self.calcIndicatorsRect()
@@ -2125,7 +2155,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '002792' #      1B0688 002202  600172
+    CODE = '300058' #      1B0688 002202  600172
     win = kline_utils.createKLineWindowByCode(CODE) #, None, (800, 0, 600, 700))
     win.changeCode(CODE)
     win.setCodeList([CODE, '002792', '002149', '002565', '301079', '300058', '688523'])

@@ -546,6 +546,9 @@ class Drawer:
         b = (int(((color1 >> 16) & 0xff) * color1Aplha + ((color2 >> 16) & 0xff) * (1 - color1Aplha)) & 0xff) << 16
         return r | g | b
     
+    ALIGN_SINGLELINE_CENTER = win32con.DT_VCENTER | win32con.DT_CENTER | win32con.DT_SINGLELINE
+    ALIGN_MULTILINE_CENTER = win32con.DT_VCENTER | win32con.DT_CENTER | win32con.DT_WORDBREAK
+
     # rect = list or tuple (left, top, right, botton)
     # color = int(0xbbggrr color) | None(not set color)
     def drawText(self, hdc, text, rect, color = None, align = win32con.DT_CENTER, rgb = None):
