@@ -1914,6 +1914,14 @@ class CodeWindow(BaseWindow):
             color = 0x0000ff if rz >= 0 else 0x00ff00
             self.drawer.drawText(hdc, f'{rz :.2f}%', (RIGHT_X, y, W, y + RH), color, self.V_CENTER)
         y += RH
+        self.drawer.drawText(hdc, '最大涨幅', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        if self.klineWin.selIdx > 0:
+            pre = klineModel.data[self.klineWin.selIdx - 1].close
+            cur = self.getModelAttr(klineModel, 'high')
+            maxZF = (cur - pre) / pre * 100
+            color = 0x0000ff if maxZF >= 0 else 0x00ff00
+            self.drawer.drawText(hdc, f'{maxZF :.2f}%', (RIGHT_X, y, W, y + RH), color, self.V_CENTER)
+        y += RH
         self.drawer.drawText(hdc, '成交额', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         rz = self.getModelAttr(klineModel, 'amount')
         if rz is not None:
