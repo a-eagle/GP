@@ -43,7 +43,7 @@ def createKLineWindow(parent = None, rect = None, style = None):
         else:
             style = win32con.WS_VISIBLE | win32con.WS_OVERLAPPEDWINDOW
     win.createWindow(parent, rect, style)
-    win.klineWin.addNamedListener('DbClick', openTimeLineWindow, win)
+    win.klineWin.addNamedListener('OpenMinutes', openTimeLineWindow, win)
     MAX_TOP_HOT = 10
     win.klineWin.addNamedListener('ChangeCode', onChangeCode, MAX_TOP_HOT)
     return win

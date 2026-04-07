@@ -3381,6 +3381,15 @@ class RichTextRender:
             if idx != len(ls) - 1:
                 self.specs.append(self.NEW_LINE)
 
+    # split each char
+    def addText2(self, text, color = None, bgColor = None, fontSize = 12, args = None):
+        text = text.replace('\r\n', '\n').replace('\r', '\n')
+        for ch in text:
+            if ch == '\n':
+                self.specs.append(self.NEW_LINE)
+            else:
+                self.specs.append({'text': ch, 'color': color, 'bgColor': bgColor, 'fontSize': fontSize, 'args': args})
+
     def _getAttr(self, spec, attr):
         val = None
         if callable(spec[attr]):
@@ -3399,7 +3408,7 @@ class RichTextRender:
                 fnt = drawer.getFont(fontSize = item['fontSize'])
                 drawer.use(hdc, fnt)
             sw, *_ = win32gui.GetTextExtentPoint32(hdc, text)
-            if sw + x <= EX and (item is not self.NEW_LINE):
+            if sw + x <= EX and (item != self.NEW_LINE):
                 item['rect'] = (x, y, x + sw, y + self.lineHeight)
             else:
                 x = SX

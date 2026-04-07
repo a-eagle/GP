@@ -630,7 +630,15 @@ class TimelinePanKouWindow(base_win.BaseWindow):
 
     def loadRef(self, code):
         self.timelineWin.loadRef(code)
-
+    
+    def winProc(self, hwnd, msg, wParam, lParam):
+        if msg == win32con.WM_KEYDOWN:
+            keyCode = lParam >> 16 & 0xff
+            if keyCode == 1: # esc
+                win32gui.DestroyWindow(hwnd)
+                return True
+        return super().winProc(hwnd, msg, wParam, lParam)
+    
 class TimelineRender:
     ONE_DAY_LINES = 241
 

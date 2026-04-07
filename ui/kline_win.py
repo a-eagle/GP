@@ -1544,7 +1544,7 @@ class KLineWindow(base_win.BaseWindow):
         # default deal
         if self.selIdx > 0:
             data = self.klineIndicator.data[self.selIdx]
-            self.notifyListener(self.Event('DbClick', self, code = self.klineIndicator.code, idx = self.selIdx, data = data))
+            self.notifyListener(self.Event('OpenMinutes', self, code = self.klineIndicator.code, idx = self.selIdx, data = data))
 
     def createWindow(self, parentWnd, rect, style = win32con.WS_VISIBLE | win32con.WS_CHILD, className = 'STATIC', title = ''):
         super().createWindow(parentWnd, rect, style, className, title)
@@ -1674,12 +1674,18 @@ class KLineWindow(base_win.BaseWindow):
                 self.makeVisible(self.selIdx)
                 x = self.klineIndicator.getCenterX(self.selIdx)
             win32gui.InvalidateRect(self.hwnd, None, True)
-        elif keyCode == 28:
-            ks = ('day', 'week', 'month')
-            idx = (ks.index(self.klineIndicator.period) + 1) % len(ks)
-            period = ks[idx]
-            if self.klineIndicator.code:
-                self.changeCode(self.klineIndicator.code, period)
+        elif keyCode == 28: # enter
+            if self.getKeyState(win32con.VK_CONTROL):
+                vr = self.klineIndicator.visibleRange
+                if vr and vr[0] <= self.selIdx and self.selIdx < vr[1]:
+                    data = self.klineIndicator.data[self.selIdx]
+                    self.notifyListener(self.Event('OpenMinutes', self, code = self.klineIndicator.code, idx = self.selIdx, data = data))
+            else:
+                ks = ('day', 'week', 'month')
+                idx = (ks.index(self.klineIndicator.period) + 1) % len(ks)
+                period = ks[idx]
+                if self.klineIndicator.code:
+                    self.changeCode(self.klineIndicator.code, period)
         elif keyCode == 71: # home
             vr = self.klineIndicator.visibleRange
             if vr: self.setSelIdx(vr[0])
@@ -1830,12 +1836,11 @@ class XuanGuWindow(BaseWindow):
         super().__init__()
         self.css['bgColor'] = 0x202020
         self.render = base_win.RichTextRender(30)
-        self.render.addText('【选股标准】\n', 0x00ffff, fontSize = 14)
-        self.render.addText('** 先选择正确的板块，再选个股\n', 0x00ffff, fontSize = 14)
-        self.render.addText('** 板块不正确，个股就存在不确定性\n', 0x00ffff, fontSize = 14)
-        self.render.addText('【1型】由横盘蓄势开始启动\n       首日,可上涨3日\n', 0x00ffff, fontSize = 14)
-        self.render.addText('【2型】向上突破时买入\n', 0x00ffff, fontSize = 14)
-        self.render.addText('* 买低位股，安全，不追高\n', 0x00ffff, fontSize = 14)
+        self.render.addText2('【选股标准】\n', 0x00ffff, fontSize = 14)
+        self.render.addText2('**先选择正确的板块，再选个股。板块不正确，个股就存在不确定性***\n', 0x88cc33, fontSize = 14)
+        self.render.addText2('【1型】由横盘蓄势开始启动：首日,可上涨3日\n', 0x00ffff, fontSize = 14)
+        self.render.addText2('【2型】向上突破时买入\n', 0x00ffff, fontSize = 14)
+        self.render.addText2('* 买低位股，安全，不追高\n', 0x00ffff, fontSize = 14)
 
     def onDraw(self, hdc):
         W, H = self.getClientSize()
@@ -2069,7 +2074,7 @@ class KLineCodeWindow(base_win.BaseWindow):
         btn.addNamedListener('Click', self.onLeftRight)
         rightLayout.addContent(btn, {'margins': (0, 10, 0, 0)})
         xgWin = XuanGuWindow()
-        xgWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 200))
+        xgWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 300))
         rightLayout.addContent(xgWin, {'margins': (0, 15, 0, 5)})
         self.layout.setContent(0, 1, rightLayout)
         self.layout.resize(0, 0, *self.getClientSize())
@@ -2153,6 +2158,10 @@ class KLineCodeWindow(base_win.BaseWindow):
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_KEYDOWN:
             keyCode = lParam >> 16 & 0xff
+            if keyCode == 1: # esc
+                win32gui.DestroyWindow(hwnd)
+                # win32gui.CloseWindow(hwnd)
+                return True
             if keyCode == 73: # page up
                 self.onLeftRight(self.Event('Click', None, info = {'name': 'LEFT'}), None)
             elif keyCode == 81: # page down
