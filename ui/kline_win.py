@@ -1647,7 +1647,16 @@ class KLineWindow(base_win.BaseWindow):
         self.makeVisible(idx)
         self.setSelIdx(idx)
 
+    def adjustCursorPoint(self, oldSelIdx, newSelIdx):
+        if oldSelIdx == self.selIdx:
+            return
+        x, y = win32api.GetCursorPos()
+        x = self.klineIndicator.getCenterX(newSelIdx)
+        if x > 0:
+            win32api.SetCursorPos((x, y))
+
     def onKeyDown(self, keyCode):
+        oldSelIdx = self.selIdx
         if keyCode == 73: # page up
             pass
         elif keyCode == 81: # page down
@@ -1655,9 +1664,11 @@ class KLineWindow(base_win.BaseWindow):
         elif keyCode == 75: # left arrow key
             ni = self.selIdx - 1
             self.setSelIdx(ni)
+            self.adjustCursorPoint(oldSelIdx, self.selIdx)
         elif keyCode == 77: # right arrow key
             ni = self.selIdx + 1
             self.setSelIdx(ni)
+            self.adjustCursorPoint(oldSelIdx, self.selIdx)
         elif keyCode == 72: # up arrow key
             self.klineWidth += 2
             if self.klineWidth // 2 > self.klineSpace:
@@ -1675,23 +1686,24 @@ class KLineWindow(base_win.BaseWindow):
                 x = self.klineIndicator.getCenterX(self.selIdx)
             win32gui.InvalidateRect(self.hwnd, None, True)
         elif keyCode == 28: # enter
-            if self.getKeyState(win32con.VK_CONTROL):
-                vr = self.klineIndicator.visibleRange
-                if vr and vr[0] <= self.selIdx and self.selIdx < vr[1]:
-                    data = self.klineIndicator.data[self.selIdx]
-                    self.notifyListener(self.Event('OpenMinutes', self, code = self.klineIndicator.code, idx = self.selIdx, data = data))
-            else:
-                ks = ('day', 'week', 'month')
-                idx = (ks.index(self.klineIndicator.period) + 1) % len(ks)
-                period = ks[idx]
-                if self.klineIndicator.code:
-                    self.changeCode(self.klineIndicator.code, period)
+            vr = self.klineIndicator.visibleRange
+            if vr and vr[0] <= self.selIdx and self.selIdx < vr[1]:
+                data = self.klineIndicator.data[self.selIdx]
+                self.notifyListener(self.Event('OpenMinutes', self, code = self.klineIndicator.code, idx = self.selIdx, data = data))
+        elif keyCode == 15: # tab
+            ks = ('day', 'week', 'month')
+            idx = (ks.index(self.klineIndicator.period) + 1) % len(ks)
+            period = ks[idx]
+            if self.klineIndicator.code:
+                self.changeCode(self.klineIndicator.code, period)
         elif keyCode == 71: # home
             vr = self.klineIndicator.visibleRange
             if vr: self.setSelIdx(vr[0])
+            self.adjustCursorPoint(oldSelIdx, self.selIdx)
         elif keyCode == 79: # end
             vr = self.klineIndicator.visibleRange
             if vr: self.setSelIdx(vr[1] - 1)
+            self.adjustCursorPoint(oldSelIdx, self.selIdx)
         elif keyCode == 82: # insert
             self.contextMenuMgr.onMemuItem(self.Event('A', self, item={'name': 'add-my-select'}))
         elif keyCode == 83: # delete

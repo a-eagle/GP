@@ -45,7 +45,7 @@ def createKLineWindow(parent = None, rect = None, style = None):
     win.createWindow(parent, rect, style)
     win.klineWin.addNamedListener('OpenMinutes', openTimeLineWindow, win)
     MAX_TOP_HOT = 10
-    win.klineWin.addNamedListener('ChangeCode', onChangeCode, MAX_TOP_HOT)
+    # win.klineWin.addNamedListener('ChangeCode', onChangeCode, MAX_TOP_HOT) #  显示前10热点
     return win
 
 def createKLineWindow_ZS(parent = None, rect = None, style = None):

@@ -637,6 +637,9 @@ class TimelinePanKouWindow(base_win.BaseWindow):
             if keyCode == 1: # esc
                 win32gui.DestroyWindow(hwnd)
                 return True
+            if keyCode == 28: # enter
+                win32gui.DestroyWindow(hwnd)
+                return True
         return super().winProc(hwnd, msg, wParam, lParam)
     
 class TimelineRender:
