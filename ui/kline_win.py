@@ -1647,7 +1647,7 @@ class KLineWindow(base_win.BaseWindow):
         self.makeVisible(idx)
         self.setSelIdx(idx)
 
-    def adjustCursorPoint(self, oldSelIdx, newSelIdx):
+    def _adjustCursorPoint(self, oldSelIdx, newSelIdx):
         if oldSelIdx == self.selIdx:
             return
         x, y = win32api.GetCursorPos()
@@ -1657,6 +1657,7 @@ class KLineWindow(base_win.BaseWindow):
 
     def onKeyDown(self, keyCode):
         oldSelIdx = self.selIdx
+        isCtrlPress = self.getKeyState(win32con.VK_CONTROL)
         if keyCode == 73: # page up
             pass
         elif keyCode == 81: # page down
@@ -1664,11 +1665,11 @@ class KLineWindow(base_win.BaseWindow):
         elif keyCode == 75: # left arrow key
             ni = self.selIdx - 1
             self.setSelIdx(ni)
-            self.adjustCursorPoint(oldSelIdx, self.selIdx)
+            self._adjustCursorPoint(oldSelIdx, self.selIdx)
         elif keyCode == 77: # right arrow key
             ni = self.selIdx + 1
             self.setSelIdx(ni)
-            self.adjustCursorPoint(oldSelIdx, self.selIdx)
+            self._adjustCursorPoint(oldSelIdx, self.selIdx)
         elif keyCode == 72: # up arrow key
             self.klineWidth += 2
             if self.klineWidth // 2 > self.klineSpace:
@@ -1686,10 +1687,13 @@ class KLineWindow(base_win.BaseWindow):
                 x = self.klineIndicator.getCenterX(self.selIdx)
             win32gui.InvalidateRect(self.hwnd, None, True)
         elif keyCode == 28: # enter
-            vr = self.klineIndicator.visibleRange
-            if vr and vr[0] <= self.selIdx and self.selIdx < vr[1]:
-                data = self.klineIndicator.data[self.selIdx]
-                self.notifyListener(self.Event('OpenMinutes', self, code = self.klineIndicator.code, idx = self.selIdx, data = data))
+            if not isCtrlPress:
+                vr = self.klineIndicator.visibleRange
+                if vr and vr[0] <= self.selIdx and self.selIdx < vr[1]:
+                    data = self.klineIndicator.data[self.selIdx]
+                    self.notifyListener(self.Event('OpenMinutes', self, code = self.klineIndicator.code, idx = self.selIdx, data = data))
+            else:
+                self.onKeyDown(15)
         elif keyCode == 15: # tab
             ks = ('day', 'week', 'month')
             idx = (ks.index(self.klineIndicator.period) + 1) % len(ks)
@@ -1699,11 +1703,11 @@ class KLineWindow(base_win.BaseWindow):
         elif keyCode == 71: # home
             vr = self.klineIndicator.visibleRange
             if vr: self.setSelIdx(vr[0])
-            self.adjustCursorPoint(oldSelIdx, self.selIdx)
+            self._adjustCursorPoint(oldSelIdx, self.selIdx)
         elif keyCode == 79: # end
             vr = self.klineIndicator.visibleRange
             if vr: self.setSelIdx(vr[1] - 1)
-            self.adjustCursorPoint(oldSelIdx, self.selIdx)
+            self._adjustCursorPoint(oldSelIdx, self.selIdx)
         elif keyCode == 82: # insert
             self.contextMenuMgr.onMemuItem(self.Event('A', self, item={'name': 'add-my-select'}))
         elif keyCode == 83: # delete
@@ -2169,15 +2173,22 @@ class KLineCodeWindow(base_win.BaseWindow):
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_KEYDOWN:
+            isCtrlPress = self.getKeyState(win32con.VK_CONTROL)
             keyCode = lParam >> 16 & 0xff
             if keyCode == 1: # esc
                 win32gui.DestroyWindow(hwnd)
                 # win32gui.CloseWindow(hwnd)
                 return True
-            if keyCode == 73: # page up
+            if keyCode == 75 and isCtrlPress: # left arrow key
                 self.onLeftRight(self.Event('Click', None, info = {'name': 'LEFT'}), None)
-            elif keyCode == 81: # page down
+            elif keyCode == 77 and isCtrlPress: # right arrow key
                 self.onLeftRight(self.Event('Click', None, info = {'name': 'RIGHT'}), None)
+            elif keyCode == 73: # page up
+                pass
+                # self.onLeftRight(self.Event('Click', None, info = {'name': 'LEFT'}), None)
+            elif keyCode == 81: # page down
+                pass
+                # self.onLeftRight(self.Event('Click', None, info = {'name': 'RIGHT'}), None)
             else:
                 self.klineWin.winProc(self.klineWin.hwnd, msg, wParam, lParam)
         return super().winProc(hwnd, msg, wParam, lParam)
