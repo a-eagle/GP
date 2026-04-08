@@ -712,9 +712,10 @@ let TabNaviView = {
         return {
             items: [{name: 'zt-table-view', title: '涨停池'}, {name: 'lb-table-view', title: '连板池'},
                         {name: 'zb-table-view', title: '炸板池'}, {name: 'dt-table-view', title: '跌停池'},
-                        {name: 'hots-table-view', title: '热度榜'}, {name: 'amount-table-view', title: '成交额'}, 
-                        {name: 'lhb-table-view', title: '龙虎榜'},  
-                        {name: 'ZFB_TableView', title: '涨幅榜'}, 
+                        {name: 'hots-table-view', title: '热度榜'}, {name: 'amount-table-view', title: '成交额'},
+                        {name: 'lhb-table-view', title: '龙虎榜'},
+                        {name: 'ZFB_TableView', title: '涨幅榜'},
+                        {name: 'BKGN_TableView', title: '板块概念'},
                         // {name: 'DFB_TableView', title: '跌幅榜'}, 
                         // {name:'ZSB_TableView', title:'涨速榜'},
                         // {name:'TextLine_TableView', title:'画线榜'},
@@ -1201,6 +1202,69 @@ let ZFB_TableView = {
     `,
 };
 
+let BKGN_TableView = {
+    extends: BaseTableView,
+    components: {
+    },
+    data() {
+        return {
+            columns: [{title: '', key: '_index_', width: 60},
+                {title: '股票/代码', key: 'code', width: 80},
+                {title: '行业', key: 'ths_hy', width: 100, sortable: true},
+                // {title: 'THS-ZT', key: 'ths_ztReason', width: 100, sortable: true},
+                // {title: 'CLS-ZT', key: 'cls_ztReason', width: 100, sortable: true},
+                {title: '热度', key: 'hots', width: 50, sortable: true},
+                // {title: '涨跌幅', key: 'zdf', width: 70, sortable: true, cellRender: DefaultRender.zf2Render},
+                {title: '涨速', key: 'zhangSu', width: 70, sortable: true, cellRender: DefaultRender.zf2Render},
+                {title: '概念', key: 'ths_gn', width: 100, sortable: true, cellRender: DefaultRender.elipse_30},
+                // {title: '成交额', key: 'cje', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
+                // {title: '总市值', key: 'zsz', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
+                // {title: 'THS概念', key: 'ths_gn', width: 120, sortable: false, cellRender: DefaultRender.elipse_30},
+                // {title: 'CLS概念', key: 'cls_gn', width: 120, sortable: false, cellRender: DefaultRender.elipse_30},
+                // {title: '分时图', key: 'fs', width: 300}
+            ],
+            datas: null,
+            url: null,
+            curBkGn: '',
+            defBkgns: [
+                '东数西算 | 算力',
+                'CPO | PCB',
+                '医药 | 创新药 | 化学制药'
+            ],
+        }
+    },
+    methods: {
+        onCurDayChanged(day) {
+            this.url = `/load-bkgn?bkgn=${this.curBkGn}&day=${this.curDay}`;
+        },
+        onSelectBkgn(event) {
+            let val = event.target.value;
+            this.curBkGn = val;
+            this.url = `/load-bkgn?bkgn=${this.curBkGn}&day=${this.curDay}`;
+        },
+    },
+    mounted() {
+    },
+    template: `
+        <div ref="ops" style="text-align:center; width:100%; display: flex; justify-content: center;  ">
+            <select @change="onSelectBkgn($event)" style="margin-left: 10px;" value="">
+                <option value=""> </option>
+                <option v-for="(item, idx) in defBkgns" :value="item" > [{{idx + 1}}]  {{item}} </option>
+            </select>
+        </div>
+        <stock-table ref="stable" :columns="columns"
+            @sort-changed="onLoadDataDone"
+            @data-filtered="onLoadDataDone"
+            @load-data-done="onLoadDataDone"
+            :url="url" :day="curDay" style="width:100%;"
+            @click-cell="onClickCell" >
+        </stock-table>
+        <LocalPageniteView ref="pageniteView" :pageSize="pageSize"
+            @page-changed="onPageChanged">
+        </LocalPageniteView>
+    `,
+};
+
 let DFB_TableView = {
     extends: BaseTableView,
     components: {
@@ -1346,6 +1410,8 @@ function registerComponents(app) {
     app.component('ZSB_TableView', ZSB_TableView);
     app.component('TextLine_TableView', TextLine_TableView);
     app.component('MySelect_TableView', MySelect_TableView);
+    app.component('BKGN_TableView', BKGN_TableView);
+    
 }
 
 export default {

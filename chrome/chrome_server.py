@@ -72,6 +72,7 @@ class Server:
         self.app.add_url_rule('/my-select', view_func = self.loadMySelect)
         self.app.add_url_rule('/delete-my-select/<id>', view_func = self.deleteMySelect)
         self.app.add_url_rule('/top-zszd/<day>', view_func = self.loadTopZSZD)
+        self.app.add_url_rule('/load-bkgn', view_func = self.loadBkGn)
         
         self.app.run('0.0.0.0', 8080, use_reloader = False, debug = False)
 
@@ -558,7 +559,7 @@ class Server:
             return code
         return code
 
-    # {day: '' | 'YYYY-MM-DD', cols?:[xx_ztReason, hots], codes:[]}
+    # {day: '' | 'YYYY-MM-DD', cols?:[xx_ztReason, hots, zhangSu], codes:[]}
     def queryCodesInfo(self):
         from utils import hot_utils
         params = json.loads(flask.request.data.decode())
@@ -615,6 +616,26 @@ class Server:
                 zt = gn_utils.get_CLS_THS_ZT_Reason(code)
                 it['cls_ztReason'] = zt['cls_ztReason'] if zt else ''
         return rs
+    
+    def _querZhangSu(self, day):
+        if type(day) == str:
+            day = day.replace('-', '')
+            day = int(day)
+        qr = d_orm.LocalSpeedModel.select(d_orm.LocalSpeedModel.code,
+            d_orm.LocalSpeedModel.day, d_orm.LocalSpeedModel.fromMinute,
+            d_orm.LocalSpeedModel.endMinute, d_orm.LocalSpeedModel.zf.alias('zhangSu'),
+            ).where(d_orm.LocalSpeedModel.day == int(day)).group_by(d_orm.LocalSpeedModel.code).dicts()
+        rs = {}
+        for it in qr:
+            rs[it['code']] = it
+        return rs
+    
+    def _updateZhangSu(self, day, datas):
+        infos = self._querZhangSu(day)
+        for d in datas:
+            sc = d['code']
+            if sc in infos:
+                d.update(infos[sc])
 
     def _updateCodesInfo(self, day, cols, datas):
         infos = self._queryCodesInfo(day, cols, datas)
@@ -1160,6 +1181,31 @@ class Server:
         for it in q:
             rs.append(it)
         return rs
+
+    def loadBkGn(self):
+        day = flask.request.args.get('day', None)
+        bkgns = flask.request.args.get('bkgn', None)
+        if not bkgns:
+            return []
+        gns = [b.strip() for b in bkgns.split('|') if b.strip()]
+        rs = {}
+        for bkgn in gns:
+            for c in gn_utils.ths_gntc_s:
+                item = gn_utils.ths_gntc_s[c]
+                isIn = (item['gn'] and bkgn in item['gn']) or (item['hy'] and bkgn in item['hy'])
+                if isIn:
+                    rs[c] = {'code': c, 'name': item['name'], 'ths_hy': item['hy'], 'ths_gn': item['gn']}
+            for c in gn_utils.cls_gntc_s:
+                item = gn_utils.cls_gntc_s[c]
+                isIn = (item['gn'] and bkgn in item['gn']) or (item['hy'] and bkgn in item['hy'])
+                if isIn and (c not in rs):
+                    item = gn_utils.ths_gntc_s.get(c, None)
+                    if item:
+                        rs[c] = {'code': c, 'name': item['name'], 'ths_hy': item['hy'], 'ths_gn': item['gn']}
+        datas = [rs[c] for c in rs]
+        self._updateCodesInfo(day, ['hots'], datas)
+        self._updateZhangSu(day, datas)
+        return datas
 
 if __name__ == '__main__':
     svr = Server()
