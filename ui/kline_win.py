@@ -1652,8 +1652,11 @@ class KLineWindow(base_win.BaseWindow):
             return
         x, y = win32api.GetCursorPos()
         x = self.klineIndicator.getCenterX(newSelIdx)
-        if x > 0:
-            win32api.SetCursorPos((x, y))
+        if x < 0:
+            return
+        winrc = win32gui.GetWindowRect(self.hwnd)
+        x += winrc[0]
+        win32api.SetCursorPos((x, y))
 
     def onKeyDown(self, keyCode):
         oldSelIdx = self.selIdx
