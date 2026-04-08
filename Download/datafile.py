@@ -883,6 +883,10 @@ class TdxChuncker:
             self.chunck_T(c, *ex, lastDays)
 
 if __name__ == '__main__':
+    mm = K_DataModel('999999')
+    mm.loadLocalData()
+    print('[KLine] ', mm.data[0].day, '->', mm.data[-1].day)
+    
     mm = T_DataModel('999999')
     days = mm.loadDays()
     lastMonth = None
