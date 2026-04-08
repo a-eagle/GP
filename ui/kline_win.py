@@ -66,8 +66,13 @@ class ContextMenuManager:
               {'title': '点击时选中K线', 'name': 'sel-idx-on-click', 'checked': self.win.selIdxOnClick},
               {'title': '显示叠加指数', 'name': 'show-ref-zs', 'checked': self.win.refIndicatorVisible},
               {'title': '显示K线', 'name': 'show-kline', 'checked': self.win.klineIndicatorVisible},
+              {'name': 'add-ref-zs', 'title': '叠加上证指数', 'code': '1A0001'},
               {'title': 'LINE'},
-              {'name': 'add-ref-zs', 'title': '叠加上证指数', 'code': '1A0001'}
+              {'title': '画线(直线)', 'name': 'draw-line'},
+              {'title': '画线(文本)', 'name': 'draw-text'},
+              {'title': '计算涨跌幅', 'name': 'calc-zdf'},
+              #{'title': '删除画线', 'name': 'del-draw-line', 'enable': self.win.lineMgr.isSelected()},
+              {'title': 'LINE'},
         ]
         isZS = code[0 : 2] == '88' or code == '1A0001' or code[0 : 3] == 'cls'
         if not isZS:
@@ -79,7 +84,7 @@ class ContextMenuManager:
               #{'title': 'LINE'},
               #{'title': '查看板块个股 THS', 'name': 'open-ref-thszs', 'sub-menu': self.getThsZsList(selDay)},
               #{'title': '查看板块个股 CLS', 'name': 'open-ref-clszs', 'sub-menu': self.getClsZsList(selDay)},
-              {'title': '查看当日行情', 'name': 'open-ref-global', 'enable': selDay > 0, 'day': selDay},
+            #   {'title': '查看当日行情', 'name': 'open-ref-global', 'enable': selDay > 0, 'day': selDay},
               {'title': '查看个股信息', 'name': 'open-info'},
             ])
         else:
@@ -91,11 +96,6 @@ class ContextMenuManager:
               {'title': 'LINE'},
               {'title': '标记日期 +', 'name': 'mark-day', 'enable': selDay > 0, 'day': selDay},
               {'title': '标记日期 -', 'name': 'cancel-mark-day', 'enable': selDay > 0, 'day': selDay},
-              {'title': 'LINE'},
-              {'title': '画线(直线)', 'name': 'draw-line'},
-              {'title': '画线(文本)', 'name': 'draw-text'},
-              {'title': '删除画线', 'name': 'del-draw-line', 'enable': self.win.lineMgr.isSelected()},
-              {'title': '计算涨跌幅', 'name': 'calc-zdf'},
               {'title': 'LINE'},
               {'title': '加自选 +', 'name': 'add-my-select'},
               {'title': '删自选 -', 'name': 'del-my-select'},
