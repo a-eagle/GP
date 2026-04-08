@@ -882,45 +882,52 @@ class TdxChuncker:
             ex = rs.get(c, [])
             self.chunck_T(c, *ex, lastDays)
 
+class KLineDownloader:
+    K_PATH = 'D:/K-Data'
+
+    def __init__(self) -> None:
+        if not os.path.exists(self.K_PATH):
+            os.makedirs(self.K_PATH)
+
+    def loadNet(self, code, useThs):
+        from download import henxin, cls
+        if useThs:
+            hx = henxin.HexinUrl()
+            rs = hx.loadKLineData_Day(code)
+            rs = rs['data']
+        else:
+            hx = cls.ClsUrl()
+            rs = hx.loadKline(code, limit = 1800)
+        return rs
+
+    def save(self, code : str, kdata):
+        f = open(os.path.join(self.K_PATH, code), 'wb')
+        for d in kdata:
+            bs = struct.pack('L7f', d.day, float(d.open), float(d.close), float(d.low), float(d.high), float(d.vol), float(d.amount), float(d.rate))
+            f.write(bs)
+        f.close()
+
+    def loadLocal(self, code):
+        f = open(os.path.join(self.K_PATH, code), 'rb')
+        datas = []
+        bs = f.read()
+        f.close()
+        DAY_BYTES_NUM = 4 * 8
+        if len(bs) % DAY_BYTES_NUM != 0:
+            print('[KLineDownloader.loadLocal]', code, 'file size invalid')
+            return None
+        for i in range(0, len(bs) // DAY_BYTES_NUM):
+            dd = struct.unpack('L7f', bs[i * DAY_BYTES_NUM : i * DAY_BYTES_NUM + DAY_BYTES_NUM])
+            it = ItemData(day = dd[0], open = dd[1], close = dd[2], low = dd[3], high = dd[4], vol = dd[5], amount = dd[6], rate = dd[7])
+            datas.append(it)
+        return datas
+
 if __name__ == '__main__':
-    mm = K_DataModel('999999')
-    mm.loadLocalData()
-    print('[KLine] ', mm.data[0].day, '->', mm.data[-1].day)
-    
-    mm = T_DataModel('999999')
-    days = mm.loadDays()
-    lastMonth = None
-    for d in days:
-        if d // 100 % 100 != lastMonth:
-            print('')
-        print(d, end=' ')
-        lastMonth = d // 100 % 100
-
-    w = TdxChuncker()
-    # CODE = '600000'
-    # dm = T_DataModel(CODE)
-    # days = dm.loadDays()
-    # print(len(days), days)
-    # w.chunckAll_T_ByHots()
-    # w.chunck_T('600000', 20251020, (20250925, 20251010), (20251223, 20251224))
-    # w.removeNotCodes()
-    # w.chunckAll_T_ByLastDay(22)
-    # w.removeInvalidCodes()
-    
-    # f = open(r'C:\Users\GaoYan\Desktop\sz000030.lc1', 'rb')
-    # bs = f.read(32)
-    # tm = T_DataModel('000030')
-    # ritem = tm.unpackTdxData(bs)
-    # print(ritem)
-    # f.close()
-    stime = time.time()
-    cs = w.getLocalCodes('lday')
-    for c in cs[0 : 300]:
-        dm = K_DataModel(c)
-        dm.loadLocalData()
-    etime = time.time()
-    print('use time=', etime - stime)
-    
-
-
-
+    kd = KLineDownloader()
+    codes = TdxChuncker().getLocalCodes('minline')
+    for i, code in enumerate(codes):
+        ds = kd.loadNet(code, i % 2)
+        kd.save(code, ds)
+        print('[KLineDownloader] ..', i, code)
+        if i % 2:
+            time.sleep(3)
