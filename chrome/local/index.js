@@ -624,13 +624,17 @@ let HotAnchrosGroupView = {
             }
             let vnodes = Vue.h(HotAnchrosChartView, attrs);
             PopupWindow.open(vnodes);
-        }
+        },
+        getTodayTag(item) {
+            if (item.today) return '+ '
+            return ''
+        },
     },
     template: `
         <table class="anchor-list" style="border-collapse: separate;border-spacing: 15px 10px;">
             <tr v-for="row in datas" :key="row.vkey">
                 <td v-for="item in row" :class="String(item.up)" :key="item.code" >
-                    <a :href="getAnchorUrl(item)" target=_blank> {{item.name}} &nbsp;&nbsp;  {{item.num}}&nbsp;&nbsp;</a>
+                    <a :href="getAnchorUrl(item)" target=_blank> {{getTodayTag(item)}} {{item.name}} &nbsp;&nbsp;  {{item.num}}&nbsp;&nbsp;</a>
                     <span class="anchor-arrow" :code="item.code" @click="openChart(item.code, $event)">  </span>
                 </td>
             </tr>
