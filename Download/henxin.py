@@ -354,14 +354,8 @@ class HexinUrl(Henxin):
         memcache.cache.saveCache(f'THS-KLine:{peroid}:{code}', rs, timeout)
         return rs
 
-    # {'name': xx, code:xx, 'today': yyyymmdd(str),  'data': [ItemData, ...]}
-    # peroid = 'day' | 'week' | 'month'
-    def loadKLineData(self, code, peroid):
-        rs = self._loadKLineDataPeroid(code, peroid)
-        if not rs or not rs.get('data', None):
-            return rs
-        if peroid == 'week' or peroid == 'month':
-            return rs
+    def loadKLineData_Day(self, code):
+        rs = self._loadKLineDataPeroid(code, 'day')
         datas = rs['data']
         last = datas[-1]
         todayInt = int(datetime.date.today().strftime('%Y%m%d'))
@@ -374,13 +368,72 @@ class HexinUrl(Henxin):
         if last.day != todayData.day:
             datas.append(todayData)
             return rs
-        if peroid == 'day':
-            datas.pop(-1)
-            datas.append(todayData)
-        else:
-            last.high = max(last.high, todayData.high)
-            last.low = max(last.low, todayData.low)
+        datas.pop(-1)
+        datas.append(todayData)
         return rs
+
+    def loadKLineData_Week(self, code):
+        rs = self._loadKLineDataPeroid(code, 'day')
+        if not rs:
+            return rs
+        rs = copy.copy(rs)
+        datas = rs['data']
+        wdatas = rs['data'] = []
+        startDay, endDay = None, None
+        for d in datas:
+            date = datetime.date(d.day // 10000, d.day // 100 % 100, d.day % 100)
+            if startDay and date >= startDay and date <= endDay:
+                # merge
+                last = wdatas[-1]
+                last.amount += d.amount
+                last.vol += d.vol
+                last.rate += d.rate
+                last.close = d.close
+                last.low = min(d.low, last.low)
+                last.high = max(d.high, last.high)
+                last.day = d.day
+            else:
+                startDay = date
+                wdatas.append(copy.copy(d))
+                endDay = date + datetime.timedelta(days = 4 - date.weekday())
+        return rs
+
+    def loadKLineData_Month(self, code):
+        rs = self._loadKLineDataPeroid(code, 'day')
+        if not rs:
+            return rs
+        rs = copy.copy(rs)
+        datas = rs['data']
+        wdatas = rs['data'] = []
+        startDay, endDay = None, None
+        for d in datas:
+            date = d.day
+            if startDay and date >= startDay and date <= endDay:
+                # merge
+                last = wdatas[-1]
+                last.amount += d.amount
+                last.vol += d.vol
+                last.rate += d.rate
+                last.close = d.close
+                last.low = min(d.low, last.low)
+                last.high = max(d.high, last.high)
+                last.day = d.day
+            else:
+                startDay = date
+                endDay = date // 100 * 100 + 31
+                wdatas.append(copy.copy(d))
+        return rs
+
+    # {'name': xx, code:xx, 'today': yyyymmdd(str),  'data': [ItemData, ...]}
+    # peroid = 'day' | 'week' | 'month'
+    def loadKLineData(self, code, peroid):
+        if peroid == 'day':
+            return self.loadKLineData_Day(code)
+        if peroid == 'week':
+            return self.loadKLineData_Week(code)
+        if peroid == 'month':
+            return self.loadKLineData_Month(code)
+        return None
 
     # fenshi: {name:xx, code:xx, pre:xx, date:yyyymmdd(str), data: str;str;..., line:[ItemData...] }  data: 时间，价格，成交额（元），分时均价，成交量（手）;
     def loadTimelineData(self, code):
