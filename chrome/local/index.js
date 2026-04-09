@@ -636,16 +636,17 @@ let HotAnchrosGroupView = {
         getHtml(item) {
             let html = '';
             for (let i = 0; i < item.today; i++) {
-                html += `<span style="background-color:red; width: 3px; height: 15px; margin-right:3px;display: inline-block;"></span>`;
+                html += `<div class="mark"> </div>&nbsp;`;
             }
-            return `${html} ${item.name} &nbsp;&nbsp;  ${item.num}&nbsp;&nbsp;`;
+            return `${html} ${item.name} &nbsp;&nbsp;  ${item.num}`;
         }
     },
     template: `
         <table class="anchor-list" style="border-collapse: separate;border-spacing: 12px 10px;">
             <tr v-for="row in datas" :key="row.vkey">
                 <td v-for="item in row" :class="String(item.up)" :key="item.code" >
-                    <a :href="getAnchorUrl(item)" target=_blank > <span v-html="getHtml(item)"> </span> </a>
+                    <a :href="getAnchorUrl(item)" target=_blank style="float:left;margin-left:10px;" v-html="getHtml(item)" > 
+                    </a>
                     <span class="anchor-arrow" :code="item.code" @click="openChart(item.code, $event)">  </span>
                 </td>
             </tr>
@@ -1139,8 +1140,8 @@ let ZFB_TableView = {
                 {title: '涨速', key: 'zhangSu', width: 70, sortable: true, cellRender: DefaultRender.zf2Render},
                 {title: '成交额', key: 'cje', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
                 {title: '总市值', key: 'zsz', width: 70, sortable: true, cellRender: DefaultRender.y2Render},
-                {title: 'THS概念', key: 'ths_gn', width: 120, sortable: false, cellRender: DefaultRender.elipse_30},
-                {title: 'CLS概念', key: 'cls_gn', width: 120, sortable: false, cellRender: DefaultRender.elipse_30},
+                {title: 'THS概念', key: 'ths_gn', visible: false, width: 120, sortable: false, cellRender: DefaultRender.elipse_30},
+                {title: 'CLS概念', key: 'cls_gn', visible: false, width: 120, sortable: false, cellRender: DefaultRender.elipse_30},
                 {title: '分时图', key: 'fs', width: 300}
             ],
             datas: null,

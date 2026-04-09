@@ -7,7 +7,7 @@ import utils from './utils.js';
  *      sortable ?: boolean, default is false
  *      cellRender ?: function(h, rowData, column, table)
  *      sorter? : function(a, b, key, tag)  tag = 'asc' | 'desc' return -1, 0, 1
- *      
+ *      visible? : true (default)
  *  }, ...]
  */
 let UNIQUE_KEY = 100000000;
@@ -200,6 +200,8 @@ let BasicTable = {
         const {h} = Vue;
         let hds = [];
         for (let column of this.columns) {
+            let cc = typeof(column.visible) == 'undefined'  || column.visible;
+            if (! cc) continue;
             let hdText = column.title + ' ' + (column.sortable ? (column._sort == 'asc' ? '&#8593;' : column._sort == 'desc' ? '&#8595;' : '&#9830;') : '');
             let a = {onClick: (evt) => {this.changeSort(column);}, innerHTML: hdText};
             for (let k in column) {
@@ -216,6 +218,8 @@ let BasicTable = {
             let rowData = this.filterDatas[i];
             rowData._index_ = i + 1;
             for (let column of this.columns) {
+                let cc = typeof(column.visible) == 'undefined'  || column.visible;
+                if (! cc) continue;
                 let cellVal = null;
                 if (column.cellRender) cellVal = column.cellRender(h, rowData, column, this);
                 else cellVal = rowData[column.key];
