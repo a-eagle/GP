@@ -1132,7 +1132,7 @@ class KLineDownloader:
         if type(day) == str:
             day = day.replace('-', '')
         q = f'{day}前复权开盘价,{day}前复权收盘价,{day}前复权最高价,{day}前复权最低价,{day}成交量,{day}成交额,{day}换手率'
-        datas = ths_iwencai.iwencai_load_list(q, maxPage = 1)
+        datas = ths_iwencai.iwencai_load_list(q) # , maxPage = 1
         for row in datas:
             columns = ths_iwencai.ThsColumns(row)
             code = columns.getColumnValue('code', str)
@@ -1144,14 +1144,18 @@ class KLineDownloader:
                           vol = columns.getColumnValue('成交量', float, defaultVal='0'),
                           amount = columns.getColumnValue('成交额', float, defaultVal='0'),
                           rate = columns.getColumnValue('换手率', float), defaultVal='0')
+            if it.vol == 0 or it.amount == 0:
+                continue
             ok = self.mergeWrite(code, it)
             if not ok:
                 print('[KLineDownloader.downloadByDay] merge Fail:', code, it)
 
 if __name__ == '__main__':
-    # KLineDownloader().downloadAll(0, 20260408)
     dm = K_DataModel('002866')
     dm.loadLocalData()
     print(dm.data[-1])
+    print(dm.data[-2])
+    print(dm.data[-3])
     print('-----end----------')
-    KLineDownloader().downloadByDay(20260407)
+    # KLineDownloader().downloadByDay(20260407)
+    # KLineDownloader().downloadAll(0, 20260408)

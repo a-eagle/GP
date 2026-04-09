@@ -977,17 +977,18 @@ class Server:
             for it in one:
                 k = KEY(it)
                 if k not in tks:
-                    tks[k] = {'code': it['code'], 'name': it['name'], 'up': it['up'], 'num': 0, 'today': False}
+                    tks[k] = {'code': it['code'], 'name': it['name'], 'up': it['up'], 'num': 0, 'today': 0}
                 tks[k]['num'] += 1
         rs = [tks[k] for k in tks if tks[k]['num'] >= 2 and tks[k]['up']]
         rs.sort(key = lambda k: k['num'], reverse = True)
         todayHotTc = self.getHotTcByDay()
         mht = {}
         for m in todayHotTc:
-            mht[f"{m['code']}_{m['up']}"] = True
+            key = f"{m['code']}_{m['up']}"
+            mht[key] = mht.get(key, 0) + 1
         for m in rs:
             key = f"{m['code']}_{m['up']}"
-            m['today'] = mht.get(key, False)
+            m['today'] = mht.get(key, 0)
         return rs
 
     def loadTopHots(self, day):

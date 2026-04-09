@@ -626,15 +626,26 @@ let HotAnchrosGroupView = {
             PopupWindow.open(vnodes);
         },
         getTodayTag(item) {
-            if (item.today) return '+ '
-            return ''
+            let tag = '';
+            for (let i = 0; i < item.today; i++) {
+                tag += '+';
+            }
+            if (tag) tag += ' ';
+            return tag;
         },
+        getHtml(item) {
+            let html = '';
+            for (let i = 0; i < item.today; i++) {
+                html += `<span style="background-color:red; width: 3px; height: 15px; margin-right:3px;display: inline-block;"></span>`;
+            }
+            return `${html} ${item.name} &nbsp;&nbsp;  ${item.num}&nbsp;&nbsp;`;
+        }
     },
     template: `
-        <table class="anchor-list" style="border-collapse: separate;border-spacing: 15px 10px;">
+        <table class="anchor-list" style="border-collapse: separate;border-spacing: 12px 10px;">
             <tr v-for="row in datas" :key="row.vkey">
                 <td v-for="item in row" :class="String(item.up)" :key="item.code" >
-                    <a :href="getAnchorUrl(item)" target=_blank> {{getTodayTag(item)}} {{item.name}} &nbsp;&nbsp;  {{item.num}}&nbsp;&nbsp;</a>
+                    <a :href="getAnchorUrl(item)" target=_blank > <span v-html="getHtml(item)"> </span> </a>
                     <span class="anchor-arrow" :code="item.code" @click="openChart(item.code, $event)">  </span>
                 </td>
             </tr>
