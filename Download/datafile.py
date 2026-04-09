@@ -114,17 +114,14 @@ class DataModel:
         return i
 
     # dataType = 'DAY' | 'TIME'
-    def _getLocalPath(self, dataType, useTdxKLine):
+    def _getLocalPath(self, dataType):
         code = self.code
         dataType = dataType.upper()
         if self.isNormalCode():
-            if not useTdxKLine and dataType == 'DAY':
-                bp = os.path.join(PathManager.NET_LDAY_PATH, f'{code}')
-                return bp
-            tag = 'sh' if code[0] in ('6', '9') else 'sz'
             if dataType == 'DAY':
-                bp = os.path.join(PathManager.TDX_VIP_PATH, f'{tag}\\lday\\{tag}{code}.day')
+                bp = os.path.join(PathManager.NET_LDAY_PATH, f'{code}')
             else:
+                tag = 'sh' if code[0] in ('6', '9') else 'sz'
                 bp = os.path.join(PathManager.TDX_VIP_PATH, f'{tag}\\minline\\{tag}{code}.lc1')
         else: # cls zs |  # ths zs
             if dataType == 'DAY':
@@ -144,7 +141,7 @@ class RemoteStub:
 
     def getLocalPath(self, _type):
         dm = DataModel(self.code)
-        path = dm._getLocalPath(_type, True)
+        path = dm._getLocalPath(_type)
         path = 'c' + path[1:]
         return path
 
@@ -269,12 +266,8 @@ class RemoteProxy:
         bs = base64.decodestring(data.encode())
         rs = []
         for i in range(len(bs) // 32):
-            ritem = struct.unpack_from('5Lf2L', bs, i * 32)
-            item = ItemData(day = ritem[0], open = ritem[1], high = ritem[2], low = ritem[3], close = ritem[4], amount = ritem[5], vol = ritem[6])
-            item.open /= 100
-            item.close /= 100
-            item.low /= 100
-            item.high /= 100
+            dd = struct.unpack_from('L7f', bs, i * 32)
+            item = ItemData(day = dd[0], open = dd[1], close = dd[2], low = dd[3], high = dd[4], vol = dd[5], amount = dd[6], rate = dd[7])
             rs.append(item)
         destObj.data = rs
         return True
@@ -378,7 +371,7 @@ class K_DataModel(DataModel):
             setattr(self.data[i], 'zhangFu', zhangFu)
 
     def getLocalPath(self):
-        return self._getLocalPath('DAY', False)
+        return self._getLocalPath('DAY')
 
     def loadLocalData(self): # local net data
         self.data = None
@@ -431,7 +424,9 @@ class Tdx_K_DataModel(K_DataModel):
         super().__init__(code)
 
     def getLocalPath(self):
-        return self._getLocalPath('DAY', True)
+        tag = 'sh' if self.code[0] in ('6', '9') else 'sz'
+        bp = os.path.join(PathManager.TDX_VIP_PATH, f'{tag}\\lday\\{tag}{self.code}.day')
+        return bp
 
     def loadLocalData(self): # tdx data
         self.data = None
@@ -534,7 +529,7 @@ class T_DataModel(DataModel):
         return ok
 
     def getLocalPath(self):
-        return self._getLocalPath('TIME', True)
+        return self._getLocalPath('TIME')
 
     # day = str | int
     def _loadLocalData(self, day):
@@ -1192,18 +1187,19 @@ def netDataChuck():
 if __name__ == '__main__':
     #netDataChuck()
 
-    dm = K_DataModel('600519')
-    dm.loadLocalData()
-    print(dm.data[-1])
-    print(dm.data[-2])
-    print(dm.data[-3])
-    print(dm.data[-4])
-    print(dm.data[-5])
-    print('-----end----------')
+    # dm = K_DataModel('600519')
+    # dm.loadLocalData()
+    # print(dm.data[-1])
+    # print(dm.data[-2])
+    # print(dm.data[-3])
+    # print(dm.data[-4])
+    # print(dm.data[-5])
+    # print('-----end----------')
 
     # KLineDownloader().downloadByDay(20260409)
-    # KLineDownloader().downloadAll()
+    KLineDownloader().downloadAll(fromIdx = 382)
 
     # codes = "300033,003021,003031,002975,002970,300014,003033,300049,300037,003009,003043,300073,003041,002980,002991,300054,002992,002993,003007,300042,300007,002979,003026,002985,002978,003018,003010,002990,002988,003019,300046,002997,003017,002971,002965,003004,300001,002977,003002,002976,003028,002989,002995,003023,003020,003036,002981,003011,300065,003008,002983,002969,300069,300035,300045,003022,003027,003029,300031,003030,002967,300019,300059,300034,003042,002984,003005,003001,603182,003006,300017,300053,300003,002987,003040,300036,002986,300024,003039,300012,300005,003015,003038,002982,003025,300004,003003,003013,300018,002973,002972,300052,300051,300047,300063,002968,300055,300068,300041,003000,300016,300022,300009,300002,300015,300056,002998,002966,003016,300061,300044,300030,300062,300011,300008,003035,002996,003037,002999,300050,300040,300066,003012,003032,300010,300039,300006,300032,300043,300025,300071,300072,300029,003816,300021,300070,300013,300026,300020,300027"
     # codes = codes.split(',')
     # KLineDownloader()._downloadCodes(codes)
+    pass
