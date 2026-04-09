@@ -20,7 +20,7 @@ class PathManager:
             pt = 'C:\\new_tdx'
         PathManager.TDX_BASE_PATH = pt
         PathManager.TDX_VIP_PATH = os.path.join(self.TDX_BASE_PATH, 'vipdoc')
-        PathManager.NET_LDAY_PATH = os.path.join(self.TDX_VIP_PATH, 'NetData\\lday')
+        PathManager.NET_LDAY_PATH = 'D:\\K-Data'
         PathManager.NET_MINLINE_PATH = os.path.join(self.TDX_VIP_PATH, 'NetData\\minline')
         for d in (self.NET_LDAY_PATH, self.NET_MINLINE_PATH):
             if not os.path.exists(d):
@@ -114,10 +114,13 @@ class DataModel:
         return i
 
     # dataType = 'DAY' | 'TIME'
-    def _getLocalPath(self, dataType):
+    def _getLocalPath(self, dataType, useTdxKLine):
         code = self.code
         dataType = dataType.upper()
         if self.isNormalCode():
+            if not useTdxKLine and dataType == 'DAY':
+                bp = os.path.join(PathManager.NET_LDAY_PATH, f'{code}')
+                return bp
             tag = 'sh' if code[0] in ('6', '9') else 'sz'
             if dataType == 'DAY':
                 bp = os.path.join(PathManager.TDX_VIP_PATH, f'{tag}\\lday\\{tag}{code}.day')
@@ -125,7 +128,7 @@ class DataModel:
                 bp = os.path.join(PathManager.TDX_VIP_PATH, f'{tag}\\minline\\{tag}{code}.lc1')
         else: # cls zs |  # ths zs
             if dataType == 'DAY':
-                bp = os.path.join(PathManager.NET_LDAY_PATH, f'{code}.day')
+                bp = os.path.join(PathManager.NET_LDAY_PATH, f'{code}')
             else:
                 bp = os.path.join(PathManager.NET_MINLINE_PATH, f'{code}.lc1')
         return bp
@@ -141,7 +144,7 @@ class RemoteStub:
 
     def getLocalPath(self, _type):
         dm = DataModel(self.code)
-        path = dm._getLocalPath(_type)
+        path = dm._getLocalPath(_type, True)
         path = 'c' + path[1:]
         return path
 
@@ -375,7 +378,60 @@ class K_DataModel(DataModel):
             setattr(self.data[i], 'zhangFu', zhangFu)
 
     def getLocalPath(self):
-        return self._getLocalPath('DAY')
+        return self._getLocalPath('DAY', False)
+
+    def loadLocalData(self): # local net data
+        self.data = None
+        code = self.code
+        if not code:
+            return False
+        path = self.getLocalPath()
+        if not os.path.exists(path):
+            return False
+        rs = []
+        f = open(path, 'rb')
+        while f.readable():
+            bs = f.read(32)
+            if len(bs) != 32:
+                break
+            dd = struct.unpack('L7f', bs)
+            item = ItemData(day = dd[0], open = dd[1], close = dd[2], low = dd[3], high = dd[4], vol = dd[5], amount = dd[6], rate = dd[7])
+            rs.append(item)
+        self.data = rs
+        f.close()
+        return len(rs) > 0
+    
+    def isLocalFileValid(self):
+        path = self.getLocalPath()
+        if not os.path.exists(path):
+            return False
+        filesize = os.path.getsize(path)
+        if filesize == 0:
+            return False
+        RL = 32
+        if filesize % RL != 0:
+            return False
+        return True
+
+    def getLocalLatestDay(self):
+        path = self.getLocalPath()
+        if not self.isLocalFileValid():
+            print('[KDataModel.getLocalLatestDay] invalid file size ', self.code, path)
+            return None
+        RL = 32
+        f = open(path, 'rb')
+        n = f.seek(-RL, 2)
+        bs = f.read(RL)
+        f.close()
+        day, *_ = struct.unpack('L7f', bs)
+        return day
+
+class Tdx_K_DataModel(K_DataModel):
+    def __init__(self, code):
+        super().__init__(code)
+
+    def getLocalPath(self):
+        return self._getLocalPath('DAY', True)
 
     def loadLocalData(self): # tdx data
         self.data = None
@@ -402,28 +458,11 @@ class K_DataModel(DataModel):
         f.close()
         return len(rs) > 0
 
-    def isLocalFileValid(self):
-        path = self.getLocalPath()
-        if not os.path.exists(path):
-            return False
-        filesize = os.path.getsize(path)
-        if filesize == 0:
-            return False
-        RL = 32
-        if filesize % RL != 0:
-            return False
-        return True
-
     def getLocalLatestDay(self):
         path = self.getLocalPath()
-        if not os.path.exists(path):
-            return None
-        filesize = os.path.getsize(path)
-        if filesize == 0:
-            return None
         RL = 32
-        if filesize % RL != 0:
-            print('[KDataModel.getLocalLatestDay] invalid file size ', self.code, path)
+        if not self.isLocalFileValid():
+            print('[Tdx_K_DataModel.getLocalLatestDay] invalid file size ', self.code, path)
             return None
         f = open(path, 'rb')
         n = f.seek(-RL, 2)
@@ -431,7 +470,7 @@ class K_DataModel(DataModel):
         f.close()
         day, *_ = struct.unpack('5Lf2L', bs)
         return day
-    
+
 class T_DataModel(DataModel):
     MINUTES_IN_DAY = 241
 
@@ -495,7 +534,7 @@ class T_DataModel(DataModel):
         return ok
 
     def getLocalPath(self):
-        return self._getLocalPath('TIME')
+        return self._getLocalPath('TIME', True)
 
     # day = str | int
     def _loadLocalData(self, day):
@@ -627,15 +666,119 @@ class T_DataModel(DataModel):
         item = self.unpackTdxData(bs)
         return item.day
 
-class Ths_K_DataModel(K_DataModel):
+class Net_K_DataModel(K_DataModel):
+    def __init__(self, code):
+        super().__init__(code)
+    
+    # period = 'day' | 'week' | 'month'
+    def loadNetData(self, period):
+        from download import ths_iwencai
+        if self.checkLocalData():
+            self.loadDayData_UseLocal()
+        else:
+            self.loadDayData_UseNet()
+            # write net data
+            tday = ths_iwencai.getTradeDaysInt()[-1]
+            today = int(datetime.date.today().strftime('%Y%m%d'))
+            kd = KLineDownloader()
+            if tday == today:
+                maxDay = ths_iwencai.getTradeDaysInt()[-2]
+            else:
+                maxDay = tday
+            kd.write(self.code, self.data, maxDay = maxDay)
+        if period == 'week':
+            self.buildWeekData()
+        elif period == 'month':
+            self.buildMonthData()
+
+    def loadDayData_UseLocal(self):
+        from download import ths_iwencai, henxin
+        self.data = None
+        self.loadLocalData()
+        last = self.data[-1].day
+        lday = ths_iwencai.getTradeDaysInt()[-1]
+        if last == lday:
+            return
+        hx = henxin.HexinUrl()
+        todayRs = hx.loadTodayKLineData(self.code)
+        todayData = todayRs.get('data', None) if todayRs else None
+        if not todayData:
+            return
+        if last != todayData.day:
+            self.data.append(todayData)
+            return
+        self.data.pop(-1)
+        self.data.append(todayData)
+
+    def loadDayData_UseNet(self):
+        pass
+
+    def checkLocalData(self):
+        from download import ths_iwencai
+        tdays = ths_iwencai.getTradeDaysInt()
+        lastDay = self.getLocalLatestDay()
+        if not lastDay:
+            return False
+        if lastDay == tdays[-1] or lastDay == tdays[-2]:
+            return True
+        return False
+    
+    def buildWeekData(self):
+        if not self.data:
+            return
+        datas = self.data
+        wdatas = []
+        startDay, endDay = None, None
+        for d in datas:
+            date = datetime.date(d.day // 10000, d.day // 100 % 100, d.day % 100)
+            if startDay and date >= startDay and date <= endDay:
+                # merge
+                last = wdatas[-1]
+                last.amount += d.amount
+                last.vol += d.vol
+                last.rate += d.rate
+                last.close = d.close
+                last.low = min(d.low, last.low)
+                last.high = max(d.high, last.high)
+                last.day = d.day
+            else:
+                startDay = date
+                wdatas.append(copy.copy(d))
+                endDay = date + datetime.timedelta(days = 4 - date.weekday())
+        self.data = wdatas
+
+    def buildMonthData(self):
+        if not self.data:
+            return
+        datas = self.data
+        wdatas = []
+        startDay, endDay = None, None
+        for d in datas:
+            date = d.day
+            if startDay and date >= startDay and date <= endDay:
+                # merge
+                last = wdatas[-1]
+                last.amount += d.amount
+                last.vol += d.vol
+                last.rate += d.rate
+                last.close = d.close
+                last.low = min(d.low, last.low)
+                last.high = max(d.high, last.high)
+                last.day = d.day
+            else:
+                startDay = date
+                endDay = date // 100 * 100 + 31
+                wdatas.append(copy.copy(d))
+        self.data = wdatas
+
+class Ths_K_DataModel(Net_K_DataModel):
     def __init__(self, code):
         super().__init__(code)
 
-    # period = 'day' | 'week' | 'month'
-    def loadNetData(self, period):
+    def loadDayData_UseNet(self):
         from download import henxin
         hx = henxin.HexinUrl()
-        rs = hx.loadKLineData(self.code, period)
+        rs = hx.loadKLineData(self.code, 'day')
         if rs:
             self.data = rs['data']
             self.name = rs['name']
@@ -669,15 +812,15 @@ class Ths_T_DataModel(T_DataModel):
         self.pre = rs['pre']
         self.day = day
 
-class Cls_K_DataModel(K_DataModel):
+class Cls_K_DataModel(Net_K_DataModel):
     def __init__(self, code):
         super().__init__(code)
 
     # period = 'day' | 'week' | 'month'
-    def loadNetData(self, period):
+    def loadDayData_UseNet(self):
         from download import cls
         hx = cls.ClsUrl()
-        rs = hx.loadKline(self.code, period = period)
+        rs = hx.loadKline(self.code, period = 'day')
         self.data = rs
 
 class Cls_T_DataModel(T_DataModel):
@@ -732,6 +875,7 @@ class TdxChuncker:
         for name in dirs:
             if name[0 : 2] == 'sz' and name[2] in ('0', '3'):
                 codes.append(name[2 : 8])
+        codes.sort(key = lambda c: c)
         if c999999:
             codes.append('999999')
         return codes
@@ -883,51 +1027,76 @@ class TdxChuncker:
             self.chunck_T(c, *ex, lastDays)
 
 class KLineDownloader:
-    K_PATH = 'D:/K-Data'
+    K_PATH = PathManager.NET_LDAY_PATH
 
     def __init__(self) -> None:
-        if not os.path.exists(self.K_PATH):
-            os.makedirs(self.K_PATH)
+        pass
 
-    def loadNet(self, code, useThs):
-        from download import henxin, cls
+    def loadNet(self, code, useThs, loadToday : bool):
+        from download import henxin, cls, memcache
+        memcache.cache.enableCache = False
         if useThs:
             hx = henxin.HexinUrl()
-            rs = hx.loadKLineData_Day(code)
+            if loadToday:
+                rs = hx.loadKLineData_Day(code)
+            else:
+                rs = hx._loadKLineDataPeroid(code, 'day')
             rs = rs['data']
         else:
             hx = cls.ClsUrl()
             rs = hx.loadKline(code, limit = 1800)
         return rs
 
-    def save(self, code : str, kdata):
+    def write(self, code : str, kdata, maxDay = None):
         f = open(os.path.join(self.K_PATH, code), 'wb')
         for d in kdata:
+            if maxDay and d.day > maxDay:
+                break
             bs = struct.pack('L7f', d.day, float(d.open), float(d.close), float(d.low), float(d.high), float(d.vol), float(d.amount), float(d.rate))
             f.write(bs)
         f.close()
 
+    def isLocalFileValid(self, code):
+        path = os.path.join(self.K_PATH, code)
+        if not os.path.exists(path):
+            return False
+        filesize = os.path.getsize(path)
+        if filesize == 0:
+            return False
+        RL = 32
+        if filesize % RL != 0:
+            return False
+        return True
+    
     def loadLocal(self, code):
         f = open(os.path.join(self.K_PATH, code), 'rb')
         datas = []
         bs = f.read()
         f.close()
-        DAY_BYTES_NUM = 4 * 8
-        if len(bs) % DAY_BYTES_NUM != 0:
+        RL = 32
+        if len(bs) % RL != 0:
             print('[KLineDownloader.loadLocal]', code, 'file size invalid')
             return None
-        for i in range(0, len(bs) // DAY_BYTES_NUM):
-            dd = struct.unpack('L7f', bs[i * DAY_BYTES_NUM : i * DAY_BYTES_NUM + DAY_BYTES_NUM])
+        for i in range(0, len(bs) // RL):
+            dd = struct.unpack('L7f', bs[i * RL : i * RL + RL])
             it = ItemData(day = dd[0], open = dd[1], close = dd[2], low = dd[3], high = dd[4], vol = dd[5], amount = dd[6], rate = dd[7])
             datas.append(it)
         return datas
 
+    def downloadAll(self, fromIdx, maxDay):
+        kd = KLineDownloader()
+        codes = TdxChuncker().getLocalCodes('minline')
+        for i, code in enumerate(codes):
+            if i < fromIdx: continue
+            try:
+                ds = kd.loadNet(code, i % 2, False)
+                kd.write(code, ds, maxDay)
+                print('[KLineDownloader] ..', f'{i}/{len(codes)}', code)
+            except Exception as e:
+                print('[KLineDownloader] Fail load: ', code)
+            if i % 2:
+                time.sleep(3)
+
 if __name__ == '__main__':
-    kd = KLineDownloader()
-    codes = TdxChuncker().getLocalCodes('minline')
-    for i, code in enumerate(codes):
-        ds = kd.loadNet(code, i % 2)
-        kd.save(code, ds)
-        print('[KLineDownloader] ..', i, code)
-        if i % 2:
-            time.sleep(3)
+    # KLineDownloader().downloadAll(0, 20260408)
+    print('-----end----------')

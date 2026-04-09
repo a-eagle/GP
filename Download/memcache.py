@@ -10,6 +10,7 @@ class CacheItem:
 class MemCache:
     def __init__(self) -> None:
         self.datas = {} # key = , value = CacheItem
+        self.enableCache = True
     
     def getCache(self, key):
         self._cleanTimeout()
@@ -24,6 +25,8 @@ class MemCache:
     
     def saveCache(self, key, data, timeout):
         self._cleanTimeout()
+        if not self.enableCache:
+            return
         it = CacheItem(data, timeout)
         self.datas[key] = it
     
