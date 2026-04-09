@@ -15,12 +15,14 @@ class PathManager:
     NET_MINLINE_PATH = ''
 
     def __init__(self) -> None:
+        PathManager.NET_LDAY_PATH = 'D:\\K-Data'
         pt = 'D:\\new_tdx'
         if not os.path.exists(pt):
             pt = 'C:\\new_tdx'
+            PathManager.NET_LDAY_PATH = 'C:\\K-Data'
         PathManager.TDX_BASE_PATH = pt
         PathManager.TDX_VIP_PATH = os.path.join(self.TDX_BASE_PATH, 'vipdoc')
-        PathManager.NET_LDAY_PATH = 'D:\\K-Data'
+        
         PathManager.NET_MINLINE_PATH = os.path.join(self.TDX_VIP_PATH, 'NetData\\minline')
         for d in (self.NET_LDAY_PATH, self.NET_MINLINE_PATH):
             if not os.path.exists(d):
