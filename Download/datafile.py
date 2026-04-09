@@ -1071,10 +1071,10 @@ class KLineDownloader:
         fi = tdays.index(localLastDay)
         ni = tdays.index(kdata.day)
         if fi == ni:
-            f = open(path, 'a+b')
+            f = open(path, 'r+b')
             f.seek(-32, 2)
         elif fi + 1 == ni:
-            f = open(path, 'a+b')
+            f = open(path, 'r+b')
         else:
             return False
         bs = struct.pack('L7f', kdata.day, float(kdata.open), float(kdata.close), float(kdata.low),
@@ -1111,13 +1111,12 @@ class KLineDownloader:
         return datas
 
     def downloadAll(self, fromIdx, maxDay):
-        kd = KLineDownloader()
         codes = TdxChuncker().getLocalCodes('minline')
         for i, code in enumerate(codes):
             if i < fromIdx: continue
             try:
-                ds = kd.loadNet(code, i % 2, False)
-                kd.overWrite(code, ds, toDay = maxDay)
+                ds = self.loadNet(code, i % 2, False)
+                self.overWrite(code, ds, toDay = maxDay)
                 print('[KLineDownloader] ..', f'{i}/{len(codes)}', code)
             except Exception as e:
                 print('[KLineDownloader] Fail load: ', code)
@@ -1126,16 +1125,19 @@ class KLineDownloader:
 
     # day = YYYYMMDD
     def downloadByDay(self, day):
+        self.downloadZsCodes()
         from download import ths_iwencai
         if not day:
             return
         if type(day) == str:
             day = day.replace('-', '')
         q = f'{day}前复权开盘价,{day}前复权收盘价,{day}前复权最高价,{day}前复权最低价,{day}成交量,{day}成交额,{day}换手率'
-        datas = ths_iwencai.iwencai_load_list(q) # , maxPage = 1
+        datas = ths_iwencai.iwencai_load_list(q, maxPage = 1) # 
         for row in datas:
             columns = ths_iwencai.ThsColumns(row)
             code = columns.getColumnValue('code', str)
+            if code[0] not in '036':
+                continue
             it = ItemData(day = int(day),
                           open = columns.getColumnValue('开盘价:前复权', float, defaultVal='0'),
                           close = columns.getColumnValue('收盘价:前复权', float, defaultVal='0'),
@@ -1143,19 +1145,58 @@ class KLineDownloader:
                           high = columns.getColumnValue('最高价:前复权', float, defaultVal='0'),
                           vol = columns.getColumnValue('成交量', float, defaultVal='0'),
                           amount = columns.getColumnValue('成交额', float, defaultVal='0'),
-                          rate = columns.getColumnValue('换手率', float), defaultVal='0')
+                          rate = columns.getColumnValue('换手率', float, defaultVal='0'))
             if it.vol == 0 or it.amount == 0:
                 continue
             ok = self.mergeWrite(code, it)
             if not ok:
                 print('[KLineDownloader.downloadByDay] merge Fail:', code, it)
+        
+    def downloadZsCodes(self):
+        codes = ['999999', '399001', '399006']
+        self.downloadCodes(codes)
+
+    def downloadCodes(self, codes):
+        for code in codes:
+            ds = self.loadNet(code, True, True)
+            self.overWrite(code, ds)
+            time.sleep(1.5)
+
+def netDataChuck():
+    fs = os.listdir(KLineDownloader.K_PATH)
+    for code in fs:
+        dm = K_DataModel(code)
+        dm.loadLocalData()
+        rmIdxs = []
+        for i in range(len(dm.data) - 1):
+            if dm.data[i].day == dm.data[i + 1].day:
+                rmIdxs.append(i + 1)
+        rmIdxs.reverse()
+        days = []
+        for i in rmIdxs:
+            days.append(dm.data[i].day)
+            dm.data.pop(i)
+        if not rmIdxs:
+            continue
+        print('[chunck]', code, rmIdxs, days)
+        KLineDownloader().overWrite(code, dm.data)
+
 
 if __name__ == '__main__':
-    dm = K_DataModel('002866')
+    #netDataChuck()
+
+    dm = K_DataModel('600519')
     dm.loadLocalData()
     print(dm.data[-1])
     print(dm.data[-2])
     print(dm.data[-3])
+    print(dm.data[-4])
+    print(dm.data[-5])
     print('-----end----------')
-    # KLineDownloader().downloadByDay(20260407)
+
+    # KLineDownloader().downloadByDay(20260409)
     # KLineDownloader().downloadAll(0, 20260408)
+
+    # codes = "300033,003021,003031,002975,002970,300014,003033,300049,300037,003009,003043,300073,003041,002980,002991,300054,002992,002993,003007,300042,300007,002979,003026,002985,002978,003018,003010,002990,002988,003019,300046,002997,003017,002971,002965,003004,300001,002977,003002,002976,003028,002989,002995,003023,003020,003036,002981,003011,300065,003008,002983,002969,300069,300035,300045,003022,003027,003029,300031,003030,002967,300019,300059,300034,003042,002984,003005,003001,603182,003006,300017,300053,300003,002987,003040,300036,002986,300024,003039,300012,300005,003015,003038,002982,003025,300004,003003,003013,300018,002973,002972,300052,300051,300047,300063,002968,300055,300068,300041,003000,300016,300022,300009,300002,300015,300056,002998,002966,003016,300061,300044,300030,300062,300011,300008,003035,002996,003037,002999,300050,300040,300066,003012,003032,300010,300039,300006,300032,300043,300025,300071,300072,300029,003816,300021,300070,300013,300026,300020,300027"
+    # codes = codes.split(',')
+    # KLineDownloader()._downloadCodes(codes)
