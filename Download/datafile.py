@@ -685,7 +685,7 @@ class Net_K_DataModel(K_DataModel):
                 maxDay = ths_iwencai.getTradeDaysInt()[-2]
             else:
                 maxDay = tday
-            kd.write(self.code, self.data, maxDay = maxDay)
+            kd.overWrite(self.code, self.data, toDay = maxDay)
         if period == 'week':
             self.buildWeekData()
         elif period == 'month':
@@ -1030,11 +1030,11 @@ class KLineDownloader:
     K_PATH = PathManager.NET_LDAY_PATH
 
     def __init__(self) -> None:
-        pass
-
-    def loadNet(self, code, useThs, loadToday : bool):
-        from download import henxin, cls, memcache
+        from download import memcache
         memcache.cache.enableCache = False
+
+    def loadNet(self, code : str, useThs : bool, loadToday : bool):
+        from download import henxin, cls
         if useThs:
             hx = henxin.HexinUrl()
             if loadToday:
@@ -1047,14 +1047,41 @@ class KLineDownloader:
             rs = hx.loadKline(code, limit = 1800)
         return rs
 
-    def write(self, code : str, kdata, maxDay = None):
+    def overWrite(self, code : str, kdatas, fromDay = None, toDay = None):
         f = open(os.path.join(self.K_PATH, code), 'wb')
-        for d in kdata:
-            if maxDay and d.day > maxDay:
+        for d in kdatas:
+            if fromDay and d.day < fromDay:
+                continue
+            if toDay and d.day > toDay:
                 break
             bs = struct.pack('L7f', d.day, float(d.open), float(d.close), float(d.low), float(d.high), float(d.vol), float(d.amount), float(d.rate))
             f.write(bs)
         f.close()
+
+    def mergeWrite(self, code, kdata : ItemData):
+        from download import ths_iwencai
+        if not kdata or not kdata.day or not kdata.open or not kdata.close or not kdata.vol:
+            return False
+        tdays = ths_iwencai.getTradeDaysInt()
+        path = os.path.join(self.K_PATH, code)
+        if not os.path.exists(path):
+            return False
+        dm = K_DataModel(code)
+        localLastDay = dm.getLocalLatestDay()
+        fi = tdays.index(localLastDay)
+        ni = tdays.index(kdata.day)
+        if fi == ni:
+            f = open(path, 'a+b')
+            f.seek(-32, 2)
+        elif fi + 1 == ni:
+            f = open(path, 'a+b')
+        else:
+            return False
+        bs = struct.pack('L7f', kdata.day, float(kdata.open), float(kdata.close), float(kdata.low),
+                         float(kdata.high), float(kdata.vol), float(kdata.amount), float(kdata.rate))
+        f.write(bs)
+        f.close()
+        return True
 
     def isLocalFileValid(self, code):
         path = os.path.join(self.K_PATH, code)
@@ -1090,13 +1117,41 @@ class KLineDownloader:
             if i < fromIdx: continue
             try:
                 ds = kd.loadNet(code, i % 2, False)
-                kd.write(code, ds, maxDay)
+                kd.overWrite(code, ds, toDay = maxDay)
                 print('[KLineDownloader] ..', f'{i}/{len(codes)}', code)
             except Exception as e:
                 print('[KLineDownloader] Fail load: ', code)
             if i % 2:
                 time.sleep(3)
 
+    # day = YYYYMMDD
+    def downloadByDay(self, day):
+        from download import ths_iwencai
+        if not day:
+            return
+        if type(day) == str:
+            day = day.replace('-', '')
+        q = f'{day}前复权开盘价,{day}前复权收盘价,{day}前复权最高价,{day}前复权最低价,{day}成交量,{day}成交额,{day}换手率'
+        datas = ths_iwencai.iwencai_load_list(q, maxPage = 1)
+        for row in datas:
+            columns = ths_iwencai.ThsColumns(row)
+            code = columns.getColumnValue('code', str)
+            it = ItemData(day = int(day),
+                          open = columns.getColumnValue('开盘价:前复权', float, defaultVal='0'),
+                          close = columns.getColumnValue('收盘价:前复权', float, defaultVal='0'),
+                          low = columns.getColumnValue('最低价:前复权', float, defaultVal='0'),
+                          high = columns.getColumnValue('最高价:前复权', float, defaultVal='0'),
+                          vol = columns.getColumnValue('成交量', float, defaultVal='0'),
+                          amount = columns.getColumnValue('成交额', float, defaultVal='0'),
+                          rate = columns.getColumnValue('换手率', float), defaultVal='0')
+            ok = self.mergeWrite(code, it)
+            if not ok:
+                print('[KLineDownloader.downloadByDay] merge Fail:', code, it)
+
 if __name__ == '__main__':
     # KLineDownloader().downloadAll(0, 20260408)
+    dm = K_DataModel('002866')
+    dm.loadLocalData()
+    print(dm.data[-1])
     print('-----end----------')
+    KLineDownloader().downloadByDay(20260407)
