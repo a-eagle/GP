@@ -1110,8 +1110,12 @@ class KLineDownloader:
             datas.append(it)
         return datas
 
-    def downloadAll(self, fromIdx, maxDay):
-        codes = TdxChuncker().getLocalCodes('minline')
+    def downloadAll(self, fromIdx = 0, maxDay = None):
+        from utils import gn_utils
+        codes = []
+        for code in gn_utils.ths_gntc_s:
+            codes.append(code)
+        codes.sort(key = lambda c : c)
         for i, code in enumerate(codes):
             if i < fromIdx: continue
             try:
@@ -1124,15 +1128,17 @@ class KLineDownloader:
                 time.sleep(3)
 
     # day = YYYYMMDD
-    def downloadByDay(self, day):
+    def downloadByDay(self, day = None):
         self.downloadZsCodes()
         from download import ths_iwencai
         if not day:
-            return
+            day = ths_iwencai.getTradeDaysInt()[-1]
         if type(day) == str:
             day = day.replace('-', '')
         q = f'{day}前复权开盘价,{day}前复权收盘价,{day}前复权最高价,{day}前复权最低价,{day}成交量,{day}成交额,{day}换手率'
-        datas = ths_iwencai.iwencai_load_list(q, maxPage = 1) # 
+        datas = ths_iwencai.iwencai_load_list(q)
+        if not datas:
+            return False
         for row in datas:
             columns = ths_iwencai.ThsColumns(row)
             code = columns.getColumnValue('code', str)
@@ -1151,6 +1157,7 @@ class KLineDownloader:
             ok = self.mergeWrite(code, it)
             if not ok:
                 print('[KLineDownloader.downloadByDay] merge Fail:', code, it)
+        return True
         
     def downloadZsCodes(self):
         codes = ['999999', '399001', '399006']
@@ -1195,7 +1202,7 @@ if __name__ == '__main__':
     print('-----end----------')
 
     # KLineDownloader().downloadByDay(20260409)
-    # KLineDownloader().downloadAll(0, 20260408)
+    # KLineDownloader().downloadAll()
 
     # codes = "300033,003021,003031,002975,002970,300014,003033,300049,300037,003009,003043,300073,003041,002980,002991,300054,002992,002993,003007,300042,300007,002979,003026,002985,002978,003018,003010,002990,002988,003019,300046,002997,003017,002971,002965,003004,300001,002977,003002,002976,003028,002989,002995,003023,003020,003036,002981,003011,300065,003008,002983,002969,300069,300035,300045,003022,003027,003029,300031,003030,002967,300019,300059,300034,003042,002984,003005,003001,603182,003006,300017,300053,300003,002987,003040,300036,002986,300024,003039,300012,300005,003015,003038,002982,003025,300004,003003,003013,300018,002973,002972,300052,300051,300047,300063,002968,300055,300068,300041,003000,300016,300022,300009,300002,300015,300056,002998,002966,003016,300061,300044,300030,300062,300011,300008,003035,002996,003037,002999,300050,300040,300066,003012,003032,300010,300039,300006,300032,300043,300025,300071,300072,300029,003816,300021,300070,300013,300026,300020,300027"
     # codes = codes.split(',')

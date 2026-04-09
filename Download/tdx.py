@@ -233,8 +233,8 @@ class TdxGuiDownloader:
         try:
             self.login()
             self.openDownloadDialog()
-            if self.checkNeedDownload(True):
-                self.startDownloadForDay()
+            # if self.checkNeedDownload(True):
+                # self.startDownloadForDay()
             if self.checkNeedDownload(False):
                 self.startDownloadForTimeMinute()
             ok = True
@@ -329,8 +329,10 @@ class Main:
                 continue
             sday = today.strftime('%Y-%m-%d')
             if sday not in tryDays:
-                tryDays[sday] = {'num' : 0, 'success': False}
-            
+                tryDays[sday] = {'num' : 0, 'success': False, 'kline': False}
+            if not tryDays[sday]['kline']:
+                ok = KLineDownloader().downloadByDay()
+                tryDays[sday]['kline'] = ok
             if tryDays[sday]['success']:
                 time.sleep(10 * 60)
                 continue
