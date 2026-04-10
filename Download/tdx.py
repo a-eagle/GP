@@ -317,7 +317,7 @@ class Main:
 
     def runLoop(self):
         os.system('') # fix win10
-        tryDays = {}
+        tryDays = {'2026-04-10_kline' : True}
         while True:
             today = datetime.datetime.now()
             if today.weekday() >= 5:
@@ -329,10 +329,11 @@ class Main:
                 continue
             sday = today.strftime('%Y-%m-%d')
             if sday not in tryDays:
-                tryDays[sday] = {'num' : 0, 'success': False, 'kline': False}
+                tryDays[sday] = {'num' : 0, 'success': False}
             if not tryDays[sday]['kline']:
                 ok = KLineDownloader().downloadByDay()
-                tryDays[sday]['kline'] = ok
+                tryDays[sday + '_kline'] = ok
+                print('[tdx.KLineDownloader] download success ', sday)
             if tryDays[sday]['success']:
                 time.sleep(10 * 60)
                 continue
