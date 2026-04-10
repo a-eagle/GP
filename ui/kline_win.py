@@ -1878,16 +1878,7 @@ class CodeWindow(BaseWindow):
         klineWin.addNamedListener('range-selector-changed', self.onRangeSelectorChanged)
         self.V_CENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER
 
-    def onDraw(self, hdc):
-        W, H = self.getClientSize()
-        LEFT_X, RIGHT_X = 3, 70
-        RH = 25
-        y = 10
-        if self.basicData:
-            cs = self.basicData.get('code', '') + '\n' + self.basicData.get('name', '')
-            self.drawer.use(hdc, self.drawer.getFont(fontSize = 15, weight = 1000))
-            self.drawer.drawText(hdc, cs, (0, y, W, 40), 0x5050ff, win32con.DT_CENTER | win32con.DT_WORDBREAK)
-        self.drawer.use(hdc, self.drawer.getFont(fontSize = 14))
+    def onDrawBasic(self, hdc, RH, W, LEFT_X, RIGHT_X, y):
         y += 40
         self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
         y += 3
@@ -1930,6 +1921,10 @@ class CodeWindow(BaseWindow):
         if rz is not None:
             self.drawer.drawText(hdc, f'{rz :.2f}%', (RIGHT_X, y, W, y + RH), 0x808080, self.V_CENTER)
         y += RH
+        return y
+
+    def onDrawDayInfo(self, hdc, RH, W, LEFT_X, RIGHT_X, y):
+        klineModel = self.klineWin.klineIndicator.model
         self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
         y += 3
         self.drawer.drawText(hdc, '涨幅', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
@@ -1966,18 +1961,32 @@ class CodeWindow(BaseWindow):
         if rz is not None:
             self.drawer.drawText(hdc, f'{rz[0]}日异动', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
             self.drawer.drawText(hdc, f'{rz[1] :.1f}% ({rz[2] :.1f}%)', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
-        # 区间统计
-        if not self.rangeSelData:
-            return
-        y += RH
+        return y
+
+    def onDrawRange(self, hdc, RH, W, LEFT_X, RIGHT_X, y):
         self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
         y += 3
         self.drawer.drawText(hdc, '区间统计', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER | win32con.DT_CENTER)
         y += RH
         sdatas = self.rangeSelData['datas']
         pre = self.rangeSelData['pre']
-        self.drawer.drawText(hdc, '日期数', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        self.drawer.drawText(hdc, '交易日数', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         self.drawer.drawText(hdc, f'{len(sdatas)} 日', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        y += RH
+        endDay = datetime.date(sdatas[-1].day // 10000, sdatas[-1].day // 100 % 100, sdatas[-1].day % 100)
+        fromDay = datetime.date(sdatas[0].day // 10000, sdatas[0].day // 100 % 100, sdatas[0].day % 100)
+        if endDay < fromDay:
+            fromDay, endDay = endDay, fromDay
+        diffDays = (endDay - fromDay).days
+        yearNum = diffDays // 365
+        monthNum = (diffDays - yearNum * 365) // 30
+        daysNum = diffDays - yearNum * 365 - monthNum * 30
+        info = ''
+        if yearNum: info = f'{yearNum}年'
+        if monthNum: info += f'{monthNum}个月'
+        if daysNum: info += f"{daysNum}天"
+        self.drawer.drawText(hdc, '自然日数', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        self.drawer.drawText(hdc, info, (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         y += RH
         self.drawer.drawText(hdc, '涨幅', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         zf = (sdatas[-1].close -  pre) / pre * 100
@@ -1986,7 +1995,7 @@ class CodeWindow(BaseWindow):
             zf2 = (pre - sdatas[-1].close) / sdatas[-1].close * 100
             zf2 = f'（+{int(zf2)}%）'
         # color = 0x0000E6 if zf >= 0 else 0x00E600
-        self.drawer.drawText(hdc, f'{int(zf)}% {zf2}', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        self.drawer.drawText(hdc, f'{int(zf)} % {zf2}', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         y += RH
         self.drawer.drawText(hdc, '最大涨幅', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         maxVal, minVal = 0, 10000000
@@ -2003,7 +2012,7 @@ class CodeWindow(BaseWindow):
             mzf2 = (pre - minVal) / minVal * 100
             mzf2 = f'（+{int(mzf2)}%）'
         # color = 0x0000E6 if zf >= 0 else 0x00E600
-        self.drawer.drawText(hdc, f'{int(mzf)}% {mzf2}', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        self.drawer.drawText(hdc, f'{int(mzf)} % {mzf2}', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         y += RH
         self.drawer.drawText(hdc, '总换手率', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         self.drawer.drawText(hdc, f'{int(totalRate)} %', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
@@ -2011,6 +2020,25 @@ class CodeWindow(BaseWindow):
         totalAmount = int(sum([d.amount for d in sdatas]) / 100000000)
         self.drawer.drawText(hdc, '总成交额', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         self.drawer.drawText(hdc, f'{totalAmount} 亿', (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        return y
+
+    def onDraw(self, hdc):
+        W, H = self.getClientSize()
+        LEFT_X, RIGHT_X = 3, 70
+        RH = 25
+        y = 10
+        if self.basicData:
+            cs = self.basicData.get('code', '') + '\n' + self.basicData.get('name', '')
+            self.drawer.use(hdc, self.drawer.getFont(fontSize = 15, weight = 1000))
+            self.drawer.drawText(hdc, cs, (0, y, W, 40), 0x5050ff, win32con.DT_CENTER | win32con.DT_WORDBREAK)
+        self.drawer.use(hdc, self.drawer.getFont(fontSize = 14))
+
+        y = self.onDrawBasic(hdc, RH, W, LEFT_X, RIGHT_X, y)
+        #个股信息
+        if not self.rangeSelData:
+            y = self.onDrawDayInfo(hdc, RH, W, LEFT_X, RIGHT_X, y)
+        else:# 区间统计
+            y = self.onDrawRange(hdc, RH, W, LEFT_X, RIGHT_X, y)
 
     def getModelAttr(self, model, attrName):
         if not self.selData or not model:
