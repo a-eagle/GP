@@ -330,7 +330,7 @@ class Main:
             sday = today.strftime('%Y-%m-%d')
             if sday not in tryDays:
                 tryDays[sday] = {'num' : 0, 'success': False}
-            if not tryDays[sday]['kline']:
+            if not tryDays.get(sday + '_kline', False):
                 ok = KLineDownloader().downloadByDay()
                 tryDays[sday + '_kline'] = ok
                 print('[tdx.KLineDownloader] download success ', sday)
