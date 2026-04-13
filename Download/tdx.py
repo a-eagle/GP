@@ -7,6 +7,7 @@ from multiprocessing import shared_memory # python 3.8+
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from download.datafile import *
+from download import ths_iwencai
 from orm import d_orm
 from ui import fx
 
@@ -243,6 +244,60 @@ class TdxGuiDownloader:
             ok = False
         self.killProcess()
         return ok
+    
+class Try:
+    def __init__(self, startTime, maxTryTimes, operation, intervalTime = 0, userNoInputTime = 0, ignoreDay : int = 0) -> None:
+        self.startTime = startTime
+        self.maxTryTimes = maxTryTimes
+        self.intervalTime = intervalTime
+        self.userNoInputTime = userNoInputTime
+        self.operation = operation
+        self.ignoreDay = ignoreDay
+
+        self.lastRunTime = None
+        self.tryTimes = 0
+        self.doneSuccess = False
+
+    def reset(self):
+        self.lastRunTime = None
+        self.tryTimes = 0
+        self.doneSuccess = False
+    
+    def check(self):
+        now = datetime.datetime.now()
+        today = int(now.strftime('%Y%m%d'))
+        stime = now.strftime(('%H:%M'))
+        if stime < self.startTime:
+            self.reset()
+            return False
+        if today == self.ignoreDay:
+            self.reset()
+            return False
+        if self.doneSuccess:
+            return False
+        lrt = self.lastRunTime if self.lastRunTime else datetime.datetime(2000, 1, 1, 0, 0, 0)
+        diff : datetime.timedelta = now - lrt
+        if diff.seconds < self.intervalTime:
+            return False
+        if self.tryTimes >= self.maxTryTimes:
+            return False
+        if not self.checkUserNoInputTime(self.userNoInputTime):
+            return False
+        self.lastRunTime = now
+        self.tryTimes += 1
+        try:
+            self.doneSuccess = self.operation()
+            return True
+        except Exception as e:
+            self.doneSuccess = False
+        return False
+    
+    def checkUserNoInputTime(self, seconds):
+        a = win32api.GetLastInputInfo()
+        cur = win32api.GetTickCount()
+        diff = cur - a
+        sec = diff / 1000
+        return sec >= seconds
 
 class Main:
     def unlockScreen(self):
@@ -296,58 +351,25 @@ class Main:
         print('-----------End----------\n\n')
         return flag
 
-    def getDesktopGUILock(self):
-        LOCK_NAME = 'D:/__Desktop_GUI_Lock__'
-        mux = win32event.CreateMutex(None, False, LOCK_NAME)
-        if win32api.GetLastError() == winerror.ERROR_ALREADY_EXISTS:
-            win32api.CloseHandle(mux)
-            return None
-        return mux
-
-    def releaseDesktopGUILock(self, lock):
-        if lock:
-            win32api.CloseHandle(lock)
-
-    def checkUserNoInputTime(self, seconds):
-        a = win32api.GetLastInputInfo()
-        cur = win32api.GetTickCount()
-        diff = cur - a
-        sec = diff / 1000
-        return sec >= seconds
-
     def runLoop(self):
         os.system('') # fix win10
-        tryDays = {'2026-04-10_kline' : True}
+        kd = KLineDownloader()
+        tdxTry = Try('15:40', 3, self.runOnce, intervalTime = 600, userNoInputTime = 600, ignoreDay = 0)
+        klineTry = Try('15:05', 3, kd.downloadByDay, intervalTime = 600, userNoInputTime = 0, ignoreDay = 20260413)
+
         while True:
-            today = datetime.datetime.now()
-            sday = today.strftime('%Y-%m-%d')
-            if today.weekday() >= 5:
+            now = datetime.datetime.now()
+            today = now.strftime('%Y-%m-%d')
+            if now.weekday() >= 5:
                 time.sleep(60 * 60)
                 continue
-            ts = f"{today.hour:02d}:{today.minute:02d}"
-            if ts < '15:05':
-                time.sleep(60)
+            if not ths_iwencai.isTradeDay():
+                time.sleep(60 * 60)
                 continue
-            if not tryDays.get(sday + '_kline', False):
-                ok = KLineDownloader().downloadByDay()
-                tryDays[sday + '_kline'] = ok
-                print('[tdx.KLineDownloader] download success ', sday)
-            if ts < '15:40':
-                time.sleep(3 * 60)
-                continue
-            if sday not in tryDays:
-                tryDays[sday] = {'num' : 0, 'success': False}
-            if tryDays[sday]['success']:
-                time.sleep(10 * 60)
-                continue
-            if not self.checkUserNoInputTime(10 * 60):
-                time.sleep(10 * 60)
-                continue
-            tryDays[sday]['num'] += 1
-            if tryDays[sday]['num'] <= 2:
-                if self.runOnce():
-                    tryDays[sday]['success'] = True
-            time.sleep(10 * 60)
+            tdxTry.check()
+            if klineTry.check():
+                print('[tdx.KLineDownloader] download success ', today)
+            time.sleep(60)
 
     def start(self):
         if '--once' in sys.argv:
@@ -357,6 +379,10 @@ class Main:
             self.runLoop()
 
 if __name__ == '__main__':
+    now = datetime.datetime.now()
+    today = now.strftime('%Y-%m-%d')
+    stime = now.strftime('%H:%M')
+    
     dd = TdxGuiDownloader()
     # dd.startDownloadForTimeMinute()
     # dd.startDownloadForDay()
