@@ -1166,11 +1166,14 @@ class KLineDownloader:
             self.overWrite(code, ds)
             time.sleep(1.5)
 
-# 修复本地数据
-def fixNetData():
-    fs = os.listdir(KLineDownloader.K_PATH)
-    fs.sort(key = lambda k: k)
-    for code in fs:
+    # 修复本地数据
+    def fixAllNetData(self):
+        fs = os.listdir(KLineDownloader.K_PATH)
+        fs.sort(key = lambda k: k)
+        for code in fs:
+            self.fixNetData(code)
+
+    def fixNetData(self, code):
         dm = K_DataModel(code)
         dm.loadLocalData()
         dm.data.sort(key = lambda x: x.day)
@@ -1185,9 +1188,12 @@ def fixNetData():
 
 
 if __name__ == '__main__':
-    # fixNetData()
+    dld = KLineDownloader()
+    
+    #dld.fixAllNetData()
+    dld.fixNetData('603933')
 
-    dm = K_DataModel('300862')
+    dm = K_DataModel('603933')
     dm.loadLocalData()
     for i in range(5):
         print(dm.data[i])
@@ -1196,10 +1202,6 @@ if __name__ == '__main__':
         print(dm.data[-i - 1])
     print('-----end----------')
 
-    KLineDownloader().downloadByDay(20260413, maxPage = None)
-    # KLineDownloader().downloadAll(fromIdx = 382)
-
-    # codes = "300033,003021,003031,002975,002970,300014,003033,300049,300037,003009,003043,300073,003041,002980,002991,300054,002992,002993,003007,300042,300007,002979,003026,002985,002978,003018,003010,002990,002988,003019,300046,002997,003017,002971,002965,003004,300001,002977,003002,002976,003028,002989,002995,003023,003020,003036,002981,003011,300065,003008,002983,002969,300069,300035,300045,003022,003027,003029,300031,003030,002967,300019,300059,300034,003042,002984,003005,003001,603182,003006,300017,300053,300003,002987,003040,300036,002986,300024,003039,300012,300005,003015,003038,002982,003025,300004,003003,003013,300018,002973,002972,300052,300051,300047,300063,002968,300055,300068,300041,003000,300016,300022,300009,300002,300015,300056,002998,002966,003016,300061,300044,300030,300062,300011,300008,003035,002996,003037,002999,300050,300040,300066,003012,003032,300010,300039,300006,300032,300043,300025,300071,300072,300029,003816,300021,300070,300013,300026,300020,300027"
-    # codes = codes.split(',')
-    # KLineDownloader()._downloadCodes(codes)
+    # dld.downloadByDay(20260413, maxPage = None)
+    # dld.downloadAll(fromIdx = 382)
     pass
