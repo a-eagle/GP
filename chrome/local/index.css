@@ -51,8 +51,11 @@
 .anchor-list .anchor-arrow {float:right; width:15px; text-align:center; border-left:1px solid #c0c0c0; background-color:#c0c0c0; width:15px; height:25px;}
 .anchor-list .true {background-color: #FFD8D8;}
 .anchor-list .false {background-color: #A0F1DC;}
-.anchor-list .mark {
+.anchor-list .mark-red {
     background-color:#f00; width:3.5px; height:12px; display:inline-block;
+}
+.anchor-list .mark-green {
+    background-color:#A0F1DC; width:3.5px; height:12px; display:inline-block;
 }
 
 table.zdfb {

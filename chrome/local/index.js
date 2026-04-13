@@ -635,8 +635,11 @@ let HotAnchrosGroupView = {
         },
         getHtml(item) {
             let html = '';
-            for (let i = 0; i < item.today; i++) {
-                html += `<div class="mark"> </div>&nbsp;`;
+            for (let i = 0; i < item.todayUp; i++) {
+                html += `<div class="mark-red"> </div>&nbsp;`;
+            }
+            for (let i = 0; i < item.todayDown; i++) {
+                html += `<div class="mark-green"> </div>&nbsp;`;
             }
             return `${html} ${item.name} &nbsp;&nbsp;  ${item.num}`;
         }
