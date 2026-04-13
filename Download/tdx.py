@@ -320,20 +320,23 @@ class Main:
         tryDays = {'2026-04-10_kline' : True}
         while True:
             today = datetime.datetime.now()
+            sday = today.strftime('%Y-%m-%d')
             if today.weekday() >= 5:
                 time.sleep(60 * 60)
                 continue
             ts = f"{today.hour:02d}:{today.minute:02d}"
-            if ts < '15:40':
-                time.sleep(3 * 60)
+            if ts < '15:05':
+                time.sleep(60)
                 continue
-            sday = today.strftime('%Y-%m-%d')
-            if sday not in tryDays:
-                tryDays[sday] = {'num' : 0, 'success': False}
             if not tryDays.get(sday + '_kline', False):
                 ok = KLineDownloader().downloadByDay()
                 tryDays[sday + '_kline'] = ok
                 print('[tdx.KLineDownloader] download success ', sday)
+            if ts < '15:40':
+                time.sleep(3 * 60)
+                continue
+            if sday not in tryDays:
+                tryDays[sday] = {'num' : 0, 'success': False}
             if tryDays[sday]['success']:
                 time.sleep(10 * 60)
                 continue
