@@ -1183,7 +1183,7 @@ def fixNetData():
 if __name__ == '__main__':
     # fixNetData()
 
-    dm = K_DataModel('688432')
+    dm = K_DataModel('300862')
     dm.loadLocalData()
     for i in range(5):
         print(dm.data[i])
