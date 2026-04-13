@@ -75,12 +75,12 @@ def createKLineWindowByCode(code, parent = None, rect = None, style = None):
     return None
 
 def openTimeLineWindow(evt, parent : base_win.BaseWindow):
-    win = timeline.TimelinePanKouWindow()
+    win = timeline.TimelineWindow()
     #rc = win32gui.GetWindowRect(parent.hwnd)
     #rc2 = (rc[0], rc[1], rc[2] - rc[0], rc[3] - rc[1])
     SW = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
     SH = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
-    w, h = max(800, int(SW * 0.6)), 600
+    w, h = max(600, int(SW * 0.55)), 600
     x, y = (SW - w) // 2, (SH - h) // 2
     rc2 = (x, y, w, h)
     hw = None

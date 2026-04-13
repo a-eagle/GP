@@ -545,6 +545,16 @@ class TimelineWindow(base_win.BaseWindow):
             return True
         if msg == win32con.WM_SIZE and wParam != win32con.SIZE_MINIMIZED:
             self.onSize()
+        if msg == win32con.WM_SHOWWINDOW:
+            self.onSize()
+        if msg == win32con.WM_KEYDOWN:
+            keyCode = lParam >> 16 & 0xff
+            if keyCode == 1: # esc
+                win32gui.DestroyWindow(hwnd)
+                return True
+            if keyCode == 28: # enter
+                win32gui.DestroyWindow(hwnd)
+                return True
         return super().winProc(hwnd, msg, wParam, lParam)
 
 class PanKouWindow(base_win.BaseWindow):
@@ -604,7 +614,7 @@ class PanKouWindow(base_win.BaseWindow):
                 self.drawer.drawText(hdc, famount, (60, RH * i, W - 10, RH * i + RH), valColor, VCENTER | win32con.DT_RIGHT)
             if i == 4:
                 self.drawer.drawLine(hdc, 0, RH * i + RH, W, RH * i + RH, 0x909090)
-
+    
 class TimelinePanKouWindow(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -827,6 +837,6 @@ class Table_TimelineRender:
 if __name__ == '__main__':
     win = TimelinePanKouWindow()
     win.createWindow(None, (0, 0, 1000, 600), win32con.WS_OVERLAPPEDWINDOW | win32con.WS_VISIBLE)
-    win.load('301016', 20250403) # cls82437 sh000001 ; 300390  600611
-    win.loadRef('cls82437')
+    win.load('301016', 20260413) # cls82437 sh000001 ; 300390  600611
+    # win.loadRef('cls82437')
     win32gui.PumpMessages()
