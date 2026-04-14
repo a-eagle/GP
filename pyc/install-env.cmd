@@ -23,3 +23,9 @@ rem #  将下载的文件放到Tesseract安装目录下的tessdata文件夹中
 rem #  https://github.com/tesseract-ocr/tessdata/blob/main/chi_sim.traineddata    
 rem #          简体中文训练数据文件，放入C:\Program Files\Tesseract-OCR\tessdata
 rem #  pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+rem 导出数据库
+rem mysql -uroot -proot@2025 gp > D:/gp.sql
+
+rem 导入数据库
+rem mysql -uroot -proot@2025 gp < D:/gp.sql
