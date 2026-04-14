@@ -594,7 +594,7 @@ let HotAnchrosGroupView = {
     },
     methods: {
         onCurDayChanged(day) {
-            axios.get(`/hot-anchors-group`).then((resp) => {
+            axios.get(`/hot-anchors-group?day=${day}`).then((resp) => {
                 let COL_NUM = 7;
                 let rs = [];
                 for (let i = 0; i < resp.data.length; i += COL_NUM) {
