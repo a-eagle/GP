@@ -1191,7 +1191,7 @@ if __name__ == '__main__':
     dld = KLineDownloader()
     
     #dld.fixAllNetData()
-    dld.fixNetData('603933')
+    #dld.fixNetData('601020')
 
     dm = K_DataModel('603933')
     dm.loadLocalData()

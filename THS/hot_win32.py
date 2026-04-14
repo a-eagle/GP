@@ -120,10 +120,11 @@ def _workThread(thsWin : ths_win.ThsWindow, fileName):
             os._exit(0) # 退出进程
             break
         #showHotWindow()
-        if (win32gui.GetForegroundWindow() != thsWin.topHwnd) and (not isTipWinsForeground()):
+        if win32gui.IsIconic(thsWin.topHwnd):
             showTipWins(False)
             continue
-        showTipWins(True)
+        isNotTop = (win32gui.GetForegroundWindow() != thsWin.topHwnd) and (not isTipWinsForeground())
+        showTipWins(not isNotTop)
         updateWindowInfo(thsWin, stateMgr)
         rs = wbOcr.runOcr(thsWin.mainHwnd) or {}
         code = thsWin.findCode_Level2()

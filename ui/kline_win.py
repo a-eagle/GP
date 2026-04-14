@@ -2125,6 +2125,8 @@ class KLineCodeWindow(base_win.BaseWindow):
         rightLayout.addContent(xgWin, {'margins': (0, 15, 0, 5)})
         self.layout.setContent(0, 1, rightLayout)
         self.layout.resize(0, 0, *self.getClientSize())
+        from THS import ths_win
+        ths_win.ThsWindow.ins().init()
 
     def _getCode(self, d):
         if type(d) == dict:
@@ -2151,6 +2153,12 @@ class KLineCodeWindow(base_win.BaseWindow):
 
     def onLeftRight(self, evt, args):
         if not self.codeList or not self.code:
+            from THS import ths_win
+            if evt.info['name'] == 'LEFT':
+                # try next code in THS window
+                ths_win.ThsWindow.ins().prevCode()
+            else:
+                ths_win.ThsWindow.ins().nextCode()
             return
         idx = self.idxCodeList
         if evt.info['name'] == 'LEFT':

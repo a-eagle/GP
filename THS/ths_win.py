@@ -213,6 +213,24 @@ class ThsWindow(base_win.BaseWindow):
             return ''
         return code
 
+    def nextCode(self):
+        rc = win32gui.GetWindowRect(self.mainHwnd)
+        x = rc[2] - 50
+        y = rc[0] + 250
+        # win32api.SetCursorPos((x, y))
+        wparam = (0xffff - 120 + 1) << 16
+        lparam = x | (y << 16)
+        win32gui.PostMessage(self.mainHwnd, win32con.WM_MOUSEWHEEL, wparam, lparam)
+
+    def prevCode(self):
+        rc = win32gui.GetWindowRect(self.mainHwnd)
+        x = rc[2] - 50
+        y = rc[0] + 250
+        # win32api.SetCursorPos((x, y))
+        wparam = 120 << 16
+        lparam = x | (y << 16)
+        win32gui.PostMessage(self.mainHwnd, win32con.WM_MOUSEWHEEL, wparam, lparam)
+
 class ThsFuPingWindow(ThsWindow):
     def __init__(self) -> None:
         super().__init__()
@@ -298,4 +316,6 @@ if __name__ == '__main__':
     win = ThsWindow.ins()
     win.init()
     win.getCodeInLhbWindow()
+    win.nextCode()
+    
 
