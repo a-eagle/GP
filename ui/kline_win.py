@@ -353,6 +353,7 @@ class CalcZdfManager:
             self.startPos = (x, y)
             self.endPos = None
         else:
+            pyperclip.copy(self.getZfInfo())
             self.captureMouse = False
             self.lockStartPos = False
             self.startPos = None
@@ -367,6 +368,20 @@ class CalcZdfManager:
         else:
             self.endPos = (x, y)
         self.win.invalidWindow()
+
+    def getZfInfo(self):
+        if not self.startPos or not self.endPos:
+            return None
+        kl : KLineIndicator = self.win.klineIndicator
+        price1 = kl.getValueAtY(self.startPos[1] - kl.y)
+        price2 = kl.getValueAtY(self.endPos[1] - kl.y)
+        zf = (price2['value'] - price1['value']) / price1['value'] * 100
+        info = f'{int(zf)}%'
+        zf2 = ''
+        if zf < 0:
+            zf2 = (price1['value'] - price2['value']) / price2['value'] * 100
+            info += f' (+{int(zf2)}%)'
+        return info
 
     def onDraw(self, hdc):
         if not self.captureMouse or not self.startPos:
@@ -406,9 +421,11 @@ class CalcZdfManager:
                 df = (minPrice - maxPrice) / maxPrice * 100
                 cy = (ey - sy) // 2 + sy - 20
                 rc = (ex + 15, cy, ex + 100, cy + 20)
+                drawer.fillRect(hdc, rc)
                 drawer.drawText(hdc, f'涨幅 {zf :.1f}%', rc, color = LINE_COLOR, align = win32con.DT_LEFT)
                 cy += 20
                 rc = (ex + 15, cy, ex + 100, cy + 20)
+                drawer.fillRect(hdc, rc)
                 drawer.drawText(hdc, f'跌幅 {df :.1f}%', rc, color = LINE_COLOR, align = win32con.DT_LEFT)
 
         win32gui.RestoreDC(hdc, sdc)
