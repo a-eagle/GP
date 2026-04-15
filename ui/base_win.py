@@ -525,11 +525,13 @@ class Drawer:
 
     # rect = list or tuple (left, top, right, botton)
     # color = int (0xbbggrr color)
-    def fillRect(self, hdc, rect, color):
+    def fillRect(self, hdc, rect, color = 0, rgb = None):
         if not rect:
             return
         if type(rect) == list:
             rect = tuple(rect)
+        if type(rgb) == int:
+            color = self.rgb2Color(rgb)
         hbr = self.getBrush(color)
         win32gui.FillRect(hdc, rect, hbr)
     

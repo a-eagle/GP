@@ -6,7 +6,7 @@ from orm import chrome_orm, my_orm, d_orm, base_orm
 from ui import base_win, dialog
 from utils import cutils, gn_utils
 from ui.kline_indicator import *
-from ui import bkgn_view
+from ui import bkgn_view, toolbar
 from download import henxin, console
 
 class MarksManager:
@@ -2127,6 +2127,12 @@ class KLineCodeWindow(base_win.BaseWindow):
         self.layout.resize(0, 0, *self.getClientSize())
         from THS import ths_win
         ths_win.ThsWindow.ins().init()
+
+        toolbarWin = toolbar.ToolbarWindow(self.klineWin.contextMenuMgr, self)
+        TB_WIDTH = 150
+        toolbarWin.createWindow(self.hwnd, (0, 0, TB_WIDTH, 25))
+        x, y, w, h = rect
+        toolbarWin.show(x + w - 350 - TB_WIDTH, y + 2)
 
     def _getCode(self, d):
         if type(d) == dict:
