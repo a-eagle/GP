@@ -7,7 +7,7 @@ from multiprocessing import shared_memory # python 3.8+
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from download.datafile import *
-from download import ths_iwencai
+from download import ths_iwencai, console
 from orm import d_orm
 from ui import fx
 
@@ -230,14 +230,19 @@ class TdxGuiDownloader:
         if self.checkProcessStarted():
             self.killProcess()
         pyautogui.hotkey('win', 'd')
+        print('[tdx] start process')
         self.startProcess()
         try:
+            print('[tdx] login')
             self.login()
+            print('[tdx] open download dialog')
             self.openDownloadDialog()
             # if self.checkNeedDownload(True):
                 # self.startDownloadForDay()
             if self.checkNeedDownload(False):
+                print('[tdx] begin download time line data ->')
                 self.startDownloadForTimeMinute()
+                print('[tdx] end download time line data')
             ok = True
         except:
             traceback.print_exc()
@@ -327,11 +332,11 @@ class Main:
             pass
 
     def runOnce(self):
-        print('---work--start---')
+        print('---tdx-work--start---')
         # self.unlockScreen()
         tm = datetime.datetime.now()
         ss = tm.strftime('%Y-%m-%d %H:%M')
-        print('\033[32m' + ss + '\033[0m')
+        console.writeln_1(console.GREEN, ss)
         tdx = TdxGuiDownloader()
         flag = tdx.run()
         print(f'download end... {flag}')
@@ -355,7 +360,7 @@ class Main:
         os.system('') # fix win10
         kd = KLineDownloader()
         tdxTry = Try('15:40', 3, self.runOnce, intervalTime = 600, userNoInputTime = 600, ignoreDay = 0)
-        klineTry = Try('15:05', 3, kd.downloadByDay, intervalTime = 600, userNoInputTime = 0, ignoreDay = 20260413)
+        klineTry = Try('15:05', 3, kd.downloadByDay, intervalTime = 600, userNoInputTime = 0, ignoreDay = 20260416)
 
         while True:
             now = datetime.datetime.now()
