@@ -1186,10 +1186,25 @@ class KLineDownloader:
             dm.data.pop(i)
         KLineDownloader().overWrite(code, dm.data)
 
+    def getLocalLatestDay(self):
+        def isCode(name):
+            return name[0] in ('036') and name[0 : 3] != '399'
+        fs = os.listdir(self.K_PATH)
+        fs = [f for f in fs if isCode(f)]
+        order = lambda f: os.path.getmtime(os.path.join(self.K_PATH, f))
+        fs.sort(key = order)
+        if len(fs) > 100:
+            target = fs[100]
+        else:
+            target = fs[-1]
+        dm = Net_K_DataModel(target)
+        return dm.getLocalLatestDay()
 
 if __name__ == '__main__':
     dld = KLineDownloader()
-    
+    day = dld.getLocalLatestDay()
+    print(day)
+
     #dld.fixAllNetData()
     #dld.fixNetData('601020')
 

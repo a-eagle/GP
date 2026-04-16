@@ -355,12 +355,19 @@ class Main:
                 chuncker.removeInvalidCodes()
         print('-----------End----------\n\n')
         return flag
+    
+    def downloadKLine():
+        kd = KLineDownloader()
+        lastDay = kd.getLocalLatestDay()
+        tday = ths_iwencai.getTradeDaysInt()[-1]
+        if lastDay == tday:
+            return True
+        return kd.downloadByDay()
 
     def runLoop(self):
         os.system('') # fix win10
-        kd = KLineDownloader()
         tdxTry = Try('15:40', 3, self.runOnce, intervalTime = 600, userNoInputTime = 600, ignoreDay = 0)
-        klineTry = Try('15:05', 3, kd.downloadByDay, intervalTime = 600, userNoInputTime = 0, ignoreDay = 20260416)
+        klineTry = Try('15:05', 3, self.downloadKLine, intervalTime = 600, userNoInputTime = 0, ignoreDay = 20260414)
 
         while True:
             now = datetime.datetime.now()
