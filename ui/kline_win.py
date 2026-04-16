@@ -1242,6 +1242,11 @@ class RangeSelectorManager:
             kl = self.win.klineIndicator
             idx = kl.getIdxAtX(self.startPos[0])
             eidx = kl.getIdxAtX(self.endPos[0])
+            if idx == eidx:
+                self.captureMouse = False
+                self.startPos = None
+                self.endPos = None
+                return False
             if idx > eidx:
                 idx, eidx = eidx, idx
             pre = kl.data[idx - 1].close if idx > 0 else kl.data[idx].open
