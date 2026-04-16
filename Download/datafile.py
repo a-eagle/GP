@@ -1061,7 +1061,7 @@ class KLineDownloader:
             return False
         tdays = ths_iwencai.getTradeDaysInt()
         path = os.path.join(self.K_PATH, code)
-        if not os.path.exists(path):
+        if not os.path.exists(path) or os.path.getsize(path) == 0:
             f = open(path, 'wb')
         else:
             dm = K_DataModel(code)
