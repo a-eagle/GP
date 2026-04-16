@@ -359,8 +359,8 @@ class Main:
     def downloadKLine():
         kd = KLineDownloader()
         lastDay = kd.getLocalLatestDay()
-        tday = ths_iwencai.getTradeDaysInt()[-1]
-        if lastDay == tday:
+        tdays = ths_iwencai.getTradeDaysInt()
+        if lastDay == tdays[-1] or lastDay != tdays[-2]:
             return True
         return kd.downloadByDay()
 

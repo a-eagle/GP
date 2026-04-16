@@ -1062,18 +1062,19 @@ class KLineDownloader:
         tdays = ths_iwencai.getTradeDaysInt()
         path = os.path.join(self.K_PATH, code)
         if not os.path.exists(path):
-            return False
-        dm = K_DataModel(code)
-        localLastDay = dm.getLocalLatestDay()
-        fi = tdays.index(localLastDay)
-        ni = tdays.index(kdata.day)
-        if fi == ni:
-            f = open(path, 'r+b')
-            f.seek(-32, 2)
-        elif fi + 1 == ni:
-            f = open(path, 'a+b')
+            f = open(path, 'wb')
         else:
-            return False
+            dm = K_DataModel(code)
+            localLastDay = dm.getLocalLatestDay()
+            fi = tdays.index(localLastDay)
+            ni = tdays.index(kdata.day)
+            if fi == ni:
+                f = open(path, 'r+b')
+                f.seek(-32, 2)
+            elif fi + 1 == ni:
+                f = open(path, 'a+b')
+            else:
+                return False
         bs = struct.pack('L7f', kdata.day, float(kdata.open), float(kdata.close), float(kdata.low),
                          float(kdata.high), float(kdata.vol), float(kdata.amount), float(kdata.rate))
         f.write(bs)
@@ -1171,11 +1172,14 @@ class KLineDownloader:
         fs = os.listdir(KLineDownloader.K_PATH)
         fs.sort(key = lambda k: k)
         for code in fs:
-            self.fixNetData(code)
+            changed, data = self.fixNetData(code)
+            if changed:
+                KLineDownloader().overWrite(code, data)
 
     def fixNetData(self, code):
         dm = K_DataModel(code)
         dm.loadLocalData()
+        old = dm.data[ : ]
         dm.data.sort(key = lambda x: x.day)
         rmIdxs = []
         for i in range(len(dm.data) - 1, 1, -1):
@@ -1184,7 +1188,13 @@ class KLineDownloader:
         rmIdxs.reverse()
         for i in rmIdxs:
             dm.data.pop(i)
-        KLineDownloader().overWrite(code, dm.data)
+        changed = len(old) != len(dm.data)
+        if not changed:
+            for i in range(len(old)):
+                if old[i].day != dm.data[i].day:
+                    changed = True
+                    break
+        return changed, dm.data
 
     def getLocalLatestDay(self):
         def isCode(name):
