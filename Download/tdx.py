@@ -362,7 +362,10 @@ class Main:
         tdays = ths_iwencai.getTradeDaysInt()
         if lastDay == tdays[-1] or lastDay != tdays[-2]:
             return True
-        return kd.downloadByDay()
+        print('[tdx.KLineDownloader] begin download kdata...')
+        ok = kd.downloadByDay()
+        print('[tdx.KLineDownloader] download ', ('success' if ok else 'fail'), today)
+        return ok
 
     def runLoop(self):
         os.system('') # fix win10
@@ -378,8 +381,7 @@ class Main:
             if not ths_iwencai.isTradeDay():
                 time.sleep(60 * 60)
                 continue
-            if klineTry.check():
-                print('[tdx.KLineDownloader] download success ', today)
+            klineTry.check()
             tdxTry.check()
             time.sleep(60)
 
