@@ -364,7 +364,7 @@ class Main:
             return True
         print('[tdx.KLineDownloader] begin download kdata...')
         ok = kd.downloadByDay()
-        print('[tdx.KLineDownloader] download ', ('success' if ok else 'fail'), today)
+        print('[tdx.KLineDownloader] download ', ('success' if ok else 'fail'))
         return ok
 
     def runLoop(self):
