@@ -54,20 +54,26 @@ class Client:
             item = datafile.ItemData(day = dd[0], open = dd[1], close = dd[2], low = dd[3], high = dd[4], vol = dd[5], amount = dd[6], rate = dd[7])
             dl.mergeWrite(code, item)
 
-    def download(self, fromDay : int = None):
+    def getFromDay(self):
         tdays = ths_iwencai.getTradeDaysInt()
+        dl = datafile.KLineDownloader()
+        fromDay = dl.getLocalLatestDay()
+        idx = tdays.index(fromDay)
+        if idx >= len(tdays) - 1:
+            return None
+        fromDay = tdays[idx + 1]
+        svrDay = self.getServerLatestDay()
+        if fromDay >= svrDay:
+            return None
+        return fromDay
+
+    def download(self):
+        fromDay = self.getFromDay()
         if not fromDay:
-            dl = datafile.KLineDownloader()
-            fromDay = dl.getLocalLatestDay()
-            idx = tdays.index(fromDay)
-            if idx >= len(tdays) - 1:
-                print('[download] not need to download, fromDay=', fromDay)
-                return
-            fromDay = tdays[idx + 1]
-        if not fromDay or (fromDay not in tdays):
-            print('[download] invalid fromDay', fromDay)
-            return
+            print('[download] kdata not need to download')
+            return True
         print('[download] begin...')
+        print(f'  {fromDay} -> {self.getServerLatestDay()}')
         count = self.getServerCodesCount()
         pageNum = (count + self.PAGE_SIZE - 1) // self.PAGE_SIZE
         for i in range(pageNum):
@@ -76,6 +82,7 @@ class Client:
             for item in datas:
                 self.writeKdata(item['code'], item['kdata-num'], item['kdatas'])
         print('[download] end')
+        return True
 
 class Server:
     def __init__(self) -> None:

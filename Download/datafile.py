@@ -1212,7 +1212,11 @@ class KLineDownloader:
 
     def getLocalCodes(self):
         def isCode(code):
-            return (len(code) == 6 and code[0] in '036') or (code == '999999')
+            if code in ('399001', '399006', '999999'):
+                return True
+            if code[0 : 3] == '399':
+                return False
+            return (len(code) == 6 and code[0] in '036')
         fs = os.listdir(KLineDownloader.K_PATH)
         fs = [f for f in fs if isCode(f)]
         fs.sort(key = lambda k: k)
@@ -1220,8 +1224,9 @@ class KLineDownloader:
 
 if __name__ == '__main__':
     dld = KLineDownloader()
-    #day = dld.getLocalLatestDay()
-    #print(day)
+    day = dld.getLocalLatestDay()
+    print(day)
+    print('code num=', len(dld.getLocalCodes()))
 
     #dld.fixAllNetData()
     #dld.fixNetData('601020')
