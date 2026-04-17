@@ -1210,6 +1210,14 @@ class KLineDownloader:
         dm = Net_K_DataModel(target)
         return dm.getLocalLatestDay()
 
+    def getLocalCodes(self):
+        def isCode(code):
+            return (len(code) == 6 and code[0] in '036') or (code == '999999')
+        fs = os.listdir(KLineDownloader.K_PATH)
+        fs = [f for f in fs if isCode(f)]
+        fs.sort(key = lambda k: k)
+        return fs
+
 if __name__ == '__main__':
     dld = KLineDownloader()
     day = dld.getLocalLatestDay()
