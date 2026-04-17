@@ -32,7 +32,6 @@ class Client:
         if not datas:
             return
         rs = self.decodeKdatas(datas)
-        # print(f'[getServerKdatas] {fromDay} {page}:')
         return rs
         
     def decodeKdatas(self, bs):
@@ -46,9 +45,6 @@ class Client:
             cnum = struct.unpack_from('L', bs, pi)[0]
             pi += 4
             rs.append({'code': code, 'kdata-num': cnum, 'kdatas': bs[pi : pi + 32 * cnum]})
-            # for c in range(cnum):
-            #     ds = struct.unpack_from('L7f', bs, pi + c * 32)
-            #     print('  ', ds)
             pi += 32 * cnum
         return rs
 
@@ -130,7 +126,6 @@ class Server:
         fs = fs[(page - 1) * pageSize : page * pageSize]
         buf.extend(struct.pack('L', len(fs)))
         for i, code in enumerate(fs):
-            print(f'--[{i + (page - 1) * pageSize}]--', end='')
             self.readKdata(code, fromDay, numDays, buf)
         return flask.Response(bytes(buf), mimetype = 'application/octet-stream')
 
@@ -154,10 +149,8 @@ class Server:
                 fi = i
                 break
         buf.extend(struct.pack('L', numDays - fi))
-        print(f'--write---{code}---->')
         for bi in range(fi, numDays):
             buf.extend(bs[32 * bi : 32 * bi + 32])
-            print('   ', struct.unpack('L7f', bs[32 * bi : 32 * bi + 32]))
 
 if __name__ == '__main__':
     IS_SERVER = config.isServerMachine()
