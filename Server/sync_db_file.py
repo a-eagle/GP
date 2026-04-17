@@ -5,7 +5,7 @@ import peewee as pw, flask, flask_cors
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import config, console
-from Server.sync_db_server import *
+from Server.sync_db import *
 
 class LocalSyncModel(pw.Model):
     modelName = pw.CharField()
