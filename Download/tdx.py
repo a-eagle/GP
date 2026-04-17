@@ -378,9 +378,9 @@ class Main:
             if not ths_iwencai.isTradeDay():
                 time.sleep(60 * 60)
                 continue
-            tdxTry.check()
             if klineTry.check():
                 print('[tdx.KLineDownloader] download success ', today)
+            tdxTry.check()
             time.sleep(60)
 
     def start(self):
