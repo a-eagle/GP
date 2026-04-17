@@ -353,6 +353,8 @@ class TimelineWindow(base_win.BaseWindow):
             p2 = f'{zf :.02f}%'
             rc = (self.priceRect[2] + 5, y - 8, W, y + 8)
             self.drawer.drawText(hdc, p2, rc, color, align = win32con.DT_LEFT)
+            rc = (0, y - 8, self.priceRect[0] - 2, y + 8)
+            self.drawer.drawText(hdc, f'{price: .2f}', rc, color, align = win32con.DT_RIGHT)
         self.drawer.drawRect(hdc, self.priceRect, 0x36332E)
 
         # draw vol lines
@@ -427,6 +429,7 @@ class TimelineWindow(base_win.BaseWindow):
         self.drawer.fillRect(hdc, rc, 0)
         self.drawer.drawText(hdc, f'{zf :.2f}%', rc, 0xf06050, win32con.DT_LEFT)
         lrc = (0, y - 10, self.priceRect[0] - 3, y + 10)
+        self.drawer.fillRect(hdc, lrc, 0)
         self.drawer.drawText(hdc, f"{price :.02f}", lrc, color = 0xf06050, align = win32con.DT_RIGHT | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
     def drawMinites(self, hdc):
@@ -525,7 +528,7 @@ class TimelineWindow(base_win.BaseWindow):
 
     def onSize(self):
         W, H = self.getClientSize()
-        PL, PR = 45, W - 60
+        PL, PR = 65, W - 60
         self.topTipRect = (PL, 0, PR, 40)
         self.bottomTipRect = (PL, H - 35, PR, H)
         self.volRect = (PL, self.bottomTipRect[1] - 160, PR, self.bottomTipRect[1])
