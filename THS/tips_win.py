@@ -1467,7 +1467,7 @@ class BkGnWindow(base_win.BaseWindow):
             x, y = (lParam & 0xffff), (lParam >> 16) & 0xffff
             self.view.onClick(x, y)
             return True
-        elif msg == win32con.WM_MBUTTONUP:
+        elif msg == win32con.WM_RBUTTONUP: # WM_MBUTTONUP
             self.view.onShowSettings()
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
@@ -1486,12 +1486,11 @@ class BkGnWindow(base_win.BaseWindow):
             win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
             
 if __name__ == '__main__':
-    #win = BkGnWindow()
-    #win.createWindow(None)
-    #win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
-    #win.changeCode('688800')
-    #win.changeLastDay(20250102)
-    #win32gui.PumpMessages()
+    win = BkGnWindow()
+    win.createWindow(None)
+    win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
+    win.changeCode('688800')
+    win32gui.PumpMessages()
 
     win = CodeBasicWindow()
     win.createWindow(None)

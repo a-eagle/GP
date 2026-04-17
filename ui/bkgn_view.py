@@ -169,7 +169,8 @@ class BkGnView:
         self.lastDay = None
         self.hotDaysRange = None
         self.richRender = TextRender(self, 17)
-        self.showSimpleMode = True
+        obj, _ = my_orm.MySettings.get_or_create(mainKey = 'BkGnView_showSimpleMode')
+        self.showSimpleMode = True if obj and obj.val == 'true' else False
 
     def onClick(self, x, y):
         sp = None
@@ -241,6 +242,10 @@ class BkGnView:
             self.changeLimitDaysNum()
         elif evt.item['name'] == 'simple':
             self.showSimpleMode = evt.item['checked']
+            obj = my_orm.MySettings.get_or_none(my_orm.MySettings.mainKey == 'BkGnView_showSimpleMode')
+            if obj:
+                obj.val = 'true' if self.showSimpleMode else 'false'
+                obj.save()
             self._buildBkgn()
             win32gui.InvalidateRect(self.hwnd, None, False)
 
