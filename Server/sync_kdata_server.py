@@ -57,23 +57,23 @@ class Client:
 
     def getFromDay(self):
         tdays = ths_iwencai.getTradeDaysInt()
-        fromDay = self.getLocalLatestDay()
-        idx = tdays.index(fromDay)
+        curDay = self.getLocalLatestDay()
+        idx = tdays.index(curDay)
         if idx >= len(tdays) - 1:
-            return None
-        fromDay = tdays[idx + 1]
+            return None, None
+        nextDay = tdays[idx + 1]
         svrDay = self.getServerLatestDay()
-        if fromDay > svrDay:
+        if nextDay > svrDay:
             return None
-        return fromDay
+        return curDay, nextDay
 
     def download(self, fromPage = 0):
-        fromDay = self.getFromDay()
+        curDay, fromDay = self.getFromDay()
         if not fromDay:
             print('[download] kdata not need to download')
             return True
         print('[download] begin...')
-        print(f'  {fromDay} -> {self.getServerLatestDay()}')
+        print(f'  {curDay} -> {self.getServerLatestDay()}')
         count = self.getServerCodesCount()
         pageNum = (count + self.PAGE_SIZE - 1) // self.PAGE_SIZE
         for i in range(fromPage, pageNum):
@@ -163,4 +163,4 @@ if __name__ == '__main__':
         print('Server codes count:', client.getServerCodesCount())
         print('Server lastest day:', client.getServerLatestDay())
         print('Client lastest day:', client.getLocalLatestDay())
-        client.download(fromPage = 28)
+        client.download(fromPage = 46)
