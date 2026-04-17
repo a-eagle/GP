@@ -10,6 +10,11 @@ class Client:
     def __init__(self) -> None:
         self.PAGE_SIZE = 100
 
+    def getLocalLatestDay(self):
+        d = datafile.KLineDownloader()
+        day = d.getLocalLatestDay()
+        return day
+        
     def getServerCodesCount(self):
         resp = requests.get(f'{config.SYNC_KDATA_SERVER_BASE_URL}/getCodesCount')
         js = json.loads(resp.text)
@@ -56,14 +61,13 @@ class Client:
 
     def getFromDay(self):
         tdays = ths_iwencai.getTradeDaysInt()
-        dl = datafile.KLineDownloader()
-        fromDay = dl.getLocalLatestDay()
+        fromDay = self.getLocalLatestDay()
         idx = tdays.index(fromDay)
         if idx >= len(tdays) - 1:
             return None
         fromDay = tdays[idx + 1]
         svrDay = self.getServerLatestDay()
-        if fromDay >= svrDay:
+        if fromDay > svrDay:
             return None
         return fromDay
 
@@ -163,6 +167,7 @@ if __name__ == '__main__':
         svr.start()
     else:
         client = Client()
-        print(client.getServerCodesCount())
-        print(client.getServerLatestDay())
+        print('Server codes count:', client.getServerCodesCount())
+        print('Server lastest day:', client.getServerLatestDay())
+        print('Client lastest day:', client.getLocalLatestDay())
         client.download()

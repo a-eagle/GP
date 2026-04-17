@@ -1090,7 +1090,10 @@ class KLineDownloader:
         for i in range(num):
             it = self.unpack(bs[i * 32 : i * 32 + 32])
             rs.append(it)
-        for i in range(len(rs)):
+        for i in range(len(rs) + 1):
+            if i == len(rs):
+                rs.append(kdata)
+                break
             if rs[i].day < kdata.day:
                 continue
             if rs[i].day == kdata.day:
@@ -1247,14 +1250,22 @@ class KLineDownloader:
         fs.sort(key = lambda k: k)
         return fs
 
+    def trunck(self, code, maxDay):
+        dm = K_DataModel(code)
+        dm.loadLocalData()
+        self.overWrite(code, dm.data, fromDay=None, toDay = maxDay)
+
 if __name__ == '__main__':
-    dld = KLineDownloader()
-    day = dld.getLocalLatestDay()
+    kd = KLineDownloader()
+    day = kd.getLocalLatestDay()
     print(day)
-    print('code num=', len(dld.getLocalCodes()))
+    #print('code num=', len(dld.getLocalCodes()))
 
     #dld.fixAllNetData()
     #dld.fixNetData('601020')
+
+    kd.trunck('000001', 20260403)
+    #kd.mergeWrite('000001', ItemData(day = 20260416, vol = 100, amount = 200, open = 10.5, close = 10.75, low = 9.5, high = 11, rate = 5))
 
     dm = K_DataModel('000001')
     dm.loadLocalData()
@@ -1265,6 +1276,6 @@ if __name__ == '__main__':
         print(dm.data[-i - 1])
     print('-----end----------')
 
-    dld.downloadByDay()
+    #dld.downloadByDay()
     # dld.downloadAll(fromIdx = 382)
     pass
