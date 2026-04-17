@@ -1071,9 +1071,10 @@ class KLineDownloader:
             return False
         tdays = ths_iwencai.getTradeDaysInt()
         path = os.path.join(self.K_PATH, code)
-        fsize = os.path.getsize(path)
+        ex = os.path.exists(path)
+        fsize = os.path.getsize(path) if ex else 0
 
-        if not os.path.exists(path) or (fsize == 0) or (fsize % 32 != 0):
+        if not ex or (fsize == 0) or (fsize % 32 != 0):
             f = open(path, 'wb')
             target = self.pack(kdata)
             f.write(target)

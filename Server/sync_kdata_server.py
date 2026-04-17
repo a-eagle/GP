@@ -67,7 +67,7 @@ class Client:
             return None
         return fromDay
 
-    def download(self):
+    def download(self, fromPage = 0):
         fromDay = self.getFromDay()
         if not fromDay:
             print('[download] kdata not need to download')
@@ -76,7 +76,7 @@ class Client:
         print(f'  {fromDay} -> {self.getServerLatestDay()}')
         count = self.getServerCodesCount()
         pageNum = (count + self.PAGE_SIZE - 1) // self.PAGE_SIZE
-        for i in range(pageNum):
+        for i in range(fromPage, pageNum):
             print('[load page]', i + 1)
             datas = self.getServerKdatas(fromDay, i + 1)
             for item in datas:
@@ -163,4 +163,4 @@ if __name__ == '__main__':
         print('Server codes count:', client.getServerCodesCount())
         print('Server lastest day:', client.getServerLatestDay())
         print('Client lastest day:', client.getLocalLatestDay())
-        client.download()
+        client.download(fromPage = 28)
