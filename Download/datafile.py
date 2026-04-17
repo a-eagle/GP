@@ -1055,29 +1055,54 @@ class KLineDownloader:
             f.write(bs)
         f.close()
 
+    def pack(self, kdata : ItemData):
+        it = struct.pack('L7f', kdata.day, float(kdata.open), float(kdata.close), float(kdata.low),
+                         float(kdata.high), float(kdata.vol), float(kdata.amount), float(kdata.rate))
+        return it
+
+    def unpack(self, bs) -> ItemData:
+        dd = struct.unpack('L7f', bs)
+        it = ItemData(day = dd[0], open = dd[1], close = dd[2], low = dd[3], high = dd[4], vol = dd[5], amount = dd[6], rate = dd[7])
+        return it
+
     def mergeWrite(self, code, kdata : ItemData):
         from download import ths_iwencai
         if not kdata or not kdata.day or not kdata.open or not kdata.close or not kdata.vol:
             return False
         tdays = ths_iwencai.getTradeDaysInt()
         path = os.path.join(self.K_PATH, code)
-        if not os.path.exists(path) or os.path.getsize(path) == 0:
+        fsize = os.path.getsize(path)
+
+        if not os.path.exists(path) or (fsize == 0) or (fsize % 32 != 0):
             f = open(path, 'wb')
-        else:
-            dm = K_DataModel(code)
-            localLastDay = dm.getLocalLatestDay()
-            fi = tdays.index(localLastDay)
-            ni = tdays.index(kdata.day)
-            if fi == ni:
-                f = open(path, 'r+b')
-                f.seek(-32, 2)
-            elif fi + 1 == ni:
-                f = open(path, 'a+b')
+            target = self.pack(kdata)
+            f.write(target)
+            f.close()
+            return True
+
+        idx = tdays.index(kdata.day)
+        num = len(tdays) - idx
+        num = min(num, fsize // 32)
+        f = open(path, 'r+b')
+        f.seek(-num * 32, 2)
+        bs = f.read(num * 32)
+        rs = []
+        for i in range(num):
+            it = self.unpack(bs[i * 32 : i * 32 + 32])
+            rs.append(it)
+        for i in range(len(rs)):
+            if rs[i].day < kdata.day:
+                continue
+            if rs[i].day == kdata.day:
+                rs[i] = kdata
+                break
             else:
-                return False
-        bs = struct.pack('L7f', kdata.day, float(kdata.open), float(kdata.close), float(kdata.low),
-                         float(kdata.high), float(kdata.vol), float(kdata.amount), float(kdata.rate))
-        f.write(bs)
+                rs.insert(i, kdata)
+                break
+        f.seek(-num * 32, 2)
+        for i in range(len(rs)):
+            bs = self.pack(rs[i])
+            f.write(bs)
         f.close()
         return True
 
@@ -1240,6 +1265,6 @@ if __name__ == '__main__':
         print(dm.data[-i - 1])
     print('-----end----------')
 
-    # dld.downloadByDay(20260413, maxPage = None)
+    dld.downloadByDay()
     # dld.downloadAll(fromIdx = 382)
     pass
