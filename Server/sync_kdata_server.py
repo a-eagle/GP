@@ -132,7 +132,7 @@ class Server:
             print('   ', struct.unpack('L7f', bs[32 * bi : 32 * bi + 32]))
 
 if __name__ == '__main__':
-    IS_SERVER = 0
+    IS_SERVER = 1
 
     if IS_SERVER:
         svr = Server()
