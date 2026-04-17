@@ -1,6 +1,7 @@
 import platform
 
 SYNC_DB_SERVER_BASE_URL = 'http://113.44.136.221:8090'
+SYNC_KDATA_SERVER_BASE_URL = 'http://113.44.136.221:8070'
 
 def getProxyUrl(url):
     return url

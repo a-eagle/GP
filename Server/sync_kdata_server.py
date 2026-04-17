@@ -4,30 +4,30 @@ import requests, json, logging
 import peewee as pw, flask, flask_cors
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from download import datafile, ths_iwencai
+from download import datafile, ths_iwencai, config
 
 class Client:
     def __init__(self) -> None:
         self.PAGE_SIZE = 100
 
     def getServerCodesCount(self):
-        resp = requests.get('http://localhost:8070/getCodesCount')
+        resp = requests.get(f'{config.SYNC_KDATA_SERVER_BASE_URL}/getCodesCount')
         js = json.loads(resp.text)
         return js['count']
 
     def getServerLatestDay(self):
-        resp = requests.get('http://localhost:8070/getLatestDay')
+        resp = requests.get(f'{config.SYNC_KDATA_SERVER_BASE_URL}/getLatestDay')
         js = json.loads(resp.text)
         return js['day']
 
     def getServerKdatas(self, fromDay : int, page : int):
-        url = f'http://localhost:8070/getKDatas/{fromDay}/{page}/{self.PAGE_SIZE}'
+        url = f'{config.SYNC_KDATA_SERVER_BASE_URL}/getKDatas/{fromDay}/{page}/{self.PAGE_SIZE}'
         resp = requests.get(url)
         datas = resp.content
         if not datas:
             return
         rs = self.decodeKdatas(datas)
-        print(f'[getServerKdatas] {fromDay} {page}:', rs)
+        # print(f'[getServerKdatas] {fromDay} {page}:')
         return rs
         
     def decodeKdatas(self, bs):
@@ -47,17 +47,34 @@ class Client:
             pi += 32 * cnum
         return rs
 
-    def writeKdatas(self, datas):
-        pass
+    def writeKdata(self, code, num, datas):
+        dl = datafile.KLineDownloader()
+        for i in range(num):
+            dd = struct.unpack_from('L7f', datas, i * 32)
+            item = datafile.ItemData(day = dd[0], open = dd[1], close = dd[2], low = dd[3], high = dd[4], vol = dd[5], amount = dd[6], rate = dd[7])
+            dl.mergeWrite(code, item)
 
-    def download(self, fromDay : int):
+    def download(self, fromDay : int = None):
+        tdays = ths_iwencai.getTradeDaysInt()
+        if not fromDay:
+            dl = datafile.KLineDownloader()
+            fromDay = dl.getLocalLatestDay()
+            idx = tdays.index(fromDay)
+            if idx >= len(tdays) - 1:
+                print('[download] not need to download, fromDay=', fromDay)
+                return
+            fromDay = tdays[idx + 1]
+        if not fromDay or (fromDay not in tdays):
+            print('[download] invalid fromDay', fromDay)
+            return
         print('[download] begin...')
         count = self.getServerCodesCount()
         pageNum = (count + self.PAGE_SIZE - 1) // self.PAGE_SIZE
         for i in range(pageNum):
             print('[load page]', i + 1)
             datas = self.getServerKdatas(fromDay, i + 1)
-            self.writeKdatas(datas)
+            for item in datas:
+                self.writeKdata(item['code'], item['kdata-num'], item['kdatas'])
         print('[download] end')
 
 class Server:
@@ -132,13 +149,13 @@ class Server:
             print('   ', struct.unpack('L7f', bs[32 * bi : 32 * bi + 32]))
 
 if __name__ == '__main__':
-    IS_SERVER = 1
+    IS_SERVER = config.isServerMachine()
 
     if IS_SERVER:
         svr = Server()
         svr.start()
     else:
         client = Client()
-        # print(client.getServerCodesCount())
-        # print(client.getServerLatestDay())
-        client.getServerKdatas(20260407, 1)
+        print(client.getServerCodesCount())
+        print(client.getServerLatestDay())
+        client.download()

@@ -1220,18 +1220,18 @@ class KLineDownloader:
 
 if __name__ == '__main__':
     dld = KLineDownloader()
-    day = dld.getLocalLatestDay()
-    print(day)
+    #day = dld.getLocalLatestDay()
+    #print(day)
 
     #dld.fixAllNetData()
     #dld.fixNetData('601020')
 
-    dm = K_DataModel('603933')
+    dm = K_DataModel('000001')
     dm.loadLocalData()
-    for i in range(5):
-        print(dm.data[i])
-    print('--------')
-    for i in range(5):
+    # for i in range(5):
+    #     print(dm.data[i])
+    # print('--------')
+    for i in range(6):
         print(dm.data[-i - 1])
     print('-----end----------')
 
