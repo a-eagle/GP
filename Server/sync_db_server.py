@@ -20,8 +20,9 @@ class Server:
         LOG_FILE_NAME = 'server.log'
         path = __file__[0 : __file__.upper().index('GP') + 2]
         path = os.path.join(path, LOG_FILE_NAME)
+        self.logFile = None
         # if os.path.exists(LOG_FILE_NAME):
-        # self.logFile = open(path, 'a', encoding = 'utf-8')
+        #   self.logFile = open(path, 'a', encoding = 'utf-8')
 
     def check(self):
         pass
