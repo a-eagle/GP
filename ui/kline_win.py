@@ -1525,22 +1525,33 @@ class KLineWindow(base_win.BaseWindow):
             return
         if code[0 : 3] == '399':
             return
+        # 3天之内不更新
+        def checkNeedLoad(updateTime):
+            delta : datetime.timedelta = datetime.datetime.now() - cutils.updateTimeToDateTime(updateTime)
+            return delta.days > 3
+
         obj : cls_orm.CLS_GNTC = cls_orm.CLS_GNTC.get_or_none(code = code)
-        if obj and obj.updateTime:
-            delta = datetime.date.today() - cutils.updateTimeToDateTime(obj.updateTime).date()
-            if delta.days <= 3:
-                return
+        if obj and obj.updateTime and (not checkNeedLoad(obj.updateTime)):
+            return
+        record = d_orm.ClsGnLoadTime.get_or_none(code = code)
+        if record and (not checkNeedLoad(record.updateTime)):
+            return
         info = cls.ClsUrl().loadBkGnOfCode(code)
         if not obj:
             info.save()
-        else:
-            diffrents = obj.diff(info, excludeAttrNames = ['updateTime'])
+            return
+        diffrents = obj.diff(info, excludeAttrNames = ['updateTime'])
+        if diffrents:
             obj.updateTime = cutils.nowTimeInt()
-            obj.save() # always update time
-            if diffrents:
-                rs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
-                if rs:
-                    d_orm.DiffBkGnModel.bulk_create(rs, 100)
+            obj.save()
+            rs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
+            if rs:
+                d_orm.DiffBkGnModel.bulk_create(rs, 100)
+        else:
+            # record only
+            obj, _ = d_orm.ClsGnLoadTime.get_or_create(code = code)
+            obj.updateTime = cutils.nowTimeInt()
+            obj.save()
         # self.bkgnView.changeCode(code, True)
 
     def onContextMenu(self, x, y):
@@ -1902,31 +1913,75 @@ class CodeWindow(BaseWindow):
         klineWin.addNamedListener('range-selector-changed', self.onRangeSelectorChanged)
         self.V_CENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER
 
+    def _getLtsz(self):
+        if not self.basicData:
+            return ''
+        if '流通市值' in self.basicData:
+            return (str(int(self.basicData.get('流通市值', 0) / 100000000)) or '--') + ' 亿'
+        if not self.selData:
+            return ''
+        if 'ltag' in self.basicData and self.basicData['ltag']:
+            val = int(self.selData.close * self.basicData['ltag'] / 100000000)
+            return str(val) + ' 亿'
+        return ''
+
+    def _getZsz(self):
+        if not self.basicData:
+            return ''
+        if '总市值' in self.basicData:
+            return (str(int(self.basicData.get('总市值', 0) / 100000000)) or '--') + ' 亿'
+        if not self.selData:
+            return ''
+        if 'zgb' in self.basicData and self.basicData['zgb']:
+            val = int(self.selData.close * self.basicData['zgb'] / 100000000)
+            return str(val) + ' 亿'
+        return ''
+
+    def _getPe(self):
+        if not self.basicData:
+            return '', False
+        if '市盈率_静' in self.basicData:
+            rz = int(self.basicData.get('市盈率_静', 0) or 0)
+            return str(rz or '--'), rz >= 0
+        if 'pe' in self.basicData and self.basicData['pe']:
+            pe = self.basicData['pe']
+            if abs(pe) > 1: spe = str(int(pe))
+            else: spe = f'{pe : .2f}'
+            return spe, pe >= 0
+        return '', False
+
+    def _getPeTtm(self):
+        if not self.basicData:
+            return ''
+        if '市盈率_TTM' in self.basicData:
+            rz = int(self.basicData.get('市盈率_TTM', 0) or 0)
+            return str(rz or '--'), rz >= 0
+        if 'peTTM' in self.basicData and self.basicData['peTTM']:
+            pe = self.basicData['peTTM']
+            if abs(pe) > 1: spe = str(int(pe))
+            else: spe = f'{pe : .2f}'
+            return spe, pe >= 0
+        return '', False
+
     def onDrawBasic(self, hdc, RH, W, LEFT_X, RIGHT_X, y):
         y += 40
         self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
         y += 3
         self.drawer.drawText(hdc, '流通市值', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
-        if self.basicData:
-            val = (str(int(self.basicData.get('流通市值', 0) / 100000000)) or '--') + ' 亿'
-            self.drawer.drawText(hdc, val, (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        self.drawer.drawText(hdc, self._getLtsz(), (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         y += RH
         self.drawer.drawText(hdc, '总市值', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
-        if self.basicData:
-            val = (str(int(self.basicData.get('总市值', 0) / 100000000)) or '--') + ' 亿'
-            self.drawer.drawText(hdc, val, (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
+        self.drawer.drawText(hdc, self._getZsz(), (RIGHT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
         y += RH
         self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
         y += 3
         self.drawer.drawText(hdc, '市盈率_静', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
-        if self.basicData:
-            rz = int(self.basicData.get('市盈率_静', 0) or 0)
-            self.drawer.drawText(hdc, str(rz or '--'), (RIGHT_X + 10, y, W, y + RH), (0xcccccc if rz >= 0 else 0x00ff00), self.V_CENTER)
+        pe, flag = self._getPe()
+        self.drawer.drawText(hdc, pe, (RIGHT_X + 10, y, W, y + RH), (0xcccccc if flag else 0x00ff00), self.V_CENTER)
         y += RH
         self.drawer.drawText(hdc, '市盈率_TTM', (LEFT_X, y, W, y + RH), 0xcccccc, self.V_CENTER)
-        if self.basicData:
-            rz = int(self.basicData.get('市盈率_TTM', 0) or 0)
-            self.drawer.drawText(hdc, str(rz or '--'), (RIGHT_X + 10, y, W, y + RH), (0xcccccc if rz >= 0 else 0x00ff00), self.V_CENTER)
+        peTtm, flag = self._getPeTtm()
+        self.drawer.drawText(hdc, peTtm, (RIGHT_X + 10, y, W, y + RH), (0xcccccc if flag else 0x00ff00), self.V_CENTER)
         y += RH
         self.drawer.drawLine(hdc, 5, y, W - 5, y, 0x606060)
         y += 3
@@ -2078,12 +2133,12 @@ class CodeWindow(BaseWindow):
             obj = ths_orm.THS_ZS.get_or_none(ths_orm.THS_ZS.code == code)
             if obj : self.basicData = obj.__data__
         else:
-            obj = ths_orm.THS_CodesBasic.get_or_none(ths_orm.THS_ZS.code == code)
-            if obj: 
+            obj = ths_orm.THS_CodesBasic.get_or_none(ths_orm.THS_CodesBasic.code == code)
+            if obj:
                 self.basicData = obj.__data__
             else:
                 url = cls.ClsUrl()
-                self.basicData = url.loadBasic(code)
+                # self.basicData = url.loadBasic(code)
         self.invalidWindow()
 
     def changeCode(self, code):
@@ -2265,7 +2320,7 @@ class KLineCodeWindow(base_win.BaseWindow):
 
 if __name__ == '__main__':
     import kline_utils
-    CODE = '300058' #      1B0688 002202  600172
+    CODE = '002792' #      1B0688 002202  600172
     win = kline_utils.createKLineWindowByCode(CODE) #, None, (800, 0, 600, 700))
     win.changeCode(CODE)
     win.setCodeList([CODE, '002792', '002149', '002565', '301079', '300058', '688523'])

@@ -70,7 +70,11 @@ def createDiffBkGn(code, name, diffrents):
             rs.append(it)
     return rs
 
-base_orm.db_mysql.create_tables([ZT_PanKou, HotVol, LocalSpeedModel, DiffBkGnModel])
+class ClsGnLoadTime(base_orm.NeedSyncModel):
+    keys = ('code', )
+    code = pw.CharField()
+
+base_orm.db_mysql.create_tables([ZT_PanKou, HotVol, LocalSpeedModel, DiffBkGnModel, ClsGnLoadTime])
 
 if __name__ == '__main__':
     pass
