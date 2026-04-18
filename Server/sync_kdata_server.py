@@ -50,10 +50,12 @@ class Client:
 
     def writeKdata(self, code, num, datas):
         dl = datafile.KLineDownloader()
+        rs = []
         for i in range(num):
             dd = struct.unpack_from('L7f', datas, i * 32)
             item = datafile.ItemData(day = dd[0], open = dd[1], close = dd[2], low = dd[3], high = dd[4], vol = dd[5], amount = dd[6], rate = dd[7])
-            dl.mergeWrite(code, item)
+            rs.append(item)
+        dl.mergeWrite(code, rs)
 
     def getFromDay(self):
         tdays = ths_iwencai.getTradeDaysInt()
@@ -93,6 +95,8 @@ class Server:
         flask_cors.CORS(self.app)
 
     def start(self):
+        self.thread = threading.Thread(target = self._run, args=(self,), name='SyncKdataServer', daemon = True)
+        self.thread.start()
         self.app.add_url_rule('/getLatestDay', view_func = self.getLatestDay, methods = ['GET', 'POST'])
         self.app.add_url_rule('/getCodesCount', view_func = self.getCodesCount, methods = ['GET', 'POST'])
         self.app.add_url_rule('/getKDatas/<fromDay>/<page>/<pageSize>', view_func = self.getKDatas, methods = ['GET', 'POST'])
@@ -152,6 +156,29 @@ class Server:
         for bi in range(fi, numDays):
             buf.extend(bs[32 * bi : 32 * bi + 32])
 
+    def downloadKLine():
+        kd = datafile.KLineDownloader()
+        lastDay = kd.getLocalLatestDay()
+        tdays = ths_iwencai.getTradeDaysInt()
+        idx = tdays.index(lastDay) + 1
+        if idx >= len(tdays):
+            return True
+        print('local cur day=', lastDay, 'trade last day=', tdays[-1])
+        print('begin download kdata...')
+        for i in range(idx, len(tdays)):
+            ok = kd.downloadByDay(tdays[i])
+            if not ok:
+                break
+        print('download ', ('success' if ok else 'fail'), '\n')
+        return ok
+
+    def _run(self):
+        from download import tdx
+        klineTry = tdx.Try('15:05', 3, self.downloadKLine, intervalTime = 600, userNoInputTime = 0, ignoreDay = 20260414)
+        while True:
+            klineTry.check()
+            time.sleep(60)
+
 if __name__ == '__main__':
     IS_SERVER = config.isServerMachine()
 
@@ -163,4 +190,4 @@ if __name__ == '__main__':
         print('Server codes count:', client.getServerCodesCount())
         print('Server lastest day:', client.getServerLatestDay())
         print('Client lastest day:', client.getLocalLatestDay())
-        client.download(fromPage = 46)
+        client.download(fromPage = 0)

@@ -1065,32 +1065,32 @@ class KLineDownloader:
         it = ItemData(day = dd[0], open = dd[1], close = dd[2], low = dd[3], high = dd[4], vol = dd[5], amount = dd[6], rate = dd[7])
         return it
 
-    def mergeWrite(self, code, kdata : ItemData):
-        from download import ths_iwencai
-        if not kdata or not kdata.day or not kdata.open or not kdata.close or not kdata.vol:
+    # kdata = ItemData | list[ItemData]
+    def mergeWrite(self, code, kdata):
+        if not kdata:
             return False
-        tdays = ths_iwencai.getTradeDaysInt()
+        if isinstance(kdata, ItemData):
+            kdata = [kdata]
+        kdata = [k for k in kdata if (k.day and k.open and k.close and k.vol)]
+        kdata.sort(key = lambda k: k.day)
+        if not kdata:
+            return False
+        
         path = os.path.join(self.K_PATH, code)
         ex = os.path.exists(path)
         fsize = os.path.getsize(path) if ex else 0
 
-        if not ex or (fsize == 0) or (fsize % 32 != 0):
+        # trunck file write
+        if (not ex) or (fsize == 0) or (fsize % 32 != 0):
             f = open(path, 'wb')
             target = self.pack(kdata)
             f.write(target)
             f.close()
             return True
-
-        idx = tdays.index(kdata.day)
-        num = len(tdays) - idx
-        num = min(num, fsize // 32)
-        f = open(path, 'r+b')
-        f.seek(-num * 32, 2)
-        bs = f.read(num * 32)
-        rs = []
-        for i in range(num):
-            it = self.unpack(bs[i * 32 : i * 32 + 32])
-            rs.append(it)
+        self._mergeWrite(path, fsize, kdata)
+        return True
+    
+    def _mergeKdata(self, rs, kdata):
         for i in range(len(rs) + 1):
             if i == len(rs):
                 rs.append(kdata)
@@ -1103,6 +1103,22 @@ class KLineDownloader:
             else:
                 rs.insert(i, kdata)
                 break
+    
+    def _mergeWrite(self, path, fsize, kdatas : list):
+        from download import ths_iwencai
+        tdays = ths_iwencai.getTradeDaysInt()
+        idx = tdays.index(kdatas[0].day)
+        num = len(tdays) - idx
+        num = min(num, fsize // 32)
+        f = open(path, 'r+b')
+        f.seek(-num * 32, 2)
+        bs = f.read(num * 32)
+        rs = []
+        for i in range(num):
+            it = self.unpack(bs[i * 32 : i * 32 + 32])
+            rs.append(it)
+        for k in kdatas:
+            self._mergeKdata(rs, k)
         f.seek(-num * 32, 2)
         for i in range(len(rs)):
             bs = self.pack(rs[i])
@@ -1241,16 +1257,19 @@ class KLineDownloader:
 
     def getLocalCodes(self):
         def isCode(code):
+            if len(code) != 6:
+                return False
             if code in ('399001', '399006', '999999'):
                 return True
             if code[0 : 3] == '399':
                 return False
-            return (len(code) == 6 and code[0] in '036')
+            return code[0] in '036'
         fs = os.listdir(KLineDownloader.K_PATH)
         fs = [f for f in fs if isCode(f)]
         fs.sort(key = lambda k: k)
         return fs
 
+    # maxDay: trunck include maxDay
     def trunck(self, code, maxDay):
         dm = K_DataModel(code)
         dm.loadLocalData()
@@ -1258,25 +1277,30 @@ class KLineDownloader:
 
 if __name__ == '__main__':
     kd = KLineDownloader()
-    day = kd.getLocalLatestDay()
-    print(day)
-    #print('code num=', len(dld.getLocalCodes()))
+    print('last day=', kd.getLocalLatestDay())
+    print('code num=', len(kd.getLocalCodes()))
 
-    #dld.fixAllNetData()
-    #dld.fixNetData('601020')
+    #kd.fixAllNetData()
+    #kd.fixNetData('601020')
 
-    kd.trunck('000001', 20260403)
-    #kd.mergeWrite('000001', ItemData(day = 20260416, vol = 100, amount = 200, open = 10.5, close = 10.75, low = 9.5, high = 11, rate = 5))
+    # kd.trunck('000001', 20260403)
+    kdatas = [
+        ItemData(day = 20260417, vol = 117, amount = 100, open = 1, close = 2, low = 3, high = 4, rate = 5),
+        ItemData(day = 20260413, vol = 9113, amount = 100, open = 1, close = 2, low = 3, high = 4, rate = 5),
+        ItemData(day = 20260416, vol = 116, amount = 100, open = 1, close = 2, low = 3, high = 4, rate = 5),
+        ItemData(day = 20260401, vol = 101, amount = 100, open = 1, close = 2, low = 3, high = 4, rate = 5),
+    ]
+    # kd.mergeWrite('000001', kdatas)
 
     dm = K_DataModel('000001')
     dm.loadLocalData()
     # for i in range(5):
     #     print(dm.data[i])
     # print('--------')
-    for i in range(6):
+    for i in range(8):
         print(dm.data[-i - 1])
     print('-----end----------')
 
-    #dld.downloadByDay()
-    # dld.downloadAll(fromIdx = 382)
+    #kd.downloadByDay()
+    # kd.downloadAll(fromIdx = 382)
     pass
