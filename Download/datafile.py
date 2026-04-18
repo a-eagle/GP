@@ -409,17 +409,24 @@ class K_DataModel(DataModel):
         return True
 
     def getLocalLatestDay(self):
+        item = self.getLocalLatestItemData()
+        if not item:
+            return None
+        return item.day
+
+    def getLocalLatestItemData(self):
         path = self.getLocalPath()
         if not self.isLocalFileValid():
-            print('[KDataModel.getLocalLatestDay] invalid file size ', self.code, path)
+            print('[KDataModel.getLocalLatestItemData] invalid file size ', self.code, path)
             return None
         RL = 32
         f = open(path, 'rb')
         n = f.seek(-RL, 2)
         bs = f.read(RL)
         f.close()
-        day, *_ = struct.unpack('L7f', bs)
-        return day
+        dd = struct.unpack('L7f', bs)
+        it = ItemData(day = dd[0], open = dd[1], close = dd[2], low = dd[3], high = dd[4], vol = dd[5], amount = dd[6], rate = dd[7])
+        return it
 
 class Tdx_K_DataModel(K_DataModel):
     def __init__(self, code):

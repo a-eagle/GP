@@ -5,7 +5,7 @@ import peewee as pw
 import types
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from download import datafile, henxin, cls, ths_iwencai
+from download import datafile, henxin, cls, ths_iwencai, memcache
 from utils import hot_utils
 from ui import bkgn_view, dialog, base_win, kline_utils
 from orm import d_orm, my_orm, ths_orm, cls_orm
@@ -1076,7 +1076,6 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         super().__init__()
         self.curCode = None
         self.data = None
-        self.cacheData = {}
         self.css['bgColor'] = 0x050505
         self.css['borderColor'] = 0x22dddd
         self.css['enableBorder'] = True
@@ -1140,7 +1139,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
 
         rc = (LW // 2 + PD, y1, LW - LR, y1 + 20)
         self.drawer.drawText(hdc, '市盈_静', rc, 0xcccccc, align=win32con.DT_LEFT)
-        v = self.data['pe']
+        v = self.data.get('pe', None)
         if v == None:
             cs1 = '--'
         else:
@@ -1148,7 +1147,7 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         self.drawer.drawText(hdc, cs1, rc, 0xF4E202, align=win32con.DT_RIGHT)
         rc = (LW // 2 + PD, y2, LW - LR, y2 + 20)
         self.drawer.drawText(hdc, '市盈_TTM', rc, 0xcccccc, align=win32con.DT_LEFT)
-        v = self.data["peTTM"]
+        v = self.data.get("peTTM", None)
         if v == None:
             cs1 = '--'
         else:
@@ -1193,19 +1192,40 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         if obj:
             self.data = obj.__data__
         if not self.data:
+            obj = ths_orm.THS_CodesBasic.get_or_none(ths_orm.THS_CodesBasic.code == code)
+            if obj: self.data = obj.__data__
+            return
+        if not self.data:
             return
         # update cls basic info
-        cache = self.cacheData.get(code, None)
-        needLoad = True
-        if cache:
-            needLoad = False
-            diff : datetime.timedelta = datetime.datetime.now() - cache['updateTime']
-            if diff.seconds > 24 * 60 * 60: # one day
-                needLoad = True
-        if needLoad:
-            base_win.ThreadPool.instance().addTask(code + '-cls-basic', self._loadClsCodeBasic, code, self.data)
+        cache = memcache.cache.getCache(f'code-basic-{code}')
+        # func = self._loadClsCodeBasic
+        func = self._loadThsCodeBasic
+        if not cache:
+            base_win.ThreadPool.instance().addTask(f'code-basic-{code}', func, code, self.data)
         else:
             self.data.update(cache)
+        self.invalidWindow()
+
+    def _loadThsCodeBasic(self, code, data):
+        if 'zgb' not in data:
+            obj = ths_orm.THS_CodesBasic.get_or_none(ths_orm.THS_CodesBasic.code == code)
+            if obj: data.update(obj.__data__)
+        if 'zgb' not in data:
+            return
+        if not data['ltag'] and not data['zgb']:
+            return
+        dm = datafile.K_DataModel(code)
+        last = dm.getLocalLatestItemData()
+        if not last:
+            return
+        price = last.close
+        now = {
+            'ltsz': price * data['ltag'] if data['ltag'] else None,
+            'zsz': price * data['zgb']  if data['zgb'] else None
+        }
+        data.update(now)
+        memcache.cache.saveCache(f'cls-code-basic-{code}', now, 12 * 60 * 60)
         self.invalidWindow()
 
     def _loadClsCodeBasic(self, code, data):
@@ -1213,14 +1233,14 @@ class CodeBasicWindow(base_win.NoActivePopupWindow):
         rs = url.loadBasic(code)
         if not rs:
             return
-        now = self.cacheData[code] = {
+        now = {
             'ltsz': rs['流通市值'],
             'zsz': rs['总市值'],
             'pe' :rs['市盈率_静'],
             'peTTM': rs['市盈率_TTM'],
-            'updateTime': datetime.datetime.now()
         }
         data.update(now)
+        memcache.cache.saveCache(f'cls-code-basic-{code}', now, 12 * 60 * 60)
         self.invalidWindow()
         
     def changeCode(self, code):
@@ -1486,11 +1506,12 @@ class BkGnWindow(base_win.BaseWindow):
             win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
             
 if __name__ == '__main__':
-    win = BkGnWindow()
-    win.createWindow(None)
-    win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
-    win.changeCode('688800')
-    win32gui.PumpMessages()
+    if False:
+        win = BkGnWindow()
+        win.createWindow(None)
+        win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)
+        win.changeCode('688800')
+        win32gui.PumpMessages()
 
     win = CodeBasicWindow()
     win.createWindow(None)
