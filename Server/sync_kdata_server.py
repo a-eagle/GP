@@ -95,7 +95,7 @@ class Server:
         flask_cors.CORS(self.app)
 
     def start(self):
-        self.thread = threading.Thread(target = self._run, args=None, name='SyncKdataServer', daemon = True)
+        self.thread = threading.Thread(target = self._run, name='SyncKdataServer', daemon = True)
         self.thread.start()
         self.app.add_url_rule('/getLatestDay', view_func = self.getLatestDay, methods = ['GET', 'POST'])
         self.app.add_url_rule('/getCodesCount', view_func = self.getCodesCount, methods = ['GET', 'POST'])
