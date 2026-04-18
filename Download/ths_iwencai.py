@@ -765,6 +765,50 @@ def isTradeDay():
     today = datetime.date.today().strftime('%Y%m%d')
     return lastDay == today
 
+#  个股股本信息，PE peTTM
+def downloadCodesBasic():
+    datas = iwencai_load_list('流通股本，总股本，流通市值，总市值，市盈利(pe)，市盈利(ttm)', maxPage = None)
+    rs = []
+    for row in datas:
+        col = ThsColumns(row)
+        item = ths_orm.THS_CodesBasic(
+            code = col.getColumnValue('code', str),
+            name = col.getColumnValue('股票简称', str),
+            zgb = col.getColumnValue('总股本', int, defaultVal=None),
+            ltag = col.getColumnValue('流通a股', int, defaultVal=None),
+            pe = col.getColumnValue('市盈率(pe)', float, defaultVal=None),
+            peTTM = col.getColumnValue('市盈率(pe,ttm)', float, defaultVal=None),
+            # price = col.getColumnValue('最新价', float),
+            # zsz = col.getColumnValue('总市值', float),
+            # ltsz = col.getColumnValue('a股市值(不含限售股)', float),
+        )
+        if item.pe != None:
+            item.pe = int(item.pe * 10 + 0.5) / 10
+        if item.peTTM != None:
+            item.peTTM = int(item.peTTM * 10 + 0.5) / 10
+        rs.append(item)
+    return rs
+
+def saveCodesBasic(datas):
+    ATTRS = ['name', 'zgb', 'ltag', 'pe', 'peTTM']
+    locals = {}
+    q = ths_orm.THS_CodesBasic.select()
+    for it in q:
+        locals[it.code] = it
+    inserts, updates = [], []
+    for d in datas:
+        if d.code not in locals:
+            inserts.append(d)
+        else:
+            old = locals[d.code]
+            ds = old.diff(d, attrNames = ATTRS)
+            if ds:
+                updates.append(old)
+                old.updateTime = cutils.nowTimeInt()
+    ths_orm.THS_CodesBasic.bulk_create(inserts, 100)
+    ths_orm.THS_CodesBasic.bulk_update(updates, [*ATTRS, 'updateTime'], batch_size = 100)
+    return len(inserts), len(updates)
+
 if __name__ == '__main__':
     from orm import ths_orm
     # ds = download_codes(20250401)
@@ -780,6 +824,9 @@ if __name__ == '__main__':
     # print(rs)
     # hy = HygnDownloader()
     # hy.checkGnMatch()
-    datas = download_zs_zd()
-    save_zs_zd(datas)
+    # datas = download_zs_zd()
+    # save_zs_zd(datas)
+    
+    # codes = downloadCodesBasic()
+    # saveCodesBasic(codes)
     

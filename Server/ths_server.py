@@ -276,6 +276,7 @@ class Server:
     def loadOneTime(self):
         now = datetime.datetime.now()
         day = now.strftime('%Y%m%d')
+        month = now.strftime('%Y%m')
         fday = now.strftime('%Y-%m-%d')
         if not self.acceptDay(now):
             return
@@ -307,20 +308,10 @@ class Server:
         # 下载个股板块概念信息
         if (curTime >= '22:00') and not self.downloadInfos.get(f'hygn-{day}', False):
             self.downloadInfos[f'hygn-{day}'] = True
-            if now.weekday() in (1, 3, 5): # 每周1, 3, 5
+            if now.weekday() in (1, 3): # 每周2, 4
                 self.download_hygn('[4/7]')
             # else:
                 # console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn] skip, only week 2 download')
-            time.sleep(60)
-        # 下载个股PeTTM
-        if (curTime >= '20:00') and not self.downloadInfos.get(f'hygn_ttm-{day}', False):
-            if now.weekday() == 2: # 每周三
-                # ok = self.download_hygn_ttm('[4/7]')
-                # self.downloadInfos[f'hygn_ttm-{day}'] = ok
-                pass
-            else:
-                self.downloadInfos[f'hygn_ttm-{day}'] = True
-                # console.writeln_1(console.GREEN, f'[4/6] [THS-HyGn-PeTtm] skip, no download anymore') # only week 3 download
             time.sleep(60)
         # 下载个股跌停
         if (curTime >= '22:00') and not self.downloadInfos.get(f'dt-{day}', False):
@@ -334,15 +325,17 @@ class Server:
             console.writeln_1(console.GREEN, f'[6/7] [THS-ZT] {self.formatNowTime(True)}  {ok}')
             time.sleep(60)
         #下载营收、净利润
-        if (curTime >= '22:00') and not self.downloadInfos.get(f'jrl-{day}', False):
+        if (curTime >= '22:00') and not self.downloadInfos.get(f'jrl-{month}', False):
+            self.downloadInfos[f'jrl-{month}'] = True # 每月
+            self.download_jrl('[7/7] THS-Jrl-年度', True)
+            self.download_jrl('[7/7] THS-Jrl-季度', False)
+        #下载股本信息
+        if (curTime >= '22:00') and not self.downloadInfos.get(f'basic-{day}', False):
             self.downloadInfos[f'jrl-{day}'] = True
-            # accept = not self.downloadInfos.get(f'jrl-month-{day[0 : 6]}', False)
-            # self.downloadInfos[f'jrl-month-{day[0 : 6]}'] = True
-            if now.weekday() == 3: # 每周四
-                self.download_jrl('[7/7] THS-Jrl-年度', True)
-                self.download_jrl('[7/7] THS-Jrl-季度', False)
-            else:
-                console.writeln_1(console.GREEN, f'[7/7] [THS-Jrl] skip, only week 4 download')
+            if now.weekday() == 2: # 每周3
+                cs = ths_iwencai.downloadCodesBasic()
+                i, u = ths_iwencai.saveCodesBasic(cs)
+                console.writeln_1(console.GREEN, f'[8/8] 股本 insert={i} updates={u} {self.formatNowTime(True)} ')
 
     def loadHotsOneTime(self):
         now = datetime.datetime.now()

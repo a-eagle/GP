@@ -17,13 +17,6 @@ class THS_GNTC(base_orm.NeedSyncModel):
     hy_2_code = pw.CharField(null=True, max_length = 120) # 二级行业代码
     hy_3_name = pw.CharField(null=True, max_length = 120) # 三级行业名称
     hy_3_code = pw.CharField(null=True, max_length = 120) # 三级行业代码
-    zgb = pw.FloatField(null=True) # 总股本 股
-    ltag = pw.FloatField(null=True) # 流通a股 股
-    xsg = pw.FloatField(null=True) # 限售股 股
-    ltsz = pw.FloatField(null=True) # 流通市值
-    zsz = pw.FloatField(null=True) #  总市值
-    pe = pw.FloatField(null=True) # 静态市盈率
-    peTTM = pw.FloatField(null=True) # 市盈率(pe,ttm)
 
 # 同花顺--个股热度排名
 class THS_Hot(base_orm.NeedSyncModel):
@@ -116,7 +109,17 @@ class THS_CodesInfo(base_orm.NeedSyncModel):
     jrl_2 = pw.CharField(null = True, max_length=512) # 近4季度净利润
     yysr = pw.CharField(null = True, max_length=512) # 近4年营业收入
 
-base_orm.db_mysql.create_tables([THS_Hot, THS_HotZH, THS_ZS, THS_ZS_ZD, THS_GNTC, THS_ZT, THS_CodesInfo])
+class THS_CodesBasic(base_orm.NeedSyncModel):
+    keys = ('code', )
+    code = pw.CharField(max_length = 12) #股票代码
+    name = pw.CharField(max_length = 64, null = True, default = '') #股票名称
+    zgb = pw.BigIntegerField(null=True, default = None) # 总股本 股
+    ltag = pw.BigIntegerField(null=True, default = None) # 流通a股 股
+    pe = pw.FloatField(null=True, default = None) # 静态市盈率
+    peTTM = pw.FloatField(null=True, default = None) # 市盈率(pe,ttm)
+
+base_orm.db_mysql.create_tables([THS_Hot, THS_HotZH, THS_ZS, THS_ZS_ZD, 
+    THS_GNTC, THS_ZT, THS_CodesInfo, THS_CodesBasic])
 
 if __name__ == '__main__':
     pass
