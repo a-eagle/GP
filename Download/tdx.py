@@ -272,7 +272,10 @@ class Try:
         now = datetime.datetime.now()
         today = int(now.strftime('%Y%m%d'))
         stime = now.strftime(('%H:%M'))
-        if stime < self.startTime:
+        if type(self.startTime) == str and stime < self.startTime:
+            self.reset()
+            return False
+        if callable(self.startTime) and not self.startTime():
             self.reset()
             return False
         if today == self.ignoreDay:

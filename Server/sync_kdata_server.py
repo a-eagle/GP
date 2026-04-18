@@ -30,7 +30,7 @@ class Client:
         resp = requests.get(url)
         datas = resp.content
         if not datas:
-            return
+            return None
         rs = self.decodeKdatas(datas)
         return rs
         
@@ -78,13 +78,30 @@ class Client:
         print(f'  {curDay} -> {self.getServerLatestDay()}')
         count = self.getServerCodesCount()
         pageNum = (count + self.PAGE_SIZE - 1) // self.PAGE_SIZE
+        flag = True
         for i in range(fromPage, pageNum):
             print('[load page]', i + 1)
             datas = self.getServerKdatas(fromDay, i + 1)
+            if not datas:
+                flag = False
+                break
             for item in datas:
                 self.writeKdata(item['code'], item['kdata-num'], item['kdatas'])
         print('[download] end')
-        return True
+        return flag
+
+    def start(self):
+        from download import tdx
+        def acceptTime():
+            nowTime = datetime.datetime.now().strftime("%H:%M")
+            if not (nowTime >= '15:00' and nowTime <= '15:30'): # 服务器下数据时间
+                return True
+            return ths_iwencai.isTradeDay()
+
+        klineTry = tdx.Try(acceptTime, 3, self.download, intervalTime = 30 * 60, userNoInputTime = 0, ignoreDay = 0)
+        while True:
+            klineTry.check()
+            time.sleep(60)
 
 class Server:
     def __init__(self) -> None:
@@ -95,12 +112,28 @@ class Server:
         flask_cors.CORS(self.app)
 
     def start(self):
+        self.unlockWrite()
         self.thread = threading.Thread(target = self._run, name='SyncKdataServer', daemon = True)
         self.thread.start()
         self.app.add_url_rule('/getLatestDay', view_func = self.getLatestDay, methods = ['GET', 'POST'])
         self.app.add_url_rule('/getCodesCount', view_func = self.getCodesCount, methods = ['GET', 'POST'])
         self.app.add_url_rule('/getKDatas/<fromDay>/<page>/<pageSize>', view_func = self.getKDatas, methods = ['GET', 'POST'])
         self.app.run('0.0.0.0', 8070, use_reloader = False, debug = False)
+
+    def lockWrite(self):
+        path = os.path.join(datafile.PathManager.NET_LDAY_PATH, 'write.lock')
+        if not os.path.exists(path):
+            f = open(path, 'w')
+            f.close()
+    
+    def unlockWrite(self):
+        path = os.path.join(datafile.PathManager.NET_LDAY_PATH, 'write.lock')
+        if os.path.exists(path):
+            os.remove(path)
+
+    def isLockWrite(self):
+        path = os.path.join(datafile.PathManager.NET_LDAY_PATH, 'write.lock')
+        return os.path.exists(path)
 
     def getLatestDay(self):
         d = datafile.KLineDownloader()
@@ -130,6 +163,9 @@ class Server:
         fs = fs[(page - 1) * pageSize : page * pageSize]
         buf.extend(struct.pack('L', len(fs)))
         for i, code in enumerate(fs):
+            if self.isLockWrite():
+                buf = b''
+                break
             self.readKdata(code, fromDay, numDays, buf)
         return flask.Response(bytes(buf), mimetype = 'application/octet-stream')
 
@@ -156,13 +192,14 @@ class Server:
         for bi in range(fi, numDays):
             buf.extend(bs[32 * bi : 32 * bi + 32])
 
-    def downloadKLine():
+    def downloadKLine(self):
         kd = datafile.KLineDownloader()
         lastDay = kd.getLocalLatestDay()
         tdays = ths_iwencai.getTradeDaysInt()
         idx = tdays.index(lastDay) + 1
         if idx >= len(tdays):
             return True
+        self.lockWrite()
         print('local cur day=', lastDay, 'trade last day=', tdays[-1])
         print('begin download kdata...')
         for i in range(idx, len(tdays)):
@@ -170,6 +207,7 @@ class Server:
             if not ok:
                 break
         print('download ', ('success' if ok else 'fail'), '\n')
+        self.unlockWrite()
         return ok
 
     def _run(self):
@@ -190,4 +228,4 @@ if __name__ == '__main__':
         print('Server codes count:', client.getServerCodesCount())
         print('Server lastest day:', client.getServerLatestDay())
         print('Client lastest day:', client.getLocalLatestDay())
-        client.download(fromPage = 0)
+        client.start()
