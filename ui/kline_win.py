@@ -1526,16 +1526,18 @@ class KLineWindow(base_win.BaseWindow):
         if code[0 : 3] == '399':
             return
         obj : cls_orm.CLS_GNTC = cls_orm.CLS_GNTC.get_or_none(code = code)
-        if obj and obj.updateTime and datetime.date.today() == cutils.updateTimeToDateTime(obj.updateTime).date():
-            return
+        if obj and obj.updateTime:
+            delta = datetime.date.today() - cutils.updateTimeToDateTime(obj.updateTime).date()
+            if delta.days <= 3:
+                return
         info = cls.ClsUrl().loadBkGnOfCode(code)
         if not obj:
             info.save()
         else:
             diffrents = obj.diff(info, excludeAttrNames = ['updateTime'])
+            obj.updateTime = cutils.nowTimeInt()
+            obj.save() # always update time
             if diffrents:
-                obj.updateTime = cutils.nowTimeInt()
-                obj.save()
                 rs = d_orm.createDiffBkGn(obj.code, obj.name, diffrents)
                 if rs:
                     d_orm.DiffBkGnModel.bulk_create(rs, 100)
@@ -2076,11 +2078,12 @@ class CodeWindow(BaseWindow):
             obj = ths_orm.THS_ZS.get_or_none(ths_orm.THS_ZS.code == code)
             if obj : self.basicData = obj.__data__
         else:
-            #from download import cls
-            url = cls.ClsUrl()
-            self.basicData = url.loadBasic(code)
-            # obj = ths_orm.THS_GNTC.get_or_none(ths_orm.THS_GNTC.code == code)
-            # if obj: self.basicData = obj.__data__
+            obj = ths_orm.THS_CodesBasic.get_or_none(ths_orm.THS_ZS.code == code)
+            if obj: 
+                self.basicData = obj.__data__
+            else:
+                url = cls.ClsUrl()
+                self.basicData = url.loadBasic(code)
         self.invalidWindow()
 
     def changeCode(self, code):
