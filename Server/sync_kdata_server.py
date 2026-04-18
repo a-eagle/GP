@@ -112,7 +112,7 @@ class Server:
         flask_cors.CORS(self.app)
 
     def start(self):
-        self.unlockWrite()
+        self.unlock()
         self.thread = threading.Thread(target = self._run, name='SyncKdataServer', daemon = True)
         self.thread.start()
         self.app.add_url_rule('/getLatestDay', view_func = self.getLatestDay, methods = ['GET', 'POST'])
@@ -120,18 +120,18 @@ class Server:
         self.app.add_url_rule('/getKDatas/<fromDay>/<page>/<pageSize>', view_func = self.getKDatas, methods = ['GET', 'POST'])
         self.app.run('0.0.0.0', 8070, use_reloader = False, debug = False)
 
-    def lockWrite(self):
+    def lock(self):
         path = os.path.join(datafile.PathManager.NET_LDAY_PATH, 'write.lock')
         if not os.path.exists(path):
             f = open(path, 'w')
             f.close()
     
-    def unlockWrite(self):
+    def unlock(self):
         path = os.path.join(datafile.PathManager.NET_LDAY_PATH, 'write.lock')
         if os.path.exists(path):
             os.remove(path)
 
-    def isLockWrite(self):
+    def isLocked(self):
         path = os.path.join(datafile.PathManager.NET_LDAY_PATH, 'write.lock')
         return os.path.exists(path)
 
@@ -163,7 +163,7 @@ class Server:
         fs = fs[(page - 1) * pageSize : page * pageSize]
         buf.extend(struct.pack('L', len(fs)))
         for i, code in enumerate(fs):
-            if self.isLockWrite():
+            if self.isLocked():
                 buf = b''
                 break
             self.readKdata(code, fromDay, numDays, buf)
@@ -199,7 +199,7 @@ class Server:
         idx = tdays.index(lastDay) + 1
         if idx >= len(tdays):
             return True
-        self.lockWrite()
+        self.lock()
         print('local cur day=', lastDay, 'trade last day=', tdays[-1])
         print('begin download kdata...')
         for i in range(idx, len(tdays)):
@@ -207,7 +207,7 @@ class Server:
             if not ok:
                 break
         print('download ', ('success' if ok else 'fail'), '\n')
-        self.unlockWrite()
+        self.unlock()
         return ok
 
     def _run(self):
