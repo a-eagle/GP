@@ -1083,8 +1083,9 @@ class KLineDownloader:
         # trunck file write
         if (not ex) or (fsize == 0) or (fsize % 32 != 0):
             f = open(path, 'wb')
-            target = self.pack(kdata)
-            f.write(target)
+            for kd in kdata:
+                bs = self.pack(kd)
+                f.write(bs)
             f.close()
             return True
         self._mergeWrite(path, fsize, kdata)
@@ -1292,7 +1293,7 @@ if __name__ == '__main__':
     ]
     # kd.mergeWrite('000001', kdatas)
 
-    dm = K_DataModel('000001')
+    dm = K_DataModel('000002')
     dm.loadLocalData()
     # for i in range(5):
     #     print(dm.data[i])
