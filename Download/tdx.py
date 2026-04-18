@@ -366,10 +366,6 @@ class Main:
             if now.weekday() >= 5:
                 time.sleep(60 * 60)
                 continue
-            if not ths_iwencai.isTradeDay():
-                time.sleep(60 * 60)
-                continue
-            klineTry.check()
             tdxTry.check()
             time.sleep(60)
 
