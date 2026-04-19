@@ -9,10 +9,18 @@ import system_hotkey
 import base_win
 
 class ScreenLocker(base_win.BaseWindow):
+    class Msg:
+        def __init__(self, code, wParam, lParam) -> None:
+            self.code = code
+            self.wParam = wParam
+            self.lParam = lParam
+        def __repr__(self) -> str:
+            return f'({self.code}, {self.wParam})'
+
     def __init__(self) -> None:
         super().__init__()
         self.css['bgColor'] = 0
-        self.keys = ''
+        self.queue = []
 
     def createWindow(self, parentWnd = None, rect = None, style = 0, className='STATIC', title=''):
         W = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
@@ -20,13 +28,6 @@ class ScreenLocker(base_win.BaseWindow):
         rect = (0, 0, W, H)
         style = win32con.WS_POPUP
         super().createWindow(parentWnd, rect, style, className, title)
-
-    def onChar(self, keyCode):
-        self.keys += chr(keyCode)
-        if keyCode == win32con.VK_RETURN:
-            if 'gaoyan2012' in self.keys or 'gaoyan' in self.keys:
-                self.unlock()
-            self.invalidWindow()
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_SYSKEYDOWN or msg == win32con.WM_SYSKEYUP:
@@ -37,31 +38,80 @@ class ScreenLocker(base_win.BaseWindow):
             return True
         if msg == win32con.WM_LBUTTONDOWN or msg == win32con.WM_LBUTTONUP:
             win32gui.SetFocus(self.hwnd)
-            return True
-        if msg == win32con.WM_CHAR:
-            self.onChar(wParam)
-            return True
+        if msg == win32con.WM_KEYDOWN or msg == win32con.WM_LBUTTONUP or msg == win32con.WM_RBUTTONUP:
+            self.queue.append(self.Msg(msg, wParam, lParam))
         return super().winProc(hwnd, msg, wParam, lParam)
     
     def isLocked(self):
         locked = win32gui.IsWindow(self.hwnd) and win32gui.IsWindowVisible(self.hwnd)
         return locked
+
+    def nextGroup(self, queue : list):
+        qs = []
+        for i in range(len(queue) - 1, -1, -1):
+            if (not qs) or (qs[-1].code == queue[i].code):
+                qs.append(queue[i])
+                queue.pop(i)
+            else:
+                break
+        return qs
+
+    # check is 'GAOYAN'
+    def isMyPassword(self, g1, g2, g3):
+        for g in (g1, g2, g3):
+            if g and g[0].code == win32con.WM_KEYDOWN:
+                text = [chr(c.wParam) for c in g]
+                text.reverse()
+                text = ''.join(text)
+                if 'GAOYAN' in text:
+                    return True
+        return False
+
+    def acceptGroup(self, group):
+        if len(group) < 3:
+            return False
+        if group[0].code == win32con.WM_KEYDOWN:
+            enterNum = 0
+            for m in group:
+                if m.wParam == win32con.VK_RETURN: # enter key
+                    enterNum += 1
+                    if enterNum >= 3:
+                        return True
+                else:
+                    enterNum = 0
+            return False
+        return True
+
+    def checkAcceptUnlock(self):
+        if len(self.queue) < 6:
+            return False
+        q = self.queue[:]
+        g1 = self.nextGroup(q)
+        g2 = self.nextGroup(q)
+        g3 = self.nextGroup(q)
+        gs = (g1, g2, g3)
+        if self.isMyPassword(g1, g2, g3):
+            return True
+        for g in gs:
+            if not self.acceptGroup(g):
+                return False
+        # check is not same
+        mk1, mk2, mk3 = g1[0].code, g2[0].code, g3[0].code
+        if mk1 == mk2 or mk1 == mk3 or mk2 == mk3:
+            return False
+        return True
     
     def unlock(self):
         if not win32gui.IsWindow(self.hwnd):
             return
-        keys = self.keys
-        if len(keys) < 2:
-            return
-        if keys[-1] != keys[-2]:
-            return
-        accept = keys[-1] >= '0' and keys[-1] <= '9'
-        accept = accept or (keys[-1] == '\r' or keys[-1] == '\n')
-        if not accept:
-            return
-        self.keys = ''
+        self.queue.clear()
         win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
         self._lock(False)
+
+    def tryUnlock(self):
+        if not self.checkAcceptUnlock():
+            return
+        self.unlock()
 
     def lock(self):
         if not win32gui.IsWindow(self.hwnd):
@@ -75,7 +125,7 @@ class ScreenLocker(base_win.BaseWindow):
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
         self.invalidWindow()
-        self._lock(True)
+        self._lock(True) # TODO:
 
     def killExplorer(self):
         os.system('taskkill /F /IM explorer.exe')
@@ -113,7 +163,7 @@ class Main:
 
     LOCK_STATUS_LOCK = 100
     LOCK_STATUS_UNLOCK = 200
-    MAX_IDLE_TIME = 5 * 60 * 1000
+    MAX_IDLE_TIME = 8 * 60 * 1000 # 8 minutes
     
     def __init__(self, locker : ScreenLocker) -> None:
         self.locker = locker
@@ -144,14 +194,14 @@ class Main:
     def doHotKey(self, args):
         self.reset()
         if self.locker.isLocked():
-            self.locker.unlock()
+            self.locker.tryUnlock()
         else:
             self.locker.lock()
 
     def doHotKey_SkepTime(self, args):
         if self.locker.isLocked():
             return
-        HOUR_2 = 1 * 60 * 60 * 1000 # ms
+        HOUR_2 = 1 * 60 * 60 * 1000 # 1 hour
         self.writeIntData(self.NO_LOCK_TIME_IDX, win32api.GetTickCount() + HOUR_2)
     
     def writeIntData(self, pos, data):
