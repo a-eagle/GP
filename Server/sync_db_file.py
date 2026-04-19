@@ -77,9 +77,9 @@ class LocalSyncManager:
         db.close()
 
     def main(self):
-        print('1.ready sync database')
-        print('2.sync data to database')
-        print('3.update database')
+        print('1.ready sync database [machine 1]')
+        print('2.sync data to database [machine 2]')
+        print('3.update database [machine 1]')
         while True:
             opt = int(input('[select]: '))
             m = (self.ready, self.syncData, self.update)
