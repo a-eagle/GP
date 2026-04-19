@@ -38,7 +38,9 @@ class ScreenLocker(base_win.BaseWindow):
             return True
         if msg == win32con.WM_LBUTTONDOWN or msg == win32con.WM_LBUTTONUP:
             win32gui.SetFocus(self.hwnd)
-        if msg == win32con.WM_KEYDOWN or msg == win32con.WM_LBUTTONUP or msg == win32con.WM_RBUTTONUP:
+        if msg == win32con.WM_LBUTTONUP or msg == win32con.WM_RBUTTONUP:
+            self.queue.append(self.Msg(msg, wParam, lParam))
+        if msg == win32con.WM_KEYDOWN:
             self.queue.append(self.Msg(msg, wParam, lParam))
         return super().winProc(hwnd, msg, wParam, lParam)
     
