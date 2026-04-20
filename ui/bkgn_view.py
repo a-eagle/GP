@@ -7,7 +7,7 @@ import types
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import datafile, henxin, cls, ths_iwencai
 from utils import hot_utils
-from ui import dialog, base_win, kline_utils
+from ui import dialog, base_win, kline_utils, screen
 from orm import d_orm, my_orm, ths_orm, cls_orm
 
 class TextRender(base_win.RichTextRender):
@@ -168,7 +168,7 @@ class BkGnView:
         self.limitDaysNum = self._getLimitDaysNum()
         self.lastDay = None
         self.hotDaysRange = None
-        self.richRender = TextRender(self, 17)
+        self.richRender = TextRender(self, 17 if screen.isSmalScreen() else 20)
         obj, _ = my_orm.MySettings.get_or_create(mainKey = 'BkGnView_showSimpleMode')
         self.showSimpleMode = True if obj and obj.val == 'true' else False
 
@@ -251,6 +251,7 @@ class BkGnView:
 
     def onDrawRect(self, hdc, rc):
         drawer = base_win.Drawer.instance()
+        drawer.use(hdc, drawer.getFont(fontSize = screen.TEXT_SIZE))
         self.richRender.draw(hdc, drawer, (rc[0] + 3, rc[1] + 2, rc[2] - 3, rc[3]))
         # drawer.drawRect(hdc, rc, 0xabcef)
 
@@ -334,21 +335,21 @@ class BkGnView:
         if self.thsGntc.hy_2_name: hy1 = self.thsGntc.hy_2_name + ';'
         if self.thsGntc.hy_3_name: hy1 += self.thsGntc.hy_3_name
         hys = self._buildBkInfos(hy1, self.clsGntc.hy, clsHotGns)
-        self.richRender.addText(' 【', self.DEF_COLOR)
+        self.richRender.addText(' 【', self.DEF_COLOR, fontSize = screen.BKGN_VIEW_TEXT_SIZE)
         for idx, h in enumerate(hys):
             if idx != 0:
-                self.richRender.addText(' | ', self.DEF_COLOR)
-            self.richRender.addText(h[1], h[2], args = {'num': h[3], 'gn': h[4]})
-        self.richRender.addText('】 ', self.DEF_COLOR)
+                self.richRender.addText(' | ', self.DEF_COLOR, fontSize = screen.BKGN_VIEW_TEXT_SIZE)
+            self.richRender.addText(h[1], h[2], args = {'num': h[3], 'gn': h[4]}, fontSize = screen.BKGN_VIEW_TEXT_SIZE)
+        self.richRender.addText('】 ', self.DEF_COLOR, fontSize = screen.BKGN_VIEW_TEXT_SIZE)
         
         lastGns = self._buildBkInfos(self.thsGntc.gn, self.clsGntc.gn, clsHotGns)
         lastGns.sort(key = lambda d: d[0])
         for i, h in enumerate(lastGns):
             if self.showSimpleMode and (not h[3]) and (h[4] not in self.curClsHotGns):
                 continue
-            self.richRender.addText(h[1], h[2], args = {'num': h[3], 'gn': h[4]})
+            self.richRender.addText(h[1], h[2], args = {'num': h[3], 'gn': h[4]}, fontSize = screen.BKGN_VIEW_TEXT_SIZE)
             if i != len(lastGns) - 1:
-                self.richRender.addText(' | ', self.DEF_COLOR)
+                self.richRender.addText(' | ', self.DEF_COLOR, fontSize = screen.BKGN_VIEW_TEXT_SIZE)
         #for h in self.defHotGns:
         #    self.richRender.addText(h + ' ', 0x404040)
 

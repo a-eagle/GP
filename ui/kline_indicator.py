@@ -5,6 +5,7 @@ import requests, peewee as pw
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download.datafile import *
 from ui.base_win import *
+from ui import screen
 from utils import hot_utils, gn_utils
 from download import cls, henxin, memcache, ths_iwencai
 from orm import d_orm, ths_orm, lhb_orm, cls_orm
@@ -208,7 +209,7 @@ class Indicator:
     def onMouseLeave(self):
         self.mouseXY = None
 
-    def drawTipPrice(self, hdc, drawer, y):
+    def drawTipPrice(self, hdc, drawer : Drawer, y):
         val = self.getValueAtY(y)
         if not val:
             return
@@ -732,7 +733,7 @@ class CustomIndicator(Indicator):
     def __init__(self, win, config = None) -> None:
         super().__init__(win, config)
         if 'itemWidth' not in self.config:
-            self.config['itemWidth'] = 80
+            self.config['itemWidth'] = screen.INDICATOR_CUSTOM_WIDTH
         self.cdata = None
         self.code = None
         self.win.addNamedListener('K-Model-Changed', self.onDataChanged)
@@ -827,7 +828,7 @@ class DayIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 20
+            config['height'] = screen.INDICATOR_DAY_HEIGHT
         super().__init__(win, config)
         if 'title' not in config:
             self.config['title'] = '[日期]'
@@ -852,7 +853,7 @@ class ScqxIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 30
+            config['height'] = screen.INDICATOR_CUSTOM_HEIGHT
         super().__init__(win, config)
         if 'title' not in self.config:
             self.config['title'] = '[市场情绪]'
@@ -887,7 +888,7 @@ class LsAmountIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 30
+            config['height'] = screen.INDICATOR_CUSTOM_HEIGHT
         super().__init__(win, config)
         self.config['title'] = '[两市成交额]'
         self.detailVisible = False
@@ -986,7 +987,7 @@ class HotIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 30
+            config['height'] = screen.INDICATOR_CUSTOM_HEIGHT
         super().__init__(win, config)
         self.config['title'] = '[热度排名]'
 
@@ -1012,7 +1013,7 @@ class HotIndicator(CustomIndicator):
         day = self.data[idx].day
         if not self.cdata or day not in self.cdata:
             return
-        drawer.use(hdc, drawer.getFont(fontSize = 15, weight = 500))
+        drawer.use(hdc, drawer.getFont(fontSize = screen.INDICATOR_HOT_TEXT_SIZE, weight = 500))
         drawer.drawText(hdc,f"{self.cdata[day]}°", rc, 0x00dddd, win32con.DT_CENTER | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
     def drawBackground(self, hdc, drawer):
@@ -1022,7 +1023,7 @@ class ThsZT_Indicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 50
+            config['height'] = screen.INDICATOR_THSZT_HEIGHT
         super().__init__(win, config)
         self.config['title'] = '[同花顺涨停]'
 
@@ -1045,14 +1046,14 @@ class ThsZT_Indicator(CustomIndicator):
         if not self.cdata or day not in self.cdata:
             return
         txt = self.cdata[day]['ztReason']
-        drawer.use(hdc, drawer.getFont(fontSize = 12))
+        drawer.use(hdc, drawer.getFont(fontSize = screen.INDICATOR_THSZT_TEXT_SIZE))
         drawer.drawText(hdc,txt, rc, 0xcccccc, win32con.DT_WORDBREAK | win32con.DT_VCENTER)
 
 class ClsZT_Indicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 50
+            config['height'] = screen.INDICATOR_CLSZT_HEIGHT
         super().__init__(win, config)
         self.config['title'] = '[财联社涨停]'
         self.detailVisible = False
@@ -1085,7 +1086,7 @@ class ClsZT_Indicator(CustomIndicator):
         if not self.cdata or day not in self.cdata:
             return
         txt = self.cdata[day]['ztReason']
-        drawer.use(hdc, drawer.getFont(fontSize = 12))
+        drawer.use(hdc, drawer.getFont(fontSize = screen.INDICATOR_THSZT_TEXT_SIZE))
         drawer.drawText(hdc,txt, rc, 0xcccccc, win32con.DT_WORDBREAK | win32con.DT_VCENTER)
 
     def onMouseClick(self, x, y):
@@ -1129,7 +1130,7 @@ class GnLdIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 30
+            config['height'] = screen.INDICATOR_CUSTOM_HEIGHT
         super().__init__(win, config)
         self.config['title'] = '[Cls联动]'
         self.clsGntc = None
@@ -1228,7 +1229,7 @@ class ZhangSuIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 30
+            config['height'] = screen.INDICATOR_CUSTOM_HEIGHT
         super().__init__(win, config)
         self.config['title'] = '[涨速]'
 
@@ -1271,7 +1272,7 @@ class LhbIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 30
+            config['height'] = screen.INDICATOR_CUSTOM_HEIGHT
         super().__init__(win, config)
         self.config['title'] = '[龙虎榜]'
         self.detailVisible = False
@@ -1423,7 +1424,7 @@ class ZsZdPmIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 50
+            config['height'] = screen.INDICATOR_ZSZD_PM_HEIGHT
         super().__init__(win, config)
         self.config['title'] = '[指数涨跌排名]'
     
@@ -1463,7 +1464,7 @@ class CLS_HotTcIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 30
+            config['height'] = screen.INDICATOR_CUSTOM_HEIGHT
         super().__init__(win, config)
         self.config['title'] = '[财联社热点]'
 
@@ -1501,7 +1502,7 @@ class ZS_ZT_NumIndicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 80
+            config['height'] = screen.INDICATOR_ZS_ZT_NUM_HEIGHT
         super().__init__(win, config)
         self.config['title'] = '[涨跌停]'
         self.todayGroupData = None
@@ -1824,7 +1825,7 @@ class Amount2Indicator(CustomIndicator):
     def __init__(self, win, config = None) -> None:
         config = config or {}
         if 'height' not in config:
-            config['height'] = 30
+            config['height'] = screen.INDICATOR_CUSTOM_HEIGHT
         super().__init__(win, config)
         if 'title' not in config:
             self.config['title'] = '[成交额]'

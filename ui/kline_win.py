@@ -1802,6 +1802,7 @@ class KLineWindow(base_win.BaseWindow):
                 continue
             sdc = win32gui.SaveDC(hdc)
             win32gui.SetViewportOrgEx(hdc, idt.x, idt.y)
+            self.drawer.use(hdc, self.drawer.getFont(fontSize = screen.INDICATOR_TEXT_SIZE))
             idt.draw(hdc, self.drawer)
             win32gui.RestoreDC(hdc, sdc)
         # draw lines
@@ -2104,14 +2105,15 @@ class CodeWindow(BaseWindow):
     def onDraw(self, hdc):
         W, H = self.getClientSize()
         LEFT_X, RIGHT_X = 3, 70
-        RH = 25
+        if screen.isLargeScreen():
+            RIGHT_X = 90
+        RH = 25 if screen.isSmalScreen() else 30
         y = 10
         if self.basicData:
             cs = self.basicData.get('code', '') + '\n' + self.basicData.get('name', '')
-            self.drawer.use(hdc, self.drawer.getFont(fontSize = 15, weight = 1000))
-            self.drawer.drawText(hdc, cs, (0, y, W, 40), 0x5050ff, win32con.DT_CENTER | win32con.DT_WORDBREAK)
-        self.drawer.use(hdc, self.drawer.getFont(fontSize = 14))
-
+            self.drawer.use(hdc, self.drawer.getFont(fontSize = screen.CODE_TEXT_SIZE, weight = 1000))
+            self.drawer.drawText(hdc, cs, (0, y, W, 40 if screen.isSmalScreen() else 50), 0x5050ff, win32con.DT_CENTER | win32con.DT_WORDBREAK)
+        self.drawer.use(hdc, self.drawer.getFont(fontSize = screen.CODE_DEF_TEXT_SIZE))
         y = self.onDrawBasic(hdc, RH, W, LEFT_X, RIGHT_X, y)
         #个股信息
         if not self.rangeSelData:
@@ -2180,20 +2182,20 @@ class KLineCodeWindow(base_win.BaseWindow):
 
     def createWindow(self, parentWnd, rect, style = win32con.WS_VISIBLE | win32con.WS_CHILD, className='STATIC', title = ''):
         super().createWindow(parentWnd, rect, style, className, title)
-        DETAIL_WIDTH = 180
+        DETAIL_WIDTH = 180 if screen.isSmalScreen() else 220
         self.layout = base_win.GridLayout(('100%', ), ('1fr', DETAIL_WIDTH), (5, 5))
         self.klineWin.createWindow(self.hwnd, (0, 0, 1, 1))
         self.layout.setContent(0, 0, self.klineWin)
 
         rightLayout = base_win.FlowLayout()
-        self.codeWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 550))
+        self.codeWin.createWindow(self.hwnd, (0, 0, DETAIL_WIDTH, 450 if screen.isSmalScreen() else 550))
         rightLayout.addContent(self.codeWin, {'margins': (0, 5, 0, 5)})
         btn = base_win.Button({'title': '<<', 'name': 'LEFT'})
         btn.createWindow(self.hwnd, (0, 0, 40, 30))
         btn.addNamedListener('Click', self.onLeftRight)
         rightLayout.addContent(btn, {'margins': (0, 10, 0, 0)})
         self.idxCodeWin = base_win.Label()
-        self.idxCodeWin.createWindow(self.hwnd, (0, 0, 100, 30))
+        self.idxCodeWin.createWindow(self.hwnd, (0, 0, 100 if screen.isSmalScreen() else 140, 30))
         self.idxCodeWin.css['textAlign'] |= win32con.DT_CENTER
         rightLayout.addContent(self.idxCodeWin, {'margins': (0, 10, 0, 0)})
         btn = base_win.Button({'title': '>>', 'name': 'RIGHT'})
