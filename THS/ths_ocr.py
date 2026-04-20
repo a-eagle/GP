@@ -7,7 +7,7 @@ from PIL import Image
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from THS import ths_win, number_ocr
-from ui import base_win
+from ui import base_win, screen
 
 #委比
 class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
@@ -50,14 +50,20 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         priceImg = imgFull.crop((LEFT_PADDING, h // 2, w - LEFT_PADDING, h - 1))
 
         WB_TXT_WIDTH = 35
-        r = max(srcSize[0] - 70, w * 0.6)
+        r = max(srcSize[0] - 70, w * 0.65)
         wbImg = imgFull.crop((WB_TXT_WIDTH, srcSize[1] - WB_WIN_HEIGHT + 1, int(r), srcSize[1]))
+
+        # imgFull.save('D:/imgFull.bmp')
+        # codeImg.save('D:/codeImg.bmp')
+        # priceImg.save('D:/priceImg.bmp')
+        # wbImg.save('D:/wbImg.bmp')
+
         wbEImg = number_ocr.EImage(wbImg)
         y = wbEImg.findRowColorIs(0, wbImg.width, 255)
-        wbImg = wbImg.crop((0, 0, wbImg.width, y))
-        #sign = bi.calcSign(wbImg)
-        #wbImg = bi.expand(wbImg)
-        # wbImg.save('D:/a.bmp')
+        if y > 0:
+            wbImg = wbImg.crop((0, 0, wbImg.width, y))
+        # sign = bi.calcSign(wbImg)
+        # wbImg = bi.expand(wbImg)
         return codeImg, priceImg, wbImg
     
     def dumpStockUnitWindow(self, thsMainWin):

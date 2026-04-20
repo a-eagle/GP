@@ -85,7 +85,7 @@ class BaseEImage:
         return True
     
     def findRowColorIs(self, sx, ex, color):
-        for y in range(self.bImg.width):
+        for y in range(self.bImg.height):
             if self.rowColorIs(sx, ex, y, color):
                 return y
         return -1
