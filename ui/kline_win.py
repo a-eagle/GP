@@ -1270,7 +1270,7 @@ class RangeSelectorManager:
             mzf = (minVal -  pre) / pre * 100
             mzf2 = (pre - minVal) / minVal * 100
             mzf2 = f'（+{int(mzf2)}%）'
-        pyperclip.copy(f'{int(mzf)}{mzf2}')
+        pyperclip.copy(f'{int(mzf)}%{mzf2}')
     
     def onMouseMove(self, x, y):
         isBtnDown = (win32api.GetAsyncKeyState(win32con.VK_LBUTTON) & 0xff00) > 0
