@@ -7,7 +7,7 @@ import types
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import datafile, henxin, cls, ths_iwencai, memcache
 from utils import hot_utils
-from ui import bkgn_view, dialog, base_win, kline_utils
+from ui import bkgn_view, dialog, base_win, kline_utils, screen
 from orm import d_orm, my_orm, ths_orm, cls_orm
 
 # param days (int): [YYYYMMDD, ....]
@@ -1436,7 +1436,10 @@ class BkGnWindow(base_win.BaseWindow):
         self.css['bgColor'] = 0x050505
         self.css['borderColor'] = 0x22dddd
         self.css['enableBorder'] = True
-        self.MAX_SIZE = (950, 70)
+        if screen.isSmalScreen():
+            self.MAX_SIZE = (950, 70)
+        else:
+            self.MAX_SIZE = (1320, 70)
         self.MIN_SIZE = (60, 30)
         self.TITLE_HEIGHT = 15
         self.maxMode = True
@@ -1506,7 +1509,7 @@ class BkGnWindow(base_win.BaseWindow):
             win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
             
 if __name__ == '__main__':
-    if False:
+    if 1:
         win = BkGnWindow()
         win.createWindow(None)
         win32gui.ShowWindow(win.hwnd, win32con.SW_SHOW)

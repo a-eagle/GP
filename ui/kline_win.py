@@ -1864,8 +1864,8 @@ class KLineWindow(base_win.BaseWindow):
         def V(c, visible = True):
             return {'visible': IndicatorVisibleManager.getIndicatorVisible(c, visible)}
         win = KLineWindow()
-        win.addIndicator(RateIndicator(win, {'height': 60, 'margins': (15, 2)}))
-        win.addIndicator(AmountIndicator(win, {'height': 60, 'margins': (10, 2)}))
+        win.addIndicator(RateIndicator(win))
+        win.addIndicator(AmountIndicator(win))
         win.addIndicator(DayIndicator(win))
         win.addIndicator(ScqxIndicator(win))
         win.addIndicator(LsAmountIndicator(win))

@@ -539,7 +539,7 @@ class RefIndicator(Indicator):
         return self.model != None
 
 class AttrIndicator(Indicator):
-    def __init__(self, attrName, win, config) -> None:
+    def __init__(self, attrName, win, config = None) -> None:
         super().__init__(win, config)
         self.code = None
         self.attrName = attrName
@@ -586,9 +586,12 @@ class AttrIndicator(Indicator):
         return True
 
 class AmountIndicator(AttrIndicator):
-    def __init__(self, win, config) -> None:
+    def __init__(self, win, config = None) -> None:
         super().__init__('amount', win, config)
         self.config['title'] = '[成交额]'
+        if not config or 'height' not in config:
+            self.config['height'] = screen.INDICATOR_RATE_HEIGHT
+        self.config['margins'] = (10, 2)
 
     def getValueAtY(self, y):
         rr = self.valueRange
@@ -659,9 +662,12 @@ class AmountIndicator(AttrIndicator):
         win32gui.RestoreDC(hdc, sdc)
 
 class RateIndicator(AttrIndicator):
-    def __init__(self, win, config) -> None:
+    def __init__(self, win, config = None) -> None:
         super().__init__('rate', win, config)
         self.config['title'] = '[换手率]'
+        if not config or 'height' not in config:
+            self.config['height'] = screen.INDICATOR_RATE_HEIGHT
+        self.config['margins'] = (15, 2)
 
     def getValueAtY(self, y):
         rr = self.valueRange

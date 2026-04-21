@@ -26,6 +26,7 @@ if not isLargeScreen():
     BKGN_VIEW_TEXT_SIZE = 12
     CODE_DEF_TEXT_SIZE = 14
     CODE_TEXT_SIZE = 15
+    INDICATOR_RATE_HEIGHT = 60
 else:
     # large screen
     TEXT_SIZE = 16
@@ -42,3 +43,4 @@ else:
     BKGN_VIEW_TEXT_SIZE = 14
     CODE_DEF_TEXT_SIZE = 16
     CODE_TEXT_SIZE = 17
+    INDICATOR_RATE_HEIGHT = 80
