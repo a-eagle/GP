@@ -1252,9 +1252,25 @@ class RangeSelectorManager:
             pre = kl.data[idx - 1].close if idx > 0 else kl.data[idx].open
             data = {'startIdx': idx, 'endIdx': eidx + 1, 'pre': pre, 'datas': kl.data[idx : eidx + 1]}
             self.win.notifyListener(self.win.Event('range-selector-changed', self.win, data = data))
+            self.calcMaxZf(pre, data['datas'])
         else:
             self.startPos = self.endPos = None
         return self.captureMouse
+
+    def calcMaxZf(self, pre, datas):
+        maxVal, minVal = 0, 10000000
+        for it in datas:
+            maxVal = max(maxVal, it.high)
+            minVal = min(minVal, it.low)
+        mzf2 = ''
+        zf = (datas[-1].close -  pre) / pre * 100
+        if zf > 0:
+            mzf = (maxVal -  pre) / pre * 100
+        else:
+            mzf = (minVal -  pre) / pre * 100
+            mzf2 = (pre - minVal) / minVal * 100
+            mzf2 = f'（+{int(mzf2)}%）'
+        pyperclip.copy(f'{int(mzf)}{mzf2}')
     
     def onMouseMove(self, x, y):
         isBtnDown = (win32api.GetAsyncKeyState(win32con.VK_LBUTTON) & 0xff00) > 0
@@ -2316,9 +2332,52 @@ class KLineCodeWindow(base_win.BaseWindow):
             elif keyCode == 81: # page down
                 pass
                 # self.onLeftRight(self.Event('Click', None, info = {'name': 'RIGHT'}), None)
+            elif keyCode == 46 and isCtrlPress: # ctrl + c
+                self.doCopy()
+            elif keyCode == 47 and isCtrlPress: # ctrl + v:
+                self.doPaste()
             else:
                 self.klineWin.winProc(self.klineWin.hwnd, msg, wParam, lParam)
         return super().winProc(hwnd, msg, wParam, lParam)
+    
+    def doCopy(self):
+        selLine : LineView = self.klineWin.lineMgr.selLine
+        if not selLine or not selLine.isValid():
+            # copy code
+            code = self.klineWin.klineIndicator.code
+            if code:
+                pyperclip.copy(code)
+            return
+        if selLine.textLine.kind != 'text':
+            return
+        txt = selLine.textLine.info
+        if not txt or not txt.strip():
+            return
+        pyperclip.copy(txt)
+
+    def doPaste(self):
+        txt = pyperclip.paste()
+        if not txt or not txt.strip():
+            return
+        self.createtTextLine(txt)
+        
+    def createtTextLine(self, txt):
+        ki : KLineIndicator = self.klineWin.klineIndicator
+        if not ki.code or not ki.period:
+            return
+        pos = win32api.GetCursorPos()
+        x, y = win32gui.ScreenToClient(self.klineWin.hwnd, pos)
+        idx = ki.getIdxAtX(x)
+        if idx < 0:
+            return
+        price = ki.getValueAtY(y - ki.y)
+        if not price:
+            return
+        sp = {'day': ki.data[idx].day, 'dx': 0, 'price': price['value']}
+        curLine = my_orm.TextLine(code = ki.code, kind = 'text', period = ki.period, info = txt, _startPos = json.dumps(sp))
+        curLine.save()
+        self.klineWin.lineMgr.reload()
+        self.klineWin.invalidWindow()
 
 if __name__ == '__main__':
     import kline_utils
