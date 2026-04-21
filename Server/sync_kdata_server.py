@@ -75,6 +75,7 @@ class Client:
             print('[download] kdata not need to download')
             return True
         print('[download] begin...')
+        startTime = time.time()
         print(f'  {curDay} -> {self.getServerLatestDay()}')
         count = self.getServerCodesCount()
         pageNum = (count + self.PAGE_SIZE - 1) // self.PAGE_SIZE
@@ -87,7 +88,8 @@ class Client:
                 break
             for item in datas:
                 self.writeKdata(item['code'], item['kdata-num'], item['kdatas'])
-        print('[download] end')
+        useTime = (time.time() - startTime) / 60
+        print(f'[download] end, use time: {useTime :.1f} minutes')
         return flag
 
     def start(self):
