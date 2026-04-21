@@ -124,6 +124,8 @@ def _workThread(thsWin : ths_win.ThsWindow, fileName):
             showTipWins(False)
             continue
         isNotTop = (win32gui.GetForegroundWindow() != thsWin.topHwnd) and (not isTipWinsForeground())
+        if isNotTop:
+            continue
         showTipWins(not isNotTop)
         updateWindowInfo(thsWin, stateMgr)
         rs = wbOcr.runOcr(thsWin.mainHwnd) or {}
