@@ -194,7 +194,6 @@ def subprocess_main_fp():
     win32gui.PumpMessages()
     print('Quit Sub Process(THS FU PING)')    
 
-
 def listen_ThsFuPing_Process():
     print('open listen fu ping prcess')
     while True:

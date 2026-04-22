@@ -1124,6 +1124,7 @@ class TextLineManager:
 
     def delSelectLine(self):
         self.delLine2(self.selLine)
+        self.selLine = None
 
     def onDraw(self, hdc):
         kl = self.win.klineIndicator
@@ -1187,17 +1188,7 @@ class TextLineManager:
         self.drawTextMgr.openEditText()
         return True
 
-    def onKeyDown(self, key):
-        if key == win32con.VK_DELETE or key == win32con.VK_BACK:
-            self.delLine2(self.selLine)
-            self.selLine = None
-            return
-
     def winProc(self, hwnd, msg, wParam, lParam):
-        if msg >= win32con.WM_KEYFIRST and msg <= win32con.WM_KEYLAST and self.selLine:
-            if msg == win32con.WM_KEYDOWN:
-                self.onKeyDown(wParam)
-            return True
         if msg >= win32con.WM_MOUSEFIRST and msg <= win32con.WM_MOUSELAST:
             kl = self.win.klineIndicator
             x, y = lParam & 0xffff, (lParam >> 16) & 0xffff
@@ -1766,7 +1757,17 @@ class KLineWindow(base_win.BaseWindow):
         elif keyCode == 82: # insert
             self.contextMenuMgr.onMemuItem(self.Event('A', self, item={'name': 'add-my-select'}))
         elif keyCode == 83: # delete
-            self.contextMenuMgr.onMemuItem(self.Event('A', self, item={'name': 'del-my-select'}))
+            if self.lineMgr.isSelected():
+                self.lineMgr.delSelectLine()
+            else:
+                self.contextMenuMgr.onMemuItem(self.Event('A', self, item={'name': 'del-my-select'}))
+        elif keyCode == 46 and isCtrlPress: # ctrl + c
+            self.doCopy('utf-8')
+        elif keyCode == 47 and isCtrlPress: # ctrl + v:
+            self.doPaste()
+        elif keyCode == 45 and isCtrlPress: # ctrl + x:
+            # 同花顺使用gb2312编码
+            self.doCopy('gb2312')
 
     def makeVisible(self, idx):
         self.calcIndicatorsRect()
@@ -1875,6 +1876,47 @@ class KLineWindow(base_win.BaseWindow):
         #win32gui.MoveToEx(hdc, x, self.klineIndicator.getMargins(1))
         #win32gui.LineTo(hdc, x, h)
         win32gui.DeleteObject(wp)
+
+    def doCopy(self, encoding):
+        selLine : LineView = self.lineMgr.selLine
+        if not selLine or not selLine.isValid():
+            # copy code
+            code = self.klineIndicator.code
+            if code:
+                pyperclip.copy(code)
+            return
+        if selLine.textLine.kind != 'text':
+            return
+        txt : str = selLine.textLine.info
+        if not txt or not txt.strip():
+            return
+        # pyperclip.copy(txt)
+        clipboard.copy(txt, encoding)
+
+    def doPaste(self):
+        # txt = pyperclip.paste()
+        txt = clipboard.paste()
+        if not txt or not txt.strip():
+            return
+        self.pasteTextLine(txt)
+        
+    def pasteTextLine(self, txt):
+        ki : KLineIndicator = self.klineIndicator
+        if not ki.code or not ki.period:
+            return
+        pos = win32api.GetCursorPos()
+        x, y = win32gui.ScreenToClient(self.hwnd, pos)
+        idx = ki.getIdxAtX(x)
+        if idx < 0:
+            return
+        price = ki.getValueAtY(y - ki.y)
+        if not price:
+            return
+        sp = {'day': ki.data[idx].day, 'dx': 0, 'price': price['value']}
+        curLine = my_orm.TextLine(code = ki.code, kind = 'text', period = ki.period, info = txt, _startPos = json.dumps(sp))
+        curLine.save()
+        self.lineMgr.reload()
+        self.invalidWindow()
 
     @staticmethod
     def createDefault():
@@ -2338,57 +2380,10 @@ class KLineCodeWindow(base_win.BaseWindow):
             elif keyCode == 81: # page down
                 pass
                 # self.onLeftRight(self.Event('Click', None, info = {'name': 'RIGHT'}), None)
-            elif keyCode == 46 and isCtrlPress: # ctrl + c
-                self.doCopy()
-            elif keyCode == 47 and isCtrlPress: # ctrl + v:
-                self.doPaste()
             else:
                 self.klineWin.winProc(self.klineWin.hwnd, msg, wParam, lParam)
         return super().winProc(hwnd, msg, wParam, lParam)
     
-    def doCopy(self):
-        selLine : LineView = self.klineWin.lineMgr.selLine
-        if not selLine or not selLine.isValid():
-            # copy code
-            code = self.klineWin.klineIndicator.code
-            if code:
-                pyperclip.copy(code)
-            return
-        if selLine.textLine.kind != 'text':
-            return
-        txt : str = selLine.textLine.info
-        if not txt or not txt.strip():
-            return
-        # pyperclip.copy(txt)
-        # 同花顺使用gb2312编码
-        clipboard.copy(txt, 'gb2312')
-
-    def doPaste(self):
-        # txt = pyperclip.paste()
-        txt = clipboard.paste()
-        if not txt or not txt.strip():
-            return
-        self.pasteTextLine(txt)
-        
-    def pasteTextLine(self, txt):
-        ki : KLineIndicator = self.klineWin.klineIndicator
-        if not ki.code or not ki.period:
-            return
-        pos = win32api.GetCursorPos()
-        x, y = win32gui.ScreenToClient(self.klineWin.hwnd, pos)
-        idx = ki.getIdxAtX(x)
-        if idx < 0:
-            return
-        price = ki.getValueAtY(y - ki.y)
-        if not price:
-            return
-        sp = {'day': ki.data[idx].day, 'dx': 0, 'price': price['value']}
-        curLine = my_orm.TextLine(code = ki.code, kind = 'text', period = ki.period, info = txt, _startPos = json.dumps(sp))
-        curLine.save()
-        self.klineWin.lineMgr.reload()
-        self.klineWin.invalidWindow()
-
-
 if __name__ == '__main__':
     import kline_utils
     CODE = '002792' #      1B0688 002202  600172

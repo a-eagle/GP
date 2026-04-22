@@ -1533,11 +1533,18 @@ class ThsKLineWindow(kline_win.KLineWindow):
         self.MIN_SIZE = (self.CAPTION_WIDTH, 300)
         self.addNamedListener('OpenMinutes', kline_utils.openTimeLineWindow, self)
 
+        self.addNamedListener('selIdx-Changed', self.onSelIdxChanged)
+        self.addNamedListener('range-selector-changed', self.onRangeSelectorChanged)
+
     def onDraw(self, hdc):
         super().onDraw(hdc)
         H = 20
         rc = (0, 0, self.CAPTION_WIDTH, H)
         self.drawer.fillRect(hdc, rc, rgb = 0x338888)
+        if not self.maxMode:
+            return
+        super().onDraw(hdc)
+        self.onDrawDayInfo(hdc)
 
     def createWindow(self, parentWnd, rect = None, style = win32con.WS_VISIBLE | win32con.WS_POPUP, className='STATIC', title = ''):
         super().createWindow(parentWnd, (0, 0, *self.MAX_SIZE), style, className, title)
@@ -1580,6 +1587,51 @@ class ThsKLineWindow(kline_win.KLineWindow):
         else:
             win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
 
+    def onSelIdxChanged(self, evt, args):
+        self.rangeSelData = None
+        # self.invalidWindow()
+
+    def onRangeSelectorChanged(self, evt, args):
+        self.rangeSelData = evt.data
+
+    def onDrawDayInfo(self, hdc):
+        data = self.klineIndicator.getItemData(self.selIdx)
+        if not data:
+            return
+        V_CENTER = win32con.DT_SINGLELINE | win32con.DT_VCENTER | win32con.DT_CENTER
+        day = datetime.date(data.day // 10000, data.day // 100 % 100, data.day % 100)
+        sday = '一二三四五六日'[day.weekday()]
+        WIDTH = 55
+        ROW_HEIGHT = 18
+        HEIGHT = ROW_HEIGHT * 9 + 3
+        sy = 100
+        self.drawer.fillRect(hdc, (0, sy - 3, WIDTH, sy + HEIGHT), rgb = 0x404040)
+        sz = self.MAX_SIZE if self.maxMode else self.MIN_SIZE
+        self.drawer.drawText(hdc, f'{data.day // 10000}', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
+        sy += ROW_HEIGHT
+        self.drawer.drawText(hdc, f'{data.day % 10000 :04d}', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
+        sy += ROW_HEIGHT
+        self.drawer.drawText(hdc, f'周{sday}', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
+        sy += ROW_HEIGHT
+        self.drawer.drawText(hdc, f'涨幅', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
+        sy += ROW_HEIGHT
+        color = 0x0000ff if data.zhangFu >= 0 else 0x00ff00
+        self.drawer.drawText(hdc, f'{data.zhangFu :.02f}%', (0, sy, WIDTH, sy + ROW_HEIGHT), color = color, align = V_CENTER)
+        sy += ROW_HEIGHT
+        self.drawer.drawText(hdc, f'成交额', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
+        sy += ROW_HEIGHT
+        amount = data.amount / 100000000 # 亿
+        if amount >= 10:
+            amount = f'{int(amount)}亿'
+        elif amount >= 1:
+            amount = f'{amount :.1f}亿'
+        else:
+            amount = f'{amount :.2f}亿'
+        self.drawer.drawText(hdc, f'{amount}%', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb = 0x02E2F4, align = V_CENTER)
+        sy += ROW_HEIGHT
+        self.drawer.drawText(hdc, f'换手率', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
+        sy += ROW_HEIGHT
+        self.drawer.drawText(hdc, f'{data.rate :.1f}%', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb = 0x02E2F4, align = V_CENTER)
 
 if __name__ == '__main__':
     if 1:
