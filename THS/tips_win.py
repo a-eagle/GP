@@ -1539,12 +1539,20 @@ class ThsKLineWindow(kline_win.KLineWindow):
     def changeCode(self, code, period = 'day'):
         if not code or type(code) != str or len(code) != 6:
             return
+        if self.klineIndicator.code == code:
+            return
         self.adjustIndicator(code)
         super().changeCode(code, period)
 
     def adjustIndicator(self, code):
-        isPreCode = isinstance(self.indicators[1], kline_indicator.RateIndicator)
-        if code[0 : 2] == '88' and isPreCode:
+        isPreCode = len(self.indicators) == 3 and isinstance(self.indicators[1], kline_indicator.RateIndicator)
+        isPreMainZs = len(self.indicators) == 2 and isinstance(self.indicators[1], kline_indicator.Amount2Indicator)
+        isZsCode = len(self.indicators) == 3 and isinstance(self.indicators[2], kline_indicator.ZsZdPmIndicator)
+        if (code == '1A0001' or code[0 : 3] == '399') and (not isPreMainZs):
+            self.indicators.clear()
+            self.addIndicator(self.klineIndicator)
+            self.addIndicator(kline_indicator.Amount2Indicator(self))
+        elif code[0 : 2] == '88' and (not isZsCode):
             self.indicators.clear()
             self.addIndicator(self.klineIndicator)
             self.addIndicator(kline_indicator.AmountIndicator(self))
