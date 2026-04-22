@@ -5,7 +5,7 @@ from multiprocessing.shared_memory import SharedMemory
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from THS import ths_win, ths_ocr, tips_win
-from ui import base_win
+from ui import base_win, screen
 
 curCode = None
 thsWindow = ths_win.ThsWindow()
@@ -164,7 +164,8 @@ def subprocess_main():
     codeBasicWindow.createWindow(thsWindow.topHwnd)
     bkGnWin.createWindow(thsWindow.topHwnd)
     #hotWindow.addListener(onListen, 'ListenHotWindow')
-    threading.Thread(target = _workThread, args=(thsWindow, 'hot-win32.json')).start()
+    fileName = 'win32.json' if screen.isSmalScreen() else 'win32-large.json'
+    threading.Thread(target = _workThread, args=(thsWindow, fileName)).start()
     
     mm = MarkMain()
     mm.createWindow(thsWindow.topHwnd, (0, 0, 1, 1), win32con.WS_POPUP)

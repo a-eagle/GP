@@ -3,9 +3,11 @@ import win32gui, win32con, win32api
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
+SCREEN_WIDTH = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
+SCREEN_HEIGHT = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
+
 def isLargeScreen():
-    sx = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
-    return sx > 2000
+    return SCREEN_WIDTH > 2000
 
 def isSmalScreen():
     return not isLargeScreen()

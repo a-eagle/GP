@@ -106,13 +106,20 @@ class CardWindow(base_win.NoActivePopupWindow):
         st = state.get('settings', None)
         self.mergeSettings(st)
         if state['maxMode']:
-            self.move(x, y)
-            self.resize(*self.MAX_SIZE)
+            sz = self.MAX_SIZE
             #win32gui.SetWindowPos(self.hwnd, 0, x, y, *self.MAX_SIZE, win32con.SWP_NOZORDER)
         else:
-            self.move(x, y)
-            self.resize(*self.MIN_SIZE)
+            sz = self.MIN_SIZE
             #win32gui.SetWindowPos(self.hwnd, 0, x, y, *self.MIN_SIZE, win32con.SWP_NOZORDER)
+        # adjust x, y
+        if x + sz[0] > screen.SCREEN_WIDTH:
+            x = screen.SCREEN_WIDTH - sz[0]
+        if y + sz[1] > screen.SCREEN_HEIGHT:
+            y = screen.SCREEN_HEIGHT - sz[1]
+        if x < 0: x = 0
+        if y < 0: y = 0
+        self.move(x, y)
+        self.resize(*sz)
 
     def addCardView(self, cardView):
         self.cardViews.append(cardView)
@@ -1465,10 +1472,15 @@ class BkGnWindow(base_win.BaseWindow):
             return
         x, y = state['pos']
         self.maxMode = state['maxMode']
-        if state['maxMode']:
-            win32gui.SetWindowPos(self.hwnd, 0, x, y, *self.MAX_SIZE, win32con.SWP_NOZORDER)
-        else:
-            win32gui.SetWindowPos(self.hwnd, 0, x, y, *self.MIN_SIZE, win32con.SWP_NOZORDER)
+        sz = self.MAX_SIZE if state['maxMode'] else self.MIN_SIZE
+        # adjust x, y
+        if x + sz[0] > screen.SCREEN_WIDTH:
+            x = screen.SCREEN_WIDTH - sz[0]
+        if y + sz[1] > screen.SCREEN_HEIGHT:
+            y = screen.SCREEN_HEIGHT - sz[1]
+        if x < 0: x = 0
+        if y < 0: y = 0
+        win32gui.SetWindowPos(self.hwnd, 0, x, y, *sz, win32con.SWP_NOZORDER)
 
     def winProc(self, hwnd, msg, wParam, lParam):
         if msg == win32con.WM_NCHITTEST:

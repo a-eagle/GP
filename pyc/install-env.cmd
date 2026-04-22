@@ -16,6 +16,7 @@ pip install -i https://repo.huaweicloud.com/repository/pypi/simple/ cx_Freeze
 pip install -i https://repo.huaweicloud.com/repository/pypi/simple/ bs4
 pip install -i https://repo.huaweicloud.com/repository/pypi/simple/ pymysql
 pip install -i https://repo.huaweicloud.com/repository/pypi/simple/  cryptography
+pip install -i https://repo.huaweicloud.com/repository/pypi/simple/ chardet
 
 rem # https://github.com/UB-Mannheim/tesseract/wiki 
 rem #  下载中文训练数据文件。中文训练数据文件可以从Tesseract的GitHub仓库下载，文件名为chi_sim.traineddata（简体中文）

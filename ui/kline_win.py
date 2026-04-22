@@ -6,7 +6,7 @@ from orm import chrome_orm, my_orm, d_orm, base_orm
 from ui import base_win, dialog
 from utils import cutils, gn_utils
 from ui.kline_indicator import *
-from ui import bkgn_view, toolbar
+from ui import bkgn_view, toolbar, clipboard
 from download import henxin, console
 
 class MarksManager:
@@ -1270,7 +1270,8 @@ class RangeSelectorManager:
             mzf = (minVal -  pre) / pre * 100
             mzf2 = (pre - minVal) / minVal * 100
             mzf2 = f'（+{int(mzf2)}%）'
-        pyperclip.copy(f'{int(mzf)}%{mzf2}')
+        txt = f'{int(mzf)}%{mzf2}'
+        pyperclip.copy(txt)
     
     def onMouseMove(self, x, y):
         isBtnDown = (win32api.GetAsyncKeyState(win32con.VK_LBUTTON) & 0xff00) > 0
@@ -2350,13 +2351,16 @@ class KLineCodeWindow(base_win.BaseWindow):
             return
         if selLine.textLine.kind != 'text':
             return
-        txt = selLine.textLine.info
+        txt : str = selLine.textLine.info
         if not txt or not txt.strip():
             return
-        pyperclip.copy(txt)
+        # pyperclip.copy(txt)
+        # 同花顺使用gb2312编码
+        clipboard.copy(txt, 'gb2312')
 
     def doPaste(self):
-        txt = pyperclip.paste()
+        # txt = pyperclip.paste()
+        txt = clipboard.paste()
         if not txt or not txt.strip():
             return
         self.createtTextLine(txt)

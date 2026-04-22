@@ -4,6 +4,14 @@ import pyperclip # pip install pyperclip
 from multiprocessing import shared_memory # python 3.8+
 import ctypes, traceback
 
+def copyToClipboard(text):
+    # copy digit text fail, fix by : pip install pywin32 == 301 把pywin32版本降到301
+    win32clipboard.OpenClipboard(None)
+    win32clipboard.EmptyClipboard() # 写入清必须清空，得到剪贴板占有权
+    win32clipboard.SetClipboardData(win32clipboard.CF_UNICODETEXT, text)
+    win32clipboard.CloseClipboard()
+    return True
+
 class Listener:
     class Event:
         def __init__(self, name, src, **kargs) -> None:
@@ -2361,12 +2369,6 @@ class BaseEditor(BaseWindow):
         if not text:
             return False
         pyperclip.copy(text)
-
-        # copy digit text fail, fix by : pip install pywin32 == 301 把pywin32版本降到301
-        #win32clipboard.OpenClipboard(None)
-        #win32clipboard.EmptyClipboard() # 写入清必须清空，得到剪贴板占有权
-        #win32clipboard.SetClipboardData(win32clipboard.CF_UNICODETEXT, text)
-        #win32clipboard.CloseClipboard()
         return True
 
     def copyFromClipboard(self, fmt = win32con.CF_TEXT):
