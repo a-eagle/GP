@@ -76,7 +76,7 @@ def copy(text, encoding = 'utf-8'):
     finally:
         CloseClipboard()
 
-def paste():
+def paste(encoding = 'utf-8'):
     dtxt = ''
     try:
         OpenClipboard(None)
@@ -86,11 +86,8 @@ def paste():
         GlobalUnlock(handle)
         enc = chardet.detect(bs)
         uu = enc['encoding']
-        if not uu: uu = 'gb2312'
+        if not uu: uu = encoding
         dtxt = bs.decode(uu)
     finally:
         CloseClipboard()
     return dtxt
-
-copy('明长起ACCAbc你好吗d')
-print(paste())
