@@ -1549,7 +1549,7 @@ class ThsKLineWindow(kline_win.KLineWindow):
             self.addIndicator(self.klineIndicator)
             self.addIndicator(kline_indicator.AmountIndicator(self))
             self.addIndicator(kline_indicator.ZsZdPmIndicator(self))
-        elif code[0] == '036' and (not isPreCode):
+        elif code[0] in '036' and (not isPreCode):
             self.indicators.clear()
             self.addIndicator(self.klineIndicator)
             self.addIndicator(kline_indicator.RateIndicator(self))
