@@ -2199,6 +2199,12 @@ class KLineCodeWindow(base_win.BaseWindow):
 
     def createWindow(self, parentWnd, rect, style = win32con.WS_VISIBLE | win32con.WS_CHILD, className='STATIC', title = ''):
         super().createWindow(parentWnd, rect, style, className, title)
+        self.createContentWindow()
+        self.createToolbarWindow(rect)
+        from THS import ths_win
+        ths_win.ThsWindow.ins().init()
+
+    def createContentWindow(self):
         DETAIL_WIDTH = 180 if screen.isSmalScreen() else 220
         self.layout = base_win.GridLayout(('100%', ), ('1fr', DETAIL_WIDTH), (5, 5))
         self.klineWin.createWindow(self.hwnd, (0, 0, 1, 1))
@@ -2224,9 +2230,8 @@ class KLineCodeWindow(base_win.BaseWindow):
         rightLayout.addContent(xgWin, {'margins': (0, 15, 0, 5)})
         self.layout.setContent(0, 1, rightLayout)
         self.layout.resize(0, 0, *self.getClientSize())
-        from THS import ths_win
-        ths_win.ThsWindow.ins().init()
 
+    def createToolbarWindow(self, rect):
         toolbarWin = toolbar.ToolbarWindow(self.klineWin.contextMenuMgr, self)
         TB_WIDTH = 150
         toolbarWin.createWindow(self.hwnd, (0, 0, TB_WIDTH, 25))
@@ -2363,9 +2368,9 @@ class KLineCodeWindow(base_win.BaseWindow):
         txt = clipboard.paste()
         if not txt or not txt.strip():
             return
-        self.createtTextLine(txt)
+        self.pasteTextLine(txt)
         
-    def createtTextLine(self, txt):
+    def pasteTextLine(self, txt):
         ki : KLineIndicator = self.klineWin.klineIndicator
         if not ki.code or not ki.period:
             return
@@ -2382,6 +2387,7 @@ class KLineCodeWindow(base_win.BaseWindow):
         curLine.save()
         self.klineWin.lineMgr.reload()
         self.klineWin.invalidWindow()
+
 
 if __name__ == '__main__':
     import kline_utils

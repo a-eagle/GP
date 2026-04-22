@@ -7,7 +7,7 @@ import types
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import datafile, henxin, cls, ths_iwencai, memcache
 from utils import hot_utils
-from ui import bkgn_view, dialog, base_win, kline_utils, screen
+from ui import bkgn_view, dialog, base_win, kline_utils, screen, kline_win, kline_indicator
 from orm import d_orm, my_orm, ths_orm, cls_orm
 
 # param days (int): [YYYYMMDD, ....]
@@ -1519,7 +1519,68 @@ class BkGnWindow(base_win.BaseWindow):
             win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW)
         else:
             win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
-            
+
+class ThsKLineWindow(kline_win.KLineWindow):
+    def __init__(self):
+        super().__init__()
+        self.CAPTION_WIDTH = 10
+        self.addIndicator(kline_indicator.RateIndicator(self))
+        self.addIndicator(kline_indicator.AmountIndicator(self))
+        self.css['paddings'] = (10, 1, 1, 1)
+        self.css['borderColor'] = 0xAAcc88
+        self.maxMode = True
+        self.MAX_SIZE = ( 980, 550) if screen.isSmalScreen() else (1000, 550)
+        self.MIN_SIZE = (self.CAPTION_WIDTH, 300)
+        self.addNamedListener('OpenMinutes', kline_utils.openTimeLineWindow, self)
+
+    def onDraw(self, hdc):
+        super().onDraw(hdc)
+        H = 20
+        rc = (0, 0, self.CAPTION_WIDTH, H)
+        self.drawer.fillRect(hdc, rc, rgb = 0x338888)
+
+    def createWindow(self, parentWnd, rect = None, style = win32con.WS_VISIBLE | win32con.WS_POPUP, className='STATIC', title = ''):
+        super().createWindow(parentWnd, (0, 0, *self.MAX_SIZE), style, className, title)
+        self.onSize()
+
+    def winProc(self, hwnd, msg, wParam, lParam):
+        if msg == win32con.WM_NCHITTEST:
+            x, y = (lParam & 0xffff), (lParam >> 16) & 0xffff
+            cx, cy = win32gui.ScreenToClient(self.hwnd, (x, y))
+            if cx <= self.CAPTION_WIDTH:
+                return win32con.HTCAPTION
+            return win32con.HTCLIENT
+        if msg == win32con.WM_NCLBUTTONDBLCLK:
+            self.maxMode = not self.maxMode
+            if self.maxMode:
+                win32gui.SetWindowPos(self.hwnd, 0, 0, 0, *self.MAX_SIZE, win32con.SWP_NOMOVE | win32con.SWP_NOZORDER) # win32con.HWND_TOP
+            else:
+                win32gui.SetWindowPos(self.hwnd, 0, 0, 0, *self.MIN_SIZE, win32con.SWP_NOMOVE| win32con.SWP_NOZORDER)
+            return True
+        return super().winProc(hwnd, msg, wParam, lParam)
+
+    def getWindowState(self):
+        rc = win32gui.GetWindowRect(self.hwnd)
+        rs = {'pos': (rc[0], rc[1]), 'settings': None, 'maxMode': self.maxMode}
+        return rs
+
+    def setWindowState(self, state):
+        if not state:
+            return
+        x, y = state['pos']
+        mm = state.get('maxMode', True)
+        sz = self.MAX_SIZE if mm else self.MIN_SIZE
+        win32gui.SetWindowPos(self.hwnd, 0, x, y, *sz, win32con.SWP_NOZORDER) # win32con.SWP_NOACTIVATE  | win32con.SWP_NOSIZE
+
+    def setVisible(self, visible : bool):
+        if not win32gui.IsWindow(self.hwnd):
+            return
+        if visible:
+            win32gui.ShowWindow(self.hwnd, win32con.SW_SHOW)
+        else:
+            win32gui.ShowWindow(self.hwnd, win32con.SW_HIDE)
+
+
 if __name__ == '__main__':
     if 1:
         win = BkGnWindow()

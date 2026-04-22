@@ -8,7 +8,6 @@ from ui import timeline, kline_win, base_win, kline_indicator
 from THS import ths_win
 from orm import ths_orm
 
-    
 def onChangeCode(evt, maxTopHot):
     code = evt.code
     if not code:
@@ -25,7 +24,6 @@ def onChangeCode(evt, maxTopHot):
         days.append(it[0])
     evt.src.marksMgr.clearMarkDay()
     evt.src.marksMgr.setMarkDay(days)
-
 
 def createKLineWindow(parent = None, rect = None, style = None):
     win = kline_win.KLineCodeWindow()

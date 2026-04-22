@@ -5,7 +5,7 @@ from multiprocessing.shared_memory import SharedMemory
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from THS import ths_win, ths_ocr, tips_win
-from ui import base_win, screen
+from ui import base_win, screen, kline_utils
 
 curCode = None
 thsWindow = ths_win.ThsWindow()
@@ -17,7 +17,8 @@ simpleHotZHWindow = tips_win.SimpleHotZHWindow()
 codeBasicWindow = tips_win.CodeBasicWindow()
 thsSelDayWin = ths_win.ThsSelDayWindow()
 bkGnWin = tips_win.BkGnWindow()
-tipWins = [simpleWindow, simpleWindow2, simpleHotZHWindow, codeBasicWindow, bkGnWin]
+klineWin = tips_win.ThsKLineWindow()
+tipWins = [simpleWindow, simpleWindow2, simpleHotZHWindow, codeBasicWindow, bkGnWin, klineWin]
 
 def updateCode(nowCode):
     global curCode, thsShareMem
@@ -34,6 +35,7 @@ def updateCode(nowCode):
     codeBasicWindow.changeCode(nowCode)
     bkGnWin.changeCode(nowCode)
     simpleHotZHWindow.changeCode(nowCode)
+    klineWin.changeCode(nowCode)
     thsShareMem.writeCode(nowCode)
 
 def showTipWins(show : bool):
@@ -81,19 +83,20 @@ def updateWindowInfo(thsWin, stateMgr : WinStateMgr):
         stateMgr.curPageName = curPageName
         if curPageName not in winsInfo:
             winsInfo[curPageName] = {'HOT_WIN': None, 'ZT_WIN': None, "HOT_ZH_WIN": None,
-                                     'CODE_BASIC_WIN': None, 'BK_GN_WIN': None}
+                                     'CODE_BASIC_WIN': None, 'BK_GN_WIN': None, 'KLINE_WIN': None}
         cp = winsInfo[curPageName]
         simpleWindow.setWindowState(cp.get('HOT_WIN', None))
         simpleWindow2.setWindowState(cp.get('ZT_WIN', None))
         simpleHotZHWindow.setWindowState(cp.get('HOT_ZH_WIN', None))
         codeBasicWindow.setWindowState(cp.get('CODE_BASIC_WIN', None))
         bkGnWin.setWindowState(cp.get('BK_GN_WIN', None))
+        klineWin.setWindowState(cp.get('KLINE_WIN', None))
         if curPageName == '技术分析':
             ths_win.ThsSmallF10Window.adjustPos()
     else:
         if curPageName not in winsInfo:
             winsInfo[curPageName] = {'HOT_WIN': None, 'ZT_WIN': None, 'HOT_ZH_WIN': None,
-                                        'CODE_BASIC_WIN': None, 'BK_GN_WIN': None}
+                                        'CODE_BASIC_WIN': None, 'BK_GN_WIN': None, 'KLINE_WIN': None}
         cp = winsInfo[curPageName]
         cp2 = {}
         cp2['HOT_WIN'] = simpleWindow.getWindowState()
@@ -101,6 +104,7 @@ def updateWindowInfo(thsWin, stateMgr : WinStateMgr):
         cp2['HOT_ZH_WIN'] = simpleHotZHWindow.getWindowState()
         cp2['CODE_BASIC_WIN'] = codeBasicWindow.getWindowState()
         cp2['BK_GN_WIN'] = bkGnWin.getWindowState()
+        cp2['KLINE_WIN'] = klineWin.getWindowState()
         if cp != cp2:
             cp.update(cp2)
             stateMgr.save()
@@ -163,6 +167,7 @@ def subprocess_main():
     simpleHotZHWindow.createWindow(thsWindow.topHwnd)
     codeBasicWindow.createWindow(thsWindow.topHwnd)
     bkGnWin.createWindow(thsWindow.topHwnd)
+    klineWin.createWindow(thsWindow.topHwnd)
     #hotWindow.addListener(onListen, 'ListenHotWindow')
     fileName = 'win32.json' if screen.isSmalScreen() else 'win32-large.json'
     threading.Thread(target = _workThread, args=(thsWindow, fileName)).start()
