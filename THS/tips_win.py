@@ -1539,9 +1539,8 @@ class ThsKLineWindow(kline_win.KLineWindow):
     def changeCode(self, code, period = 'day'):
         if not code or type(code) != str or len(code) != 6:
             return
-        if self.klineIndicator.code == code:
-            return
-        self.adjustIndicator(code)
+        if self.klineIndicator.code != code:
+            self.adjustIndicator(code)
         super().changeCode(code, period)
 
     def adjustIndicator(self, code):

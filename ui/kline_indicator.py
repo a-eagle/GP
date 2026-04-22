@@ -62,6 +62,7 @@ class Indicator:
         self.visibleRange = None # [begin, end)
         self.width = 0
         self.height = 0
+        self.code = None
         if 'visible' in self.config:
             self.visible = self.config['visible']
     
