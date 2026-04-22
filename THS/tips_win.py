@@ -1608,7 +1608,7 @@ class ThsKLineWindow(kline_win.KLineWindow):
         pre = self.rangeSelData['pre']
         WIDTH = 60
         ROW_HEIGHT = 20
-        HEIGHT = ROW_HEIGHT * 11
+        HEIGHT = ROW_HEIGHT * 10
         win32gui.SetViewportOrgEx(hdc, 2, 100)
         sy = 0
         self.drawer.fillRect(hdc, (0, sy - 1, WIDTH, sy + HEIGHT), rgb = 0x101010)
@@ -1624,12 +1624,16 @@ class ThsKLineWindow(kline_win.KLineWindow):
         if endDay < fromDay:
             fromDay, endDay = endDay, fromDay
         diffDays = (endDay - fromDay).days + 1
-        monthNum = diffDays // 30
-        daysNum = diffDays - monthNum * 30
-        if monthNum > 0:
-            self.drawer.drawText(hdc, f'{monthNum}个月', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
-            sy += ROW_HEIGHT
-        self.drawer.drawText(hdc, f'零{daysNum}天', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
+        yearNum = diffDays // 365
+        monthNum = (diffDays - yearNum * 365) // 30
+        daysNum = diffDays - yearNum * 365 - monthNum * 30
+        if yearNum > 0:
+            ym = f'{yearNum}年{monthNum}月'
+        elif monthNum > 0:
+            ym = f'{monthNum}月{daysNum}天'
+        else:
+            ym = f'{daysNum}天'
+        self.drawer.drawText(hdc, ym, (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
         sy += ROW_HEIGHT
         self.drawer.fillRect(hdc,(1, sy, WIDTH - 1, sy + ROW_HEIGHT), rgb = HEADER_BG_COLOR)
         self.drawer.drawText(hdc, f'涨幅', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
@@ -1666,7 +1670,7 @@ class ThsKLineWindow(kline_win.KLineWindow):
         sday = '一二三四五六日'[day.weekday()]
         WIDTH = 60
         ROW_HEIGHT = 20
-        HEIGHT = ROW_HEIGHT * 12
+        HEIGHT = ROW_HEIGHT * 11
         sy = 0
         win32gui.SetViewportOrgEx(hdc, 2, 100)
         self.drawer.fillRect(hdc, (0, sy - 1, WIDTH, sy + HEIGHT), rgb = 0x101010)
@@ -1678,9 +1682,8 @@ class ThsKLineWindow(kline_win.KLineWindow):
         self.drawer.drawText(hdc, f'{day.year}', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
         sy += ROW_HEIGHT - 4
         self.drawer.drawText(hdc, f'{day.month :02d}-{day.day :02d}', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
-        sy += ROW_HEIGHT
-        self.drawer.drawText(hdc, f'周{sday}', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
-        
+        # sy += ROW_HEIGHT
+        # self.drawer.drawText(hdc, f'周{sday}', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
         sy += ROW_HEIGHT
         self.drawer.fillRect(hdc,(1, sy, WIDTH - 1, sy + ROW_HEIGHT), rgb = HEADER_BG_COLOR)
         self.drawer.drawText(hdc, f'涨幅', (0, sy, WIDTH, sy + ROW_HEIGHT), rgb=0xdddddd, align = V_CENTER)
