@@ -1890,12 +1890,14 @@ class KLineWindow(base_win.BaseWindow):
         txt : str = selLine.textLine.info
         if not txt or not txt.strip():
             return
-        # pyperclip.copy(txt)
-        clipboard.copy(txt, encoding)
+        if encoding == 'utf-8':
+            pyperclip.copy(txt)
+        else:
+            clipboard.copy(txt, encoding)
 
     def doPaste(self):
-        # txt = pyperclip.paste()
-        txt = clipboard.paste()
+        txt = pyperclip.paste()
+        # txt = clipboard.paste()
         if not txt or not txt.strip():
             return
         self.pasteTextLine(txt)

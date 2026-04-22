@@ -78,7 +78,7 @@ def openTimeLineWindow(evt, parent : base_win.BaseWindow):
     #rc2 = (rc[0], rc[1], rc[2] - rc[0], rc[3] - rc[1])
     SW = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
     SH = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
-    w, h = max(600, int(SW * 0.55)), int(SH * 0.5)
+    w, h = max(600, int(SW * 0.55)), max(int(SH * 0.5), 600)
     x, y = (SW - w) // 2, (SH - h) // 2
     rc2 = (x, y, w, h)
     hw = None
