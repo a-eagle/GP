@@ -1535,7 +1535,25 @@ class ThsKLineWindow(kline_win.KLineWindow):
         self.addNamedListener('OpenMinutes', kline_utils.openTimeLineWindow, self)
         self.addNamedListener('selIdx-Changed', self.onSelIdxChanged)
         self.addNamedListener('range-selector-changed', self.onRangeSelectorChanged)
-        
+    
+    def changeCode(self, code, period = 'day'):
+        if not code or type(code) != str or len(code) != 6:
+            return
+        self.adjustIndicator(code)
+        super().changeCode(code, period)
+
+    def adjustIndicator(self, code):
+        isPreCode = isinstance(self.indicators[1], kline_indicator.RateIndicator)
+        if code[0 : 2] == '88' and isPreCode:
+            self.indicators.clear()
+            self.addIndicator(self.klineIndicator)
+            self.addIndicator(kline_indicator.AmountIndicator(self))
+            self.addIndicator(kline_indicator.ZsZdPmIndicator(self))
+        elif code[0] == '036' and (not isPreCode):
+            self.indicators.clear()
+            self.addIndicator(self.klineIndicator)
+            self.addIndicator(kline_indicator.RateIndicator(self))
+            self.addIndicator(kline_indicator.AmountIndicator(self))
 
     def onDraw(self, hdc):
         H = 20

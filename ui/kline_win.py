@@ -1943,8 +1943,8 @@ class KLineWindow(base_win.BaseWindow):
     @staticmethod
     def createSimple():
         win = KLineWindow()
-        win.addIndicator(RateIndicator(win, {'height': 60, 'margins': (15, 2)}))
-        win.addIndicator(AmountIndicator(win, {'height': 60, 'margins': (10, 2)}))
+        win.addIndicator(RateIndicator(win))
+        win.addIndicator(AmountIndicator(win))
         return win
 
 class XuanGuWindow(BaseWindow):
