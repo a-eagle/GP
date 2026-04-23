@@ -55,6 +55,8 @@ class ThsColumns:
         try:
             if val == None:
                 return defaultVal
+            if _type == int:
+                val = float(val)
             rs = _type(val)
             if _type == str:
                 rs = rs.strip()
@@ -779,8 +781,8 @@ def downloadCodesBasic():
             pe = col.getColumnValue('市盈率(pe)', float, defaultVal=None),
             peTTM = col.getColumnValue('市盈率(pe,ttm)', float, defaultVal=None),
             # price = col.getColumnValue('最新价', float),
-            # zsz = col.getColumnValue('总市值', float),
-            # ltsz = col.getColumnValue('a股市值(不含限售股)', float),
+            # zsz = col.getColumnValue('总市值', int),
+            # ltsz = col.getColumnValue('a股市值(不含限售股)', int),
         )
         if item.pe != None:
             item.pe = int(item.pe * 10 + 0.5) / 10
@@ -827,6 +829,6 @@ if __name__ == '__main__':
     # datas = download_zs_zd()
     # save_zs_zd(datas)
     
-    # codes = downloadCodesBasic()
-    # saveCodesBasic(codes)
+    codes = downloadCodesBasic()
+    saveCodesBasic(codes)
     

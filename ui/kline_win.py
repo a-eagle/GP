@@ -1525,7 +1525,8 @@ class KLineWindow(base_win.BaseWindow):
         self.selIdx = -1
         self.setSelIdx(newSelIdx)
         self.invalidWindow()
-        ThreadPool.instance().addTask_N(self.loadClsBkGn, code)
+        # no update CLS gn
+        # ThreadPool.instance().addTask_N(self.loadClsBkGn, code)
         self.notifyListener(self.Event('ChangeCode', self, code = code))
 
     def loadClsBkGn(self, code):

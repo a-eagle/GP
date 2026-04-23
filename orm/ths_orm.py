@@ -117,6 +117,8 @@ class THS_CodesBasic(base_orm.NeedSyncModel):
     ltag = pw.BigIntegerField(null=True, default = None) # 流通a股 股
     pe = pw.FloatField(null=True, default = None) # 静态市盈率
     peTTM = pw.FloatField(null=True, default = None) # 市盈率(pe,ttm)
+    # zsz = pw.FloatField(null=True, default = None) # 总市值
+    # ltsz = pw.FloatField(null=True, default = None) # 总市值
 
 base_orm.db_mysql.create_tables([THS_Hot, THS_HotZH, THS_ZS, THS_ZS_ZD, 
     THS_GNTC, THS_ZT, THS_CodesInfo, THS_CodesBasic])
