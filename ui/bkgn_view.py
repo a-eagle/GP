@@ -6,7 +6,7 @@ import types
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import datafile, henxin, cls, ths_iwencai
-from utils import hot_utils
+from utils import hot_utils, cutils
 from ui import dialog, base_win, kline_utils, screen
 from orm import d_orm, my_orm, ths_orm, cls_orm
 
@@ -265,15 +265,16 @@ class BkGnView:
         scode = f'{code :06d}' if type(code) == int else code
         if scode[0 : 2] in ('sz', 'sh'):
             scode = scode[2 : ]
-        self.curCode = scode
-        if scode == '1A0001' or (scode[0] not in '036') or (scode[0 : 3] == '399'):
-            self.richRender.specs.clear()
-            win32gui.InvalidateRect(self.hwnd, None, False)
+        if (not force) and (self.curCode == code):
             return
-        # load code info
-        self._loadThsClsTcgn()
-        self._loadClsHotGn(None)
-        self._buildBkgn()
+        self.curCode = scode
+        if not cutils.isCode(scode):
+            self.richRender.specs.clear()
+        else:
+            # load code info
+            self._loadThsClsTcgn()
+            self._loadClsHotGn(None)
+            self._buildBkgn()
         win32gui.InvalidateRect(self.hwnd, None, False)
 
     def changeLastDay(self, lastDay):
@@ -284,8 +285,11 @@ class BkGnView:
         if self.lastDay == lastDay:
             return
         self.lastDay = lastDay
-        self._loadClsHotGn(self.lastDay)
-        self._buildBkgn()
+        if not cutils.isCode(self.curCode):
+            self.richRender.specs.clear()
+        else:
+            self._loadClsHotGn(self.lastDay)
+            self._buildBkgn()
         win32gui.InvalidateRect(self.hwnd, None, False)
 
     def changeLimitDaysNum(self):

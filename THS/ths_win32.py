@@ -114,9 +114,9 @@ def _workThread(thsWin : ths_win.ThsWindow, fileName):
     stateMgr = WinStateMgr(fileName)
     stateMgr.read()
     wbOcr = ths_ocr.ThsWbOcrUtils()
-    
+    global curCode
     while True:
-        time.sleep(0.5)
+        time.sleep(1)
         #mywin.eyeWindow.show()
         if not win32gui.IsWindow(thsWin.topHwnd):
             #win32gui.PostQuitMessage(0)
@@ -145,7 +145,8 @@ def _workThread(thsWin : ths_win.ThsWindow, fileName):
             nowCode = '999999'
         if not nowCode:
             continue
-        updateCode(nowCode)
+        if curCode != nowCode:
+            updateCode(nowCode)
 
         if False: # no need do anymore
             selDay = thsWin.getSelectDay()

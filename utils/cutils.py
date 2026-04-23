@@ -45,3 +45,27 @@ def formateDate(date):
         date = date.strftime('%Y-%m-%d')
         return date
     return date
+
+def isMainZs(code):
+    if not code:
+        return False
+    if type(code) == int: code = f'{code :06d}'
+    return code == '1A0001' or (code[0 : 3] == '399')
+
+def isBkGnZS(code):
+    if not code:
+        return False
+    if type(code) == int: code = f'{code :06d}'
+    return  code[0 : 2] == '88'
+
+def isAnyZs(code):
+    if not code:
+        return False
+    if type(code) == int: code = f'{code :06d}'
+    return isMainZs(code) or isBkGnZS(code)
+
+def isCode(code):
+    if not code:
+        return False
+    if type(code) == int: code = f'{code :06d}'
+    return (code[0] in '036') and (code[0 : 3] != '399')

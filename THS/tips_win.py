@@ -6,7 +6,7 @@ import types
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import datafile, henxin, cls, ths_iwencai, memcache
-from utils import hot_utils
+from utils import hot_utils, cutils
 from ui import bkgn_view, dialog, base_win, kline_utils, screen, kline_win, kline_indicator
 from orm import d_orm, my_orm, ths_orm, cls_orm
 
@@ -1547,16 +1547,16 @@ class ThsKLineWindow(kline_win.KLineWindow):
         isPreCode = len(self.indicators) == 3 and isinstance(self.indicators[1], kline_indicator.RateIndicator)
         isPreMainZs = len(self.indicators) == 2 and isinstance(self.indicators[1], kline_indicator.Amount2Indicator)
         isZsCode = len(self.indicators) == 3 and isinstance(self.indicators[2], kline_indicator.ZsZdPmIndicator)
-        if (code == '1A0001' or code[0 : 3] == '399' or code == '999999') and (not isPreMainZs):
+        if cutils.isMainZs(code) and (not isPreMainZs):
             self.indicators.clear()
             self.addIndicator(self.klineIndicator)
             self.addIndicator(kline_indicator.Amount2Indicator(self))
-        elif code[0 : 2] == '88' and (not isZsCode):
+        elif cutils.isBkGnZS(code) and (not isZsCode):
             self.indicators.clear()
             self.addIndicator(self.klineIndicator)
             self.addIndicator(kline_indicator.AmountIndicator(self))
             self.addIndicator(kline_indicator.ZsZdPmIndicator(self))
-        elif code[0] in '036' and (not isPreCode):
+        elif cutils.isCode(code) and (not isPreCode):
             self.indicators.clear()
             self.addIndicator(self.klineIndicator)
             self.addIndicator(kline_indicator.RateIndicator(self))
