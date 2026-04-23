@@ -23,7 +23,8 @@ tipWins = [simpleWindow, simpleWindow2, simpleHotZHWindow, codeBasicWindow, bkGn
 def updateCode(nowCode):
     global curCode, thsShareMem
     try:
-        icode = int(nowCode)
+        if nowCode != '1A0001':
+            icode = int(nowCode)
     except Exception as e:
         nowCode = '0'
     if curCode == nowCode:
@@ -110,7 +111,6 @@ def updateWindowInfo(thsWin, stateMgr : WinStateMgr):
             stateMgr.save()
 
 def _workThread(thsWin : ths_win.ThsWindow, fileName):
-    global curCode
     stateMgr = WinStateMgr(fileName)
     stateMgr.read()
     wbOcr = ths_ocr.ThsWbOcrUtils()
@@ -132,22 +132,28 @@ def _workThread(thsWin : ths_win.ThsWindow, fileName):
             continue
         showTipWins(not isNotTop)
         updateWindowInfo(thsWin, stateMgr)
-        rs = wbOcr.runOcr(thsWin.mainHwnd) or {}
-        code = thsWin.findCode_Level2()
-        if code:
-            rs['code'] = code
-        codeBasicWindow.updateWeiBi(rs)
-        if not rs:
+        
+        nowCode = thsWin.findCodeOfCurPage() # findCode_Level2()
+        if not nowCode:
+            # rs = wbOcr.runOcr(thsWin.mainHwnd) or {}
+            # codeBasicWindow.updateWeiBi(rs)
+            rs = wbOcr.runOcrOfCode(thsWin.mainHwnd) or {}
+            nowCode = rs.get('code', None)
+            if nowCode == '000001':
+                nowCode = '999999'
+        if nowCode == '1A0001':
+            nowCode = '999999'
+        if not nowCode:
             continue
-        nowCode = rs['code'] # thsWin.findCodeOfCurPage()
-        if curCode != nowCode:
-            updateCode(nowCode)
-        selDay = thsWin.getSelectDay()
-        if selDay:
-            #hotWindow.updateSelectDay(selDay)
-            simpleWindow.changeSelectDay(selDay)
-            simpleWindow2.changeSelectDay(selDay)
-            thsShareMem.writeSelDay(selDay)
+        updateCode(nowCode)
+
+        if False: # no need do anymore
+            selDay = thsWin.getSelectDay()
+            if selDay:
+                #hotWindow.updateSelectDay(selDay)
+                simpleWindow.changeSelectDay(selDay)
+                simpleWindow2.changeSelectDay(selDay)
+                thsShareMem.writeSelDay(selDay)
         #thsSelDayWin.onTryMove(thsWin, nowCode)
 
 def onListen(evt, args):

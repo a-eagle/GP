@@ -1547,7 +1547,7 @@ class ThsKLineWindow(kline_win.KLineWindow):
         isPreCode = len(self.indicators) == 3 and isinstance(self.indicators[1], kline_indicator.RateIndicator)
         isPreMainZs = len(self.indicators) == 2 and isinstance(self.indicators[1], kline_indicator.Amount2Indicator)
         isZsCode = len(self.indicators) == 3 and isinstance(self.indicators[2], kline_indicator.ZsZdPmIndicator)
-        if (code == '1A0001' or code[0 : 3] == '399') and (not isPreMainZs):
+        if (code == '1A0001' or code[0 : 3] == '399' or code == '999999') and (not isPreMainZs):
             self.indicators.clear()
             self.addIndicator(self.klineIndicator)
             self.addIndicator(kline_indicator.Amount2Indicator(self))
@@ -1577,7 +1577,7 @@ class ThsKLineWindow(kline_win.KLineWindow):
         win32gui.RestoreDC(hdc, sdc)
 
     def createWindow(self, parentWnd, rect = None, style = win32con.WS_VISIBLE | win32con.WS_POPUP, className='STATIC', title = ''):
-        super().createWindow(parentWnd, (0, 0, *self.MAX_SIZE), style, className, title)
+        super().createWindow(parentWnd, (0, 0, *self.MIN_SIZE), style, className, title)
         self.onSize()
 
     def winProc(self, hwnd, msg, wParam, lParam):

@@ -266,6 +266,10 @@ class BkGnView:
         if scode[0 : 2] in ('sz', 'sh'):
             scode = scode[2 : ]
         self.curCode = scode
+        if scode == '1A0001' or (scode[0] not in '036') or (scode[0 : 3] == '399'):
+            self.richRender.specs.clear()
+            win32gui.InvalidateRect(self.hwnd, None, False)
+            return
         # load code info
         self._loadThsClsTcgn()
         self._loadClsHotGn(None)

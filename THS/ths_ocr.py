@@ -34,7 +34,7 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         rs['buy'] = buy # 万元
         rs['sell'] = sell # 万元
 
-    def dumpStockTitleWindow(self, thsMainWin):
+    def dumpStockTitleWindow(self, thsMainWin, hasWb = True):
         if (not thsMainWin) or (not win32gui.IsWindow(thsMainWin)) or (not win32gui.IsWindowVisible(thsMainWin)):
             return None
         hwnd = self.findWindow(thsMainWin, 'stock_title_page', '')
@@ -47,6 +47,8 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
         imgFull = self.dumpImg(hwnd, (0, 0, *srcSize))
         LEFT_PADDING = 3
         codeImg = imgFull.crop((LEFT_PADDING, 2, w - LEFT_PADDING, h // 2))
+        if not hasWb:
+            return codeImg, None, None
         priceImg = imgFull.crop((LEFT_PADDING, h // 2, w - LEFT_PADDING, h - 1))
 
         WB_TXT_WIDTH = 35
@@ -84,7 +86,7 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
             return False
         rs['code'] = code
         rs['name'] = ''
-        if rs['code'][0 : 2] not in ('00', '30', '60', '68', '88'):
+        if rs['code'][0 : 2] not in ('00', '30', '60', '68', '88', '39'):
             return False
         return True
     
@@ -208,6 +210,21 @@ class ThsWbOcrUtils(number_ocr.DumpWindowUtils):
             self.calcBS(rs)
             # img = self.dumpStockUnitWindow(thsMainWin)
             # self.parseStockUnit(img, rs)
+            return rs
+        except Exception as e:
+            traceback.print_exc()
+            print('ths_ocr:', rs)
+        return rs
+    
+    def runOcrOfCode(self, thsMainWin):
+        rs = {}
+        try:
+            imgs = self.dumpStockTitleWindow(thsMainWin, False)
+            if not imgs:
+                return None
+            codeImg, *_ = imgs
+            if not self.parseCodeName(codeImg, rs):
+                return None
             return rs
         except Exception as e:
             traceback.print_exc()
