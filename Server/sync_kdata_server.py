@@ -89,7 +89,7 @@ class Client:
             for item in datas:
                 self.writeKdata(item['code'], item['kdata-num'], item['kdatas'])
         useTime = (time.time() - startTime) / 60
-        print(f'[download] end, use time: {useTime :.1f} minutes')
+        print(f'[download] end, use time: {useTime :.1f} minutes, ', 'success' if flag else 'fail')
         return flag
 
     def start(self):
@@ -100,10 +100,10 @@ class Client:
                 return True
             return ths_iwencai.isTradeDay()
 
-        klineTry = tdx.Try(acceptTime, 3, self.download, intervalTime = 30 * 60, userNoInputTime = 0, ignoreDay = 0)
+        klineTry = tdx.Try(acceptTime, 3, self.download, intervalTime = 10 * 60, userNoInputTime = 0, ignoreDay = 0)
         while True:
             klineTry.check()
-            time.sleep(60)
+            time.sleep(5 * 60)
 
 class Server:
     def __init__(self) -> None:

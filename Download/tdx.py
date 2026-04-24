@@ -251,13 +251,14 @@ class TdxGuiDownloader:
         return ok
     
 class Try:
-    def __init__(self, startTime, maxTryTimes, operation, intervalTime = 0, userNoInputTime = 0, ignoreDay : int = 0) -> None:
+    def __init__(self, startTime, maxTryTimes, operation, intervalTime = 0, userNoInputTime = 0, ignoreDay : int = 0, resetTime = '00:00-08:00') -> None:
         self.startTime = startTime
         self.maxTryTimes = maxTryTimes
         self.intervalTime = intervalTime
         self.userNoInputTime = userNoInputTime
         self.operation = operation
         self.ignoreDay = ignoreDay
+        self.resetTime = resetTime
 
         self.lastRunTime = None
         self.tryTimes = 0
@@ -267,16 +268,25 @@ class Try:
         self.lastRunTime = None
         self.tryTimes = 0
         self.doneSuccess = False
+
+    def checkReset(self, stime):
+        if type(self.resetTime) == str:
+            b, e = self.resetTime.split('-')
+            if stime >= b and stime <= e:
+                self.reset()
+        elif callable(self.resetTime):
+            if self.resetTime(stime):
+                self.reset()
     
     def check(self):
         now = datetime.datetime.now()
         today = int(now.strftime('%Y%m%d'))
         stime = now.strftime(('%H:%M'))
+
+        self.checkReset(stime)
         if type(self.startTime) == str and stime < self.startTime:
-            self.reset()
             return False
         if callable(self.startTime) and not self.startTime():
-            self.reset()
             return False
         if today == self.ignoreDay:
             self.reset()
