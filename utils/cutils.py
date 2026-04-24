@@ -69,3 +69,21 @@ def isCode(code):
         return False
     if type(code) == int: code = f'{code :06d}'
     return (code[0] in '036') and (code[0 : 3] != '399')
+
+# 930, 1400
+def getCurTime() -> int:
+    now = datetime.datetime.now()
+    return now.hour * 100 + now.minute
+
+def isTradeTime():
+    now = datetime.datetime.now()
+    st = now.strftime('%H:%M')
+    if st < '09:30':
+        return False
+    if st < '11:30':
+        return True
+    if st < '13:00':
+        return False
+    if st < '15:00':
+        return True
+    return False

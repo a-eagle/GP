@@ -1034,8 +1034,7 @@ class KLineDownloader:
     K_PATH = PathManager.NET_LDAY_PATH
 
     def __init__(self) -> None:
-        from download import memcache
-        memcache.cache.enableCache = False
+        pass
 
     def loadNet(self, code : str, useThs : bool, loadToday : bool):
         from download import henxin, cls
@@ -1163,6 +1162,8 @@ class KLineDownloader:
 
     def downloadAll(self, fromIdx = 0, maxDay = None):
         from utils import gn_utils
+        from download import memcache
+        memcache.cache.enableCache = False
         codes = []
         for code in gn_utils.ths_gntc_s:
             codes.append(code)
@@ -1177,6 +1178,7 @@ class KLineDownloader:
                 print('[KLineDownloader] Fail load: ', code)
             if i % 2:
                 time.sleep(3)
+        memcache.cache.enableCache = True
 
     # day = YYYYMMDD
     def downloadByDay(self, day = None, maxPage = None):
@@ -1215,10 +1217,13 @@ class KLineDownloader:
         self.downloadCodes(codes)
 
     def downloadCodes(self, codes):
+        from download import memcache
+        memcache.cache.enableCache = False
         for code in codes:
             ds = self.loadNet(code, True, True)
             self.overWrite(code, ds)
             time.sleep(1.5)
+        memcache.cache.enableCache = True
 
     # 修复本地数据
     def fixAllNetData(self):

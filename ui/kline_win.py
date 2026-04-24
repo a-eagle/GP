@@ -1524,6 +1524,7 @@ class KLineWindow(base_win.BaseWindow):
         self.makeVisible(newSelIdx)
         self.selIdx = -1
         self.setSelIdx(newSelIdx)
+        self.mouseXY = None
         self.invalidWindow()
         # no update CLS gn
         # ThreadPool.instance().addTask_N(self.loadClsBkGn, code)

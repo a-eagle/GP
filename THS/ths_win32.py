@@ -10,15 +10,15 @@ from ui import base_win, screen, kline_utils
 curCode = None
 thsWindow = ths_win.ThsWindow()
 thsFPWindow = ths_win.ThsFuPingWindow()
-simpleWindow = tips_win.SimpleWindow('HOT')
-simpleWindow2 = tips_win.SimpleWindow('ZT_GN')
+hotWindow = tips_win.SimpleWindow('HOT')
+ztGnWindow = tips_win.SimpleWindow('ZT_GN')
 thsShareMem = base_win.ThsShareMemory.instance()
-simpleHotZHWindow = tips_win.SimpleHotZHWindow()
+hotZHWindow = tips_win.SimpleHotZHWindow()
 codeBasicWindow = tips_win.CodeBasicWindow()
 thsSelDayWin = ths_win.ThsSelDayWindow()
 bkGnWin = tips_win.BkGnWindow()
 klineWin = tips_win.ThsKLineWindow()
-tipWins = [simpleWindow, simpleWindow2, simpleHotZHWindow, codeBasicWindow, bkGnWin, klineWin]
+tipWins = [hotWindow, ztGnWindow, hotZHWindow, codeBasicWindow, bkGnWin, klineWin]
 
 def updateCode(nowCode):
     global curCode, thsShareMem
@@ -31,11 +31,11 @@ def updateCode(nowCode):
         return
     curCode = nowCode
     #hotWindow.updateCode(nowCode)
-    simpleWindow.changeCode(nowCode)
-    simpleWindow2.changeCode(nowCode)
+    hotWindow.changeCode(nowCode)
+    ztGnWindow.changeCode(nowCode)
     codeBasicWindow.changeCode(nowCode)
     bkGnWin.changeCode(nowCode)
-    simpleHotZHWindow.changeCode(nowCode)
+    hotZHWindow.changeCode(nowCode)
     klineWin.changeCode(nowCode)
     thsShareMem.writeCode(nowCode)
 
@@ -86,9 +86,9 @@ def updateWindowInfo(thsWin, stateMgr : WinStateMgr):
             winsInfo[curPageName] = {'HOT_WIN': None, 'ZT_WIN': None, "HOT_ZH_WIN": None,
                                      'CODE_BASIC_WIN': None, 'BK_GN_WIN': None, 'KLINE_WIN': None}
         cp = winsInfo[curPageName]
-        simpleWindow.setWindowState(cp.get('HOT_WIN', None))
-        simpleWindow2.setWindowState(cp.get('ZT_WIN', None))
-        simpleHotZHWindow.setWindowState(cp.get('HOT_ZH_WIN', None))
+        hotWindow.setWindowState(cp.get('HOT_WIN', None))
+        ztGnWindow.setWindowState(cp.get('ZT_WIN', None))
+        hotZHWindow.setWindowState(cp.get('HOT_ZH_WIN', None))
         codeBasicWindow.setWindowState(cp.get('CODE_BASIC_WIN', None))
         bkGnWin.setWindowState(cp.get('BK_GN_WIN', None))
         klineWin.setWindowState(cp.get('KLINE_WIN', None))
@@ -100,9 +100,9 @@ def updateWindowInfo(thsWin, stateMgr : WinStateMgr):
                                         'CODE_BASIC_WIN': None, 'BK_GN_WIN': None, 'KLINE_WIN': None}
         cp = winsInfo[curPageName]
         cp2 = {}
-        cp2['HOT_WIN'] = simpleWindow.getWindowState()
-        cp2['ZT_WIN'] = simpleWindow2.getWindowState()
-        cp2['HOT_ZH_WIN'] = simpleHotZHWindow.getWindowState()
+        cp2['HOT_WIN'] = hotWindow.getWindowState()
+        cp2['ZT_WIN'] = ztGnWindow.getWindowState()
+        cp2['HOT_ZH_WIN'] = hotZHWindow.getWindowState()
         cp2['CODE_BASIC_WIN'] = codeBasicWindow.getWindowState()
         cp2['BK_GN_WIN'] = bkGnWin.getWindowState()
         cp2['KLINE_WIN'] = klineWin.getWindowState()
@@ -152,8 +152,8 @@ def _workThread(thsWin : ths_win.ThsWindow, fileName):
             selDay = thsWin.getSelectDay()
             if selDay:
                 #hotWindow.updateSelectDay(selDay)
-                simpleWindow.changeSelectDay(selDay)
-                simpleWindow2.changeSelectDay(selDay)
+                hotWindow.changeSelectDay(selDay)
+                ztGnWindow.changeSelectDay(selDay)
                 thsShareMem.writeSelDay(selDay)
         #thsSelDayWin.onTryMove(thsWin, nowCode)
 
@@ -169,9 +169,9 @@ def subprocess_main():
         time.sleep(0.7)
     # thsShareMem.open()
     #hotWindow.createWindow(thsWindow.topHwnd)
-    simpleWindow.createWindow(thsWindow.topHwnd)
-    simpleWindow2.createWindow(thsWindow.topHwnd)
-    simpleHotZHWindow.createWindow(thsWindow.topHwnd)
+    hotWindow.createWindow(thsWindow.topHwnd)
+    ztGnWindow.createWindow(thsWindow.topHwnd)
+    hotZHWindow.createWindow(thsWindow.topHwnd)
     codeBasicWindow.createWindow(thsWindow.topHwnd)
     bkGnWin.createWindow(thsWindow.topHwnd)
     klineWin.createWindow(thsWindow.topHwnd)
@@ -192,9 +192,9 @@ def subprocess_main_fp():
         time.sleep(3)
     thsShareMem.open()
     #hotWindow.createWindow(thsFPWindow.topHwnd)
-    simpleWindow.createWindow(thsFPWindow.topHwnd)
-    simpleWindow2.createWindow(thsFPWindow.topHwnd)
-    simpleHotZHWindow.createWindow(thsFPWindow.topHwnd)
+    hotWindow.createWindow(thsFPWindow.topHwnd)
+    ztGnWindow.createWindow(thsFPWindow.topHwnd)
+    hotZHWindow.createWindow(thsFPWindow.topHwnd)
     codeBasicWindow.createWindow(thsFPWindow.topHwnd)
     bkGnWin.createWindow(thsFPWindow.topHwnd)
     threading.Thread(target = _workThread, args=(thsFPWindow, 'hot-win32-fp.json')).start()

@@ -1453,6 +1453,8 @@ class BkGnWindow(base_win.BaseWindow):
         self.view = bkgn_view.BkGnView()
 
     def changeCode(self, code):
+        if not self.maxMode:
+            return
         self.view.changeCode(code)
 
     def createWindow(self, parentWnd, rect = None, style = win32con.WS_POPUP, className='STATIC', title=''):
@@ -1538,6 +1540,8 @@ class ThsKLineWindow(kline_win.KLineWindow):
     
     def changeCode(self, code, period = 'day'):
         if not code or type(code) != str or len(code) != 6:
+            return
+        if not self.maxMode:
             return
         if self.klineIndicator.code != code:
             self.adjustIndicator(code)

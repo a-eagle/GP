@@ -329,9 +329,7 @@ class HexinUrl(Henxin):
         if not rs:
             return None
         rs['code'] = code
-        timeout = 60
-        if datetime.datetime.now().strftime('%H:%M') > '15:20':
-            timeout = 60 * 60 * 1
+        timeout = 60 * 10
         memcache.cache.saveCache(f'THS-TodayKLine:{code}', rs, timeout)
         return rs
 
@@ -557,7 +555,7 @@ class HexinUrl(Henxin):
 
 if __name__ == '__main__':
     hx = HexinUrl()
-    rs = hx.loadKLineData('002866', 'week')
+    rs = hx.loadKLineData('002866', 'day')
     # print(rs)
 
 
