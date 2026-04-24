@@ -211,6 +211,7 @@ def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite', maxP
     except Exception as e:
         print('Exception: ', question)
         traceback.print_exc()
+        return []
     return rs
 
 class HygnDownloader:
