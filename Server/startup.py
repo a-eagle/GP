@@ -4,13 +4,14 @@ import json, os, sys, platform
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from Server import cls_server, ths_server, lhb_server
 from download import ths_iwencai
+from utils import cutils
 
 thsServer = ths_server.Server()
 clsServer = cls_server.Server()
 lhbServer = lhb_server.Server()
 
 def acceptDay():
-    days = ths_iwencai.getTradeDays()
+    days = cutils.getTradeDays()
     if not days:
         return False
     td = datetime.date.today().strftime('%Y%m%d')

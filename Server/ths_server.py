@@ -148,7 +148,7 @@ class Server:
         if day.weekday() >= 5:
             return False
         day = day.strftime('%Y%m%d')
-        tdays = ths_iwencai.getTradeDays()
+        tdays = cutils.getTradeDays()
         if day in tdays:
             return True
         return False
@@ -282,6 +282,11 @@ class Server:
             return
         curTime = now.strftime('%H:%M')
 
+        # 下载交易日
+        if (curTime >= '08:00') and not self.downloadInfos.get(f'trade-day-{day}', False):
+            ok = self.downloadTradeDays()
+            self.downloadInfos[f'trade-day-{day}'] = ok
+            console.writeln_1(console.GREEN, f'[9/8] Trade day {self.formatNowTime(True)} ')
         # 下载同花顺涨停信息
         if (curTime >= '09:30' and curTime <= '11:30') or (curTime >= '13:00' and curTime <= '15:10'):
             if time.time() - self.last_zt_time >= 5 * 60: # 5分钟
@@ -379,6 +384,22 @@ class Server:
                     item.save()
         console.writeln_1(console.GREEN, f'{tag} Success')
 
+    def downloadTradeDays(self):
+        days = ths_iwencai.getTradeDaysNet(prev = 600, next = 10)
+        if not days:
+            return False
+        for i in range(len(days)):
+            days[i] = int(days[i])
+        rs = []
+        maxDay = ths_orm.TradeDay.select(pw.fn.max(ths_orm.TradeDay.day)).scalar()
+        if not maxDay:
+            rs = days
+        else:
+            idx = days.index(maxDay)
+            rs = days[idx + 1 : ]
+        objs = [ths_orm.TradeDay(day = d) for d in rs]
+        ths_orm.TradeDay.bulk_create(objs, 100)
+
 if __name__ == '__main__':
     #autoLoadHistory(20240708)
     #downloadOneDay(20240702)
@@ -394,6 +415,7 @@ if __name__ == '__main__':
     #     time.sleep(1)
     #     s.downloadSaveVolTop100(d, d)
     #s.download_dt('a', '2025-04-29')
-    s.download_jrl('[8/8]', True)
+    # s.download_jrl('[8/8]', True)
+    s.downloadTradeDays()
 
    

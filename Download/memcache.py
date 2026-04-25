@@ -76,7 +76,7 @@ class MemCache:
 def calcDynamicTimeout(inTime, outTime):
     from download import ths_iwencai
     from utils import cutils
-    if not ths_iwencai.isTradeDay():
+    if not cutils.isTradeDay():
         return outTime
     now = datetime.datetime.now()
 

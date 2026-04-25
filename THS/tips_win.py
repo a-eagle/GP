@@ -278,7 +278,7 @@ class ZSCardView(CardView):
         qr = ths_orm.THS_ZS_ZD.select().where(ths_orm.THS_ZS_ZD.code == zsCode).order_by(ths_orm.THS_ZS_ZD.day.asc())
         data = [d.__data__ for d in qr]
         datars = {}
-        tdays = ths_iwencai.getTradeDaysInt()
+        tdays = cutils.getTradeDaysInt()
         for d in data:
             d['sday'] = self.formateDay(d['day'])
             d['day'] = int(d['day'].replace('-', ''))
@@ -821,7 +821,7 @@ class HotZHCardView(ListView):
         if not foreUpdate and lt - self.updateDataTime < 60:
             return
         self.updateDataTime = lt
-        today = ths_iwencai.getTradeDaysInt()[-1] #ths_orm.THS_Hot.select(pw.fn.max(ths_orm.THS_Hot.day)).scalar()
+        today = cutils.getCurrentTradeDay() #ths_orm.THS_Hot.select(pw.fn.max(ths_orm.THS_Hot.day)).scalar()
         self.maxHotDay = today
         if self.curSelDay == 0:
             self.curSelDay = today
@@ -993,7 +993,7 @@ class HotZHCardView(ListView):
         win32gui.InvalidateRect(self.hwnd, None, True)
 
     def setWindowTitle(self, day : int):
-        tradeDays = ths_iwencai.getTradeDaysInt()
+        tradeDays = cutils.getTradeDaysInt()
         bef = 0
         for i in range(len(tradeDays) - 1, 0, -1):
             if day < tradeDays[i]:

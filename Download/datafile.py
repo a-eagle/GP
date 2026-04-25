@@ -2,6 +2,7 @@ import os, sys, requests, json, traceback, datetime, struct, time, copy, base64,
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import config
+from utils import cutils
 
 TDX_MINUTES_IN_DAY = 240
 
@@ -682,11 +683,11 @@ class Net_K_DataModel(K_DataModel):
         else:
             self.loadDayData_UseNet()
             # write net data
-            tday = ths_iwencai.getTradeDaysInt()[-1]
+            tday =  cutils.getCurrentTradeDay()
             today = int(datetime.date.today().strftime('%Y%m%d'))
             kd = KLineDownloader()
             if tday == today:
-                maxDay = ths_iwencai.getTradeDaysInt()[-2]
+                maxDay = cutils.getTradeDaysInt()[-2]
             else:
                 maxDay = tday
             kd.overWrite(self.code, self.data, toDay = maxDay)
@@ -700,7 +701,7 @@ class Net_K_DataModel(K_DataModel):
         self.data = None
         self.loadLocalData()
         last = self.data[-1].day
-        lday = ths_iwencai.getTradeDaysInt()[-1]
+        lday = cutils.getCurrentTradeDay()
         if last == lday:
             return
         hx = henxin.HexinUrl()
@@ -719,7 +720,7 @@ class Net_K_DataModel(K_DataModel):
 
     def checkLocalData(self):
         from download import ths_iwencai
-        tdays = ths_iwencai.getTradeDaysInt()
+        tdays = cutils.getTradeDaysInt()
         lastDay = self.getLocalLatestDay()
         if not lastDay:
             return False
@@ -1113,7 +1114,7 @@ class KLineDownloader:
     
     def _mergeWrite(self, path, fsize, kdatas : list):
         from download import ths_iwencai
-        tdays = ths_iwencai.getTradeDaysInt()
+        tdays = cutils.getTradeDaysInt()
         idx = tdays.index(kdatas[0].day)
         num = len(tdays) - idx
         num = min(num, fsize // 32)
@@ -1185,7 +1186,7 @@ class KLineDownloader:
         self.downloadZsCodes()
         from download import ths_iwencai
         if not day:
-            day = ths_iwencai.getTradeDaysInt()[-1]
+            day = cutils.getCurrentTradeDay()
         if type(day) == str:
             day = day.replace('-', '')
         q = f'{day}前复权开盘价,{day}前复权收盘价,{day}前复权最高价,{day}前复权最低价,{day}成交量,{day}成交额,{day}换手率'

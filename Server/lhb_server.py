@@ -5,6 +5,7 @@ import datetime, time, sys, os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from orm import lhb_orm
 from download import ths_iwencai
+from utils import cutils
 
 class Server:
     def __init__(self) -> None:
@@ -141,7 +142,7 @@ class Server:
 
     # yyyy-mm-dd
     def loadOneDayLHB(self, day):
-        tdays = ths_iwencai.getTradeDays()
+        tdays = cutils.getTradeDays()
         if day.replace('-', '') not in tdays:
             return True
         cc = lhb_orm.TdxLHB.select().where(lhb_orm.TdxLHB.day == day).count()

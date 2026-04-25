@@ -87,3 +87,33 @@ def isTradeTime():
     if st < '15:00':
         return True
     return False
+
+# return [YYYYMMDD : str, ...]
+def getTradeDays(prev = 500):
+    from orm import ths_orm
+    today = int(datetime.date.today().strftime('%Y%m%d'))
+    q = ths_orm.TradeDay.select().where(ths_orm.TradeDay.day <= today).order_by(ths_orm.TradeDay.day.desc()).limit(prev)
+    days = []
+    for d in q:
+        days.append(str(d.day))
+    days.reverse()
+    return days
+
+def getCurrentTradeDay() -> int:
+    from orm import ths_orm
+    today = int(datetime.date.today().strftime('%Y%m%d'))
+    q = ths_orm.TradeDay.select().where(ths_orm.TradeDay.day <= today).order_by(ths_orm.TradeDay.day.desc()).limit(1)
+    for d in q:
+        return d.day
+    return None
+
+def getTradeDaysInt(prev = 500):
+    days = getTradeDays(prev)
+    if not days:
+        return days
+    return [int(d) for d in days]
+
+def isTradeDay():
+    lastDay = getCurrentTradeDay()
+    today = int(datetime.date.today().strftime('%Y%m%d'))
+    return lastDay == today

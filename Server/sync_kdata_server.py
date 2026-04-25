@@ -5,6 +5,7 @@ import peewee as pw, flask, flask_cors
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import datafile, ths_iwencai, config
+from utils import cutils
 
 class Client:
     def __init__(self) -> None:
@@ -58,7 +59,7 @@ class Client:
         dl.mergeWrite(code, rs)
 
     def getFromDay(self):
-        tdays = ths_iwencai.getTradeDaysInt()
+        tdays = cutils.getTradeDaysInt()
         curDay = self.getLocalLatestDay()
         idx = tdays.index(curDay)
         if idx >= len(tdays) - 1:
@@ -98,7 +99,7 @@ class Client:
             nowTime = datetime.datetime.now().strftime("%H:%M")
             if not (nowTime >= '15:00' and nowTime <= '15:30'): # 服务器下数据时间
                 return True
-            return ths_iwencai.isTradeDay()
+            return cutils.isTradeDay()
 
         klineTry = tdx.Try(acceptTime, 3, self.download, intervalTime = 10 * 60, userNoInputTime = 0, ignoreDay = 0)
         while True:
@@ -155,7 +156,7 @@ class Server:
         page = int(page)
         pageSize = int(pageSize)
         kd = datafile.KLineDownloader()
-        tdays = ths_iwencai.getTradeDaysInt()
+        tdays = cutils.getTradeDaysInt()
         if fromDay not in tdays:
             return flask.Response(b'', mimetype = 'application/octet-stream')
         idx = tdays.index(fromDay)
@@ -197,7 +198,7 @@ class Server:
     def downloadKLine(self):
         kd = datafile.KLineDownloader()
         lastDay = kd.getLocalLatestDay()
-        tdays = ths_iwencai.getTradeDaysInt()
+        tdays = cutils.getTradeDaysInt()
         idx = tdays.index(lastDay) + 1
         if idx >= len(tdays):
             return True

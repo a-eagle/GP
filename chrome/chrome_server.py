@@ -82,7 +82,7 @@ class Server:
         return cls.ClsUrl().signParams(params)
     
     def compareAmount(self, day):
-        tds : list = ths_iwencai.getTradeDays()
+        tds : list = cutils.getTradeDays()
         if not day:
             day = tds[-1]
         day = day.replace('-', '')
@@ -189,7 +189,7 @@ class Server:
     def getHotTcByDay(self):
         day = flask.request.args.get('day', '')
         if not day:
-            day = ths_iwencai.getTradeDays()[-1]
+            day = cutils.getTradeDays()[-1]
         if len(day) == 8:
             day = f"{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}"
         today = datetime.date.today().strftime('%Y-%m-%d')
@@ -216,7 +216,7 @@ class Server:
         return newDatas
         
     def getAllHotTc(self):
-        tds = ths_iwencai.getTradeDays()
+        tds = cutils.getTradeDays()
         days = int(flask.request.args.get('days', None) or 10)
         curDay = flask.request.args.get('day', None) or tds[-1]
         curDay = curDay.replace('-', '')
@@ -248,7 +248,7 @@ class Server:
         return rs
 
     def getHotTcByCode(self):
-        tds = ths_iwencai.getTradeDays()
+        tds = cutils.getTradeDays()
         code = flask.request.args.get('code', None)
         daysNum = int(flask.request.args.get('days', None) or 20)
         curDay = flask.request.args.get('curDay', None) or tds[-1]
@@ -291,7 +291,7 @@ class Server:
     def getLhb(self):
         day = flask.request.args.get('day', None)
         if not day:
-            day = ths_iwencai.getTradeDays()[-1]
+            day = cutils.getTradeDays()[-1]
         day = self.formatDay(day)
         qr = lhb_orm.TdxLHB.select().where(lhb_orm.TdxLHB.day == day)
         rs = []
@@ -462,7 +462,7 @@ class Server:
         return 'ok'
 
     def getTradeDays(self):
-        days = ths_iwencai.getTradeDays()
+        days = cutils.getTradeDays()
         rs = []
         for d in days:
             rs.append(f"{d[0 : 4]}-{d[4 : 6]}-{d[6 : 8]}")
@@ -503,7 +503,7 @@ class Server:
         return None
     
     def _getFenShi(self, code, day):
-        lastTradeDay = ths_iwencai.getTradeDays()[-1]
+        lastTradeDay = cutils.getTradeDays()[-1]
         if not day:
             day = lastTradeDay
         day = day.replace('-', '')
@@ -722,7 +722,7 @@ class Server:
             day = int(day.replace('-', ''))
             day = datetime.date(day // 10000, day // 100 % 100, day % 100)
         endDayInt = int(day.strftime('%Y%m%d'))
-        tradeDays = ths_iwencai.getTradeDays()
+        tradeDays = cutils.getTradeDays()
         if endDayInt > int(tradeDays[-1]):
             endDayInt = int(tradeDays[-1])
         for i in range(len(tradeDays) - 1, -1, -1):
@@ -849,7 +849,7 @@ class Server:
         rs = []
         for it in qr.dicts():
             rs.append(it)
-        TODAY = self.formatDay(ths_iwencai.getTradeDays()[-1])
+        TODAY = self.formatDay(cutils.getTradeDays()[-1])
         if day == TODAY and not rs:
             rs = self._querClsUpDownNewest(tag)
         cc = [d['secu_code'] for d in rs]
@@ -906,7 +906,7 @@ class Server:
             cur['degree'] = it.zhqd
             # cur['fb'] = json.loads(it.fb) if it.fb else {}
             # cur['zdfb'] = json.loads(it.zdfb) if it.zdfb else {}
-        days = ths_iwencai.getTradeDaysInt()
+        days = cutils.getTradeDaysInt()
         dst = []
         WEEK = '一二三四五六日'
         for d in days:
@@ -920,7 +920,7 @@ class Server:
         return dst
 
     def loadZdfbDetail(self, day):
-        lastDay = self.formatDay(ths_iwencai.getTradeDays()[-1])
+        lastDay = self.formatDay(cutils.getTradeDays()[-1])
         day = self.formatDay(day)
         fenbu = None
         rs = {}
@@ -1052,13 +1052,13 @@ class Server:
         return dst
 
     def getLastTradeDay(self):
-        ds = ths_iwencai.getTradeDays()
+        ds = cutils.getTradeDays()
         today = self.formatDay(ds[-1])
         return {'day': today}
 
     def loadTopZhangFu(self, day):
         if not day:
-            day = str(ths_iwencai.getTradeDaysInt()[0])
+            day = str(cutils.getCurrentTradeDay())
         if type(day) == str:
             day = day.replace('-', '')
         q = f"{day}涨幅按大到小排序，且涨幅大于4%，成交额，流通市值,总市值"
@@ -1103,7 +1103,7 @@ class Server:
 
     def loadTopDieFu(self, day):
         if not day:
-            day = str(ths_iwencai.getTradeDaysInt()[0])
+            day = str(cutils.getCurrentTradeDay())
         if type(day) == str:
             day = day.replace('-', '')
         q = f"{day}跌幅按大到小排序，且跌幅大于4.5%，成交额，流通市值,总市值"
@@ -1112,7 +1112,7 @@ class Server:
 
     def loadTopSpeed(self, day):
         if not day:
-            day = ths_iwencai.getTradeDaysInt()[0]
+            day = cutils.getCurrentTradeDay() # cutils.getTradeDaysInt()[0]
         if type(day) == str:
             day = day.replace('-', '')
         day = int(day)

@@ -120,8 +120,12 @@ class THS_CodesBasic(base_orm.NeedSyncModel):
     # zsz = pw.FloatField(null=True, default = None) # 总市值
     # ltsz = pw.FloatField(null=True, default = None) # 总市值
 
+class TradeDay(base_orm.NeedSyncModel):
+    keys = ('day', )
+    day = pw.IntegerField() #
+
 base_orm.db_mysql.create_tables([THS_Hot, THS_HotZH, THS_ZS, THS_ZS_ZD, 
-    THS_GNTC, THS_ZT, THS_CodesInfo, THS_CodesBasic])
+    THS_GNTC, THS_ZT, THS_CodesInfo, THS_CodesBasic, TradeDay])
 
 if __name__ == '__main__':
     pass

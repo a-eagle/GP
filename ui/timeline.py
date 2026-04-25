@@ -7,6 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from download import datafile, cls, ths_iwencai
 from orm import d_orm, ths_orm, cls_orm
 from ui import fx, base_win
+from utils import cutils
 
 def getTypeByCode(code):
     if not code:
@@ -574,7 +575,7 @@ class PanKouWindow(base_win.BaseWindow):
             day = str(day)
         if len(day) == 8:
             day = f'{day[0 : 4]}-{day[4 : 6]}-{day[6 : 8]}'
-        tdays = ths_iwencai.getTradeDays()
+        tdays = cutils.getTradeDays()
         if tdays[-1] == day.replace('-', ''):
             url = cls.ClsUrl()
             self.data = url.loadPanKou5(code)

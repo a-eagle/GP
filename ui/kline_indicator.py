@@ -1566,7 +1566,7 @@ class ZS_ZT_NumIndicator(CustomIndicator):
         today = datetime.date.today().strftime("%Y%m%d")
         if int(today) in self.cdata:
             return None
-        tds = ths_iwencai.getTradeDays()
+        tds = cutils.getTradeDays()
         if not tds:
             return None
         lastDay = tds[-1]

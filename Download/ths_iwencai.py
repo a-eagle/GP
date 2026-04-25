@@ -194,7 +194,7 @@ def iwencai_load_page_n(page : int, moreUrl):
 # input_type = 'typewrite' | 'click'
 # maxPage = int | None(all pages)
 # @return list
-def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite', maxPage = None, internalTime = 5):
+def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite', maxPage = None, internalTime = 5, acceptPart = False):
     rs = []
     try:
         data1, urlMore, count = iwencai_load_page_1(question, intent, input_type)
@@ -211,7 +211,8 @@ def iwencai_load_list(question, intent = 'stock', input_type = 'typewrite', maxP
     except Exception as e:
         print('Exception: ', question)
         traceback.print_exc()
-        return []
+        if not acceptPart:
+            rs.clear()
     return rs
 
 class HygnDownloader:
@@ -655,15 +656,15 @@ def download_zt_lianban(day = None):
         traceback.print_exc()
     return None
 
-def getTradeDays(prev = 600):
+def getTradeDaysNet(prev = 500, next = 1):
     try:
-        key = f'TradeDays-{prev}'
+        key = f'TradeDays-{prev}-{next}'
         item = memcache.cache.getCache(key)
         if item:
             return item
         today = datetime.date.today()
         today = today.strftime('%Y%m%d')
-        url = f'http://data.10jqka.com.cn/dataapi/limit_up/trade_day?date={today}&stock=stock&next=1&prev={prev}'
+        url = f'http://data.10jqka.com.cn/dataapi/limit_up/trade_day?date={today}&stock=stock&next={next}&prev={prev}'
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.3'
         }
@@ -671,20 +672,17 @@ def getTradeDays(prev = 600):
         txt = resp.content.decode('utf-8')
         js = json.loads(txt)
         data = js['data']
-        rs = data['prev_dates']
+        rs : list = data['prev_dates']
         if data['trade_day']:
             rs.append(today)
+        for d in data['next_dates']:
+            if d not in rs:
+                rs.append(d)
         memcache.cache.saveCache(key, rs, 60 * 60)
         return rs
     except Exception as e:
         traceback.print_exc()
     return None
-
-def getTradeDaysInt(prev = 600):
-    days = getTradeDays(prev)
-    if not days:
-        return days
-    return [int(d) for d in days]
 
 # 查找前100个股成交量
 # day = int | str
@@ -763,11 +761,6 @@ def download_jrl_2():
         rs.append(obj)
     return rs
 
-def isTradeDay():
-    lastDay = getTradeDays()[-1]
-    today = datetime.date.today().strftime('%Y%m%d')
-    return lastDay == today
-
 #  个股股本信息，PE peTTM
 def downloadCodesBasic():
     datas = iwencai_load_list('流通股本，总股本，流通市值，总市值，市盈利(pe)，市盈利(ttm)', maxPage = None)
@@ -830,6 +823,5 @@ if __name__ == '__main__':
     # datas = download_zs_zd()
     # save_zs_zd(datas)
     
-    codes = downloadCodesBasic()
-    saveCodesBasic(codes)
-    
+    # codes = downloadCodesBasic()
+    # saveCodesBasic(codes)

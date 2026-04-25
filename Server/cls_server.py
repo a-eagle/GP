@@ -148,7 +148,7 @@ class Server:
     
     def loadOneTime(self):
         now = datetime.datetime.now()
-        if not ths_iwencai.isTradeDay():
+        if not cutils.isTradeDay():
             return
         curTime = now.strftime('%H:%M')
         day = now.strftime('%Y-%m-%d')
@@ -212,7 +212,7 @@ class Server:
 
     def loadTimeDegree(self):
         now = datetime.datetime.now()
-        if not ths_iwencai.isTradeDay():
+        if not cutils.isTradeDay():
             return
         curTime = now.strftime('%H:%M')
         try:
@@ -234,7 +234,7 @@ class Server:
             st = datetime.datetime.now().strftime('%H:%M')
             if st < '09:30' or st > '15:30':
                 return
-            days = ths_iwencai.getTradeDays(daysNum)
+            days = cutils.getTradeDays(daysNum)
             if not days:
                 return
             maxDay = cls_orm.CLS_HotTc.select(pw.fn.max(cls_orm.CLS_HotTc.day)).scalar()
@@ -274,7 +274,7 @@ class Server:
 
     def downloadHotTcOfLastDay(self, tag):
         try:
-            days = ths_iwencai.getTradeDays()
+            days = cutils.getTradeDays()
             if not days:
                 return False
             num = self._loadHotTcOfDay(days[-1])
@@ -315,7 +315,7 @@ class Server:
             rs = cls.ClsUrl().loadAllZS_ZD()
             self.downloadZS(tag, rs)
 
-            lastDay = ths_iwencai.getTradeDays()[-1]
+            lastDay = cutils.getCurrentTradeDay()
             today = datetime.date.today().strftime('%Y%m%d')
             if today == lastDay:
                 hm = datetime.datetime.now().strftime('%H:%M')
