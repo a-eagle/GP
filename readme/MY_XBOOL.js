@@ -4,15 +4,14 @@
 高亮最大涨幅_10  0-100 6
 
 W := 10;
-
 ISCODE := CODE != '1A0001' AND CODE != '000001' AND STRLEFT(CODE, 3) != '399' AND STRLEFT(CODE, 2) != '88';
 
 //--------涨跌停板----------------
 IF (PERIODNAME == '日线' AND ISCODE) { //  AND CODETYPE == 1
 	IS20P := (STRLEFT(CODE, 3) == '688') OR (STRLEFT(CODE, 2) == '30');
-      IF (IS20P AND DATE < 20200824)  {
-		    IS20P := FALSE;
-      }
+	IF (IS20P AND DATE < 20200824)  {
+		IS20P := FALSE;
+	}
 	ZRDP := REF(CLOSE, 1); // PRE  昨日收盘(复权)
 	ZT := IF (IS20P, 20, 10);
 	
@@ -44,27 +43,26 @@ IF (PERIODNAME == '日线' AND ISCODE) { //  AND CODETYPE == 1
    		STICKLINE(TRUE, OPEN, CLOSE, W, OPEN<CLOSE), colorgreen; //RGB(0, 255, 0);
 	}
    zf = (HIGH - ZRDP) / ZRDP * 100;
-   标记最大涨幅 = IF (IS20P, 高亮最大涨幅_20, 高亮最大涨幅_10 );
+   MZF = IF (IS20P, 高亮最大涨幅_20, 高亮最大涨幅_10 );
    others = NOT (ISZT OR ISZTZB OR ISDT OR ISDTZB);
-   IF (zf >= 标记最大涨幅 AND others) {
+   IF (zf >= MZF AND others) {
        STICKLINE(OPEN < CLOSE, HIGH, LOW, 0.1, 0), Colorff00ff;
        STICKLINE(OPEN < CLOSE, OPEN, CLOSE, W, OPEN < CLOSE), Colorff00ff;
 	    // STICKLINE(OPEN > CLOSE, HIGH, LOW, 0.1, 0), Color8b8b00;
        // STICKLINE(OPEN > CLOSE, OPEN, CLOSE, W, OPEN < CLOSE),Color8b8b00;
-       }
+    }
 }
 
 // 指数 高亮显示大涨、大跌
-IF (CODETYPE == 1 AND STRLEFT(CODE, 2) == '88' AND PERIODNAME == '日线') {
-    zdfd := ABS((HIGH - REF(CLOSE, 1)) / REF(CLOSE, 1) * 100);  // 涨跌幅度
+ISBKZS := STRLEFT(CODE, 2) == '88';
+IF (PERIODNAME == '日线' AND ISBKZS) {
+    zdfd = ABS((HIGH - REF(CLOSE, 1)) / REF(CLOSE, 1) * 100);  // 涨跌幅度
     // 下跌大于5%   上涨大于5%，紫红色高亮
-    IF (PERIODNAME == '日线' AND (zdfd  >=  指数涨跌幅界线)) {
-		STICKLINE(OPEN <= CLOSE, HIGH, LOW, 0.1, 0), colorff00ff;
-		STICKLINE(OPEN <= CLOSE, CLOSE, OPEN, W, 1), colorff00ff;
-		STICKLINE(OPEN > CLOSE, HIGH, LOW, 0.1, 0), colorff00ff;
-		STICKLINE(OPEN > CLOSE, CLOSE, OPEN, W, 0),  colorff00ff;
+    IF (zdfd >= 指数涨跌幅界线) {
+		STICKLINE(TRUE, HIGH, LOW, 0.1, 0), colorff00ff;
+		STICKLINE(TRUE, CLOSE, OPEN, W, OPEN <= CLOSE), colorff00ff;
     }
 }
 
 MA5 : MA(CLOSE, 5), color00ee00, LINETHICK2;
-MA10 : MA(CLOSE, 10),COLOREE00EE, Linethick2;
+MA10 : MA(CLOSE, 10),COLOREE00EE, LINETHICK2;

@@ -1531,7 +1531,7 @@ class ThsKLineWindow(kline_win.KLineWindow):
         self.css['paddings'] = (10, 1, 1, 1)
         self.css['borderColor'] = 0xAAcc88
         self.maxMode = True
-        self.MAX_SIZE = ( 980, 550) if screen.isSmalScreen() else (1000, 550)
+        self.MAX_SIZE = ( 980, 550) if screen.isSmalScreen() else (1370, 770)
         self.MIN_SIZE = (self.CAPTION_WIDTH, 300)
         self.rangeSelData = None
         self.addNamedListener('OpenMinutes', kline_utils.openTimeLineWindow, self)

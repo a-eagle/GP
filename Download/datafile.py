@@ -687,7 +687,10 @@ class Net_K_DataModel(K_DataModel):
             today = int(datetime.date.today().strftime('%Y%m%d'))
             kd = KLineDownloader()
             if tday == today:
-                maxDay = cutils.getTradeDaysInt()[-2]
+                if cutils.getCurTime() >= 1530:
+                    maxDay = cutils.getTradeDaysInt()[-1]
+                else:
+                    maxDay = cutils.getTradeDaysInt()[-2]
             else:
                 maxDay = tday
             kd.overWrite(self.code, self.data, toDay = maxDay)

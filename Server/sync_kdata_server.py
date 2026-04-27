@@ -4,7 +4,7 @@ import requests, json, logging
 import peewee as pw, flask, flask_cors
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from download import datafile, ths_iwencai, config
+from download import datafile, ths_iwencai, config, console
 from utils import cutils
 
 class Client:
@@ -81,8 +81,10 @@ class Client:
         count = self.getServerCodesCount()
         pageNum = (count + self.PAGE_SIZE - 1) // self.PAGE_SIZE
         flag = True
+        cpos = console.getCursorPos()
         for i in range(fromPage, pageNum):
-            print('[load page]', i + 1)
+            console.setCursorPos(*cpos)
+            print('[load page]', i + 1, '/', pageNum)
             datas = self.getServerKdatas(fromDay, i + 1)
             if not datas:
                 flag = False
