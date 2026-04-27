@@ -4,7 +4,7 @@ import os, sys, requests, traceback
 import peewee as pw
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from ui import timeline, kline_win, base_win, kline_indicator
+from ui import timeline, kline_win, base_win, kline_indicator, screen
 from THS import ths_win
 from orm import ths_orm
 
@@ -30,11 +30,15 @@ def createKLineWindow(parent = None, rect = None, style = None):
     dw = win32api.GetSystemMetrics (win32con.SM_CXSCREEN)
     dh = win32api.GetSystemMetrics (win32con.SM_CYSCREEN) - 35
     if not rect:
-        BORDER = 7
-        W, H = int(dw + BORDER * 2), dh
-        x = -BORDER
-        y = dh - H
-        rect = (x, y, W, H)
+        if screen.isLargeScreen():
+            W, H = 1920, 1200
+            rect = ((dw - W) // 2, dh - H, W, H)
+        else:
+            BORDER = 7
+            W, H = int(dw + BORDER * 2), dh
+            x = -BORDER
+            y = dh - H
+            rect = (x, y, W, H)
     if not style:
         if parent:
             style = win32con.WS_VISIBLE | win32con.WS_POPUPWINDOW | win32con.WS_CAPTION

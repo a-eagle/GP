@@ -1447,7 +1447,7 @@ class BkGnWindow(base_win.BaseWindow):
             self.MAX_SIZE = (950, 70)
         else:
             self.MAX_SIZE = (1320, 70)
-        self.MIN_SIZE = (60, 30)
+        self.MIN_SIZE = (10, 30)
         self.TITLE_HEIGHT = 15
         self.maxMode = True
         self.view = bkgn_view.BkGnView()
@@ -1532,7 +1532,7 @@ class ThsKLineWindow(kline_win.KLineWindow):
         self.css['borderColor'] = 0xAAcc88
         self.maxMode = True
         self.MAX_SIZE = ( 980, 550) if screen.isSmalScreen() else (1370, 770)
-        self.MIN_SIZE = (self.CAPTION_WIDTH, 300)
+        self.MIN_SIZE = (self.CAPTION_WIDTH, 100)
         self.rangeSelData = None
         self.addNamedListener('OpenMinutes', kline_utils.openTimeLineWindow, self)
         self.addNamedListener('selIdx-Changed', self.onSelIdxChanged)
