@@ -2,6 +2,7 @@ import win32gui, win32con , win32api, win32ui # pip install pywin32
 import threading, time, datetime, sys, os, json, copy
 from multiprocessing import Process
 from multiprocessing.shared_memory import SharedMemory
+import system_hotkey
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from THS import ths_win, ths_ocr, tips_win
@@ -107,7 +108,7 @@ def updateWindowInfo(thsWin, stateMgr : WinStateMgr):
         cp2['BK_GN_WIN'] = bkGnWin.getWindowState()
         cp2['KLINE_WIN'] = klineWin.getWindowState()
         if cp != cp2:
-            cp.update(cp2)
+            winsInfo[curPageName] = cp2
             stateMgr.save()
 
 def _workThread(thsWin : ths_win.ThsWindow, fileName):
@@ -178,7 +179,6 @@ def subprocess_main():
     #hotWindow.addListener(onListen, 'ListenHotWindow')
     fileName = 'win32.json' if screen.isSmalScreen() else 'win32-large.json'
     threading.Thread(target = _workThread, args=(thsWindow, fileName)).start()
-    
     mm = MarkMain()
     mm.createWindow(thsWindow.topHwnd, (0, 0, 1, 1), win32con.WS_POPUP)
     mm.reg()
@@ -258,6 +258,7 @@ class MarkWin(base_win.BaseWindow):
 class MarkMain(base_win.BaseWindow):
     MSG_M = win32con.WM_USER + 100
     MSG_N = win32con.WM_USER + 101
+    MSG_KL = win32con.WM_USER + 102
 
     def __init__(self) -> None:
         super().__init__()
@@ -270,11 +271,21 @@ class MarkMain(base_win.BaseWindow):
     def doMarkKey_2(self, msg):
         win32gui.PostMessage(self.hwnd, self.MSG_N, None, None)
 
+    def doOpenKlineWin(self, msg):
+        win32gui.PostMessage(self.hwnd, self.MSG_KL, None, None)
+
     def reg(self):
         import system_hotkey #pip install system_hotkey
         hk = system_hotkey.SystemHotkey()
         hk.register(('control', 'alt', 'm'), callback = self.doMarkKey_1, overwrite = True)
         hk.register(('control', 'alt', 'n'), callback = self.doMarkKey_2, overwrite = True)
+        hk.register(('alt', 'w'), callback = self.doOpenKlineWin, overwrite = True)
+
+    def onOpenKLineWindow(self):
+        global curCode
+        if not curCode:
+            return
+        kline_utils.openInCurWindow(None, {'code': curCode})
 
     def onMarkMain(self):
         d = thsShareMem.readSelDay()
@@ -295,6 +306,9 @@ class MarkMain(base_win.BaseWindow):
             win.createWindow(thsWindow.topHwnd)
             win.show()
             self.subWins.append(win)
+            return True
+        if msg == self.MSG_KL:
+            self.onOpenKLineWindow()
             return True
         return super().winProc(hwnd, msg, wParam, lParam)
 

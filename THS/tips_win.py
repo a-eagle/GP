@@ -1441,7 +1441,7 @@ class BkGnWindow(base_win.BaseWindow):
     def __init__(self) -> None:
         super().__init__()
         self.css['bgColor'] = 0x050505
-        self.css['borderColor'] = 0x22dddd
+        self.css['borderColor'] = 0xAAcc88
         self.css['enableBorder'] = True
         if screen.isSmalScreen():
             self.MAX_SIZE = (950, 70)
@@ -1511,7 +1511,7 @@ class BkGnWindow(base_win.BaseWindow):
     
     def onDraw(self, hdc):
         W, H = self.getClientSize()
-        self.drawer.fillRect(hdc, (2, 2, 10, self.TITLE_HEIGHT), 0x0A550A)
+        self.drawer.fillRect(hdc, (0, 0, 10, self.TITLE_HEIGHT if self.maxMode else self.MIN_SIZE[1]), rgb = 0x338888)
         self.view.onDrawRect(hdc, (0, 0, W, H))
 
     def setVisible(self, visible : bool):
@@ -1532,7 +1532,7 @@ class ThsKLineWindow(kline_win.KLineWindow):
         self.css['borderColor'] = 0xAAcc88
         self.maxMode = True
         self.MAX_SIZE = ( 980, 550) if screen.isSmalScreen() else (1370, 770)
-        self.MIN_SIZE = (self.CAPTION_WIDTH, 100)
+        self.MIN_SIZE = (self.CAPTION_WIDTH, 60)
         self.rangeSelData = None
         self.addNamedListener('OpenMinutes', kline_utils.openTimeLineWindow, self)
         self.addNamedListener('selIdx-Changed', self.onSelIdxChanged)
@@ -1568,7 +1568,7 @@ class ThsKLineWindow(kline_win.KLineWindow):
 
     def onDraw(self, hdc):
         H = 20
-        rc = (0, 0, self.CAPTION_WIDTH, H)
+        rc = (0, 0, self.CAPTION_WIDTH, H if self.maxMode else self.MIN_SIZE[1])
         self.drawer.fillRect(hdc, rc, rgb = 0x338888)
         if not self.maxMode:
             return
@@ -1602,16 +1602,19 @@ class ThsKLineWindow(kline_win.KLineWindow):
 
     def getWindowState(self):
         rc = win32gui.GetWindowRect(self.hwnd)
-        rs = {'pos': (rc[0], rc[1]), 'settings': None, 'maxMode': self.maxMode}
+        rs = {'pos': (rc[0], rc[1]), 'maxMode': self.maxMode}
         return rs
 
     def setWindowState(self, state):
         if not state:
             return
         x, y = state['pos']
-        mm = state.get('maxMode', True)
-        sz = self.MAX_SIZE if mm else self.MIN_SIZE
+        old = self.maxMode
+        self.maxMode = state['maxMode']
+        sz = self.MAX_SIZE if self.maxMode else self.MIN_SIZE
         win32gui.SetWindowPos(self.hwnd, 0, x, y, *sz, win32con.SWP_NOZORDER) # win32con.SWP_NOACTIVATE  | win32con.SWP_NOSIZE
+        if old != self.maxMode:
+            self.invalidWindow()
 
     def setVisible(self, visible : bool):
         if not win32gui.IsWindow(self.hwnd):
