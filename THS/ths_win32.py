@@ -279,13 +279,15 @@ class MarkMain(base_win.BaseWindow):
         hk = system_hotkey.SystemHotkey()
         hk.register(('control', 'alt', 'm'), callback = self.doMarkKey_1, overwrite = True)
         hk.register(('control', 'alt', 'n'), callback = self.doMarkKey_2, overwrite = True)
-        hk.register(('alt', 'w'), callback = self.doOpenKlineWin, overwrite = True)
+        # hk.register(('alt', 'w'), callback = self.doOpenKlineWin, overwrite = True)
+        hk.register(('alt', 'return'), callback = self.doOpenKlineWin, overwrite = True)
 
     def onOpenKLineWindow(self):
         global curCode
         if not curCode:
             return
-        kline_utils.openInCurWindow(None, {'code': curCode})
+        win = kline_utils.openInCurWindow(None, {'code': curCode})
+        win32gui.SetForegroundWindow(win.hwnd)
 
     def onMarkMain(self):
         d = thsShareMem.readSelDay()

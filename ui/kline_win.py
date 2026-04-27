@@ -1735,13 +1735,13 @@ class KLineWindow(base_win.BaseWindow):
                 x = self.klineIndicator.getCenterX(self.selIdx)
             win32gui.InvalidateRect(self.hwnd, None, True)
         elif keyCode == 28: # enter
-            if not isCtrlPress:
+            # if not isCtrlPress:
                 vr = self.klineIndicator.visibleRange
                 if vr and vr[0] <= self.selIdx and self.selIdx < vr[1]:
                     data = self.klineIndicator.data[self.selIdx]
                     self.notifyListener(self.Event('OpenMinutes', self, code = self.klineIndicator.code, idx = self.selIdx, data = data))
-            else:
-                self.onKeyDown(15)
+            # else:
+                # self.onKeyDown(15)
         elif keyCode == 15: # tab
             ks = ('day', 'week', 'month')
             idx = (ks.index(self.klineIndicator.period) + 1) % len(ks)

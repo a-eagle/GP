@@ -97,13 +97,8 @@ class Client:
 
     def start(self):
         from download import tdx
-        def acceptTime():
-            nowTime = datetime.datetime.now().strftime("%H:%M")
-            if not (nowTime >= '15:00' and nowTime <= '15:30'): # 服务器下数据时间
-                return True
-            return cutils.isTradeDay()
-
-        klineTry = tdx.Try(acceptTime, 3, self.download, intervalTime = 10 * 60, userNoInputTime = 0, ignoreDay = 0)
+        klineTry = tdx.Try('15:30', 3, self.download, intervalTime = 10 * 60, userNoInputTime = 0, ignoreDay = 0)
+        self.download()
         while True:
             klineTry.check()
             time.sleep(5 * 60)
