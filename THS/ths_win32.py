@@ -181,7 +181,7 @@ def subprocess_main():
     threading.Thread(target = _workThread, args=(thsWindow, fileName)).start()
     mm = MarkMain()
     mm.createWindow(thsWindow.topHwnd, (0, 0, 1, 1), win32con.WS_POPUP)
-    mm.reg()
+    mm.initSysHotKey()
     win32gui.PumpMessages()
     print('Quit Sub Process')
 
@@ -274,7 +274,7 @@ class MarkMain(base_win.BaseWindow):
     def doOpenKlineWin(self, msg):
         win32gui.PostMessage(self.hwnd, self.MSG_KL, None, None)
 
-    def reg(self):
+    def initSysHotKey(self):
         import system_hotkey #pip install system_hotkey
         hk = system_hotkey.SystemHotkey()
         hk.register(('control', 'alt', 'm'), callback = self.doMarkKey_1, overwrite = True)
